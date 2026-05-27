@@ -1,205 +1,161 @@
-import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useApp } from '../context/AppContext'
+// src/components/Auth.jsx
+// Drop-in replacement for your existing Auth.jsx
+// Uses AuthContext — no direct Firebase calls here
 
-export default function Auth({ defaultRole = 'admin', defaultTab = 'login', onClose }) {
-  const { login } = useApp()
-  const navigate = useNavigate()
+import { useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 
-  const [tab,      setTab]      = useState(defaultTab)   // 'login' | 'signup' | 'otp'
-  const [role,     setRole]     = useState(defaultRole)
-  const [email,    setEmail]    = useState('')
-  const [password, setPassword] = useState('')
-  const [name,     setName]     = useState('')
-  const [otp,      setOtp]      = useState(['','','','','',''])
-  const [loading,  setLoading]  = useState(false)
-  const [error,    setError]    = useState('')
+export default function Auth({ onSuccess }) {
+  const { login, register, sendReset, authError, setAuthError } = useAuth()
 
-  const otpRefs = useRef([])
+  const [mode, setMode]         = useState('login')   // 'login' | 'signup' | 'reset'
+  const [loading, setLoading]   = useState(false)
+  const [resetSent, setResetSent] = useState(false)
 
-  const roles = [
-    { key:'admin',   label:'Admin',   icon:'⚡' },
-    { key:'trainer', label:'Trainer', icon:'🏋️' },
-    { key:'member',  label:'Member',  icon:'💪' },
-  ]
+  const [form, setForm] = useState({
+    name: '', email: '', password: '', role: 'member',
+  })
 
-  const handleLogin = async () => {
-    if (!email || !password) { setError('Please fill in all fields.'); return }
-    setLoading(true); setError('')
-    // Simulate network delay
-    await new Promise(r => setTimeout(r, 800))
-    login(email, password, role)
-    navigate('/dashboard')
-    onClose?.()
-    setLoading(false)
+  function handleChange(e) {
+    setAuthError('')
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
-  const handleSignup = async () => {
-    if (!name || !email || !password) { setError('Please fill in all fields.'); return }
-    if (password.length < 6) { setError('Password must be at least 6 characters.'); return }
-    setLoading(true); setError('')
-    await new Promise(r => setTimeout(r, 600))
-    setTab('otp')
-    setLoading(false)
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      if (mode === 'login') {
+        const role = await login(form.email, form.password)
+        onSuccess?.(role)   // parent redirects based on role
+      } else if (mode === 'signup') {
+        const role = await register(form)
+        onSuccess?.(role)
+      } else if (mode === 'reset') {
+        await sendReset(form.email)
+        setResetSent(true)
+      }
+    } catch {
+      // authError already set inside AuthContext
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleOtp = async () => {
-    const code = otp.join('')
-    if (code.length < 6) { setError('Enter all 6 digits.'); return }
-    setLoading(true); setError('')
-    await new Promise(r => setTimeout(r, 700))
-    login(email, password, role)
-    navigate('/dashboard')
-    onClose?.()
-    setLoading(false)
+  // ── Shared input style ────────────────────────────────────────────────────
+  const inp = {
+    width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #333',
+    background: '#1a1a1a', color: '#fff', fontSize: 14, outline: 'none',
+    marginBottom: 12,
   }
-
-  const handleOtpChange = (i, val) => {
-    if (!/^\d?$/.test(val)) return
-    const next = [...otp]; next[i] = val; setOtp(next)
-    if (val && i < 5) otpRefs.current[i + 1]?.focus()
-  }
-
-  const handleOtpKey = (i, e) => {
-    if (e.key === 'Backspace' && !otp[i] && i > 0) otpRefs.current[i - 1]?.focus()
+  const btn = {
+    width: '100%', padding: '12px', borderRadius: 8, border: 'none',
+    background: 'linear-gradient(135deg,#ff6b00,#ff9500)', color: '#fff',
+    fontWeight: 700, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer',
+    opacity: loading ? 0.7 : 1,
   }
 
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose?.()}>
-      <div className="auth-modal">
-        {/* Header */}
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'20px' }}>
-          <div>
-            <div className="auth-logo">IRONPULSE</div>
-            <p className="auth-sub">
-              {tab === 'login'  && 'Sign in to your account'}
-              {tab === 'signup' && 'Create your account'}
-              {tab === 'otp'    && 'Verify your email'}
-            </p>
-          </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
-
-        {/* Tabs (login/signup only) */}
-        {tab !== 'otp' && (
-          <div className="auth-tabs">
-            <button className={`auth-tab ${tab === 'login'  ? 'active' : ''}`} onClick={() => { setTab('login');  setError('') }}>Sign In</button>
-            <button className={`auth-tab ${tab === 'signup' ? 'active' : ''}`} onClick={() => { setTab('signup'); setError('') }}>Sign Up</button>
-          </div>
-        )}
-
-        {/* Role selector */}
-        {tab !== 'otp' && (
-          <div style={{ marginBottom:'20px' }}>
-            <label className="form-label">I am a</label>
-            <div className="role-select-grid">
-              {roles.map(r => (
-                <button key={r.key} className={`role-select-btn ${role === r.key ? 'active' : ''}`} onClick={() => setRole(r.key)}>
-                  <span>{r.icon}</span>{r.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* SIGN IN FORM */}
-        {tab === 'login' && (
-          <>
-            <div className="form-group">
-              <label className="form-label">Email Address</label>
-              <input className="form-input" type="email" placeholder="you@ironpulse.app"
-                value={email} onChange={e => setEmail(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Password</label>
-              <input className="form-input" type="password" placeholder="••••••••"
-                value={password} onChange={e => setPassword(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              />
-            </div>
-            <div style={{ textAlign:'right', marginBottom:'16px' }}>
-              <a href="#" style={{ fontSize:'12px', color:'var(--teal)' }}>Forgot password?</a>
-            </div>
-          </>
-        )}
-
-        {/* SIGN UP FORM */}
-        {tab === 'signup' && (
-          <>
-            <div className="form-group">
-              <label className="form-label">Full Name</label>
-              <input className="form-input" type="text" placeholder="Your full name"
-                value={name} onChange={e => setName(e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Email Address</label>
-              <input className="form-input" type="email" placeholder="you@email.com"
-                value={email} onChange={e => setEmail(e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Password</label>
-              <input className="form-input" type="password" placeholder="Min 6 characters"
-                value={password} onChange={e => setPassword(e.target.value)} />
-            </div>
-          </>
-        )}
-
-        {/* OTP SCREEN */}
-        {tab === 'otp' && (
-          <div style={{ textAlign:'center' }}>
-            <div style={{ fontSize:'48px', marginBottom:'12px' }}>📩</div>
-            <p style={{ fontSize:'14px', color:'var(--text-muted)', marginBottom:'8px' }}>
-              We sent a 6-digit code to
-            </p>
-            <p style={{ fontSize:'15px', fontWeight:600, color:'var(--teal)', marginBottom:'24px' }}>{email}</p>
-            <div className="otp-inputs">
-              {otp.map((d, i) => (
-                <input key={i} ref={el => otpRefs.current[i] = el}
-                  className="otp-input" maxLength={1} value={d}
-                  onChange={e => handleOtpChange(i, e.target.value)}
-                  onKeyDown={e => handleOtpKey(i, e)}
-                />
-              ))}
-            </div>
-            <p style={{ fontSize:'12px', color:'var(--text-muted)', marginBottom:'8px' }}>
-              Didn't get it?{' '}
-              <button onClick={() => {}} style={{ background:'none', border:'none', color:'var(--teal)', fontSize:'12px', cursor:'pointer', fontWeight:600 }}>
-                Resend OTP
-              </button>
-            </p>
-          </div>
-        )}
-
-        {/* Error */}
-        {error && (
-          <p style={{ fontSize:'13px', color:'var(--red)', marginBottom:'12px', padding:'8px 12px', background:'rgba(239,68,68,0.1)', borderRadius:'6px' }}>
-            ⚠ {error}
-          </p>
-        )}
-
-        {/* CTA Button */}
-        <button
-          className="btn btn-primary"
-          style={{ width:'100%', justifyContent:'center', padding:'12px', fontSize:'14px', letterSpacing:'0.05em' }}
-          onClick={tab === 'login' ? handleLogin : tab === 'signup' ? handleSignup : handleOtp}
-          disabled={loading}
-        >
-          {loading ? '⏳ Please wait...' :
-           tab === 'login'  ? `Sign In as ${roles.find(r=>r.key===role)?.label}` :
-           tab === 'signup' ? 'Create Account & Verify Email' :
-           'Verify & Enter Dashboard'}
-        </button>
-
-        {/* Quick demo access */}
-        <p style={{ textAlign:'center', marginTop:'16px', fontSize:'12px', color:'var(--text-muted)' }}>
-          Just exploring?{' '}
-          <button style={{ background:'none', border:'none', color:'var(--teal)', fontSize:'12px', cursor:'pointer', fontWeight:600 }}
-            onClick={() => { login('demo@ironpulse.app','demo',role); navigate('/dashboard'); onClose?.() }}>
-            Enter as {roles.find(r=>r.key===role)?.label} (Demo)
-          </button>
+    <div style={{
+      minHeight: '100vh', background: '#0d0d0d', display: 'flex',
+      alignItems: 'center', justifyContent: 'center',
+    }}>
+      <div style={{
+        background: '#141414', borderRadius: 16, padding: 36,
+        width: '100%', maxWidth: 420, border: '1px solid #222',
+      }}>
+        {/* Logo */}
+        <h1 style={{ textAlign: 'center', color: '#ff6b00', fontFamily: 'Bebas Neue, sans-serif', fontSize: 36, marginBottom: 4 }}>
+          IRONPULSE
+        </h1>
+        <p style={{ textAlign: 'center', color: '#666', fontSize: 13, marginBottom: 28 }}>
+          {mode === 'login'  && 'Welcome back. Sign in to continue.'}
+          {mode === 'signup' && 'Create your account to get started.'}
+          {mode === 'reset'  && 'Enter your email to reset your password.'}
         </p>
+
+        {/* Reset sent confirmation */}
+        {resetSent ? (
+          <div style={{ textAlign: 'center', color: '#4ade80', padding: 16 }}>
+            ✅ Reset email sent! Check your inbox.<br />
+            <button onClick={() => { setMode('login'); setResetSent(false) }}
+              style={{ marginTop: 16, background: 'none', border: 'none', color: '#ff6b00', cursor: 'pointer', fontSize: 14 }}>
+              Back to Sign In
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            {/* Name — signup only */}
+            {mode === 'signup' && (
+              <input name="name" placeholder="Full Name" value={form.name}
+                onChange={handleChange} required style={inp} />
+            )}
+
+            {/* Email */}
+            <input name="email" type="email" placeholder="Email address"
+              value={form.email} onChange={handleChange} required style={inp} />
+
+            {/* Password — not on reset */}
+            {mode !== 'reset' && (
+              <input name="password" type="password" placeholder="Password (min 6 chars)"
+                value={form.password} onChange={handleChange} required minLength={6} style={inp} />
+            )}
+
+            {/* Role selector — signup only */}
+            {mode === 'signup' && (
+              <select name="role" value={form.role} onChange={handleChange}
+                style={{ ...inp, marginBottom: 16 }}>
+                <option value="member">Member</option>
+                <option value="trainer">Trainer</option>
+              </select>
+            )}
+
+            {/* Error message */}
+            {authError && (
+              <div style={{ color: '#f87171', fontSize: 13, marginBottom: 12, textAlign: 'center' }}>
+                {authError}
+              </div>
+            )}
+
+            <button type="submit" style={btn} disabled={loading}>
+              {loading
+                ? 'Please wait…'
+                : mode === 'login'  ? 'Sign In'
+                : mode === 'signup' ? 'Create Account'
+                : 'Send Reset Email'}
+            </button>
+          </form>
+        )}
+
+        {/* Mode switchers */}
+        {!resetSent && (
+          <div style={{ marginTop: 20, textAlign: 'center', fontSize: 13, color: '#666' }}>
+            {mode === 'login' && <>
+              <button onClick={() => setMode('reset')}
+                style={{ background: 'none', border: 'none', color: '#ff6b00', cursor: 'pointer', fontSize: 13 }}>
+                Forgot password?
+              </button>
+              <span style={{ margin: '0 8px' }}>·</span>
+              <button onClick={() => setMode('signup')}
+                style={{ background: 'none', border: 'none', color: '#ff6b00', cursor: 'pointer', fontSize: 13 }}>
+                Create account
+              </button>
+            </>}
+            {mode === 'signup' && <>
+              Already have an account?&nbsp;
+              <button onClick={() => setMode('login')}
+                style={{ background: 'none', border: 'none', color: '#ff6b00', cursor: 'pointer', fontSize: 13 }}>
+                Sign In
+              </button>
+            </>}
+            {mode === 'reset' && <>
+              <button onClick={() => setMode('login')}
+                style={{ background: 'none', border: 'none', color: '#ff6b00', cursor: 'pointer', fontSize: 13 }}>
+                ← Back to Sign In
+              </button>
+            </>}
+          </div>
+        )}
       </div>
     </div>
   )

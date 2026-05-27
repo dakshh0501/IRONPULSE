@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import Auth from '../components/Auth'
+import { useNavigate } from 'react-router-dom'
 
 export default function Landing() {
+  const navigate = useNavigate()
   const [showAuth, setShowAuth] = useState(false)
   const [defaultRole, setDefaultRole] = useState('admin')
   const [defaultTab, setDefaultTab] = useState('login')
@@ -22,7 +24,7 @@ export default function Landing() {
           <a href="#pricing">Pricing</a>
           <a href="#about">About</a>
           <button className="cta-outline" style={{ padding:'8px 20px', fontSize:'12px' }}
-            onClick={() => openAuth('admin','login')}>
+            onClick={() => navigate('/auth')}>
             Sign In
           </button>
         </div>
@@ -40,23 +42,23 @@ export default function Landing() {
           all in one high-performance platform.
         </p>
         <div className="hero-cta">
-          <button className="cta-primary" onClick={() => openAuth('admin','signup')}>GET STARTED →</button>
-          <button className="cta-outline" onClick={() => openAuth('admin','login')}>SIGN IN</button>
+          <button className="cta-primary" onClick={() => navigate('/auth')}>GET STARTED →</button>
+          <button className="cta-outline" onClick={() => navigate('/auth')}>SIGN IN</button>
         </div>
 
         {/* ROLE CARDS */}
         <div className="role-cards">
-          <div className="role-card" onClick={() => openAuth('admin','login')}>
+          <div className="role-card" onClick={() => navigate('/auth')}>
             <span className="role-card-icon">⚡</span>
             <div className="role-card-name">Admin</div>
             <div className="role-card-desc">Full platform control. Members, billing, reports.</div>
           </div>
-          <div className="role-card" onClick={() => openAuth('trainer','login')}>
+          <div className="role-card" onClick={() => navigate('/auth')}>
             <span className="role-card-icon">🏋️</span>
             <div className="role-card-name">Trainer</div>
             <div className="role-card-desc">Manage clients, sessions and workout plans.</div>
           </div>
-          <div className="role-card" onClick={() => openAuth('member','login')}>
+          <div className="role-card" onClick={() => navigate('/auth')}>
             <span className="role-card-icon">💪</span>
             <div className="role-card-name">Member</div>
             <div className="role-card-desc">Track your fitness, diet and progress.</div>
@@ -114,7 +116,7 @@ export default function Landing() {
                 {p.features.map(f => <li key={f} style={{ fontSize:'13px', color:'#a0aac0', display:'flex', alignItems:'center', gap:'8px' }}><span style={{ color:p.color }}>✓</span>{f}</li>)}
               </ul>
               <button className="btn btn-outline" style={{ width:'100%', justifyContent:'center', borderColor:p.color, color:p.color }}
-                onClick={() => openAuth('member','signup')}>
+                onClick={() => navigate('/auth')}>
                 Get Started
               </button>
             </div>

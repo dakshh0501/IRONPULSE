@@ -518,7 +518,13 @@ function DeleteModal({ trainer, onConfirm, onClose }) {
 //  MAIN PAGE
 // ─────────────────────────────────────────────────────────────
 export default function Trainers({ search = '' }) {
-  const { trainers, members, addTrainer, updateTrainer, deleteTrainer } = useApp()
+  const {
+    members,
+    trainers,
+    addTrainer,
+    updateTrainer,
+    deleteTrainer
+  } = useApp()
 
   const [specFilter, setSpecFilter]  = useState('All')
   const [viewTrainer, setViewTrainer] = useState(null)

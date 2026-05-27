@@ -1,21 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 
 // ─── Seed Data ───────────────────────────────────────────────────────────────
-const INITIAL_INVOICES = [
-  { id: 'INV-001', member: 'Riya Sharma',    plan: 'Premium Annual',    amount: 12000, paid: 12000, due: '2025-01-10', paidOn: '2025-01-08', method: 'UPI',         status: 'Paid',    avatar: 'RS' },
-  { id: 'INV-002', member: 'Karan Mehta',    plan: 'Standard Monthly',  amount: 1500,  paid: 0,     due: '2025-05-01', paidOn: null,          method: null,          status: 'Overdue', avatar: 'KM' },
-  { id: 'INV-003', member: 'Sanya Patel',    plan: 'Premium Quarterly', amount: 4500,  paid: 4500,  due: '2025-04-15', paidOn: '2025-04-14', method: 'Credit Card', status: 'Paid',    avatar: 'SP' },
-  { id: 'INV-004', member: 'Arjun Singh',    plan: 'Standard Monthly',  amount: 1500,  paid: 0,     due: '2025-05-20', paidOn: null,          method: null,          status: 'Pending', avatar: 'AS' },
-  { id: 'INV-005', member: 'Meera Joshi',    plan: 'Trial Week',        amount: 500,   paid: 500,   due: '2025-05-05', paidOn: '2025-05-04', method: 'Cash',        status: 'Paid',    avatar: 'MJ' },
-  { id: 'INV-006', member: 'Rohan Verma',    plan: 'Premium Annual',    amount: 12000, paid: 6000,  due: '2025-05-10', paidOn: null,          method: 'Bank Transfer',status: 'Partial', avatar: 'RV' },
-  { id: 'INV-007', member: 'Pooja Nair',     plan: 'Standard Quarterly',amount: 3500,  paid: 0,     due: '2025-04-01', paidOn: null,          method: null,          status: 'Overdue', avatar: 'PN' },
-  { id: 'INV-008', member: 'Vikram Das',     plan: 'Premium Monthly',   amount: 2500,  paid: 2500,  due: '2025-05-12', paidOn: '2025-05-11', method: 'UPI',         status: 'Paid',    avatar: 'VD' },
-  { id: 'INV-009', member: 'Ananya Roy',     plan: 'Standard Monthly',  amount: 1500,  paid: 0,     due: '2025-05-25', paidOn: null,          method: null,          status: 'Pending', avatar: 'AR' },
-  { id: 'INV-010', member: 'Nikhil Sharma',  plan: 'Premium Annual',    amount: 12000, paid: 12000, due: '2025-03-20', paidOn: '2025-03-18', method: 'Credit Card', status: 'Paid',    avatar: 'NS' },
-  { id: 'INV-011', member: 'Divya Kapoor',   plan: 'Standard Quarterly',amount: 3500,  paid: 3500,  due: '2025-04-30', paidOn: '2025-04-29', method: 'UPI',         status: 'Paid',    avatar: 'DK' },
-  { id: 'INV-012', member: 'Sahil Gupta',    plan: 'Trial Week',        amount: 500,   paid: 0,     due: '2025-05-18', paidOn: null,          method: null,          status: 'Pending', avatar: 'SG' },
-]
 
 const METHODS = ['UPI', 'Credit Card', 'Debit Card', 'Cash', 'Bank Transfer', 'Net Banking']
 const PLANS   = ['Premium Annual', 'Premium Quarterly', 'Premium Monthly', 'Standard Quarterly', 'Standard Monthly', 'Trial Week']
@@ -115,7 +101,9 @@ function RevenueChart({ data }) {
 // ─── Invoice Detail Modal ─────────────────────────────────────────────────────
 function InvoiceModal({ invoice, onClose, onMarkPaid }) {
   const c = STATUS_CFG[invoice.status]
-  const balance = invoice.amount - invoice.paid
+  const balance =
+    (Number(invoice.amount) || 0) -
+    (Number(invoice.paid) || 0)
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, backdropFilter: 'blur(6px)' }} onClick={onClose}>
       <div style={{ background: '#111', border: `1px solid ${c.border}`, borderRadius: 20, width: '100%', maxWidth: 480, boxShadow: '0 30px 80px #000' }} onClick={e => e.stopPropagation()}>
@@ -165,10 +153,10 @@ function InvoiceModal({ invoice, onClose, onMarkPaid }) {
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6B7280', marginBottom: 6 }}>
                 <span>Payment Progress</span>
-                <span style={{ color: '#A78BFA', fontWeight: 700 }}>{Math.round((invoice.paid / invoice.amount) * 100)}%</span>
+                <span style={{ color: '#A78BFA', fontWeight: 700 }}>{Math.round(invoice.amount > 0 ? (invoice.paid / invoice.amount) * 100 : 0)}%</span>
               </div>
               <div style={{ height: 8, borderRadius: 4, background: '#ffffff10', overflow: 'hidden' }}>
-                <div style={{ width: `${(invoice.paid / invoice.amount) * 100}%`, height: '100%', background: 'linear-gradient(90deg,#8B5CF6,#A78BFA)', borderRadius: 4 }} />
+                <div style={{ width: `${(invoice.amount > 0 ? (invoice.paid / invoice.amount) * 100 : 0)}%`, height: '100%', background: 'linear-gradient(90deg,#8B5CF6,#A78BFA)', borderRadius: 4 }} />
               </div>
             </div>
           )}
@@ -226,7 +214,7 @@ function NewInvoiceModal({ onSave, onClose }) {
     const parts = form.member.trim().split(' ')
     const avatar = (parts[0][0] + (parts[1]?.[0] || parts[0][1] || 'X')).toUpperCase()
     onSave({
-      id: `INV-${String(Date.now()).slice(-3)}`,
+      id: `INV-${Date.now()}`,
       ...form, amount: +form.amount, paid: 0, paidOn: null,
       avatar, status: 'Pending',
     })
@@ -301,10 +289,12 @@ function NewInvoiceModal({ onSave, onClose }) {
 }
 
 // ─── Invoice Row ──────────────────────────────────────────────────────────────
-function InvoiceRow({ inv, onClick }) {
+function InvoiceRow({ inv, onClick, onDelete }) {
   const [hovered, setHovered] = useState(false)
   const c = STATUS_CFG[inv.status]
-  const balance = inv.amount - inv.paid
+  const balance =
+  (Number(inv.amount) || 0) -
+  (Number(inv.paid) || 0)
 
   return (
     <tr
@@ -345,69 +335,178 @@ function InvoiceRow({ inv, onClick }) {
           {inv.method ? `${METHOD_ICON[inv.method] || ''} ${inv.method}` : '—'}
         </div>
       </td>
-    </tr>
+      <td style={{ padding: '14px 16px', borderBottom: '1px solid #ffffff08' }}>
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            if (window.confirm('Delete this invoice?')) {
+              onDelete(inv.id)
+            }
+          }}
+          style={{
+            background: '#EF4444',
+            color: '#fff',
+            border: 'none',
+            padding: '6px 12px',
+            borderRadius: 8,
+            cursor: 'pointer',
+            fontSize: 12,
+            fontWeight: 700,
+          }}
+      >
+          Delete
+        </button>
+        </td>
+      </tr>
   )
 }
 
 // ─── Main Payments Page ───────────────────────────────────────────────────────
 export default function Payments({ search = '' }) {
-  const { payments } = useApp()
+  const {
+    payments,
+    addPayment,
+    updatePayment,
+    deletePayment
+  } = useApp()
+  
+  const invoices = payments
 
-  const [invoices, setInvoices] = useState(INITIAL_INVOICES)
   const [viewInvoice, setViewInvoice] = useState(null)
   const [showNew, setShowNew] = useState(false)
   const [filterStatus, setFilterStatus] = useState('All')
   const [localSearch, setLocalSearch] = useState('')
-  const [sortBy, setSortBy] = useState('due') // due | amount | member
-
+  const [sortBy, setSortBy] = useState('due')
+  const [loading, setLoading] = useState(true)
   const searchTerm = (search || localSearch).toLowerCase()
 
+  useEffect(() => {
+    if (payments) {
+      setLoading(false)
+    }
+  }, [payments]) // due | amount | member
+  
   const filtered = useMemo(() => {
     let list = invoices.filter(inv => {
       const matchSearch = !searchTerm ||
-        inv.member.toLowerCase().includes(searchTerm) ||
-        inv.id.toLowerCase().includes(searchTerm) ||
-        inv.plan.toLowerCase().includes(searchTerm)
+        (inv.member || '').toLowerCase().includes(searchTerm) ||
+        (inv.id || '').toLowerCase().includes(searchTerm) ||
+        (inv.plan || '').toLowerCase().includes(searchTerm)
       const matchStatus = filterStatus === 'All' || inv.status === filterStatus
       return matchSearch && matchStatus
     })
     list = [...list].sort((a, b) => {
-      if (sortBy === 'amount') return b.amount - a.amount
-      if (sortBy === 'member') return a.member.localeCompare(b.member)
-      return new Date(a.due) - new Date(b.due)
+      if (sortBy === 'amount') return ((Number(b.amount) || 0) - (Number(a.amount) || 0) )
+      if (sortBy === 'member') return (a.member || '').localeCompare(b.member || '')
+      return (new Date(a.due || 0) - new Date(b.due || 0))
     })
     return list
   }, [invoices, searchTerm, filterStatus, sortBy])
 
   const stats = useMemo(() => {
-    const total = invoices.reduce((s, i) => s + i.amount, 0)
-    const collected = invoices.reduce((s, i) => s + i.paid, 0)
-    const pending = invoices.filter(i => i.status === 'Pending' || i.status === 'Partial').reduce((s, i) => s + (i.amount - i.paid), 0)
-    const overdue = invoices.filter(i => i.status === 'Overdue').reduce((s, i) => s + i.amount, 0)
+  const total = invoices.reduce(
+    (s, i) => s + (Number(i.amount) || 0),
+    0
+  )
+
+  const collected = invoices.reduce(
+    (s, i) => s + (Number(i.paid) || 0),
+    0
+  )
+    const pending = invoices
+      .filter(i =>
+      i.status === 'Pending' ||
+      i.status === 'Partial'
+      )
+      .reduce(
+      (s, i) =>
+        s +
+        (
+          (Number(i.amount) || 0) -
+          (Number(i.paid) || 0)
+        ),
+      0
+      )
+    const overdue = invoices
+      .filter(i => i.status === 'Overdue')
+      .reduce(
+        (s, i) =>
+          s + (Number(i.amount) || 0),
+        0
+    )
     const paidCount = invoices.filter(i => i.status === 'Paid').length
-    return { total, collected, pending, overdue, paidCount, collectionRate: Math.round((collected / total) * 100) }
+    return { total, collected, pending, overdue, paidCount, collectionRate: total > 0 ? Math.round((collected / total) * 100) : 0 }
   }, [invoices])
 
-  const handleMarkPaid = (id) => {
-    setInvoices(list => list.map(inv => inv.id === id
-      ? { ...inv, status: 'Paid', paid: inv.amount, paidOn: new Date().toISOString().split('T')[0] }
-      : inv
-    ))
-    setViewInvoice(null)
+  const handleMarkPaid = async (id) => {
+
+    try {
+
+      const invoice =
+        invoices.find(inv => inv.id === id)
+
+      if (!invoice) return
+
+      await updatePayment(id, {
+        status: 'Paid',
+        paid: invoice.amount,
+        paidOn:
+          new Date()
+            .toISOString()
+            .split('T')[0]
+      })
+
+      setViewInvoice(null)
+
+    } catch (error) {
+
+      console.error(
+        'Error marking invoice paid:',
+        error
+      )
+    }
   }
 
-  const handleNewInvoice = (inv) => {
-    setInvoices(list => [inv, ...list])
+  const handleNewInvoice = async (inv) => {
+
+  try {
+
+    await addPayment({
+      member: inv.member,
+      plan: inv.plan,
+
+      amount: inv.amount,
+      paid: inv.paid,
+
+      due: inv.due,
+      paidOn: inv.paidOn,
+
+      method: inv.method,
+      status: inv.status,
+
+      avatar: inv.avatar,
+    })
+
     setShowNew(false)
-  }
 
-  const filterBtn = (active) => ({
-    padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
-    cursor: 'pointer', transition: 'all 0.15s',
-    background: active ? 'linear-gradient(135deg,#FF4B2B,#F59E0B)' : '#ffffff09',
-    border: active ? 'none' : '1px solid #ffffff15',
-    color: active ? '#fff' : '#6B7280',
-  })
+  } catch (error) {
+
+    console.error(
+      'Error adding payment:',
+      error
+    )
+  }
+}
+
+  function filterBtn(active) {
+    return ({
+      padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+      cursor: 'pointer', transition: 'all 0.15s',
+      background: active ? 'linear-gradient(135deg,#FF4B2B,#F59E0B)' : '#ffffff09',
+      border: active ? 'none' : '1px solid #ffffff15',
+      color: active ? '#fff' : '#6B7280',
+    })
+  }
 
   const thStyle = {
     padding: '10px 16px', fontSize: 11, color: '#6B7280',
@@ -423,7 +522,7 @@ export default function Payments({ search = '' }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 30, letterSpacing: 2, color: '#F3F4F6' }}>
-            PAYMENTS & BILLING
+            payments & BILLING
           </div>
           <div style={{ color: '#6B7280', fontSize: 13, marginTop: 2 }}>
             {stats.paidCount} paid · {stats.collectionRate}% collection rate · {invoices.length} total invoices
@@ -537,24 +636,72 @@ export default function Payments({ search = '' }) {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                {['Member', 'Invoice ID', 'Amount', 'Balance', 'Status', 'Due Date', 'Method'].map(h => (
+                {['Member', 'Invoice ID', 'Amount', 'Balance', 'Status', 'Due Date', 'Method', 'Actions'].map(h => (
                   <th key={h} style={{ ...thStyle, textAlign: h === 'Amount' || h === 'Balance' ? 'right' : 'left' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} style={{ padding: '48px', textAlign: 'center', color: '#6B7280', borderBottom: '1px solid #ffffff08' }}>
-                    <div style={{ fontSize: 36, marginBottom: 10 }}>💳</div>
-                    <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, letterSpacing: 1 }}>NO INVOICES FOUND</div>
-                    <div style={{ fontSize: 12, marginTop: 4 }}>Try adjusting your filters.</div>
-                  </td>
-                </tr>
-              ) : filtered.map(inv => (
-                <InvoiceRow key={inv.id} inv={inv} onClick={setViewInvoice} />
-              ))}
-            </tbody>
+
+  {loading ? (
+
+    <tr>
+      <td
+        colSpan={8}
+        style={{
+          padding: '40px',
+          textAlign: 'center',
+          color: '#6B7280'
+        }}
+      >
+        Loading invoices...
+      </td>
+    </tr>
+
+  ) : filtered.length === 0 ? (
+
+    <tr>
+      <td
+        colSpan={8}
+        style={{
+          padding: '48px',
+          textAlign: 'center',
+          color: '#6B7280',
+          borderBottom: '1px solid #ffffff08'
+        }}
+      >
+        <div style={{ fontSize: 36, marginBottom: 10 }}>
+          💳
+        </div>
+
+        <div style={{
+          fontFamily: "'Bebas Neue',sans-serif",
+          fontSize: 18,
+          letterSpacing: 1
+        }}>
+          NO INVOICES FOUND
+        </div>
+
+        <div style={{ fontSize: 12, marginTop: 4 }}>
+          Try adjusting your filters.
+        </div>
+      </td>
+    </tr>
+
+  ) : (
+
+    filtered.map(inv => (
+      <InvoiceRow
+        key={inv.id}
+        inv={inv}
+        onClick={setViewInvoice}
+        onDelete={deletePayment}
+      />
+    ))
+
+  )}
+
+</tbody>
           </table>
         </div>
 
@@ -563,8 +710,8 @@ export default function Payments({ search = '' }) {
           <div style={{ padding: '12px 20px', borderTop: '1px solid #ffffff08', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
             <span style={{ fontSize: 12, color: '#6B7280' }}>{filtered.length} of {invoices.length} invoices</span>
             <span style={{ fontSize: 12, color: '#9CA3AF' }}>
-              Showing total: <span style={{ color: '#F3F4F6', fontWeight: 700 }}>{fmt(filtered.reduce((s, i) => s + i.amount, 0))}</span>
-              {' '}· Collected: <span style={{ color: '#10B981', fontWeight: 700 }}>{fmt(filtered.reduce((s, i) => s + i.paid, 0))}</span>
+              Showing total: <span style={{ color: '#F3F4F6', fontWeight: 700 }}>{fmt(filtered.reduce((s, i) => s + (Number(i.amount) || 0), 0))}</span>
+              {' '}· Collected: <span style={{ color: '#10B981', fontWeight: 700 }}>{fmt(filtered.reduce((s, i) => s + (Number(i.paid) || 0), 0))}</span>
             </span>
           </div>
         )}

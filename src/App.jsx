@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { AppProvider, useApp } from './context/AppContext'
-
-// ── Existing components only ──────────────────────────────────
+import { AppProvider } from './context/AppContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
+import MemberDashboard from './pages/MemberDashboard'
+import TrainerDashboard from './pages/TrainerDashboard'
 import Landing        from './pages/Landing'
+import Auth           from './components/Auth'
 import Payments       from './pages/Payments'
 import Diet           from './pages/Diet'
 import Attendance     from './pages/Attendance'
@@ -17,92 +19,139 @@ import Progress       from './pages/Progress'
 import Notifications  from './pages/Notifications'
 import Reports        from './pages/Reports'
 import Settings       from './pages/Settings'
+
 // ─────────────────────────────────────────────────────────────
-//  PLACEHOLDER  – shown for pages not yet built
+//  PLACEHOLDER
 // ─────────────────────────────────────────────────────────────
 function ComingSoon({ page }) {
   return (
     <div style={{
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      height: '100%', gap: 16, padding: 40, textAlign: 'center',
+      display:'flex', flexDirection:'column',
+      alignItems:'center', justifyContent:'center',
+      height:'100%', gap:16, padding:40, textAlign:'center',
     }}>
-      <div style={{ fontSize: 52 }}>🚧</div>
-      <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>
+      <div style={{ fontSize:52 }}>🚧</div>
+      <h2 style={{ fontSize:22, fontWeight:700, color:'var(--text)' }}>
         {page} — Coming Soon
       </h2>
-      <p style={{ fontSize: 14, color: 'var(--text-muted)', maxWidth: 340 }}>
+      <p style={{ fontSize:14, color:'var(--text-muted)', maxWidth:340 }}>
         This module is under construction. Add the page file to{' '}
-        <code style={{ color: 'var(--teal)', background: 'var(--bg3)', padding: '2px 6px', borderRadius: 4 }}>
+        <code style={{ color:'var(--teal)', background:'var(--bg3)', padding:'2px 6px', borderRadius:4 }}>
           src/pages/{page}.jsx
         </code>{' '}
-        and import it in <code style={{ color: 'var(--teal)', background: 'var(--bg3)', padding: '2px 6px', borderRadius: 4 }}>App.jsx</code>.
+        and import it in{' '}
+        <code style={{ color:'var(--teal)', background:'var(--bg3)', padding:'2px 6px', borderRadius:4 }}>
+          App.jsx
+        </code>.
       </p>
     </div>
   )
 }
 
 // ─────────────────────────────────────────────────────────────
-//  PAGE MAP
-//  Add a new entry here once you create the page file.
-//  Key   = the string passed to setPage()
-//  Value = the JSX element to render
+//  PAGE MAP — role-based
 // ─────────────────────────────────────────────────────────────
-function buildPageMap(setPage, search) {
-  return {
-    // ── Built ────────────────────────────────────────────────
-    dashboard:     <AdminDashboard setPage={setPage} />,
-    members:       <Members search={search} setPage={setPage} />,
-
-    // ── Not built yet – swap ComingSoon for real component ───
-    trainers:      <Trainers search={search} setPage={setPage} />,
-    workouts:      <Workouts search={search} setPage={setPage} />,
-    diet:          <Diet search={search} setPage={setPage} />,
-    payments:      <Payments search={search} setPage={setPage} />,
-    progress:      <Progress      search={search} setPage={setPage} />,
-    attendance:    <Attendance search={search} setPage={setPage} />,
-    notifications: <Notifications search={search} setPage={setPage} />,
-    reports:       <Reports        search={search} setPage={setPage} />,
-    settings:      <Settings       search={search} setPage={setPage} />,
+function buildPageMap(setPage, search, role) {
+  if (role === 'admin') {
+    return {
+      dashboard:     <AdminDashboard setPage={setPage} />,
+      members:       <Members        search={search} setPage={setPage} />,
+      trainers:      <Trainers       search={search} setPage={setPage} />,
+      workouts:      <Workouts       search={search} setPage={setPage} />,
+      diet:          <Diet           search={search} setPage={setPage} />,
+      payments:      <Payments       search={search} setPage={setPage} />,
+      progress:      <Progress       search={search} setPage={setPage} />,
+      attendance:    <Attendance     search={search} setPage={setPage} />,
+      notifications: <Notifications  search={search} setPage={setPage} />,
+      reports:       <Reports        search={search} setPage={setPage} />,
+      settings:      <Settings       search={search} setPage={setPage} />,
+    }
+  }
+  if (role === 'trainer') {
+    return {
+      dashboard:     <TrainerDashboard setPage={setPage} />,
+      members:       <Members        search={search} setPage={setPage} />,
+      workouts:      <Workouts       search={search} setPage={setPage} />,
+      diet:          <Diet           search={search} setPage={setPage} />,
+      progress:      <Progress       search={search} setPage={setPage} />,
+      attendance:    <Attendance     search={search} setPage={setPage} />,
+      notifications: <Notifications  search={search} setPage={setPage} />,
+    }
+  }
+  if (role === 'member') {
+    return {
+      dashboard:     <MemberDashboard setPage={setPage} />,
+      progress:      <Progress       search={search} setPage={setPage} />,
+      workouts:      <Workouts       search={search} setPage={setPage} />,
+      diet:          <Diet           search={search} setPage={setPage} />,
+      payments:      <Payments       search={search} setPage={setPage} />,
+      attendance:    <Attendance     search={search} setPage={setPage} />,
+      notifications: <Notifications  search={search} setPage={setPage} />,
+    }
   }
 }
 
 // ─────────────────────────────────────────────────────────────
-//  APP SHELL  (authenticated layout)
+//  AUTH LOADING SCREEN
+// ─────────────────────────────────────────────────────────────
+function AuthLoadingScreen() {
+  return (
+    <div style={{
+      minHeight:'100vh', background:'#0d0d0d',
+      display:'flex', alignItems:'center', justifyContent:'center',
+    }}>
+      <div style={{
+        color:'#ff6b00', fontSize:28,
+        fontFamily:'Bebas Neue, sans-serif',
+        letterSpacing:4, opacity:0.85,
+      }}>
+        IRONPULSE...
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+//  APP SHELL  ← was missing from your file
 // ─────────────────────────────────────────────────────────────
 function AppShell() {
+  const { role } = useAuth()
   const [page,       setPage]       = useState('dashboard')
   const [search,     setSearch]     = useState('')
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const pageMap     = buildPageMap(setPage, search)
-  const pageContent = pageMap[page] ?? <ComingSoon page={page} />
+  const pageMap     = buildPageMap(setPage, search, role)
+  const safePage =
+
+  pageMap[page]
+    ? page
+    : 'dashboard'
+
+const pageContent =
+  pageMap[safePage]
 
   return (
     <>
-      {/* Mobile sidebar backdrop */}
       {mobileOpen && (
         <div
           onClick={() => setMobileOpen(false)}
           style={{
-            position: 'fixed', inset: 0, zIndex: 90,
-            background: 'rgba(0,0,0,0.5)',
-            backdropFilter: 'blur(2px)',
+            position:'fixed', inset:0, zIndex:90,
+            background:'rgba(0,0,0,0.5)',
+            backdropFilter:'blur(2px)',
           }}
         />
       )}
-
       <div className="app-shell">
         <Sidebar
-          currentPage={page}
+          currentPage={safePage}
           setPage={(p) => { setPage(p); setSearch('') }}
           mobileOpen={mobileOpen}
           setMobileOpen={setMobileOpen}
         />
-
         <div className="main-content">
           <Header
-            currentPage={page}
+            currentPage={safePage}
             setPage={setPage}
             search={search}
             setSearch={setSearch}
@@ -121,13 +170,15 @@ function AppShell() {
 //  ROUTE GUARDS
 // ─────────────────────────────────────────────────────────────
 function ProtectedRoute({ children }) {
-  const { currentUser } = useApp()
-  return currentUser ? children : <Navigate to="/" replace />
+  const { isLoggedIn, authLoading } = useAuth()
+  if (authLoading) return <AuthLoadingScreen />
+  return isLoggedIn ? children : <Navigate to="/" replace />
 }
 
 function PublicRoute({ children }) {
-  const { currentUser } = useApp()
-  return currentUser ? <Navigate to="/dashboard" replace /> : children
+  const { isLoggedIn, authLoading } = useAuth()
+  if (authLoading) return <AuthLoadingScreen />
+  return isLoggedIn ? <Navigate to="/dashboard" replace /> : children
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -136,22 +187,9 @@ function PublicRoute({ children }) {
 function RouterTree() {
   return (
     <Routes>
-      <Route
-        path="/"
-        element={
-          <PublicRoute>
-            <Landing />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <AppShell />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
+      <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute><AppShell /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
@@ -162,8 +200,10 @@ function RouterTree() {
 // ─────────────────────────────────────────────────────────────
 export default function App() {
   return (
-    <AppProvider>
-      <RouterTree />
-    </AppProvider>
+    <AuthProvider>
+      <AppProvider>
+        <RouterTree />
+      </AppProvider>
+    </AuthProvider>
   )
 }

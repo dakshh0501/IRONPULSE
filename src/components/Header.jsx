@@ -25,8 +25,10 @@ export default function Header({ currentPage, setPage, search, setSearch, setMob
     <>
       <header className="header">
         {/* Mobile menu button */}
-        <button className="icon-btn" style={{ display:'none' }} onClick={() => setMobileOpen(p => !p)}>
-          ☰
+<button
+  className="mobile-menu-btn"
+  onClick={() => setMobileOpen(p => !p)}
+>          ☰
         </button>
 
         <div className="header-title">{PAGE_TITLES[currentPage] || 'Dashboard'}</div>

@@ -1,5 +1,6 @@
-import { useApp } from '../context/AppContext'
+import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import { useApp } from '../context/AppContext'
 
 const ADMIN_NAV = [
   { section:'Main' },
@@ -28,9 +29,8 @@ const TRAINER_NAV = [
   { key:'diet',          label:'Diet Plans',       icon:'🥗' },
   { key:'progress',      label:'Progress Tracking',icon:'📈' },
   { section:'Other' },
-  { key:'attendance',    label:'Sessions Log',     icon:'📱' },
+  { key:'attendance',    label:'Attendance',     icon:'📱' },
   { key:'notifications', label:'Notifications',    icon:'🔔', badge:'notifs' },
-  { key:'settings',      label:'Settings',         icon:'⚙️' },
 ]
 
 const MEMBER_NAV = [
@@ -43,17 +43,20 @@ const MEMBER_NAV = [
   { key:'payments',      label:'My Payments',      icon:'💳' },
   { key:'attendance',    label:'Check In',         icon:'📱' },
   { key:'notifications', label:'Notifications',    icon:'🔔', badge:'notifs' },
-  { key:'settings',      label:'Settings',         icon:'⚙️' },
 ]
 
 const NAV_MAP = { admin: ADMIN_NAV, trainer: TRAINER_NAV, member: MEMBER_NAV }
 
 export default function Sidebar({ currentPage, setPage, mobileOpen, setMobileOpen }) {
-  const { currentUser, logout, unreadCount, payments } = useApp()
+  const { currentUser, logout, userProfile } = useAuth()
+  const { unreadCount} = useApp()
   const navigate = useNavigate()
 
-  const nav = NAV_MAP[currentUser?.role] || ADMIN_NAV
-  const overdueCount = payments?.filter(p => p.status === 'Overdue' || p.status === 'Pending').length || 0
+  const role = userProfile?.role || 'member'
+  const nav =
+    NAV_MAP[role] || MEMBER_NAV
+
+  const overdueCount = 0
 
   const getBadge = (badge) => {
     if (badge === 'notifs')  return unreadCount  || null
@@ -68,7 +71,9 @@ export default function Sidebar({ currentPage, setPage, mobileOpen, setMobileOpe
   }
 
   const avatarColors = ['av-orange','av-teal','av-green','av-purple','av-amber']
-  const avColor = avatarColors[currentUser?.name?.charCodeAt(0) % avatarColors.length] || 'av-orange'
+  const charIndex = userProfile?.name ? userProfile.name.charCodeAt(0) : 0
+
+  const avColor = avatarColors[charIndex % avatarColors.length] || 'av-orange'
 
   return (
     <aside className={`sidebar ${mobileOpen ? 'open' : ''}`}>
@@ -108,18 +113,18 @@ export default function Sidebar({ currentPage, setPage, mobileOpen, setMobileOpe
             className={`avatar ${avColor}`}
             style={{ width:34, height:34, fontSize:13 }}
           >
-            {currentUser?.avatar || '??'}
+            {userProfile?.name?.[0] || '??'}
           </div>
           <div className="sidebar-user-info">
-            <div className="sidebar-user-name">{currentUser?.name || 'User'}</div>
-            <div className="sidebar-user-role">{currentUser?.role || 'admin'}</div>
+            <div className="sidebar-user-name">{userProfile?.name || 'User'}</div>
+            <div className="sidebar-user-role">{role || 'admin'}</div>
           </div>
           <span style={{ fontSize:14, color:'var(--text-muted)' }}>⚙</span>
         </div>
         <button
           className="btn btn-ghost btn-sm"
           style={{ width:'100%', justifyContent:'center', marginTop:'8px', fontSize:'12px' }}
-          onClick={() => { logout(); navigate('/') }}
+          onClick={async () => await logout()}
         >
           🚪 Sign Out
         </button>

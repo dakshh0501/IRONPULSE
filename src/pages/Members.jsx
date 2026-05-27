@@ -1,10 +1,27 @@
 import { useState } from 'react'
 import { useApp } from '../context/AppContext'
+import { useAuth } from '../context/AuthContext'
+import { addPayment } from '../services/firestoreService'
+import MemberQR from '../components/MemberQR'
 
 const EMPTY_MEMBER = {
-  name:'', age:'', weight:'', height:'', contact:'', email:'',
-  goal:'Weight Loss', plan:'Standard', trainer:'Amit Kumar',
-  join:'', expiry:'', status:'Active', avatar:'', bf:0, strength:0,
+  name:'',
+  age:'',
+  weight:'',
+  height:'',
+  contact:'',
+  email:'',
+  goal:'Weight Loss',
+  plan:'Standard',
+  trainerId:'',
+  trainerName:'',
+  join:'',
+  expiry:'',
+  status:'Active',
+  checkins: 0,
+  avatar:'',
+  bf:0,
+  strength:0,
 }
 
 const GOALS    = ['Weight Loss','Muscle Gain','Strength','Flexibility','Toning','Endurance','General Fitness']
@@ -27,6 +44,8 @@ function MemberModal({ member, trainers, onSave, onClose }) {
   return (
     <div className="modal-overlay">
       <div className="modal modal-lg">
+
+        {/* Header */}
         <div className="modal-header">
           <div>
             <h3>{member ? 'Edit Member' : 'Add New Member'}</h3>
@@ -36,40 +55,44 @@ function MemberModal({ member, trainers, onSave, onClose }) {
         </div>
 
         {/* Personal Info */}
-        <p style={{ fontSize:11, fontWeight:700, color:'var(--teal)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:10 }}>Personal Information</p>
+        <p style={{ fontSize:11, fontWeight:700, color:'var(--teal)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:10 }}>
+          Personal Information
+        </p>
         <div className="form-row" style={{ marginBottom:14 }}>
           <div className="form-group" style={{ margin:0 }}>
             <label className="form-label">Full Name *</label>
-            <input className="form-input" placeholder="e.g. Rohan Sharma" value={form.name} onChange={e => set('name', e.target.value)}/>
+            <input className="form-input" placeholder="e.g. Rohan Sharma" value={form.name} onChange={e => set('name', e.target.value)} />
           </div>
           <div className="form-group" style={{ margin:0 }}>
             <label className="form-label">Email *</label>
-            <input className="form-input" type="email" placeholder="email@example.com" value={form.email} onChange={e => set('email', e.target.value)}/>
+            <input className="form-input" type="email" placeholder="email@example.com" value={form.email} onChange={e => set('email', e.target.value)} />
           </div>
         </div>
         <div className="form-row" style={{ marginBottom:14 }}>
           <div className="form-group" style={{ margin:0 }}>
             <label className="form-label">Contact</label>
-            <input className="form-input" placeholder="+91 98765 43210" value={form.contact} onChange={e => set('contact', e.target.value)}/>
+            <input className="form-input" placeholder="+91 98765 43210" value={form.contact} onChange={e => set('contact', e.target.value)} />
           </div>
           <div className="form-group" style={{ margin:0 }}>
             <label className="form-label">Age</label>
-            <input className="form-input" type="number" placeholder="25" value={form.age} onChange={e => set('age', e.target.value)}/>
+            <input className="form-input" type="number" placeholder="25" value={form.age} onChange={e => set('age', e.target.value)} />
           </div>
         </div>
         <div className="form-row" style={{ marginBottom:20 }}>
           <div className="form-group" style={{ margin:0 }}>
             <label className="form-label">Weight (kg)</label>
-            <input className="form-input" type="number" placeholder="70" value={form.weight} onChange={e => set('weight', e.target.value)}/>
+            <input className="form-input" type="number" placeholder="70" value={form.weight} onChange={e => set('weight', e.target.value)} />
           </div>
           <div className="form-group" style={{ margin:0 }}>
             <label className="form-label">Height (cm)</label>
-            <input className="form-input" type="number" placeholder="175" value={form.height} onChange={e => set('height', e.target.value)}/>
+            <input className="form-input" type="number" placeholder="175" value={form.height} onChange={e => set('height', e.target.value)} />
           </div>
         </div>
 
         {/* Membership Info */}
-        <p style={{ fontSize:11, fontWeight:700, color:'var(--teal)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:10 }}>Membership Details</p>
+        <p style={{ fontSize:11, fontWeight:700, color:'var(--teal)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:10 }}>
+          Membership Details
+        </p>
         <div className="form-row" style={{ marginBottom:14 }}>
           <div className="form-group" style={{ margin:0 }}>
             <label className="form-label">Plan</label>
@@ -87,8 +110,22 @@ function MemberModal({ member, trainers, onSave, onClose }) {
         <div className="form-row" style={{ marginBottom:14 }}>
           <div className="form-group" style={{ margin:0 }}>
             <label className="form-label">Assign Trainer</label>
-            <select className="form-select" value={form.trainer} onChange={e => set('trainer', e.target.value)}>
-              {trainers.map(t => <option key={t.id}>{t.name}</option>)}
+            <select
+              className="form-select"
+              value={form.trainerId}
+              onChange={(e) => {
+                const selectedTrainer = trainers.find(t => t.id === e.target.value)
+                setForm(prev => ({
+                  ...prev,
+                  trainerId:   e.target.value,
+                  trainerName: selectedTrainer?.name || '',
+                }))
+              }}
+            >
+              <option value="">Select Trainer</option>
+              {trainers.map(trainer => (
+                <option key={trainer.id} value={trainer.id}>{trainer.name}</option>
+              ))}
             </select>
           </div>
           <div className="form-group" style={{ margin:0 }}>
@@ -101,20 +138,22 @@ function MemberModal({ member, trainers, onSave, onClose }) {
         <div className="form-row" style={{ marginBottom:20 }}>
           <div className="form-group" style={{ margin:0 }}>
             <label className="form-label">Join Date</label>
-            <input className="form-input" type="date" value={form.join} onChange={e => set('join', e.target.value)}/>
+            <input className="form-input" type="date" value={form.join} onChange={e => set('join', e.target.value)} />
           </div>
           <div className="form-group" style={{ margin:0 }}>
             <label className="form-label">Expiry Date</label>
-            <input className="form-input" type="date" value={form.expiry} onChange={e => set('expiry', e.target.value)}/>
+            <input className="form-input" type="date" value={form.expiry} onChange={e => set('expiry', e.target.value)} />
           </div>
         </div>
 
+        {/* Footer */}
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
           <button className="btn btn-primary" onClick={handleSave}>
             {member ? '💾 Save Changes' : '+ Add Member'}
           </button>
         </div>
+
       </div>
     </div>
   )
@@ -151,7 +190,11 @@ const STATUS_BADGE = {
 const AV_COLORS = ['av-orange','av-teal','av-green','av-purple','av-amber']
 
 export default function Members({ search }) {
-  const { members, trainers, addMember, updateMember, deleteMember } = useApp()
+  const { members, trainers, addMember, updateMember, deleteMember, checkInMember, attendance } = useApp()
+  const { role, currentUser} = useAuth()
+  const isAdmin   = role === 'admin'
+  const isTrainer = role === 'trainer'
+  const isMember  = role === 'member'
   const [filter,     setFilter]     = useState('All')
   const [modalOpen,  setModalOpen]  = useState(false)
   const [editMember, setEditMember] = useState(null)
@@ -160,15 +203,74 @@ export default function Members({ search }) {
 
   const statuses = ['All', 'Active', 'Expired', 'Trial']
 
-  const filtered = members.filter(m => {
-    const matchFilter = filter === 'All' || m.status === filter
+  const todayDate =
+  new Date()
+
+const normalizedMembers =
+
+  members.map(member => {
+
+    if (!member.expiry)
+      return member
+
+    const expiryDate =
+      new Date(member.expiry)
+
+    const expired =
+      expiryDate < todayDate
+
+    return {
+
+      ...member,
+
+      status:
+        expired
+          ? 'Expired'
+          : member.status,
+    }
+  })
+
+  const filtered = normalizedMembers.filter(m => {
+
+    // ─────────────────────────────
+    // ROLE FILTER
+    // ─────────────────────────────
+
+    const matchTrainer =
+      role === 'trainer'
+        ? m.trainerId === currentUser?.uid
+        : true
+
+    // ─────────────────────────────
+    // STATUS FILTER
+    // ─────────────────────────────
+
+    const matchFilter =
+      filter === 'All' ||
+      m.status === filter
+
+    // ─────────────────────────────
+    // SEARCH
+    // ─────────────────────────────
+
     const q = search?.toLowerCase() || ''
-    const matchSearch = !q ||
+
+    const matchSearch =
+      !q ||
       m.name.toLowerCase().includes(q) ||
       m.email.toLowerCase().includes(q) ||
       m.goal.toLowerCase().includes(q) ||
       m.plan.toLowerCase().includes(q)
-    return matchFilter && matchSearch
+
+    // ─────────────────────────────
+    // FINAL RESULT
+    // ─────────────────────────────
+
+    return (
+      matchTrainer &&
+      matchFilter &&
+      matchSearch
+    )
   })
 
   const avColor = (m) => AV_COLORS[m.name.charCodeAt(0) % AV_COLORS.length]
@@ -179,11 +281,13 @@ export default function Members({ search }) {
       <div className="page-header">
         <div>
           <h2>Member Directory</h2>
-          <p>{members.length} total members · {members.filter(m=>m.status==='Active').length} active</p>
+          <p>{members.length} total members · {members.filter(m => m.status === 'Active').length} active</p>
         </div>
-        <button className="btn btn-primary" onClick={() => { setEditMember(null); setModalOpen(true) }}>
-          + Add Member
-        </button>
+        {isAdmin && (
+          <button className="btn btn-primary" onClick={() => { setEditMember(null); setModalOpen(true) }}>
+            + Add Member
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -234,21 +338,95 @@ export default function Members({ search }) {
                     </span>
                   </td>
                   <td style={{ fontSize:12, color:'var(--text-muted)' }}>{m.goal}</td>
-                  <td style={{ fontSize:12 }}>{m.trainer}</td>
-                  <td style={{ fontWeight:600, color:'var(--teal)' }}>{m.checkins}</td>
+                  <td style={{ fontSize:12 }}>{m.trainerName || 'Unassigned'}</td>
+                  <td style={{ fontWeight:600, color:'var(--teal)' }}>
+{
+  attendance.filter(
+    a =>
+      a.memberId === (
+        m.authUid ||
+        m.uid ||
+        m.id
+      )
+  ).length
+}
+</td>
                   <td style={{ fontSize:12, color:'var(--text-muted)' }}>{m.expiry}</td>
                   <td><span className={STATUS_BADGE[m.status] || 'badge badge-teal'}>{m.status}</span></td>
                   <td>
                     <div style={{ display:'flex', gap:6 }}>
                       <button className="btn btn-sm btn-ghost" title="View" onClick={() => setViewMember(m)}>👁</button>
-                      <button className="btn btn-sm btn-ghost" title="Edit" onClick={() => { setEditMember(m); setModalOpen(true) }}>✏️</button>
-                      <button className="btn btn-sm btn-red" title="Delete" onClick={() => setDelMember(m)}>🗑</button>
+                      {isAdmin && (
+                        <button className="btn btn-sm btn-ghost" title="Edit" onClick={() => { setEditMember(m); setModalOpen(true) }}>✏️</button>
+                      )}
+                      {(isAdmin || isTrainer) && (
+                        <button
+                          className="btn btn-sm btn-ghost"
+                          title="Check In"
+                          onClick={() => checkInMember(m)}
+                        >
+                          ✅
+                        </button>
+                      )}
+                      {isAdmin && (
+                        <button className="btn btn-sm btn-red" title="Delete" onClick={() => setDelMember(m)}>🗑</button>
+                      )}
+                      {isAdmin && (
+                        <button
+                          className="btn btn-sm btn-ghost"
+                          title="Renew Membership"
+                          onClick={async () => {
+
+                            const today = new Date()
+
+                            const nextMonth = new Date()
+
+                            nextMonth.setDate(
+                              today.getDate() + 30
+                            )
+
+                            const expiry =
+                              nextMonth
+                                .toISOString()
+                                .split('T')[0]
+
+                            // Update member
+                            await updateMember(
+                              m.id,
+                              {
+                                status: 'Active',
+                                expiry,
+                              }
+                            )
+
+                            // Add payment history
+                            await addPayment({
+                              memberId:   m.id,
+                              memberName: m.name,
+                              amount:     m.planPrice || 1499,
+                              status:     'Paid',
+                              plan:       m.plan,
+                              date:       today.toISOString().split('T')[0],
+                            })
+
+                            alert(
+                              `${m.name}'s membership renewed successfully`
+                            )
+                          }}
+                        >
+                          🔄
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={9} style={{ textAlign:'center', padding:'40px', color:'var(--text-muted)' }}>No members found.</td></tr>
+                <tr>
+                  <td colSpan={9} style={{ textAlign:'center', padding:'40px', color:'var(--text-muted)' }}>
+                    No members found.
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -270,20 +448,29 @@ export default function Members({ search }) {
               <button className="modal-close" onClick={() => setViewMember(null)}>✕</button>
             </div>
             <div className="grid-2" style={{ gap:16 }}>
+              <div
+  style={{
+    marginTop: 24,
+    display:'flex',
+    justifyContent:'center',
+  }}
+>
+  <MemberQR member={viewMember} />
+</div>
               {[
-                ['Age', `${viewMember.age} yrs`],
-                ['Weight', `${viewMember.weight} kg`],
-                ['Height', `${viewMember.height} cm`],
-                ['Goal', viewMember.goal],
-                ['Plan', viewMember.plan],
-                ['Plan Price', `₹${viewMember.planPrice}/mo`],
-                ['Trainer', viewMember.trainer],
-                ['Status', viewMember.status],
-                ['Joined', viewMember.join],
-                ['Expires', viewMember.expiry],
+                ['Age',            `${viewMember.age} yrs`],
+                ['Weight',         `${viewMember.weight} kg`],
+                ['Height',         `${viewMember.height} cm`],
+                ['Goal',            viewMember.goal],
+                ['Plan',            viewMember.plan],
+                ['Plan Price',     `₹${viewMember.planPrice}/mo`],
+                ['Trainer',         viewMember.trainerName || 'Unassigned'],
+                ['Status',          viewMember.status],
+                ['Joined',          viewMember.join],
+                ['Expires',         viewMember.expiry],
                 ['Total Check-ins', viewMember.checkins],
-                ['Body Fat', `${viewMember.bf}%`],
-              ].map(([k,v]) => (
+                ['Body Fat',       `${viewMember.bf}%`],
+              ].map(([k, v]) => (
                 <div key={k} style={{ background:'var(--bg3)', borderRadius:'var(--radius-sm)', padding:'12px 14px' }}>
                   <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--text-muted)', marginBottom:4, fontWeight:600 }}>{k}</div>
                   <div style={{ fontSize:14, fontWeight:600 }}>{v}</div>
@@ -292,7 +479,18 @@ export default function Members({ search }) {
             </div>
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={() => setViewMember(null)}>Close</button>
-              <button className="btn btn-primary" onClick={() => { setEditMember(viewMember); setViewMember(null); setModalOpen(true) }}>Edit Member</button>
+              {(isAdmin || isTrainer) && (
+                <button
+                  className="btn btn-primary"
+                  onClick={() => {
+                    setEditMember(viewMember)
+                    setViewMember(null)
+                    setModalOpen(true)
+                  }}
+                >
+                  ✏️ Edit Member
+                </button>
+              )}
             </div>
           </div>
         </div>
