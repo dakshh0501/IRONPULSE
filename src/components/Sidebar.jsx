@@ -18,6 +18,7 @@ const ADMIN_NAV = [
   { key:'reports',       label:'Reports',          icon:'📋' },
   { section:'System' },
   { key:'settings',      label:'Settings',         icon:'⚙️' },
+  { icon: '🖥',label: 'Reception', key: 'reception', }
 ]
 
 const TRAINER_NAV = [
@@ -31,6 +32,7 @@ const TRAINER_NAV = [
   { section:'Other' },
   { key:'attendance',    label:'Attendance',     icon:'📱' },
   { key:'notifications', label:'Notifications',    icon:'🔔', badge:'notifs' },
+  { icon: '🖥',label: 'Reception', key: 'reception', }
 ]
 
 const MEMBER_NAV = [
@@ -43,6 +45,7 @@ const MEMBER_NAV = [
   { key:'payments',      label:'My Payments',      icon:'💳' },
   { key:'attendance',    label:'Check In',         icon:'📱' },
   { key:'notifications', label:'Notifications',    icon:'🔔', badge:'notifs' },
+  { icon: '🖥',label: 'Reception', key: 'reception', }
 ]
 
 const NAV_MAP = { admin: ADMIN_NAV, trainer: TRAINER_NAV, member: MEMBER_NAV }

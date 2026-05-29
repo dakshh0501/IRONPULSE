@@ -10,6 +10,7 @@ import {
   onAuthStateChanged,
 } from 'firebase/auth'
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, query, where, getDocs, updateDoc } from 'firebase/firestore'
 import { auth, db } from '../firebase'
 
 // ─── Sign Up ────────────────────────────────────────────────────────────────
@@ -42,6 +43,24 @@ export async function signUp({
     phone:     '',
     avatarUrl: '',
   })
+
+  // Link member account to existing member record
+if (safeRole === 'member') {
+  const q = query(
+    collection(db, 'members'),
+    where('email', '==', email)
+  )
+
+  const snap = await getDocs(q)
+
+  if (!snap.empty) {
+    const memberDoc = snap.docs[0]
+
+    await updateDoc(memberDoc.ref, {
+      authUid: user.uid,
+    })
+  }
+}
 
   return user
 }

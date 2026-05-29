@@ -9,6 +9,7 @@ import Auth           from './components/Auth'
 import Payments       from './pages/Payments'
 import Diet           from './pages/Diet'
 import Attendance     from './pages/Attendance'
+import ReceptionMode  from './pages/ReceptionMode'
 import Sidebar        from './components/Sidebar'
 import Header         from './components/Header'
 import AdminDashboard from './pages/AdminDashboard'
@@ -62,6 +63,7 @@ function buildPageMap(setPage, search, role) {
       payments:      <Payments       search={search} setPage={setPage} />,
       progress:      <Progress       search={search} setPage={setPage} />,
       attendance:    <Attendance     search={search} setPage={setPage} />,
+      reception:     <ReceptionMode  />,
       notifications: <Notifications  search={search} setPage={setPage} />,
       reports:       <Reports        search={search} setPage={setPage} />,
       settings:      <Settings       search={search} setPage={setPage} />,
@@ -75,6 +77,7 @@ function buildPageMap(setPage, search, role) {
       diet:          <Diet           search={search} setPage={setPage} />,
       progress:      <Progress       search={search} setPage={setPage} />,
       attendance:    <Attendance     search={search} setPage={setPage} />,
+      reception:     <ReceptionMode  />,
       notifications: <Notifications  search={search} setPage={setPage} />,
     }
   }
@@ -89,6 +92,7 @@ function buildPageMap(setPage, search, role) {
       notifications: <Notifications  search={search} setPage={setPage} />,
     }
   }
+  return {}
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -120,15 +124,18 @@ function AppShell() {
   const [search,     setSearch]     = useState('')
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const pageMap     = buildPageMap(setPage, search, role)
-  const safePage =
+  const pageMap = buildPageMap(setPage, search, role) || {}
 
+console.log(pageMap)
+console.log(role)
+
+const safePage =
   pageMap[page]
     ? page
-    : 'dashboard'
+    : Object.keys(pageMap)[0]
 
 const pageContent =
-  pageMap[safePage]
+  pageMap[safePage] || <div>Loading...</div>
 
   return (
     <>
@@ -190,6 +197,7 @@ function RouterTree() {
       <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
       <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><AppShell /></ProtectedRoute>} />
+      <Route path="/reception" element={<ProtectedRoute><ReceptionMode /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
