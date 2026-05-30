@@ -126,9 +126,6 @@ function AppShell() {
 
   const pageMap = buildPageMap(setPage, search, role) || {}
 
-console.log(pageMap)
-console.log(role)
-
 const safePage =
   pageMap[page]
     ? page

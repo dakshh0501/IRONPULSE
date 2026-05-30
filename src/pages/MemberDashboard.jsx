@@ -257,9 +257,6 @@ export default function MemberDashboard() {
   const { attendance, payments, members } = useApp()
   const { currentUser } = useAuth()
 
-  console.log('CURRENT USER EMAIL:', currentUser?.email)
-  console.log('MEMBER EMAILS:', members.map(m => m.email))
-
   const me = members.find(m => m.email === currentUser?.email)
 
   const myAttendance = useMemo(
