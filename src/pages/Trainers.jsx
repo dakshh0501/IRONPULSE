@@ -1,9 +1,6 @@
 import { useState } from 'react'
 import { useApp } from '../context/AppContext'
 
-// ─────────────────────────────────────────────────────────────
-//  CONSTANTS
-// ─────────────────────────────────────────────────────────────
 const SPECIALIZATIONS = [
   'Strength & Conditioning',
   'Yoga & Flexibility',
@@ -24,6 +21,11 @@ const EMPTY_TRAINER = {
   name: '', spec: '', exp: '', email: '',
   contact: '', salary: '', bio: '', days: [], rating: 4.5, clients: 0,
 }
+
+// ── resolve exp: Firestore may store as 'experience' or 'exp' ──
+const getExp    = t => t.exp ?? t.experience ?? ''
+// ── resolve salary: always parse to number safely ──
+const getSalary = t => Number(t.salary) || 0
 
 // ─────────────────────────────────────────────────────────────
 //  STAR RATING
@@ -96,8 +98,10 @@ function Pill({ icon, label, value, color = 'var(--text-muted)' }) {
 //  TRAINER CARD
 // ─────────────────────────────────────────────────────────────
 function TrainerCard({ trainer, members, onEdit, onDelete, onView }) {
-  const color  = avColor(trainer.name)
+  const color     = avColor(trainer.name)
   const myMembers = members.filter(m => m.trainer === trainer.name)
+  const exp       = getExp(trainer)
+  const salary    = getSalary(trainer)
 
   return (
     <div
@@ -109,27 +113,19 @@ function TrainerCard({ trainer, members, onEdit, onDelete, onView }) {
         cursor: 'pointer',
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.transform  = 'translateY(-3px)'
-        e.currentTarget.style.boxShadow  = '0 12px 40px rgba(0,0,0,0.4)'
+        e.currentTarget.style.transform = 'translateY(-3px)'
+        e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.4)'
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.transform  = 'translateY(0)'
-        e.currentTarget.style.boxShadow  = 'var(--shadow)'
+        e.currentTarget.style.transform = 'translateY(0)'
+        e.currentTarget.style.boxShadow = 'var(--shadow)'
       }}
       onClick={() => onView(trainer)}
     >
-      {/* ── Colored top accent bar ── */}
-      <div style={{
-        height: 4,
-        background: `linear-gradient(90deg, var(--orange), var(--teal))`,
-      }} />
+      <div style={{ height: 4, background: 'linear-gradient(90deg, var(--orange), var(--teal))' }} />
 
-      {/* ── Header: avatar + name + actions ── */}
       <div style={{ padding: '20px 20px 16px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-        <div
-          className={`avatar ${color}`}
-          style={{ width: 52, height: 52, fontSize: 18, flexShrink: 0 }}
-        >
+        <div className={`avatar ${color}`} style={{ width: 52, height: 52, fontSize: 18, flexShrink: 0 }}>
           {trainer.avatar}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -141,32 +137,19 @@ function TrainerCard({ trainer, members, onEdit, onDelete, onView }) {
           </p>
           <Stars rating={trainer.rating} />
         </div>
-        {/* Action buttons — stop propagation so card click doesn't fire */}
-        <div
-          style={{ display: 'flex', gap: 6, flexShrink: 0 }}
-          onClick={e => e.stopPropagation()}
-        >
-          <button
-            className="btn btn-sm btn-ghost"
-            title="Edit trainer"
-            onClick={() => onEdit(trainer)}
-          >✏️</button>
-          <button
-            className="btn btn-sm btn-red"
-            title="Delete trainer"
-            onClick={() => onDelete(trainer)}
-          >🗑</button>
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+          <button className="btn btn-sm btn-ghost" title="Edit trainer" onClick={() => onEdit(trainer)}>✏️</button>
+          <button className="btn btn-sm btn-red"   title="Delete trainer" onClick={() => onDelete(trainer)}>🗑</button>
         </div>
       </div>
 
-      {/* ── Stats row ── */}
+      {/* ── FIX 1: use getExp / getSalary ── */}
       <div style={{ display: 'flex', gap: 8, padding: '0 20px 16px' }}>
-        <Pill icon="🏋️" label="Clients"     value={myMembers.length} color="var(--orange)" />
-        <Pill icon="📅" label="Experience"  value={`${trainer.exp}y`} color="var(--teal)" />
-        <Pill icon="💰" label="Salary"      value={`₹${(trainer.salary/1000).toFixed(0)}K`} color="var(--green)" />
+        <Pill icon="🏋️" label="Clients"    value={myMembers.length}                              color="var(--orange)" />
+        <Pill icon="📅" label="Experience" value={exp !== '' ? `${exp}y` : '—'}                  color="var(--teal)"   />
+        <Pill icon="💰" label="Salary"     value={salary > 0 ? `₹${(salary/1000).toFixed(0)}K` : '—'} color="var(--green)"  />
       </div>
 
-      {/* ── Contact ── */}
       <div style={{ padding: '0 20px 14px', display: 'flex', flexDirection: 'column', gap: 4 }}>
         <p style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
           <span>📧</span> {trainer.email}
@@ -176,23 +159,15 @@ function TrainerCard({ trainer, members, onEdit, onDelete, onView }) {
         </p>
       </div>
 
-      {/* ── Schedule days ── */}
-      <div style={{
-        padding: '12px 20px 16px',
-        borderTop: '1px solid var(--border)',
-      }}>
+      <div style={{ padding: '12px 20px 16px', borderTop: '1px solid var(--border)' }}>
         <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
           Schedule
         </p>
-        <DayBadges days={trainer.days} />
+        <DayBadges days={trainer.days || []} />
       </div>
 
-      {/* ── Assigned members preview ── */}
       {myMembers.length > 0 && (
-        <div style={{
-          padding: '10px 20px 16px',
-          borderTop: '1px solid var(--border)',
-        }}>
+        <div style={{ padding: '10px 20px 16px', borderTop: '1px solid var(--border)' }}>
           <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
             Assigned Members
           </p>
@@ -208,10 +183,7 @@ function TrainerCard({ trainer, members, onEdit, onDelete, onView }) {
               </div>
             ))}
             {myMembers.length > 5 && (
-              <div
-                className="avatar av-orange"
-                style={{ width: 28, height: 28, fontSize: 10 }}
-              >
+              <div className="avatar av-orange" style={{ width: 28, height: 28, fontSize: 10 }}>
                 +{myMembers.length - 5}
               </div>
             )}
@@ -223,16 +195,17 @@ function TrainerCard({ trainer, members, onEdit, onDelete, onView }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  TRAINER DETAIL MODAL (view)
+//  TRAINER DETAIL MODAL
 // ─────────────────────────────────────────────────────────────
 function TrainerDetailModal({ trainer, members, onEdit, onClose }) {
   const myMembers = members.filter(m => m.trainer === trainer.name)
   const color     = avColor(trainer.name)
+  const exp       = getExp(trainer)
+  const salary    = getSalary(trainer)
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal modal-lg">
-        {/* Header */}
         <div className="modal-header">
           <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
             <div className={`avatar ${color}`} style={{ width: 60, height: 60, fontSize: 22 }}>
@@ -247,7 +220,6 @@ function TrainerDetailModal({ trainer, members, onEdit, onClose }) {
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
-        {/* Bio */}
         {trainer.bio && (
           <div style={{
             background: 'var(--bg3)', borderRadius: 8,
@@ -258,18 +230,14 @@ function TrainerDetailModal({ trainer, members, onEdit, onClose }) {
           </div>
         )}
 
-        {/* Stats grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
           {[
-            { icon: '🏋️', label: 'Clients',    value: myMembers.length,                  color: 'var(--orange)' },
-            { icon: '📅', label: 'Experience', value: `${trainer.exp} yrs`,              color: 'var(--teal)'   },
-            { icon: '⭐', label: 'Rating',     value: trainer.rating,                    color: 'var(--amber)'  },
-            { icon: '💰', label: 'Salary',     value: `₹${(trainer.salary/1000).toFixed(0)}K`, color: 'var(--green)'  },
+            { icon: '🏋️', label: 'Clients',    value: myMembers.length,                              color: 'var(--orange)' },
+            { icon: '📅', label: 'Experience', value: exp !== '' ? `${exp} yrs` : '—',               color: 'var(--teal)'   },
+            { icon: '⭐', label: 'Rating',     value: trainer.rating,                                color: 'var(--amber)'  },
+            { icon: '💰', label: 'Salary',     value: salary > 0 ? `₹${(salary/1000).toFixed(0)}K` : '—', color: 'var(--green)'  },
           ].map(s => (
-            <div key={s.label} style={{
-              background: 'var(--bg3)', borderRadius: 8, padding: '14px',
-              textAlign: 'center',
-            }}>
+            <div key={s.label} style={{ background: 'var(--bg3)', borderRadius: 8, padding: '14px', textAlign: 'center' }}>
               <div style={{ fontSize: 24, marginBottom: 4 }}>{s.icon}</div>
               <div style={{ fontSize: 20, fontWeight: 700, color: s.color, fontFamily: "'Barlow Condensed', sans-serif" }}>
                 {s.value}
@@ -281,7 +249,6 @@ function TrainerDetailModal({ trainer, members, onEdit, onClose }) {
           ))}
         </div>
 
-        {/* Contact */}
         <div className="grid-2" style={{ marginBottom: 20 }}>
           {[
             { icon: '📧', label: 'Email',   value: trainer.email   },
@@ -296,15 +263,13 @@ function TrainerDetailModal({ trainer, members, onEdit, onClose }) {
           ))}
         </div>
 
-        {/* Schedule */}
         <div style={{ background: 'var(--bg3)', borderRadius: 8, padding: '14px 16px', marginBottom: 20 }}>
           <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
             Weekly Schedule
           </p>
-          <DayBadges days={trainer.days} />
+          <DayBadges days={trainer.days || []} />
         </div>
 
-        {/* Assigned members */}
         {myMembers.length > 0 && (
           <div>
             <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
@@ -343,6 +308,14 @@ function TrainerDetailModal({ trainer, members, onEdit, onClose }) {
   )
 }
 
+  const Field = ({ label, error, children }) => (
+    <div className="form-group" style={{ margin: 0 }}>
+      <label className="form-label">{label}</label>
+      {children}
+      {error && <p style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>⚠ {error}</p>}
+    </div>
+  )
+
 // ─────────────────────────────────────────────────────────────
 //  ADD / EDIT TRAINER MODAL
 // ─────────────────────────────────────────────────────────────
@@ -350,7 +323,7 @@ function TrainerFormModal({ trainer, onSave, onClose }) {
   const isEdit = Boolean(trainer)
   const [form, setForm] = useState(
     trainer
-      ? { ...trainer }
+      ? { ...EMPTY_TRAINER, ...trainer, exp: getExp(trainer), salary: getSalary(trainer) }
       : { ...EMPTY_TRAINER }
   )
   const [errors, setErrors] = useState({})
@@ -369,30 +342,21 @@ function TrainerFormModal({ trainer, onSave, onClose }) {
 
   const validate = () => {
     const e = {}
-    if (!form.name.trim())    e.name    = 'Name is required'
-    if (!form.email.trim())   e.email   = 'Email is required'
-    if (!form.spec.trim())    e.spec    = 'Specialization is required'
-    if (!form.exp)            e.exp     = 'Experience is required'
-    if (form.days.length < 1) e.days    = 'Select at least one working day'
+    if (!form.name.trim())    e.name = 'Name is required'
+    if (!form.email.trim())   e.email = 'Email is required'
+    if (!form.spec.trim())    e.spec = 'Specialization is required'
+    if (!form.exp)            e.exp = 'Experience is required'
+    if (form.days.length < 1) e.days = 'Select at least one working day'
     return e
   }
 
   const handleSave = () => {
     const e = validate()
     if (Object.keys(e).length) { setErrors(e); return }
-
     const avatar = form.name.trim().split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
     onSave({ ...form, avatar, exp: Number(form.exp), salary: Number(form.salary) || 0 })
     onClose()
-  }
-
-  const Field = ({ label, error, children }) => (
-    <div className="form-group" style={{ margin: 0 }}>
-      <label className="form-label">{label}</label>
-      {children}
-      {error && <p style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>⚠ {error}</p>}
-    </div>
-  )
+  }  
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -405,14 +369,17 @@ function TrainerFormModal({ trainer, onSave, onClose }) {
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
-        {/* ── Section: Personal ── */}
         <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>
           Personal Information
         </p>
         <div className="form-row" style={{ marginBottom: 14 }}>
           <Field label="Full Name *" error={errors.name}>
-            <input className="form-input" placeholder="e.g. Amit Kumar"
-              value={form.name} onChange={e => set('name', e.target.value)} />
+            <input
+  className="form-input"
+  placeholder="e.g. Amit Kumar"
+  value={form.name}
+  onChange={e => set('name', e.target.value)}
+/>
           </Field>
           <Field label="Email Address *" error={errors.email}>
             <input className="form-input" type="email" placeholder="trainer@ironpulse.app"
@@ -430,7 +397,6 @@ function TrainerFormModal({ trainer, onSave, onClose }) {
           </Field>
         </div>
 
-        {/* ── Section: Professional ── */}
         <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>
           Professional Details
         </p>
@@ -452,11 +418,11 @@ function TrainerFormModal({ trainer, onSave, onClose }) {
             value={form.bio} onChange={e => set('bio', e.target.value)} />
         </div>
 
-        {/* ── Section: Schedule ── */}
         <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>
           Working Days *
         </p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+          {/* ── FIX 3: key prop on day buttons ── */}
           {DAYS.map(d => (
             <button
               key={d}
@@ -518,57 +484,44 @@ function DeleteModal({ trainer, onConfirm, onClose }) {
 //  MAIN PAGE
 // ─────────────────────────────────────────────────────────────
 export default function Trainers({ search = '' }) {
-  const {
-    members,
-    trainers,
-    addTrainer,
-    updateTrainer,
-    deleteTrainer
-  } = useApp()
+  const { members, trainers, addTrainer, updateTrainer, deleteTrainer } = useApp()
 
-  const [specFilter, setSpecFilter]  = useState('All')
+  const [specFilter,  setSpecFilter]  = useState('All')
   const [viewTrainer, setViewTrainer] = useState(null)
-  const [editTrainer, setEditTrainer] = useState(null)   // null = add new, object = edit existing
+  const [editTrainer, setEditTrainer] = useState(null)
   const [formOpen,    setFormOpen]    = useState(false)
   const [delTrainer,  setDelTrainer]  = useState(null)
 
-  // ── Filter logic ──────────────────────────────────────────
-  const specs = ['All', ...Array.from(new Set(trainers.map(t => t.spec)))]
+  const specs = ['All', ...Array.from(new Set(trainers.map(t => t.spec).filter(Boolean)))]
 
   const filtered = trainers.filter(t => {
-    const q  = search.toLowerCase()
+    const q = search.toLowerCase()
     const matchSearch = !q ||
-      t.name.toLowerCase().includes(q) ||
-      t.spec.toLowerCase().includes(q) ||
-      t.email.toLowerCase().includes(q)
+      (t.name  || '').toLowerCase().includes(q) ||
+      (t.spec  || '').toLowerCase().includes(q) ||
+      (t.email || '').toLowerCase().includes(q)
     const matchSpec = specFilter === 'All' || t.spec === specFilter
     return matchSearch && matchSpec
   })
 
-  // ── Summary stats ─────────────────────────────────────────
-  const totalClients  = trainers.reduce((s, t) => s + members.filter(m => m.trainer === t.name).length, 0)
-  const avgRating     = trainers.length
-    ? (trainers.reduce((s, t) => s + t.rating, 0) / trainers.length).toFixed(1)
+  const totalClients = trainers.reduce((s, t) => s + members.filter(m => m.trainer === t.name).length, 0)
+  const avgRating    = trainers.length
+    ? (trainers.reduce((s, t) => s + (Number(t.rating) || 0), 0) / trainers.length).toFixed(1)
     : '—'
-  const totalSalary   = trainers.reduce((s, t) => s + (Number(t.salary) || 0), 0)
+  const totalSalary  = trainers.reduce((s, t) => s + getSalary(t), 0)
 
   return (
     <div>
-      {/* ── Page header ── */}
       <div className="page-header">
         <div>
           <h2>Trainer Management</h2>
           <p>{trainers.length} trainers · {totalClients} clients assigned</p>
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={() => { setEditTrainer(null); setFormOpen(true) }}
-        >
+        <button className="btn btn-primary" onClick={() => { setEditTrainer(null); setFormOpen(true) }}>
           + Add Trainer
         </button>
       </div>
 
-      {/* ── Summary stat cards ── */}
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 24 }}>
         <div className="stat-card orange">
           <span className="stat-icon">🏋️</span>
@@ -582,7 +535,7 @@ export default function Trainers({ search = '' }) {
           <span className="stat-value">{totalClients}</span>
           <span className="stat-sub">across all trainers</span>
         </div>
-        <div className="stat-card amber" style={{ '--amber': '#f59e0b' }}>
+        <div className="stat-card amber">
           <span className="stat-icon">⭐</span>
           <span className="stat-label">Avg Rating</span>
           <span className="stat-value">{avgRating}</span>
@@ -596,9 +549,7 @@ export default function Trainers({ search = '' }) {
         </div>
       </div>
 
-      {/* ── Filters ── */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-        {/* Spec filter pills */}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>
           {specs.map(s => (
             <button
@@ -621,21 +572,16 @@ export default function Trainers({ search = '' }) {
         </p>
       </div>
 
-      {/* ── Trainer cards grid ── */}
       {filtered.length > 0 ? (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-          gap: 20,
-        }}>
-          {filtered.map(t => (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+          {filtered.map(trainer => (
             <TrainerCard
-              key={t.id}
-              trainer={t}
+              key={trainer.id}
+              trainer={trainer}
               members={members}
-              onView={setViewTrainer}
-              onEdit={(tr) => { setEditTrainer(tr); setFormOpen(true) }}
-              onDelete={setDelTrainer}
+              onEdit={tr => { setEditTrainer(tr); setFormOpen(true) }}
+              onDelete={tr => setDelTrainer(tr)}
+              onView={tr => setViewTrainer(tr)}
             />
           ))}
         </div>
@@ -650,18 +596,17 @@ export default function Trainers({ search = '' }) {
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>
             Try adjusting your search or filter.
           </p>
-          <button className="btn btn-primary" onClick={() => { setSpecFilter('All') }}>
+          <button className="btn btn-primary" onClick={() => setSpecFilter('All')}>
             Clear Filters
           </button>
         </div>
       )}
 
-      {/* ── Modals ── */}
       {viewTrainer && (
         <TrainerDetailModal
           trainer={viewTrainer}
           members={members}
-          onEdit={(tr) => { setEditTrainer(tr); setFormOpen(true) }}
+          onEdit={tr => { setEditTrainer(tr); setFormOpen(true) }}
           onClose={() => setViewTrainer(null)}
         />
       )}
@@ -669,7 +614,7 @@ export default function Trainers({ search = '' }) {
       {formOpen && (
         <TrainerFormModal
           trainer={editTrainer}
-          onSave={(data) => editTrainer ? updateTrainer(editTrainer.id, data) : addTrainer(data)}
+          onSave={data => editTrainer ? updateTrainer(editTrainer.id, data) : addTrainer(data)}
           onClose={() => { setFormOpen(false); setEditTrainer(null) }}
         />
       )}

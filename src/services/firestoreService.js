@@ -8,8 +8,21 @@ import {
   deleteDoc,
   serverTimestamp,
   onSnapshot,
+  getDoc,
+  getDocs,
+  query,
+  where
 } from 'firebase/firestore'
-
+import {
+  createUserWithEmailAndPassword
+} from 'firebase/auth'
+import {
+  setDoc
+} from 'firebase/firestore'
+import {
+  auth,
+  secondaryAuth
+} from '../firebase'
 import { db } from '../firebase'
 
 // ─────────────────────────────────────────────
@@ -91,7 +104,28 @@ export async function deleteMember(memberId) {
   const memberRef =
     doc(db, 'members', memberId)
 
+  const memberSnap =
+    await getDoc(memberRef)
+
+  if (!memberSnap.exists()) {
+    return
+  }
+
+  const memberData =
+    memberSnap.data()
+
+  const authUid =
+    memberData.authUid
+
   await deleteDoc(memberRef)
+
+  if (authUid) {
+
+    const userRef =
+      doc(db, 'users', authUid)
+
+    await deleteDoc(userRef)
+  }
 }
 // ─────────────────────────────────────────────
 // PAYMENTS
@@ -131,11 +165,10 @@ export function subscribeToPayments(callback) {
     (snapshot) => {
 
       const payments =
-        snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        }))
-
+  snapshot.docs.map(doc => ({
+    firestoreId: doc.id,
+    ...doc.data(),
+  }))
       callback(payments)
     }
   )
@@ -173,10 +206,35 @@ export async function deletePayment(paymentId) {
 // Add trainer
 export async function addTrainer(trainerData) {
 
+  const password = 'Trainer@123'
+
+  const authResult =
+    await createUserWithEmailAndPassword(
+  secondaryAuth,
+  trainerData.email,
+  password
+    )
+
+  const user = authResult.user
+
+  await secondaryAuth.signOut()
+
+  await setDoc(
+    doc(db, 'users', user.uid),
+    {
+      uid: user.uid,
+      name: trainerData.name,
+      email: trainerData.email,
+      role: 'trainer',
+      createdAt: serverTimestamp(),
+    }
+  )
+
   const docRef = await addDoc(
     collection(db, 'trainers'),
     {
       ...trainerData,
+      authUid: user.uid,
       createdAt: serverTimestamp(),
     }
   )
@@ -225,5 +283,26 @@ export async function deleteTrainer(
   const trainerRef =
     doc(db, 'trainers', trainerId)
 
+  const trainerSnap =
+    await getDoc(trainerRef)
+
+  if (!trainerSnap.exists()) {
+    return
+  }
+
+  const trainerData =
+    trainerSnap.data()
+
+  const authUid =
+    trainerData.authUid
+
   await deleteDoc(trainerRef)
+
+  if (authUid) {
+
+    const userRef =
+      doc(db, 'users', authUid)
+
+    await deleteDoc(userRef)
+  }
 }

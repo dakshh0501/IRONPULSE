@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppProvider } from './context/AppContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -124,7 +124,10 @@ function AppShell() {
   const [search,     setSearch]     = useState('')
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const pageMap = buildPageMap(setPage, search, role) || {}
+  const pageMap = useMemo(
+  () => buildPageMap(setPage, search, role),
+  [role, page]
+) || {}
 
 const safePage =
   pageMap[page]

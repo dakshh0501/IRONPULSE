@@ -25,13 +25,33 @@ const STATUS_CFG = {
 
 const METHOD_ICON = { UPI: '📱', 'Credit Card': '💳', 'Debit Card': '💳', Cash: '💵', 'Bank Transfer': '🏦', 'Net Banking': '🌐' }
 
-const fmt = (n) => `₹${n.toLocaleString('en-IN')}`
+const fmt = (n) =>
+  `₹${Number(n || 0).toLocaleString('en-IN')}`
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
-function avatarColor(initials) {
-  const colors = ['#FF4B2B','#F59E0B','#10B981','#3B82F6','#8B5CF6','#EC4899','#06B6D4','#14B8A6']
-  const i = (initials.charCodeAt(0) + initials.charCodeAt(1)) % colors.length
-  return colors[i]
+function avatarColor(initials = 'XX') {
+  const colors = [
+    '#FF4B2B',
+    '#F59E0B',
+    '#10B981',
+    '#3B82F6',
+    '#8B5CF6',
+    '#EC4899',
+    '#06B6D4',
+    '#14B8A6'
+  ]
+
+  const safeInitials = initials || 'XX'
+
+  const first =
+    safeInitials.charCodeAt(0) || 0
+
+  const second =
+    safeInitials.charCodeAt(1) || 0
+
+  return colors[
+    (first + second) % colors.length
+  ]
 }
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
@@ -125,8 +145,8 @@ function InvoiceModal({ invoice, onClose, onMarkPaid }) {
         <div style={{ padding: '22px 26px' }}>
           {/* Member row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 22, padding: '14px 16px', background: '#ffffff06', borderRadius: 12, border: '1px solid #ffffff10' }}>
-            <div style={{ width: 44, height: 44, borderRadius: '50%', background: `linear-gradient(135deg, ${avatarColor(invoice.avatar)}, ${avatarColor(invoice.avatar)}99)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: '#fff', flexShrink: 0 }}>
-              {invoice.avatar}
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: `linear-gradient(135deg, ${avatarColor(invoice.avatar || 'XX')}, ${avatarColor(invoice.avatar || 'XX')}99)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: '#fff', flexShrink: 0 }}>
+              {invoice.avatar || 'XX'}
             </div>
             <div>
               <div style={{ fontWeight: 700, color: '#F3F4F6', fontSize: 15 }}>{invoice.member}</div>
@@ -179,7 +199,7 @@ function InvoiceModal({ invoice, onClose, onMarkPaid }) {
           {/* Actions */}
           <div style={{ display: 'flex', gap: 8 }}>
             {(invoice.status === 'Pending' || invoice.status === 'Overdue' || invoice.status === 'Partial') && (
-              <button onClick={() => onMarkPaid(invoice.id)} style={{ flex: 1, padding: '11px', background: 'linear-gradient(135deg,#10B981,#059669)', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer', letterSpacing: 0.5 }}>
+              <button onClick={() => onMarkPaid(invoice.firestoreId)} style={{ flex: 1, padding: '11px', background: 'linear-gradient(135deg,#10B981,#059669)', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer', letterSpacing: 0.5 }}>
                 ✓ MARK AS PAID
               </button>
             )}
@@ -305,8 +325,8 @@ function InvoiceRow({ inv, onClick, onDelete }) {
     >
       <td style={{ padding: '14px 16px', borderBottom: '1px solid #ffffff08' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 36, height: 36, borderRadius: '50%', background: `linear-gradient(135deg, ${avatarColor(inv.avatar)}, ${avatarColor(inv.avatar)}88)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 12, color: '#fff', flexShrink: 0 }}>
-            {inv.avatar}
+          <div style={{ width: 36, height: 36, borderRadius: '50%', background: `linear-gradient(135deg, ${avatarColor(inv.avatar || 'XX')}, ${avatarColor(inv.avatar || 'XX')}88)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 12, color: '#fff', flexShrink: 0 }}>
+            {inv.avatar || 'XX'}
           </div>
           <div>
             <div style={{ fontWeight: 700, color: '#E5E7EB', fontSize: 13 }}>{inv.member}</div>
@@ -315,7 +335,7 @@ function InvoiceRow({ inv, onClick, onDelete }) {
         </div>
       </td>
       <td style={{ padding: '14px 16px', borderBottom: '1px solid #ffffff08' }}>
-        <span style={{ fontSize: 12, color: '#9CA3AF', fontFamily: 'monospace', background: '#ffffff08', padding: '3px 8px', borderRadius: 5 }}>{inv.id}</span>
+        <span style={{ fontSize: 12, color: '#9CA3AF', fontFamily: 'monospace', background: '#ffffff08', padding: '3px 8px', borderRadius: 5 }}>{inv.firestoreId}</span>
       </td>
       <td style={{ padding: '14px 16px', borderBottom: '1px solid #ffffff08', textAlign: 'right' }}>
         <div style={{ fontWeight: 800, color: '#F3F4F6', fontSize: 14 }}>{fmt(inv.amount)}</div>
@@ -340,8 +360,14 @@ function InvoiceRow({ inv, onClick, onDelete }) {
           onClick={(e) => {
             e.stopPropagation()
             if (window.confirm('Delete this invoice?')) {
-              onDelete(inv.id)
-            }
+
+  console.log(
+    'PAYMENT IDS',
+    inv.firestoreId
+  )
+
+  onDelete(inv.firestoreId)
+}
           }}
           style={{
             background: '#EF4444',
@@ -390,7 +416,7 @@ export default function Payments({ search = '' }) {
     let list = invoices.filter(inv => {
       const matchSearch = !searchTerm ||
         (inv.member || '').toLowerCase().includes(searchTerm) ||
-        (inv.id || '').toLowerCase().includes(searchTerm) ||
+        (inv.firestoreId || '').toLowerCase().includes(searchTerm) ||
         (inv.plan || '').toLowerCase().includes(searchTerm)
       const matchStatus = filterStatus === 'All' || inv.status === filterStatus
       return matchSearch && matchStatus
@@ -443,7 +469,9 @@ export default function Payments({ search = '' }) {
     try {
 
       const invoice =
-        invoices.find(inv => inv.id === id)
+  invoices.find(
+    inv => inv.firestoreId === id
+  )
 
       if (!invoice) return
 
@@ -692,7 +720,7 @@ export default function Payments({ search = '' }) {
 
     filtered.map(inv => (
       <InvoiceRow
-        key={inv.id}
+        key={inv.firestoreId}
         inv={inv}
         onClick={setViewInvoice}
         onDelete={deletePayment}

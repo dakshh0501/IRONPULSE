@@ -6,10 +6,16 @@ import MemberQR from '../components/MemberQR'
 // ─── helpers ────────────────────────────────────────────────
 function monthKey(dateStr) {
   if (!dateStr) return ''
-  // dateStr may be 'YYYY-MM-DD' or 'DD/MM/YYYY' or similar
+
   const d = new Date(dateStr)
-  if (!isNaN(d)) return `${d.getFullYear()}-${d.getMonth()}`
-  return dateStr.slice(0, 7) // fallback: 'YYYY-MM'
+
+  if (!isNaN(d)) {
+    return `${d.getFullYear()}-${String(
+      d.getMonth() + 1
+    ).padStart(2, '0')}`
+  }
+
+  return ''
 }
 
 function today() {

@@ -9,25 +9,36 @@ import {
   updateProfile,
   onAuthStateChanged,
 } from 'firebase/auth'
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
-import { collection, query, where, getDocs, updateDoc } from 'firebase/firestore'
+import {
+  doc,
+  setDoc,
+  getDoc,
+  serverTimestamp,
+  collection,
+  query,
+  where,
+  getDocs,
+  updateDoc,
+  addDoc,
+} from 'firebase/firestore'
 import { auth, db } from '../firebase'
 
 // ─── Sign Up ────────────────────────────────────────────────────────────────
 // Creates auth user + writes profile doc to /users/{uid}
-export async function signUp({
-    name,
-    email,
-    password,
-    role = 'member'
-  }) {
+export async function signUp({ name, email, password, role = 'member' }) {
 
   // Prevent frontend admin creation
-  const safeRole =
-    ['member', 'trainer'].includes(role)
-      ? role
-      : 'member'
-  const { user } = await createUserWithEmailAndPassword(auth, email, password)
+  const safeRole = ['member', 'trainer'].includes(role) ? role : 'member'
+
+  let user
+
+  try {
+    const result = await createUserWithEmailAndPassword(auth, email, password)
+    user = result.user
+  } catch (err) {
+    console.log('SIGNUP FIREBASE ERROR:', err.code, err.message)
+    throw err
+  }
 
   // Set display name on the Auth profile
   await updateProfile(user, { displayName: name })
@@ -37,31 +48,41 @@ export async function signUp({
     uid:       user.uid,
     name,
     email,
-    role: safeRole,                        // 'admin' | 'trainer' | 'member'
+    role:      safeRole,
     joinDate:  serverTimestamp(),
-    plan:  safeRole === 'member' ? 'monthly' : null,
+    plan:      safeRole === 'member' ? 'monthly' : null,
     phone:     '',
     avatarUrl: '',
   })
 
   // Link member account to existing member record
-if (safeRole === 'member') {
-  const q = query(
-    collection(db, 'members'),
-    where('email', '==', email)
-  )
+  if (safeRole === 'member') {
 
-  const snap = await getDocs(q)
+    const q = query(
+      collection(db, 'members'),
+      where('email', '==', email)
+    )
 
-  if (!snap.empty) {
-    const memberDoc = snap.docs[0]
+    const snap = await getDocs(q)
 
-    await updateDoc(memberDoc.ref, {
-      authUid: user.uid,
-    })
+    if (!snap.empty) {
+      // Member already exists — link authUid
+      const memberDoc = snap.docs[0]
+      await updateDoc(memberDoc.ref, { authUid: user.uid })
+    } else {
+      // Create member automatically
+      await addDoc(collection(db, 'members'), {
+        name,
+        email,
+        authUid:    user.uid,
+        status:     'Active',
+        plan:       'Standard',
+        amountPaid: 0,
+        checkins:   0,
+        createdAt:  serverTimestamp(),
+      })
+    }
   }
-}
-
   return user
 }
 
@@ -87,8 +108,8 @@ export async function resetPassword(email) {
 // Called once on login + on auth state restore
 export async function getUserRole(uid) {
   const snap = await getDoc(doc(db, 'users', uid))
-  if (!snap.exists()) {return 'member'}
-  return snap.data().role   // 'admin' | 'trainer' | 'member'
+  if (!snap.exists()) throw new Error('Account has been removed')
+  return snap.data().role
 }
 
 // ─── Get Full User Profile ───────────────────────────────────────────────────
@@ -101,5 +122,5 @@ export async function getUserProfile(uid) {
 // ─── Auth State Observer ─────────────────────────────────────────────────────
 // Pass a callback — fires on login, logout, and page refresh (persistent session)
 export function subscribeToAuthState(callback) {
-  return onAuthStateChanged(auth, callback)   // returns unsubscribe function
+  return onAuthStateChanged(auth, callback)  // returns unsubscribe function
 }

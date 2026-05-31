@@ -22,30 +22,54 @@ export function AuthProvider({ children }) {
   const [authError, setAuthError]       = useState('')
 
   // ── Persistent session: fires on every page load ──────────────────────────
-  useEffect(() => {
-    const unsubscribe = subscribeToAuthState(async (firebaseUser) => {
+ useEffect(() => {
+  const unsubscribe = subscribeToAuthState(
+    async (firebaseUser) => {
+
       if (firebaseUser) {
+
         try {
-          const profile = await getUserProfile(firebaseUser.uid)
+
+          const profile =
+            await getUserProfile(
+              firebaseUser.uid
+            )
+
+          if (!profile) {
+
+            await logOut()
+
+            setCurrentUser(null)
+            setUserProfile(null)
+            setRole(null)
+
+            return
+          }
+
           setCurrentUser(firebaseUser)
           setUserProfile(profile)
-          setRole(profile?.role ?? null)
+          setRole(profile.role)
+
         } catch {
-          // Profile missing — treat as logged out
+
           setCurrentUser(null)
           setUserProfile(null)
           setRole(null)
         }
+
       } else {
+
         setCurrentUser(null)
         setUserProfile(null)
         setRole(null)
       }
-      setAuthLoading(false)
-    })
 
-    return unsubscribe   // cleanup on unmount
-  }, [])
+      setAuthLoading(false)
+    }
+  )
+
+  return unsubscribe
+}, [])
 
   // ── Auth actions ──────────────────────────────────────────────────────────
   async function login(email, password) {
@@ -55,12 +79,23 @@ export function AuthProvider({ children }) {
       setCurrentUser(user)
       setRole(r)
       const profile = await getUserProfile(user.uid)
+      if (!profile) {
+
+  await logOut()
+
+  throw new Error(
+    'Account has been removed'
+  )
+}
       setUserProfile(profile)
       return r   // return role so caller can redirect
     } catch (err) {
-      setAuthError(friendlyError(err.code))
-      throw err
-    }
+  setAuthError(
+    err.message ||
+    friendlyError(err.code)
+  )
+  throw err
+}
   }
 
   async function register({ name, email, password, role: r = 'member' }) {
@@ -137,4 +172,4 @@ export function useAuth() {
   const ctx = useContext(AuthContext)
   if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>')
   return ctx
-}
+} 
