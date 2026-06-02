@@ -99,7 +99,9 @@ function Pill({ icon, label, value, color = 'var(--text-muted)' }) {
 // ─────────────────────────────────────────────────────────────
 function TrainerCard({ trainer, members, onEdit, onDelete, onView }) {
   const color     = avColor(trainer.name)
-  const myMembers = members.filter(m => m.trainer === trainer.name)
+  const myMembers = members.filter(
+  m => m.trainerId === trainer.id
+)
   const exp       = getExp(trainer)
   const salary    = getSalary(trainer)
 
@@ -198,7 +200,9 @@ function TrainerCard({ trainer, members, onEdit, onDelete, onView }) {
 //  TRAINER DETAIL MODAL
 // ─────────────────────────────────────────────────────────────
 function TrainerDetailModal({ trainer, members, onEdit, onClose }) {
-  const myMembers = members.filter(m => m.trainer === trainer.name)
+  const myMembers = members.filter(
+  m => m.trainerId === trainer.id
+)
   const color     = avColor(trainer.name)
   const exp       = getExp(trainer)
   const salary    = getSalary(trainer)
@@ -504,7 +508,12 @@ export default function Trainers({ search = '' }) {
     return matchSearch && matchSpec
   })
 
-  const totalClients = trainers.reduce((s, t) => s + members.filter(m => m.trainer === t.name).length, 0)
+  const totalClients = trainers.reduce(
+  (s, t) => s + members.filter(
+    m => m.trainerId === t.id
+  ).length,
+  0
+)
   const avgRating    = trainers.length
     ? (trainers.reduce((s, t) => s + (Number(t.rating) || 0), 0) / trainers.length).toFixed(1)
     : '—'

@@ -6,7 +6,7 @@ import { getFirestore } from 'firebase/firestore'
 
 import { getAuth } from 'firebase/auth'
 
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
 
   authDomain:

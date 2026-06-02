@@ -27,7 +27,7 @@ export default function Auth({ onSuccess }) {
     try {
       if (mode === 'login') {
         const role = await login(form.email, form.password)
-        onSuccess?.(role)   // parent redirects based on role
+        onSuccess?.(role)
       } else if (mode === 'signup') {
         const role = await register(form)
         onSuccess?.(role)
@@ -35,8 +35,11 @@ export default function Auth({ onSuccess }) {
         await sendReset(form.email)
         setResetSent(true)
       }
-    } catch {
-      // authError already set inside AuthContext
+    } catch (err) {
+      if (err?.code === 'auth/email-already-in-use') {
+        setAuthError('This email already has an account. Please Sign In instead.')
+        setMode('login')   // ← auto-switch to login tab
+      }
     } finally {
       setLoading(false)
     }

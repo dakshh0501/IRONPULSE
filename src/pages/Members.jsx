@@ -5,91 +5,174 @@ import { addPayment } from '../services/firestoreService'
 import MemberQR from '../components/MemberQR'
 
 const EMPTY_MEMBER = {
-  name:'',
-  age:'',
-  weight:'',
-  height:'',
-  contact:'',
-  email:'',
-  goal:'Weight Loss',
-  plan:'Standard',
-  trainerId:'',
-  trainerName:'',
-  join:'',
-  expiry:'',
-  status:'Active',
-  checkins: 0,
-  avatar:'',
-  bf:0,
-  strength:0,
+  name:'', age:'', weight:'', height:'',
+  contact:'', email:'', password:'',
+  goal:'Weight Loss', plan:'Standard',
+  trainerId:'', trainerName:'',
+  join:'', expiry:'', status:'Active',
+  checkins:0, avatar:'', bf:0, strength:0,
 }
 
 const GOALS    = ['Weight Loss','Muscle Gain','Strength','Flexibility','Toning','Endurance','General Fitness']
 const PLANS    = ['Trial','Standard','Premium','Quarterly','Annual']
 const STATUSES = ['Active','Expired','Trial','Inactive']
 
+// ─────────────────────────────────────────────────────────────
+//  FIELD COMPONENT — STABLE, DEFINED ONCE AT TOP LEVEL
+// ─────────────────────────────────────────────────────────────
+function Field({ label, error, children }) {
+  return (
+    <div className="form-group" style={{ margin:0 }}>
+      <label className="form-label">{label}</label>
+      {children}
+      {error && <p style={{ fontSize:11, color:'var(--red)', marginTop:4 }}>⚠ {error}</p>}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+//  MEMBER FORM MODAL
+// ─────────────────────────────────────────────────────────────
 function MemberModal({ member, trainers, onSave, onClose }) {
-  const [form, setForm] = useState(member ? { ...member } : { ...EMPTY_MEMBER })
+  const isEdit = Boolean(member)
+  const [form, setForm]     = useState(member ? { ...member, password:'' } : { ...EMPTY_MEMBER })
+  const [errors, setErrors] = useState({})
+  const [loading, setLoading] = useState(false)
 
-  const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
+  const set = (k, v) => {
+    setForm(p => ({ ...p, [k]: v }))
+    setErrors(p => ({ ...p, [k]: '' }))
+  }
 
-  const handleSave = () => {
-    if (!form.name || !form.email) return alert('Name and email are required.')
-    const avatar = form.name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase()
-    const planPrices = { Trial:499, Standard:1499, Premium:2999, Quarterly:3999, Annual:12999 }
-    onSave({ ...form, avatar, planPrice: planPrices[form.plan] || 1499 })
-    onClose()
+  const validate = () => {
+    const e = {}
+    if (!form.name.trim())  e.name  = 'Name is required'
+    if (!form.email.trim()) e.email = 'Email is required'
+    // password required only when adding new member
+    if (!isEdit && (!form.password || form.password.length < 6))
+      e.password = 'Temporary password must be at least 6 characters'
+    return e
+  }
+
+  const handleSave = async () => {
+    const e = validate()
+    if (Object.keys(e).length) { setErrors(e); return }
+    setLoading(true)
+    try {
+      const avatar = form.name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase()
+      const planPrices = { Trial:499, Standard:1499, Premium:2999, Quarterly:3999, Annual:12999 }
+      await onSave({ ...form, avatar, planPrice: planPrices[form.plan] || 1499 })
+      onClose()
+    } catch (err) {
+      if (err?.code === 'auth/email-already-in-use') {
+        setErrors({ email: 'This email already has an account. Edit the member instead.' })
+      } else {
+        setErrors({ email: err?.message || 'Something went wrong. Try again.' })
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className="modal-overlay">
       <div className="modal modal-lg">
 
-        {/* Header */}
         <div className="modal-header">
           <div>
-            <h3>{member ? 'Edit Member' : 'Add New Member'}</h3>
-            <p>{member ? 'Update member information' : 'Fill in the details to add a new member'}</p>
+            <h3>{isEdit ? 'Edit Member' : 'Add New Member'}</h3>
+            <p>{isEdit ? 'Update member information' : 'Fill in the details to add a new member'}</p>
           </div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
-        {/* Personal Info */}
+        {/* ── Personal Info ── */}
         <p style={{ fontSize:11, fontWeight:700, color:'var(--teal)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:10 }}>
           Personal Information
         </p>
         <div className="form-row" style={{ marginBottom:14 }}>
-          <div className="form-group" style={{ margin:0 }}>
-            <label className="form-label">Full Name *</label>
-            <input className="form-input" placeholder="e.g. Rohan Sharma" value={form.name} onChange={e => set('name', e.target.value)} />
-          </div>
-          <div className="form-group" style={{ margin:0 }}>
-            <label className="form-label">Email *</label>
-            <input className="form-input" type="email" placeholder="email@example.com" value={form.email} onChange={e => set('email', e.target.value)} />
-          </div>
-        </div>
-        <div className="form-row" style={{ marginBottom:14 }}>
-          <div className="form-group" style={{ margin:0 }}>
-            <label className="form-label">Contact</label>
-            <input className="form-input" placeholder="+91 98765 43210" value={form.contact} onChange={e => set('contact', e.target.value)} />
-          </div>
-          <div className="form-group" style={{ margin:0 }}>
-            <label className="form-label">Age</label>
-            <input className="form-input" type="number" placeholder="25" value={form.age} onChange={e => set('age', e.target.value)} />
-          </div>
-        </div>
-        <div className="form-row" style={{ marginBottom:20 }}>
-          <div className="form-group" style={{ margin:0 }}>
-            <label className="form-label">Weight (kg)</label>
-            <input className="form-input" type="number" placeholder="70" value={form.weight} onChange={e => set('weight', e.target.value)} />
-          </div>
-          <div className="form-group" style={{ margin:0 }}>
-            <label className="form-label">Height (cm)</label>
-            <input className="form-input" type="number" placeholder="175" value={form.height} onChange={e => set('height', e.target.value)} />
-          </div>
+          <Field label="Full Name *" error={errors.name}>
+            <input className="form-input" placeholder="e.g. Rohan Sharma"
+              value={form.name} onChange={e => set('name', e.target.value)} />
+          </Field>
+          <Field label="Email *" error={errors.email}>
+            <input className="form-input" type="email" placeholder="email@example.com"
+              value={form.email} onChange={e => set('email', e.target.value)} />
+          </Field>
         </div>
 
-        {/* Membership Info */}
+        {/* ── Temporary Password — only shown when adding new member ── */}
+        {!isEdit && (
+          <div className="form-row" style={{ marginBottom:14 }}>
+            <Field label="Temporary Password *" error={errors.password}>
+              <input className="form-input" type="password" placeholder="Min 6 characters — member uses this to sign in"
+                value={form.password} onChange={e => set('password', e.target.value)} />
+            </Field>
+            <div className="form-group" style={{ margin:0 }}>
+              <label className="form-label">Contact</label>
+              <input className="form-input" placeholder="+91 98765 43210"
+                value={form.contact} onChange={e => set('contact', e.target.value)} />
+            </div>
+          </div>
+        )}
+
+        {isEdit && (
+          <div className="form-row" style={{ marginBottom:14 }}>
+            <div className="form-group" style={{ margin:0 }}>
+              <label className="form-label">Contact</label>
+              <input className="form-input" placeholder="+91 98765 43210"
+                value={form.contact} onChange={e => set('contact', e.target.value)} />
+            </div>
+            <div className="form-group" style={{ margin:0 }}>
+              <label className="form-label">Age</label>
+              <input className="form-input" type="number" placeholder="25"
+                value={form.age} onChange={e => set('age', e.target.value)} />
+            </div>
+          </div>
+        )}
+
+        {!isEdit && (
+          <div className="form-row" style={{ marginBottom:14 }}>
+            <div className="form-group" style={{ margin:0 }}>
+              <label className="form-label">Age</label>
+              <input className="form-input" type="number" placeholder="25"
+                value={form.age} onChange={e => set('age', e.target.value)} />
+            </div>
+            <div className="form-group" style={{ margin:0 }}>
+              <label className="form-label">Weight (kg)</label>
+              <input className="form-input" type="number" placeholder="70"
+                value={form.weight} onChange={e => set('weight', e.target.value)} />
+            </div>
+          </div>
+        )}
+
+        {isEdit && (
+          <div className="form-row" style={{ marginBottom:20 }}>
+            <div className="form-group" style={{ margin:0 }}>
+              <label className="form-label">Weight (kg)</label>
+              <input className="form-input" type="number" placeholder="70"
+                value={form.weight} onChange={e => set('weight', e.target.value)} />
+            </div>
+            <div className="form-group" style={{ margin:0 }}>
+              <label className="form-label">Height (cm)</label>
+              <input className="form-input" type="number" placeholder="175"
+                value={form.height} onChange={e => set('height', e.target.value)} />
+            </div>
+          </div>
+        )}
+
+        {!isEdit && (
+          <div className="form-row" style={{ marginBottom:20 }}>
+            <div className="form-group" style={{ margin:0 }}>
+              <label className="form-label">Height (cm)</label>
+              <input className="form-input" type="number" placeholder="175"
+                value={form.height} onChange={e => set('height', e.target.value)} />
+            </div>
+            <div style={{ flex:1 }} />
+          </div>
+        )}
+
+        {/* ── Membership Info ── */}
         <p style={{ fontSize:11, fontWeight:700, color:'var(--teal)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:10 }}>
           Membership Details
         </p>
@@ -113,19 +196,13 @@ function MemberModal({ member, trainers, onSave, onClose }) {
             <select
               className="form-select"
               value={form.trainerId}
-              onChange={(e) => {
-                const selectedTrainer = trainers.find(t => t.id === e.target.value)
-                setForm(prev => ({
-                  ...prev,
-                  trainerId:   e.target.value,
-                  trainerName: selectedTrainer?.name || '',
-                }))
+              onChange={e => {
+                const t = trainers.find(t => t.id === e.target.value)
+                setForm(p => ({ ...p, trainerId: e.target.value, trainerName: t?.name || '' }))
               }}
             >
               <option value="">Select Trainer</option>
-              {trainers.map(trainer => (
-                <option key={trainer.id} value={trainer.id}>{trainer.name}</option>
-              ))}
+              {trainers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </div>
           <div className="form-group" style={{ margin:0 }}>
@@ -146,11 +223,22 @@ function MemberModal({ member, trainers, onSave, onClose }) {
           </div>
         </div>
 
-        {/* Footer */}
+        {/* ── Info note for admin ── */}
+        {!isEdit && (
+          <div style={{
+            background:'rgba(0,200,180,0.06)', border:'1px solid rgba(0,200,180,0.2)',
+            borderRadius:8, padding:'10px 14px', marginBottom:20,
+            fontSize:12, color:'var(--text-muted)', lineHeight:1.6,
+          }}>
+            💡 A Firebase account will be created with the temporary password above.
+            Share the email + password with the member so they can sign in directly.
+          </div>
+        )}
+
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleSave}>
-            {member ? '💾 Save Changes' : '+ Add Member'}
+          <button className="btn btn-primary" onClick={handleSave} disabled={loading}>
+            {loading ? 'Creating…' : isEdit ? '💾 Save Changes' : '+ Add Member'}
           </button>
         </div>
 
@@ -159,6 +247,9 @@ function MemberModal({ member, trainers, onSave, onClose }) {
   )
 }
 
+// ─────────────────────────────────────────────────────────────
+//  DELETE CONFIRM
+// ─────────────────────────────────────────────────────────────
 function DeleteConfirm({ member, onConfirm, onClose }) {
   return (
     <div className="modal-overlay">
@@ -186,15 +277,17 @@ const STATUS_BADGE = {
   Trial:    'badge badge-amber',
   Inactive: 'badge badge-purple',
 }
-
 const AV_COLORS = ['av-orange','av-teal','av-green','av-purple','av-amber']
 
+// ─────────────────────────────────────────────────────────────
+//  MAIN PAGE
+// ─────────────────────────────────────────────────────────────
 export default function Members({ search }) {
   const { members, trainers, addMember, updateMember, deleteMember, checkInMember, attendance } = useApp()
-  const { role, currentUser} = useAuth()
+  const { role, currentUser } = useAuth()
   const isAdmin   = role === 'admin'
   const isTrainer = role === 'trainer'
-  const isMember  = role === 'member'
+
   const [filter,     setFilter]     = useState('All')
   const [modalOpen,  setModalOpen]  = useState(false)
   const [editMember, setEditMember] = useState(null)
@@ -202,82 +295,36 @@ export default function Members({ search }) {
   const [viewMember, setViewMember] = useState(null)
 
   const statuses = ['All', 'Active', 'Expired', 'Trial']
+  const todayDate = new Date()
 
-  const todayDate =
-  new Date()
-
-const normalizedMembers =
-
-  members.map(member => {
-
-    if (!member.expiry)
-      return member
-
-    const expiryDate =
-      new Date(member.expiry)
-
-    const expired =
-      expiryDate < todayDate
-
-    return {
-
-      ...member,
-
-      status:
-        expired
-          ? 'Expired'
-          : member.status,
-    }
+  const normalizedMembers = members.map(member => {
+    if (!member.expiry) return member
+    const expired = new Date(member.expiry) < todayDate
+    return { ...member, status: expired ? 'Expired' : member.status }
   })
 
   const filtered = normalizedMembers.filter(m => {
-
-    // ─────────────────────────────
-    // ROLE FILTER
-    // ─────────────────────────────
-
+    const currentTrainer = trainers.find(
+  t => t.authUid === currentUser?.uid
+)
     const matchTrainer =
-      role === 'trainer'
-        ? m.trainerId === currentUser?.uid
-        : true
-
-    // ─────────────────────────────
-    // STATUS FILTER
-    // ─────────────────────────────
-
-    const matchFilter =
-      filter === 'All' ||
-      m.status === filter
-
-    // ─────────────────────────────
-    // SEARCH
-    // ─────────────────────────────
-
+  role === 'trainer'
+    ? m.trainerId === currentTrainer?.id
+    : true
+    const matchFilter  = filter === 'All' || m.status === filter
     const q = search?.toLowerCase() || ''
-
-    const matchSearch =
-      !q ||
+    const matchSearch  = !q ||
       m.name.toLowerCase().includes(q) ||
       m.email.toLowerCase().includes(q) ||
-      m.goal.toLowerCase().includes(q) ||
-      m.plan.toLowerCase().includes(q)
-
-    // ─────────────────────────────
-    // FINAL RESULT
-    // ─────────────────────────────
-
-    return (
-      matchTrainer &&
-      matchFilter &&
-      matchSearch
-    )
+      (m.goal || '').toLowerCase().includes(q) ||
+      (m.plan || '').toLowerCase().includes(q)
+    return matchTrainer && matchFilter && matchSearch
   })
 
   const avColor = (m) => AV_COLORS[m.name.charCodeAt(0) % AV_COLORS.length]
 
   return (
     <div>
-      {/* Header */}
       <div className="page-header">
         <div>
           <h2>Member Directory</h2>
@@ -290,7 +337,6 @@ const normalizedMembers =
         )}
       </div>
 
-      {/* Filters */}
       <div style={{ display:'flex', gap:12, marginBottom:20, flexWrap:'wrap', alignItems:'center' }}>
         <div className="tabs" style={{ marginBottom:0, flex:'none' }}>
           {statuses.map(s => (
@@ -302,7 +348,6 @@ const normalizedMembers =
         </div>
       </div>
 
-      {/* Table */}
       <div className="card" style={{ padding:0, overflow:'hidden' }}>
         <div className="table-wrap">
           <table>
@@ -340,17 +385,8 @@ const normalizedMembers =
                   <td style={{ fontSize:12, color:'var(--text-muted)' }}>{m.goal}</td>
                   <td style={{ fontSize:12 }}>{m.trainerName || 'Unassigned'}</td>
                   <td style={{ fontWeight:600, color:'var(--teal)' }}>
-{
-  attendance.filter(
-    a =>
-      a.memberId === (
-        m.authUid ||
-        m.uid ||
-        m.id
-      )
-  ).length
-}
-</td>
+                    {attendance.filter(a => a.memberId === (m.authUid || m.uid || m.id)).length}
+                  </td>
                   <td style={{ fontSize:12, color:'var(--text-muted)' }}>{m.expiry}</td>
                   <td><span className={STATUS_BADGE[m.status] || 'badge badge-teal'}>{m.status}</span></td>
                   <td>
@@ -360,13 +396,7 @@ const normalizedMembers =
                         <button className="btn btn-sm btn-ghost" title="Edit" onClick={() => { setEditMember(m); setModalOpen(true) }}>✏️</button>
                       )}
                       {(isAdmin || isTrainer) && (
-                        <button
-                          className="btn btn-sm btn-ghost"
-                          title="Check In"
-                          onClick={() => checkInMember(m)}
-                        >
-                          ✅
-                        </button>
+                        <button className="btn btn-sm btn-ghost" title="Check In" onClick={() => checkInMember(m)}>✅</button>
                       )}
                       {isAdmin && (
                         <button className="btn btn-sm btn-red" title="Delete" onClick={() => setDelMember(m)}>🗑</button>
@@ -376,30 +406,11 @@ const normalizedMembers =
                           className="btn btn-sm btn-ghost"
                           title="Renew Membership"
                           onClick={async () => {
-
-                            const today = new Date()
-
+                            const today    = new Date()
                             const nextMonth = new Date()
-
-                            nextMonth.setDate(
-                              today.getDate() + 30
-                            )
-
-                            const expiry =
-                              nextMonth
-                                .toISOString()
-                                .split('T')[0]
-
-                            // Update member
-                            await updateMember(
-                              m.id,
-                              {
-                                status: 'Active',
-                                expiry,
-                              }
-                            )
-
-                            // Add payment history
+                            nextMonth.setDate(today.getDate() + 30)
+                            const expiry = nextMonth.toISOString().split('T')[0]
+                            await updateMember(m.id, { status:'Active', expiry })
                             await addPayment({
                               memberId:   m.id,
                               memberName: m.name,
@@ -408,14 +419,9 @@ const normalizedMembers =
                               plan:       m.plan,
                               date:       today.toISOString().split('T')[0],
                             })
-
-                            alert(
-                              `${m.name}'s membership renewed successfully`
-                            )
+                            alert(`${m.name}'s membership renewed successfully`)
                           }}
-                        >
-                          🔄
-                        </button>
+                        >🔄</button>
                       )}
                     </div>
                   </td>
@@ -448,15 +454,9 @@ const normalizedMembers =
               <button className="modal-close" onClick={() => setViewMember(null)}>✕</button>
             </div>
             <div className="grid-2" style={{ gap:16 }}>
-              <div
-  style={{
-    marginTop: 24,
-    display:'flex',
-    justifyContent:'center',
-  }}
->
-  <MemberQR member={viewMember} />
-</div>
+              <div style={{ marginTop:24, display:'flex', justifyContent:'center' }}>
+                <MemberQR member={viewMember} />
+              </div>
               {[
                 ['Age',            `${viewMember.age} yrs`],
                 ['Weight',         `${viewMember.weight} kg`],
@@ -480,14 +480,7 @@ const normalizedMembers =
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={() => setViewMember(null)}>Close</button>
               {(isAdmin || isTrainer) && (
-                <button
-                  className="btn btn-primary"
-                  onClick={() => {
-                    setEditMember(viewMember)
-                    setViewMember(null)
-                    setModalOpen(true)
-                  }}
-                >
+                <button className="btn btn-primary" onClick={() => { setEditMember(viewMember); setViewMember(null); setModalOpen(true) }}>
                   ✏️ Edit Member
                 </button>
               )}
@@ -496,17 +489,15 @@ const normalizedMembers =
         </div>
       )}
 
-      {/* Add/Edit Modal */}
       {modalOpen && (
         <MemberModal
           member={editMember}
           trainers={trainers}
-          onSave={(data) => editMember ? updateMember(editMember.id, data) : addMember(data)}
+          onSave={data => editMember ? updateMember(editMember.id, data) : addMember(data)}
           onClose={() => { setModalOpen(false); setEditMember(null) }}
         />
       )}
 
-      {/* Delete Confirm */}
       {delMember && (
         <DeleteConfirm
           member={delMember}

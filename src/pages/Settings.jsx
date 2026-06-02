@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useApp } from '../context/AppContext'
+import { useAuth } from '../context/AuthContext'   // add this import at top
 
 // ─────────────────────────────────────────────────────────────
 //  HELPERS
@@ -80,7 +81,8 @@ const TABS = [
 //  MAIN EXPORT
 // ─────────────────────────────────────────────────────────────
 export default function Settings() {
-  const { darkMode, setDarkMode, currentUser, logout } = useApp()
+  const { darkMode, setDarkMode } = useApp()
+  const { currentUser, logout } = useAuth()
   const [activeTab, setActiveTab] = useState('gym')
 
   // ── Gym Settings ──────────────────────────────────────────

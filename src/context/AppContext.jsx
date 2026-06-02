@@ -1,8 +1,5 @@
 import {
-  createContext,
-  useContext,
-  useState,
-  useEffect
+  createContext, useContext, useState, useEffect
 } from 'react'
 import { useAuth } from './AuthContext'
 import {
@@ -10,207 +7,190 @@ import {
   addMember as addMemberToFirestore,
   updateMember as updateMemberInFirestore,
   deleteMember as deleteMemberFromFirestore,
-
   subscribeToPayments,
   addPayment as addPaymentToFirestore,
   updatePayment as updatePaymentInFirestore,
   deletePayment as deletePaymentFromFirestore,
-
   subscribeToTrainers,
   addTrainer as addTrainerToFirestore,
   updateTrainer as updateTrainerInFirestore,
   deleteTrainer as deleteTrainerFromFirestore,
 } from '../services/firestoreService'
-
 import {
   subscribeAttendance,
   addAttendance as addAttendanceToFirestore,
 } from '../services/attendanceService'
+import { createMemberAccount } from '../services/authService'
 
 const AppContext = createContext()
 
 export function AppProvider({ children }) {
+  const { currentUser, authLoading } = useAuth()
 
-  // ── Auth ───────────────────────────────────────────────
-  const { currentUser, authLoading } = useAuth()  // ← INSIDE component, correct
+  const [darkMode,       setDarkMode]       = useState(true)
+  const [members,        setMembers]        = useState([])
+  const [trainers,       setTrainers]       = useState([])
+  const [payments,       setPayments]       = useState([])
+  const [workouts,       setWorkouts]       = useState([])
+  const [dietPlans,      setDietPlans]      = useState([])
+  const [notifications,  setNotifications]  = useState([])
+  const [checkinLog,     setCheckinLog]     = useState([])
+  const [attendance,     setAttendance]     = useState([])
 
-  // ── Theme ──────────────────────────────────────────────
-  const [darkMode, setDarkMode] = useState(true)
-
-  // ── Data ───────────────────────────────────────────────
-  const [members,       setMembers]       = useState([])
-  const [trainers,      setTrainers]      = useState([])
-  const [payments,      setPayments]      = useState([])
-  const [workouts,      setWorkouts]      = useState([])
-  const [dietPlans,     setDietPlans]     = useState([])
-  const [notifications, setNotifications] = useState([])
-  const [checkinLog,    setCheckinLog]    = useState([])
-  const [attendance,    setAttendance]    = useState([])
-
-  // ── Realtime Firestore listeners ───────────────────────
+  // ── Realtime listeners ─────────────────────────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
-    const unsubscribe = subscribeToMembers(async (data) => {
+    const unsub = subscribeToMembers(async (data) => {
       setMembers(data)
       const today = new Date()
       data.forEach(async (member) => {
         if (!member.expiry) return
-        const expiryDate = new Date(member.expiry)
-        const isExpired  = expiryDate < today
-        if (isExpired && member.status !== 'Expired') {
-          try {
-            await updateMemberInFirestore(member.id, { status: 'Expired' })
-          } catch (error) {
-            console.error('Expiry update failed:', error)
-          }
+        const expired = new Date(member.expiry) < today
+        if (expired && member.status !== 'Expired') {
+          try { await updateMemberInFirestore(member.id, { status: 'Expired' }) }
+          catch (err) { console.error('Expiry update failed:', err) }
         }
       })
     })
-    return unsubscribe
+    return unsub
   }, [currentUser, authLoading])
 
   useEffect(() => {
     if (authLoading || !currentUser) return
-    const unsubscribe = subscribeToPayments((data) => setPayments(data))
-    return unsubscribe
+    const unsub = subscribeToPayments(data => setPayments(data))
+    return unsub
   }, [currentUser, authLoading])
 
   useEffect(() => {
     if (authLoading || !currentUser) return
-    const unsubscribe = subscribeToTrainers((data) => setTrainers(data))
-    return unsubscribe
+    const unsub = subscribeToTrainers(data => setTrainers(data))
+    return unsub
   }, [currentUser, authLoading])
 
   useEffect(() => {
     if (authLoading || !currentUser) return
-    const unsubscribe = subscribeAttendance((data) => setAttendance(data))
-    return unsubscribe
+    const unsub = subscribeAttendance(data => setAttendance(data))
+    return unsub
   }, [currentUser, authLoading])
 
-  // ── Persist dark mode ──────────────────────────────────
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light')
   }, [darkMode])
 
-  // ── Member CRUD ────────────────────────────────────────
+  // ── Member CRUD ────────────────────────────────────────────
   const addMember = async (memberData) => {
-    try {
-      return await addMemberToFirestore({
-        ...memberData,
-        trainerId:   memberData.trainerId   || '',
-        trainerName: memberData.trainerName || '',
-        status:      memberData.status      || 'Active',
-        plan:        memberData.plan        || 'Monthly',
-        amountPaid:  Number(memberData.amountPaid) || 0,
-        checkins:    Number(memberData.checkins)   || 0,
-      })
-    } catch (error) {
-      console.error('Error adding member:', error)
+    // Extract password — never saved to Firestore
+    const { password, ...rest } = memberData
+
+    let authUid = ''
+
+    // Create Firebase Auth account if password provided
+    if (password) {
+      try {
+        authUid = await createMemberAccount({
+          name:     rest.name,
+          email:    rest.email,
+          password,
+        })
+      } catch (err) {
+        if (err.code === 'auth/email-already-in-use') {
+          // Auth account already exists — still save Firestore doc
+          console.warn('Auth account already exists for', rest.email)
+        } else {
+          // Re-throw so Members.jsx can show the error in the modal
+          throw err
+        }
+      }
     }
+
+    return await addMemberToFirestore({
+      ...rest,
+      authUid,
+      trainerId:   rest.trainerId   || '',
+      trainerName: rest.trainerName || '',
+      status:      rest.status      || 'Active',
+      plan:        rest.plan        || 'Monthly',
+      amountPaid:  Number(rest.amountPaid) || 0,
+      checkins:    0,
+    })
   }
 
   const updateMember = async (id, data) => {
     try {
+      const { password, ...rest } = data   // never update password via Firestore
       await updateMemberInFirestore(id, {
-        ...data,
-        amountPaid: Number(data.amountPaid) || 0,
+        ...rest,
+        amountPaid: Number(rest.amountPaid) || 0,
       })
-    } catch (error) {
-      console.error('Error updating member:', error)
-    }
+    } catch (err) { console.error('Error updating member:', err) }
   }
 
   const deleteMember = async (id) => {
-    try {
-      await deleteMemberFromFirestore(id)
-    } catch (error) {
-      console.error('Error deleting member:', error)
-    }
+    try { await deleteMemberFromFirestore(id) }
+    catch (err) { console.error('Error deleting member:', err) }
   }
 
   const checkInMember = async (member) => {
     try {
       await addAttendanceToFirestore({
-        memberId:    member.id,
+        memberId:    member.authUid || member.uid || member.id,
         memberName:  member.name,
         trainerId:   member.trainerId   || '',
         trainerName: member.trainerName || '',
         type:        'checkin',
       })
-      await updateMember(member.id, { checkins: (member.checkins || 0) + 1 })
-    } catch (error) {
-      console.error('Error checking in:', error)
-    }
+      await updateMemberInFirestore(member.id, { checkins: (member.checkins || 0) + 1 })
+    } catch (err) { console.error('Error checking in:', err) }
   }
 
-  // ── Payment CRUD ───────────────────────────────────────
-  const addPayment = async (paymentData) => {
+  // ── Payment CRUD ───────────────────────────────────────────
+  const addPayment = async (data) => {
     try {
       return await addPaymentToFirestore({
-        ...paymentData,
-        amount: Number(paymentData.amount) || 0,
-        status: paymentData.status || 'Paid',
-        plan:   paymentData.plan   || 'Monthly',
+        ...data,
+        amount: Number(data.amount) || 0,
+        status: data.status || 'Paid',
+        plan:   data.plan   || 'Monthly',
       })
-    } catch (error) {
-      console.error('Error adding payment:', error)
-    }
+    } catch (err) { console.error('Error adding payment:', err) }
   }
 
   const updatePayment = async (id, data) => {
-    try {
-      await updatePaymentInFirestore(id, { ...data, amount: Number(data.amount) || 0 })
-    } catch (error) {
-      console.error('Error updating payment:', error)
-    }
+    try { await updatePaymentInFirestore(id, { ...data, amount: Number(data.amount) || 0 }) }
+    catch (err) { console.error('Error updating payment:', err) }
   }
 
   const deletePayment = async (id) => {
-    try {
-      await deletePaymentFromFirestore(id)
-    } catch (error) {
-      console.error('Error deleting payment:', error)
-    }
+    try { await deletePaymentFromFirestore(id) }
+    catch (err) { console.error('Error deleting payment:', err) }
   }
 
-  // ── Trainer CRUD ───────────────────────────────────────
-  const addTrainer = async (trainerData) => {
+  // ── Trainer CRUD ───────────────────────────────────────────
+  const addTrainer = async (data) => {
     try {
-      return await addTrainerToFirestore({
-        ...trainerData,
-        rating:  trainerData.rating  || 5,
-        clients: trainerData.clients || 0,
-      })
-    } catch (error) {
-      console.error('Error adding trainer:', error)
-    }
+      return await addTrainerToFirestore({ ...data, rating: data.rating || 5, clients: data.clients || 0 })
+    } catch (err) { console.error('Error adding trainer:', err) }
   }
 
   const updateTrainer = async (id, data) => {
-    try {
-      await updateTrainerInFirestore(id, data)
-    } catch (error) {
-      console.error('Error updating trainer:', error)
-    }
+    try { await updateTrainerInFirestore(id, data) }
+    catch (err) { console.error('Error updating trainer:', err) }
   }
 
   const deleteTrainer = async (id) => {
-    try {
-      await deleteTrainerFromFirestore(id)
-    } catch (error) {
-      console.error('Error deleting trainer:', error)
-    }
+    try { await deleteTrainerFromFirestore(id) }
+    catch (err) { console.error('Error deleting trainer:', err) }
   }
 
-  // ── Local check-in log ─────────────────────────────────
+  // ── Local check-in log ─────────────────────────────────────
   const checkIn = (member) => {
-    const now     = new Date()
+    const now = new Date()
     const timeStr = now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' })
     setCheckinLog(p => [{ id: Date.now(), name: member.name, avatar: member.avatar, time: timeStr, out: '—' }, ...p])
     updateMember(member.id, { checkins: Number(member.checkins || 0) + 1 })
   }
 
-  // ── Notifications ──────────────────────────────────────
+  // ── Notifications ──────────────────────────────────────────
   const markAllRead = () => setNotifications(p => p.map(n => ({ ...n, read: true })))
   const markRead    = (id) => setNotifications(p => p.map(n => n.id === id ? { ...n, read: true } : n))
   const unreadCount = notifications.filter(n => !n.read).length
@@ -218,21 +198,13 @@ export function AppProvider({ children }) {
   return (
     <AppContext.Provider value={{
       darkMode, setDarkMode,
-
-      members, addMember, updateMember, deleteMember,
-
+      members,  addMember,  updateMember,  deleteMember,
       trainers, addTrainer, updateTrainer, deleteTrainer,
-
       payments, addPayment, updatePayment, deletePayment,
-
       workouts, setWorkouts,
-
       dietPlans, setDietPlans,
-
       notifications, markAllRead, markRead, unreadCount,
-
       checkinLog, checkIn,
-
       attendance, checkInMember,
     }}>
       {children}

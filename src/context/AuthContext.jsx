@@ -89,11 +89,8 @@ export function AuthProvider({ children }) {
 }
       setUserProfile(profile)
       return r   // return role so caller can redirect
-    } catch (err) {
-  setAuthError(
-    err.message ||
-    friendlyError(err.code)
-  )
+    }  catch (err) {
+  setAuthError(friendlyError(err.code || err.message))
   throw err
 }
   }
