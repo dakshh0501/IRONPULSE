@@ -223,7 +223,7 @@ export default function Settings() {
           {activeTab === 'gym' && (
             <SectionCard icon="🏋️" title="Gym Information" subtitle="Public-facing gym details">
               <div className="form-row" style={{ marginBottom:14 }}>
-                <InputField label="Gym Name"    k="name"    state={gymForm} setState={setGym} placeholder="IronForge Gym"/>
+                <InputField label="Gym Name"    k="name"    state={gymForm} setState={setGym} placeholder="Test Name Gym"/>
                 <InputField label="Tagline"     k="tagline" state={gymForm} setState={setGym} placeholder="Train Hard. Stay Strong."/>
               </div>
               <div className="form-group">

@@ -5,27 +5,17 @@ import { useApp } from '../context/AppContext'
 //  TYPE CONFIG
 // ─────────────────────────────────────────────────────────────
 const TYPE_CONFIG = {
-  payment:  { icon:'💳', label:'Payment',    color:'#e8420a', bg:'rgba(232,66,10,0.1)'    },
-  expiry:   { icon:'⏰', label:'Expiry',     color:'#ef4444', bg:'rgba(239,68,68,0.1)'    },
-  new:      { icon:'🎉', label:'New Member', color:'#22c55e', bg:'rgba(34,197,94,0.1)'    },
-  checkin:  { icon:'✅', label:'Attendance', color:'#00c8b4', bg:'rgba(0,200,180,0.1)'    },
-  workout:  { icon:'💪', label:'Workout',    color:'#a855f7', bg:'rgba(168,85,247,0.1)'   },
-  system:   { icon:'⚙️', label:'System',    color:'#6070a0', bg:'rgba(96,112,160,0.1)'   },
-  announce: { icon:'📢', label:'Announcement',color:'#f59e0b',bg:'rgba(245,158,11,0.1)'  },
+  payment:  { icon:'💳', label:'Payment',     color:'#e8420a', bg:'rgba(232,66,10,0.1)'   },
+  expiry:   { icon:'⏰', label:'Expiry',      color:'#ef4444', bg:'rgba(239,68,68,0.1)'   },
+  new:      { icon:'🎉', label:'New Member',  color:'#22c55e', bg:'rgba(34,197,94,0.1)'   },
+  checkin:  { icon:'✅', label:'Attendance',  color:'#00c8b4', bg:'rgba(0,200,180,0.1)'   },
+  workout:  { icon:'💪', label:'Workout',     color:'#a855f7', bg:'rgba(168,85,247,0.1)'  },
+  system:   { icon:'⚙️', label:'System',     color:'#6070a0', bg:'rgba(96,112,160,0.1)'  },
+  announce: { icon:'📢', label:'Announcement',color:'#f59e0b', bg:'rgba(245,158,11,0.1)' },
 }
 
-// Extra notifications beyond context
-const EXTRA_NOTIFS = [
-  { id:101, type:'announce', title:'Gym Holiday Notice',     msg:'The gym will be closed on May 25th for maintenance. All classes rescheduled.', time:'2d ago',  read:true  },
-  { id:102, type:'workout',  title:'Workout Reminder',       msg:'Aarav Joshi has not logged a session in 5 days. Send a reminder.',              time:'3d ago',  read:true  },
-  { id:103, type:'checkin',  title:'Low Attendance Alert',   msg:'Sunday attendance dropped to 25 — lowest this week. Consider running an offer.',time:'4d ago',  read:true  },
-  { id:104, type:'announce', title:'New Class Added',        msg:'CrossFit Saturday 7AM has been added to the schedule by Raj Sharma.',           time:'5d ago',  read:true  },
-  { id:105, type:'system',   title:'Backup Complete',        msg:'Weekly data backup completed successfully at 2:00 AM.',                          time:'6d ago',  read:true  },
-  { id:106, type:'expiry',   title:'30 Members Expiring',    msg:'19 members have memberships expiring within the next 30 days.',                  time:'1w ago',  read:true  },
-]
-
 // ─────────────────────────────────────────────────────────────
-//  TOAST (top-right popup)
+//  TOAST
 // ─────────────────────────────────────────────────────────────
 function Toast({ msg, onClose }) {
   useEffect(() => {
@@ -35,16 +25,16 @@ function Toast({ msg, onClose }) {
 
   return (
     <div style={{
-      position: 'fixed', top: 80, right: 24, zIndex: 9999,
-      background: 'var(--bg2)', border: '1px solid var(--teal)',
-      borderRadius: 10, padding: '12px 18px',
-      display: 'flex', alignItems: 'center', gap: 12,
-      boxShadow: '0 8px 30px rgba(0,0,0,0.4)',
-      animation: 'slideLeft 0.25s ease',
-      maxWidth: 340,
+      position:'fixed', top:80, right:24, zIndex:9999,
+      background:'var(--bg2)', border:'1px solid var(--teal)',
+      borderRadius:10, padding:'12px 18px',
+      display:'flex', alignItems:'center', gap:12,
+      boxShadow:'0 8px 30px rgba(0,0,0,0.4)',
+      animation:'slideLeft 0.25s ease',
+      maxWidth:340,
     }}>
-      <span style={{ fontSize: 20 }}>✅</span>
-      <p style={{ fontSize: 13, color: 'var(--text)', flex: 1 }}>{msg}</p>
+      <span style={{ fontSize:20 }}>✅</span>
+      <p style={{ fontSize:13, color:'var(--text)', flex:1 }}>{msg}</p>
       <button onClick={onClose} style={{ background:'none', border:'none', color:'var(--text-muted)', fontSize:16, cursor:'pointer' }}>✕</button>
     </div>
   )
@@ -57,72 +47,66 @@ function NotifCard({ notif, onMarkRead, onDelete }) {
   const cfg = TYPE_CONFIG[notif.type] || TYPE_CONFIG.system
 
   return (
-    <div
-      style={{
-        display: 'flex', gap: 14, alignItems: 'flex-start',
-        padding: '16px 18px',
-        background: notif.read ? 'var(--card)' : `${cfg.bg}`,
-        border: `1px solid ${notif.read ? 'var(--card-border)' : cfg.color + '30'}`,
-        borderRadius: 'var(--radius)',
-        transition: 'all 0.2s',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Left accent bar for unread */}
+    <div style={{
+      display:'flex', gap:14, alignItems:'flex-start',
+      padding:'16px 18px',
+      background: notif.read ? 'var(--card)' : cfg.bg,
+      border:`1px solid ${notif.read ? 'var(--card-border)' : cfg.color + '30'}`,
+      borderRadius:'var(--radius)',
+      transition:'all 0.2s',
+      position:'relative',
+      overflow:'hidden',
+    }}>
       {!notif.read && (
         <div style={{
-          position: 'absolute', left: 0, top: 0, bottom: 0, width: 3,
-          background: cfg.color, borderRadius: '4px 0 0 4px',
+          position:'absolute', left:0, top:0, bottom:0, width:3,
+          background:cfg.color, borderRadius:'4px 0 0 4px',
         }} />
       )}
 
-      {/* Icon */}
       <div style={{
-        width: 42, height: 42, borderRadius: '50%', flexShrink: 0,
-        background: cfg.bg, border: `1px solid ${cfg.color}30`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+        width:42, height:42, borderRadius:'50%', flexShrink:0,
+        background:cfg.bg, border:`1px solid ${cfg.color}30`,
+        display:'flex', alignItems:'center', justifyContent:'center', fontSize:20,
       }}>
         {cfg.icon}
       </div>
 
-      {/* Content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:4 }}>
           <span style={{
-            fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
-            background: cfg.bg, color: cfg.color, letterSpacing: '0.06em', textTransform: 'uppercase',
+            fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:10,
+            background:cfg.bg, color:cfg.color, letterSpacing:'0.06em', textTransform:'uppercase',
           }}>
             {cfg.label}
           </span>
           {!notif.read && (
             <span style={{
-              fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
-              background: 'rgba(0,200,180,0.12)', color: 'var(--teal)',
+              fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:10,
+              background:'rgba(0,200,180,0.12)', color:'var(--teal)',
             }}>NEW</span>
           )}
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
+          <span style={{ fontSize:11, color:'var(--text-muted)', marginLeft:'auto' }}>
             {notif.time}
           </span>
         </div>
-        <p style={{ fontSize: 14, fontWeight: notif.read ? 500 : 700, color: 'var(--text)', marginBottom: 4 }}>
+        <p style={{ fontSize:14, fontWeight:notif.read ? 500 : 700, color:'var(--text)', marginBottom:4 }}>
           {notif.title}
         </p>
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+        <p style={{ fontSize:13, color:'var(--text-muted)', lineHeight:1.5 }}>
           {notif.msg}
         </p>
       </div>
 
-      {/* Actions */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+      <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0 }}>
         {!notif.read && (
           <button className="btn btn-sm btn-outline" onClick={() => onMarkRead(notif.id)}
-            style={{ fontSize: 11, padding: '4px 10px' }}>
+            style={{ fontSize:11, padding:'4px 10px' }}>
             Mark read
           </button>
         )}
         <button className="btn btn-sm btn-red" onClick={() => onDelete(notif.id)}
-          style={{ fontSize: 11, padding: '4px 10px' }}>
+          style={{ fontSize:11, padding:'4px 10px' }}>
           Dismiss
         </button>
       </div>
@@ -157,20 +141,17 @@ function ComposeModal({ onSend, onClose }) {
 
         <div className="form-group">
           <label className="form-label">Notification Type</label>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
             {['announce','payment','workout','system'].map(t => {
               const c = TYPE_CONFIG[t]
               return (
-                <button key={t} type="button"
-                  onClick={() => setType(t)}
-                  style={{
-                    padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-                    border: `1.5px solid ${type===t ? c.color : 'var(--border)'}`,
-                    background: type===t ? c.bg : 'var(--card)',
-                    color: type===t ? c.color : 'var(--text-muted)',
-                    cursor: 'pointer', transition: 'all 0.15s',
-                  }}
-                >
+                <button key={t} type="button" onClick={() => setType(t)} style={{
+                  padding:'6px 14px', borderRadius:20, fontSize:12, fontWeight:600,
+                  border:`1.5px solid ${type===t ? c.color : 'var(--border)'}`,
+                  background: type===t ? c.bg : 'var(--card)',
+                  color: type===t ? c.color : 'var(--text-muted)',
+                  cursor:'pointer', transition:'all 0.15s',
+                }}>
                   {c.icon} {c.label}
                 </button>
               )
@@ -180,17 +161,15 @@ function ComposeModal({ onSend, onClose }) {
 
         <div className="form-group">
           <label className="form-label">Title *</label>
-          <input className="form-input" placeholder="Announcement title…"
-            value={title} onChange={e => setTitle(e.target.value)} />
+          <input className="form-input" placeholder="Announcement title…" value={title} onChange={e => setTitle(e.target.value)} />
         </div>
         <div className="form-group">
           <label className="form-label">Message *</label>
-          <textarea className="form-input" rows={4} placeholder="Write your message here…"
-            value={msg} onChange={e => setMsg(e.target.value)} />
+          <textarea className="form-input" rows={4} placeholder="Write your message here…" value={msg} onChange={e => setMsg(e.target.value)} />
         </div>
 
-        <div style={{ background: 'var(--bg3)', borderRadius: 8, padding: '10px 14px', marginBottom: 4, fontSize: 12, color: 'var(--text-muted)' }}>
-          📢 This will be sent to <strong style={{ color: 'var(--text)' }}>all members and trainers</strong>. In production, this triggers push + email notifications.
+        <div style={{ background:'var(--bg3)', borderRadius:8, padding:'10px 14px', marginBottom:4, fontSize:12, color:'var(--text-muted)' }}>
+          📢 This will be sent to <strong style={{ color:'var(--text)' }}>all members and trainers</strong>. In production, this triggers push + email notifications.
         </div>
 
         <div className="modal-footer">
@@ -208,20 +187,24 @@ function ComposeModal({ onSend, onClose }) {
 //  MAIN EXPORT
 // ─────────────────────────────────────────────────────────────
 export default function Notifications({ search = '' }) {
-  const { notifications: ctxNotifs, markRead, markAllRead } = useApp()
+  const { notifications, markRead, markAllRead } = useApp()
 
-  const [localNotifs,  setLocalNotifs]  = useState([...EXTRA_NOTIFS])
+  // Local-only dismissed IDs (announcements composed in this session)
+  const [dismissed,    setDismissed]    = useState([])
+  const [localNotifs,  setLocalNotifs]  = useState([])   // announcements sent via Compose
   const [typeFilter,   setTypeFilter]   = useState('all')
   const [showUnread,   setShowUnread]   = useState(false)
   const [composeOpen,  setComposeOpen]  = useState(false)
   const [toast,        setToast]        = useState(null)
 
-  // Merge context + local
-  const allNotifs = [...ctxNotifs, ...localNotifs]
+  // Real notifications from context + composed announcements, minus dismissed
+  const allNotifs = [
+    ...localNotifs,
+    ...notifications.filter(n => !dismissed.includes(n.id)),
+  ]
 
   const unreadCount = allNotifs.filter(n => !n.read).length
 
-  // Filter
   const filtered = allNotifs.filter(n => {
     const q = search.toLowerCase()
     const matchSearch = !q || n.title.toLowerCase().includes(q) || n.msg.toLowerCase().includes(q)
@@ -231,50 +214,48 @@ export default function Notifications({ search = '' }) {
   })
 
   const handleMarkRead = (id) => {
-    if (ctxNotifs.find(n => n.id === id)) markRead(id)
-    else setLocalNotifs(p => p.map(n => n.id === id ? { ...n, read: true } : n))
+    markRead(id)
+    setLocalNotifs(p => p.map(n => n.id === id ? { ...n, read:true } : n))
   }
 
   const handleDelete = (id) => {
-    if (ctxNotifs.find(n => n.id === id)) markRead(id)
+    setDismissed(p => [...p, id])
     setLocalNotifs(p => p.filter(n => n.id !== id))
     setToast('Notification dismissed')
   }
 
   const handleMarkAllRead = () => {
     markAllRead()
-    setLocalNotifs(p => p.map(n => ({ ...n, read: true })))
+    setLocalNotifs(p => p.map(n => ({ ...n, read:true })))
     setToast('All notifications marked as read')
   }
 
   const handleSendAnnouncement = ({ title, msg, type }) => {
-    const newNotif = {
-      id: Date.now(), type, title, msg,
-      time: 'Just now', read: false,
-    }
-    setLocalNotifs(p => [newNotif, ...p])
+    setLocalNotifs(p => [{
+      id: `announce-${Date.now()}`, type, title, msg,
+      time:'Just now', read:false,
+    }, ...p])
     setToast(`Announcement "${title}" sent!`)
   }
 
-  // Type counts for filter pills
   const typeCounts = {}
   allNotifs.forEach(n => { typeCounts[n.type] = (typeCounts[n.type] || 0) + 1 })
 
   return (
     <div>
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="page-header">
         <div>
           <h2>Notifications</h2>
           <p>
             {unreadCount > 0
-              ? <span style={{ color: 'var(--orange)', fontWeight: 700 }}>{unreadCount} unread</span>
+              ? <span style={{ color:'var(--orange)', fontWeight:700 }}>{unreadCount} unread</span>
               : 'All caught up!'
             }
             {' '}· {allNotifs.length} total
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display:'flex', gap:10 }}>
           {unreadCount > 0 && (
             <button className="btn btn-outline btn-sm" onClick={handleMarkAllRead}>
               ✓ Mark all read
@@ -286,8 +267,8 @@ export default function Notifications({ search = '' }) {
         </div>
       </div>
 
-      {/* ── Summary stat cards ── */}
-      <div className="stats-grid" style={{ marginBottom: 24 }}>
+      {/* Summary stat cards */}
+      <div className="stats-grid" style={{ marginBottom:24 }}>
         <div className="stat-card red">
           <span className="stat-icon">🔴</span>
           <span className="stat-label">Unread</span>
@@ -311,32 +292,24 @@ export default function Notifications({ search = '' }) {
         </div>
       </div>
 
-      {/* ── Filters bar ── */}
+      {/* Filters */}
       <div style={{ display:'flex', gap:10, marginBottom:20, flexWrap:'wrap', alignItems:'center' }}>
-        {/* Type filter pills */}
         <div style={{ display:'flex', gap:6, flexWrap:'wrap', flex:1 }}>
           {[{ key:'all', label:'All', icon:'🔔' }, ...Object.entries(TYPE_CONFIG).map(([k,v]) => ({ key:k, label:v.label, icon:v.icon }))].map(f => {
-            const cfg = TYPE_CONFIG[f.key]
+            const cfg   = TYPE_CONFIG[f.key]
             const count = f.key === 'all' ? allNotifs.length : (typeCounts[f.key] || 0)
             if (f.key !== 'all' && !count) return null
             return (
-              <button
-                key={f.key}
-                onClick={() => setTypeFilter(f.key)}
-                style={{
-                  display:'flex', alignItems:'center', gap:5,
-                  padding:'6px 12px', borderRadius:20, fontSize:12, fontWeight:600,
-                  border:`1.5px solid ${typeFilter===f.key ? (cfg?.color||'var(--teal)') : 'var(--border)'}`,
-                  background: typeFilter===f.key ? (cfg?.bg||'rgba(0,200,180,0.1)') : 'var(--card)',
-                  color: typeFilter===f.key ? (cfg?.color||'var(--teal)') : 'var(--text-muted)',
-                  cursor:'pointer', transition:'all 0.15s', whiteSpace:'nowrap',
-                }}
-              >
+              <button key={f.key} onClick={() => setTypeFilter(f.key)} style={{
+                display:'flex', alignItems:'center', gap:5,
+                padding:'6px 12px', borderRadius:20, fontSize:12, fontWeight:600,
+                border:`1.5px solid ${typeFilter===f.key ? (cfg?.color||'var(--teal)') : 'var(--border)'}`,
+                background: typeFilter===f.key ? (cfg?.bg||'rgba(0,200,180,0.1)') : 'var(--card)',
+                color: typeFilter===f.key ? (cfg?.color||'var(--teal)') : 'var(--text-muted)',
+                cursor:'pointer', transition:'all 0.15s', whiteSpace:'nowrap',
+              }}>
                 {f.icon} {f.label}
-                <span style={{
-                  background:'var(--bg3)', color:'var(--text-muted)',
-                  fontSize:10, fontWeight:700, padding:'1px 5px', borderRadius:8,
-                }}>
+                <span style={{ background:'var(--bg3)', color:'var(--text-muted)', fontSize:10, fontWeight:700, padding:'1px 5px', borderRadius:8 }}>
                   {count}
                 </span>
               </button>
@@ -344,7 +317,6 @@ export default function Notifications({ search = '' }) {
           })}
         </div>
 
-        {/* Unread toggle */}
         <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:13, color:'var(--text-muted)', flexShrink:0 }}>
           <div className={`toggle ${showUnread?'on':''}`} onClick={() => setShowUnread(p=>!p)}>
             <div className="toggle-thumb" />
@@ -353,16 +325,11 @@ export default function Notifications({ search = '' }) {
         </label>
       </div>
 
-      {/* ── Notification list ── */}
+      {/* List */}
       {filtered.length > 0 ? (
         <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
           {filtered.map(n => (
-            <NotifCard
-              key={n.id}
-              notif={n}
-              onMarkRead={handleMarkRead}
-              onDelete={handleDelete}
-            />
+            <NotifCard key={n.id} notif={n} onMarkRead={handleMarkRead} onDelete={handleDelete} />
           ))}
         </div>
       ) : (
@@ -384,15 +351,7 @@ export default function Notifications({ search = '' }) {
         </div>
       )}
 
-      {/* ── Modals ── */}
-      {composeOpen && (
-        <ComposeModal
-          onSend={handleSendAnnouncement}
-          onClose={() => setComposeOpen(false)}
-        />
-      )}
-
-      {/* ── Toast ── */}
+      {composeOpen && <ComposeModal onSend={handleSendAnnouncement} onClose={() => setComposeOpen(false)} />}
       {toast && <Toast msg={toast} onClose={() => setToast(null)} />}
     </div>
   )

@@ -3,8 +3,8 @@ import { useApp } from '../context/AppContext'
 
 // ─── Seed Data ───────────────────────────────────────────────────────────────
 
-const METHODS = ['UPI', 'Credit Card', 'Debit Card', 'Cash', 'Bank Transfer', 'Net Banking']
-const PLANS   = ['Premium Annual', 'Premium Quarterly', 'Premium Monthly', 'Standard Quarterly', 'Standard Monthly', 'Trial Week']
+const METHODS  = ['UPI', 'Credit Card', 'Debit Card', 'Cash', 'Bank Transfer', 'Net Banking']
+const PLANS    = ['Premium Annual', 'Premium Quarterly', 'Premium Monthly', 'Standard Quarterly', 'Standard Monthly', 'Trial Week']
 const STATUSES = ['Paid', 'Pending', 'Overdue', 'Partial']
 
 const MONTHLY_REVENUE = [
@@ -25,40 +25,22 @@ const STATUS_CFG = {
 
 const METHOD_ICON = { UPI: '📱', 'Credit Card': '💳', 'Debit Card': '💳', Cash: '💵', 'Bank Transfer': '🏦', 'Net Banking': '🌐' }
 
-const fmt = (n) =>
-  `₹${Number(n || 0).toLocaleString('en-IN')}`
+const fmt     = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
 function avatarColor(initials = 'XX') {
-  const colors = [
-    '#FF4B2B',
-    '#F59E0B',
-    '#10B981',
-    '#3B82F6',
-    '#8B5CF6',
-    '#EC4899',
-    '#06B6D4',
-    '#14B8A6'
-  ]
-
+  const colors = ['#FF4B2B','#F59E0B','#10B981','#3B82F6','#8B5CF6','#EC4899','#06B6D4','#14B8A6']
   const safeInitials = initials || 'XX'
-
-  const first =
-    safeInitials.charCodeAt(0) || 0
-
-  const second =
-    safeInitials.charCodeAt(1) || 0
-
-  return colors[
-    (first + second) % colors.length
-  ]
+  const first  = safeInitials.charCodeAt(0) || 0
+  const second = safeInitials.charCodeAt(1) || 0
+  return colors[(first + second) % colors.length]
 }
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 function StatusBadge({ status, size = 'md' }) {
-  const c = STATUS_CFG[status] || STATUS_CFG.Pending
+  const c   = STATUS_CFG[status] || STATUS_CFG.Pending
   const pad = size === 'sm' ? '2px 8px' : '4px 12px'
-  const fs = size === 'sm' ? 10 : 12
+  const fs  = size === 'sm' ? 10 : 12
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -79,27 +61,14 @@ function RevenueChart({ data }) {
     <div style={{ width: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 100, padding: '0 4px' }}>
         {data.map((d, i) => {
-          const revH = Math.round((d.revenue / max) * 96)
-          const tarH = Math.round((d.target / max) * 96)
+          const revH  = Math.round((d.revenue / max) * 96)
+          const tarH  = Math.round((d.target / max) * 96)
           const isOver = d.revenue >= d.target
           return (
             <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
               <div style={{ width: '100%', display: 'flex', alignItems: 'flex-end', gap: 2, height: 96 }}>
-                {/* target bar (ghost) */}
-                <div style={{
-                  flex: 1, height: tarH,
-                  background: '#ffffff10', borderRadius: '4px 4px 0 0',
-                  border: '1px solid #ffffff15',
-                }} />
-                {/* revenue bar */}
-                <div style={{
-                  flex: 1, height: revH,
-                  background: isOver
-                    ? 'linear-gradient(180deg,#10B981,#059669)'
-                    : 'linear-gradient(180deg,#FF4B2B,#c0392b)',
-                  borderRadius: '4px 4px 0 0',
-                  boxShadow: isOver ? '0 0 12px #10B98140' : '0 0 12px #FF4B2B40',
-                }} />
+                <div style={{ flex: 1, height: tarH, background: '#ffffff10', borderRadius: '4px 4px 0 0', border: '1px solid #ffffff15' }} />
+                <div style={{ flex: 1, height: revH, background: isOver ? 'linear-gradient(180deg,#10B981,#059669)' : 'linear-gradient(180deg,#FF4B2B,#c0392b)', borderRadius: '4px 4px 0 0', boxShadow: isOver ? '0 0 12px #10B98140' : '0 0 12px #FF4B2B40' }} />
               </div>
               <span style={{ fontSize: 10, color: '#6B7280', fontWeight: 600 }}>{d.month}</span>
             </div>
@@ -120,15 +89,11 @@ function RevenueChart({ data }) {
 
 // ─── Invoice Detail Modal ─────────────────────────────────────────────────────
 function InvoiceModal({ invoice, onClose, onMarkPaid }) {
-  const c = STATUS_CFG[invoice.status]
-  const balance =
-    (Number(invoice.amount) || 0) -
-    (Number(invoice.paid) || 0)
+  const c       = STATUS_CFG[invoice.status]
+  const balance = (Number(invoice.amount) || 0) - (Number(invoice.paid) || 0)
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, backdropFilter: 'blur(6px)' }} onClick={onClose}>
       <div style={{ background: '#111', border: `1px solid ${c.border}`, borderRadius: 20, width: '100%', maxWidth: 480, boxShadow: '0 30px 80px #000' }} onClick={e => e.stopPropagation()}>
-
-        {/* Invoice header strip */}
         <div style={{ background: `linear-gradient(135deg, ${c.bg}, transparent)`, borderRadius: '20px 20px 0 0', padding: '22px 26px', borderBottom: '1px solid #ffffff10' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
@@ -143,18 +108,16 @@ function InvoiceModal({ invoice, onClose, onMarkPaid }) {
         </div>
 
         <div style={{ padding: '22px 26px' }}>
-          {/* Member row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 22, padding: '14px 16px', background: '#ffffff06', borderRadius: 12, border: '1px solid #ffffff10' }}>
             <div style={{ width: 44, height: 44, borderRadius: '50%', background: `linear-gradient(135deg, ${avatarColor(invoice.avatar || 'XX')}, ${avatarColor(invoice.avatar || 'XX')}99)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: '#fff', flexShrink: 0 }}>
               {invoice.avatar || 'XX'}
             </div>
             <div>
-              <div style={{ fontWeight: 700, color: '#F3F4F6', fontSize: 15 }}>{invoice.member}</div>
+              <div style={{ fontWeight: 700, color: '#F3F4F6', fontSize: 15 }}>{invoice.member || invoice.memberName}</div>
               <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{invoice.plan}</div>
             </div>
           </div>
 
-          {/* Amount breakdown */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 22 }}>
             {[
               ['Invoice Amount', fmt(invoice.amount), '#E5E7EB'],
@@ -168,7 +131,6 @@ function InvoiceModal({ invoice, onClose, onMarkPaid }) {
             ))}
           </div>
 
-          {/* Payment progress bar (for partial) */}
           {invoice.status === 'Partial' && (
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6B7280', marginBottom: 6 }}>
@@ -181,13 +143,12 @@ function InvoiceModal({ invoice, onClose, onMarkPaid }) {
             </div>
           )}
 
-          {/* Details grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 22 }}>
             {[
-              ['Due Date',   fmtDate(invoice.due)],
-              ['Paid On',    fmtDate(invoice.paidOn)],
-              ['Method',     invoice.method ? `${METHOD_ICON[invoice.method] || ''} ${invoice.method}` : '—'],
-              ['Plan',       invoice.plan],
+              ['Due Date', fmtDate(invoice.due)],
+              ['Paid On',  fmtDate(invoice.paidOn)],
+              ['Method',   invoice.method ? `${METHOD_ICON[invoice.method] || ''} ${invoice.method}` : '—'],
+              ['Plan',     invoice.plan],
             ].map(([label, val]) => (
               <div key={label} style={{ background: '#ffffff06', borderRadius: 9, padding: '10px 13px' }}>
                 <div style={{ fontSize: 10, color: '#6B7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>{label}</div>
@@ -196,7 +157,6 @@ function InvoiceModal({ invoice, onClose, onMarkPaid }) {
             ))}
           </div>
 
-          {/* Actions */}
           <div style={{ display: 'flex', gap: 8 }}>
             {(invoice.status === 'Pending' || invoice.status === 'Overdue' || invoice.status === 'Partial') && (
               <button onClick={() => onMarkPaid(invoice.firestoreId)} style={{ flex: 1, padding: '11px', background: 'linear-gradient(135deg,#10B981,#059669)', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer', letterSpacing: 0.5 }}>
@@ -214,46 +174,71 @@ function InvoiceModal({ invoice, onClose, onMarkPaid }) {
 }
 
 // ─── New Invoice Modal ────────────────────────────────────────────────────────
-const EMPTY_INV = { member: '', plan: PLANS[0], amount: '', method: METHODS[0], due: '', status: 'Pending', avatar: '' }
+// ← CHANGED: accepts members prop, replaced free-text name with member dropdown
+const EMPTY_INV = { memberId: '', memberName: '', plan: PLANS[0], amount: '', method: METHODS[0], due: '', status: 'Pending', avatar: '' }
 
-function NewInvoiceModal({ onSave, onClose }) {
-  const [form, setForm] = useState({ ...EMPTY_INV })
+function NewInvoiceModal({ onSave, onClose, members }) {
+  const [form,   setForm]   = useState({ ...EMPTY_INV })
   const [errors, setErrors] = useState({})
+
+  // ← CHANGED: when a member is selected, auto-populate name, plan, avatar
+  const handleMemberSelect = (e) => {
+    const memberId     = e.target.value
+    const selectedMember = members.find(m => m.id === memberId)
+    if (!selectedMember) {
+      setForm(f => ({ ...f, memberId: '', memberName: '', plan: PLANS[0], avatar: '' }))
+      return
+    }
+    const nameParts = (selectedMember.name || '').trim().split(' ')
+    const avatar    = ((nameParts[0]?.[0] || '') + (nameParts[1]?.[0] || nameParts[0]?.[1] || 'X')).toUpperCase()
+    setForm(f => ({
+      ...f,
+      memberId:   selectedMember.id,
+      memberName: selectedMember.name,
+      plan:       selectedMember.plan || PLANS[0],
+      avatar,
+    }))
+    setErrors(err => ({ ...err, memberId: '' }))
+  }
 
   const validate = () => {
     const e = {}
-    if (!form.member.trim()) e.member = 'Member name required'
-    if (!form.amount || isNaN(form.amount) || +form.amount <= 0) e.amount = 'Valid amount required'
-    if (!form.due) e.due = 'Due date required'
+    if (!form.memberId)                               e.memberId = 'Please select a member'
+    if (!form.amount || isNaN(form.amount) || +form.amount <= 0) e.amount  = 'Valid amount required'
+    if (!form.due)                                    e.due      = 'Due date required'
     return e
   }
 
   const handleSave = () => {
     const e = validate()
     if (Object.keys(e).length) { setErrors(e); return }
-    const parts = form.member.trim().split(' ')
-    const avatar = (parts[0][0] + (parts[1]?.[0] || parts[0][1] || 'X')).toUpperCase()
     onSave({
-      id: `INV-${Date.now()}`,
-      ...form, amount: +form.amount, paid: 0, paidOn: null,
-      avatar, status: 'Pending',
+      id:         `INV-${Date.now()}`,
+      memberId:   form.memberId,
+      member:     form.memberName,   // keep 'member' for backward compat with table display
+      memberName: form.memberName,
+      plan:       form.plan,
+      amount:     +form.amount,
+      paid:       0,
+      paidOn:     null,
+      method:     form.method,
+      due:        form.due,
+      status:     'Pending',
+      avatar:     form.avatar,
     })
   }
 
-  const inp = (key, placeholder, type = 'text') => ({
-    value: form[key],
-    onChange: e => { setForm(f => ({ ...f, [key]: e.target.value })); setErrors(err => ({ ...err, [key]: '' })) },
-    placeholder, type,
-    style: {
-      width: '100%', padding: '10px 12px', boxSizing: 'border-box',
-      background: errors[key] ? '#FF4B2B11' : '#ffffff08',
-      border: `1px solid ${errors[key] ? '#FF4B2B60' : '#ffffff15'}`,
-      borderRadius: 8, color: '#F3F4F6', fontSize: 13, outline: 'none',
-    }
+  const inputStyle = (key) => ({
+    width: '100%', padding: '10px 12px', boxSizing: 'border-box',
+    background: errors[key] ? '#FF4B2B11' : '#ffffff08',
+    border: `1px solid ${errors[key] ? '#FF4B2B60' : '#ffffff15'}`,
+    borderRadius: 8, color: '#F3F4F6', fontSize: 13, outline: 'none',
   })
-
   const labelStyle = { fontSize: 11, color: '#6B7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4, display: 'block' }
-  const errStyle = { color: '#FF6B4A', fontSize: 11, marginTop: 3 }
+  const errStyle   = { color: '#FF6B4A', fontSize: 11, marginTop: 3 }
+
+  // Active members for dropdown
+  const activeMembers = members.filter(m => m.status === 'Active' || m.status === 'Trial')
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, backdropFilter: 'blur(6px)' }} onClick={onClose}>
@@ -267,35 +252,69 @@ function NewInvoiceModal({ onSave, onClose }) {
         </div>
 
         <div style={{ padding: '22px 26px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+          {/* ← CHANGED: Member dropdown instead of free-text input */}
           <div>
-            <label style={labelStyle}>Member Name *</label>
-            <input {...inp('member', 'Full name')} />
-            {errors.member && <div style={errStyle}>{errors.member}</div>}
+            <label style={labelStyle}>Select Member *</label>
+            <select
+              value={form.memberId}
+              onChange={handleMemberSelect}
+              style={{ ...inputStyle('memberId'), cursor: 'pointer' }}
+            >
+              <option value="" style={{ background: '#1a1a1a' }}>— Choose a member —</option>
+              {activeMembers.map(m => (
+                <option key={m.id} value={m.id} style={{ background: '#1a1a1a' }}>
+                  {m.name} ({m.plan || 'No plan'})
+                </option>
+              ))}
+            </select>
+            {errors.memberId && <div style={errStyle}>{errors.memberId}</div>}
           </div>
+
+          {/* Plan — auto-filled, but still editable */}
           <div>
             <label style={labelStyle}>Membership Plan</label>
-            <select value={form.plan} onChange={e => setForm(f => ({ ...f, plan: e.target.value }))} style={{ ...inp('plan').style, cursor: 'pointer' }}>
+            <select
+              value={form.plan}
+              onChange={e => setForm(f => ({ ...f, plan: e.target.value }))}
+              style={{ ...inputStyle('plan'), cursor: 'pointer' }}
+            >
               {PLANS.map(p => <option key={p} value={p} style={{ background: '#1a1a1a' }}>{p}</option>)}
             </select>
           </div>
+
+          {/* Amount */}
           <div>
             <label style={labelStyle}>Amount (₹) *</label>
-            <input {...inp('amount', 'e.g. 1500', 'number')} min="0" />
+            <input
+              type="number" min="0"
+              value={form.amount}
+              onChange={e => { setForm(f => ({ ...f, amount: e.target.value })); setErrors(err => ({ ...err, amount: '' })) }}
+              placeholder="e.g. 1500"
+              style={inputStyle('amount')}
+            />
             {errors.amount && <div style={errStyle}>{errors.amount}</div>}
           </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={labelStyle}>Payment Method</label>
-              <select value={form.method} onChange={e => setForm(f => ({ ...f, method: e.target.value }))} style={{ ...inp('method').style, cursor: 'pointer' }}>
+              <select value={form.method} onChange={e => setForm(f => ({ ...f, method: e.target.value }))} style={{ ...inputStyle('method'), cursor: 'pointer' }}>
                 {METHODS.map(m => <option key={m} value={m} style={{ background: '#1a1a1a' }}>{m}</option>)}
               </select>
             </div>
             <div>
               <label style={labelStyle}>Due Date *</label>
-              <input {...inp('due', '', 'date')} />
+              <input
+                type="date"
+                value={form.due}
+                onChange={e => { setForm(f => ({ ...f, due: e.target.value })); setErrors(err => ({ ...err, due: '' })) }}
+                style={inputStyle('due')}
+              />
               {errors.due && <div style={errStyle}>{errors.due}</div>}
             </div>
           </div>
+
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
             <button onClick={onClose} style={{ flex: 1, padding: '11px', background: '#ffffff08', border: '1px solid #ffffff15', borderRadius: 10, color: '#9CA3AF', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
             <button onClick={handleSave} style={{ flex: 2, padding: '11px', background: 'linear-gradient(135deg,#FF4B2B,#F59E0B)', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', letterSpacing: 0.5 }}>
@@ -311,10 +330,8 @@ function NewInvoiceModal({ onSave, onClose }) {
 // ─── Invoice Row ──────────────────────────────────────────────────────────────
 function InvoiceRow({ inv, onClick, onDelete }) {
   const [hovered, setHovered] = useState(false)
-  const c = STATUS_CFG[inv.status]
-  const balance =
-  (Number(inv.amount) || 0) -
-  (Number(inv.paid) || 0)
+  const c       = STATUS_CFG[inv.status]
+  const balance = (Number(inv.amount) || 0) - (Number(inv.paid) || 0)
 
   return (
     <tr
@@ -329,7 +346,8 @@ function InvoiceRow({ inv, onClick, onDelete }) {
             {inv.avatar || 'XX'}
           </div>
           <div>
-            <div style={{ fontWeight: 700, color: '#E5E7EB', fontSize: 13 }}>{inv.member}</div>
+            {/* backward compat: show member or memberName */}
+            <div style={{ fontWeight: 700, color: '#E5E7EB', fontSize: 13 }}>{inv.member || inv.memberName || '—'}</div>
             <div style={{ fontSize: 11, color: '#6B7280', marginTop: 1 }}>{inv.plan}</div>
           </div>
         </div>
@@ -359,172 +377,94 @@ function InvoiceRow({ inv, onClick, onDelete }) {
         <button
           onClick={(e) => {
             e.stopPropagation()
-            if (window.confirm('Delete this invoice?')) {
-
-  console.log(
-    'PAYMENT IDS',
-    inv.firestoreId
-  )
-
-  onDelete(inv.firestoreId)
-}
+            if (window.confirm('Delete this invoice?')) onDelete(inv.firestoreId)
           }}
-          style={{
-            background: '#EF4444',
-            color: '#fff',
-            border: 'none',
-            padding: '6px 12px',
-            borderRadius: 8,
-            cursor: 'pointer',
-            fontSize: 12,
-            fontWeight: 700,
-          }}
-      >
+          style={{ background: '#EF4444', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}
+        >
           Delete
         </button>
-        </td>
-      </tr>
+      </td>
+    </tr>
   )
 }
 
 // ─── Main Payments Page ───────────────────────────────────────────────────────
 export default function Payments({ search = '' }) {
-  const {
-    payments,
-    addPayment,
-    updatePayment,
-    deletePayment
-  } = useApp()
-  
+  const { payments, members, addPayment, updatePayment, deletePayment } = useApp()  // ← added members
+
   const invoices = payments
 
-  const [viewInvoice, setViewInvoice] = useState(null)
-  const [showNew, setShowNew] = useState(false)
+  const [viewInvoice,  setViewInvoice]  = useState(null)
+  const [showNew,      setShowNew]      = useState(false)
   const [filterStatus, setFilterStatus] = useState('All')
-  const [localSearch, setLocalSearch] = useState('')
-  const [sortBy, setSortBy] = useState('due')
-  const [loading, setLoading] = useState(true)
+  const [localSearch,  setLocalSearch]  = useState('')
+  const [sortBy,       setSortBy]       = useState('due')
+  const [loading,      setLoading]      = useState(true)
+
   const searchTerm = (search || localSearch).toLowerCase()
 
   useEffect(() => {
-    if (payments) {
-      setLoading(false)
-    }
-  }, [payments]) // due | amount | member
-  
+    if (payments) setLoading(false)
+  }, [payments])
+
   const filtered = useMemo(() => {
     let list = invoices.filter(inv => {
+      const name        = (inv.member || inv.memberName || '').toLowerCase()
       const matchSearch = !searchTerm ||
-        (inv.member || '').toLowerCase().includes(searchTerm) ||
+        name.includes(searchTerm) ||
         (inv.firestoreId || '').toLowerCase().includes(searchTerm) ||
         (inv.plan || '').toLowerCase().includes(searchTerm)
       const matchStatus = filterStatus === 'All' || inv.status === filterStatus
       return matchSearch && matchStatus
     })
     list = [...list].sort((a, b) => {
-      if (sortBy === 'amount') return ((Number(b.amount) || 0) - (Number(a.amount) || 0) )
-      if (sortBy === 'member') return (a.member || '').localeCompare(b.member || '')
-      return (new Date(a.due || 0) - new Date(b.due || 0))
+      if (sortBy === 'amount') return (Number(b.amount) || 0) - (Number(a.amount) || 0)
+      if (sortBy === 'member') return (a.member || a.memberName || '').localeCompare(b.member || b.memberName || '')
+      return new Date(a.due || 0) - new Date(b.due || 0)
     })
     return list
   }, [invoices, searchTerm, filterStatus, sortBy])
 
   const stats = useMemo(() => {
-  const total = invoices.reduce(
-    (s, i) => s + (Number(i.amount) || 0),
-    0
-  )
-
-  const collected = invoices.reduce(
-    (s, i) => s + (Number(i.paid) || 0),
-    0
-  )
-    const pending = invoices
-      .filter(i =>
-      i.status === 'Pending' ||
-      i.status === 'Partial'
-      )
-      .reduce(
-      (s, i) =>
-        s +
-        (
-          (Number(i.amount) || 0) -
-          (Number(i.paid) || 0)
-        ),
-      0
-      )
-    const overdue = invoices
-      .filter(i => i.status === 'Overdue')
-      .reduce(
-        (s, i) =>
-          s + (Number(i.amount) || 0),
-        0
-    )
+    const total     = invoices.reduce((s, i) => s + (Number(i.amount) || 0), 0)
+    const collected = invoices.reduce((s, i) => s + (Number(i.paid)   || 0), 0)
+    const pending   = invoices.filter(i => i.status === 'Pending' || i.status === 'Partial').reduce((s, i) => s + ((Number(i.amount) || 0) - (Number(i.paid) || 0)), 0)
+    const overdue   = invoices.filter(i => i.status === 'Overdue').reduce((s, i) => s + (Number(i.amount) || 0), 0)
     const paidCount = invoices.filter(i => i.status === 'Paid').length
     return { total, collected, pending, overdue, paidCount, collectionRate: total > 0 ? Math.round((collected / total) * 100) : 0 }
   }, [invoices])
 
   const handleMarkPaid = async (id) => {
-
     try {
-
-      const invoice =
-  invoices.find(
-    inv => inv.firestoreId === id
-  )
-
+      const invoice = invoices.find(inv => inv.firestoreId === id)
       if (!invoice) return
-
-      await updatePayment(id, {
-        status: 'Paid',
-        paid: invoice.amount,
-        paidOn:
-          new Date()
-            .toISOString()
-            .split('T')[0]
-      })
-
+      await updatePayment(id, { status: 'Paid', paid: invoice.amount, paidOn: new Date().toISOString().split('T')[0] })
       setViewInvoice(null)
-
     } catch (error) {
-
-      console.error(
-        'Error marking invoice paid:',
-        error
-      )
+      console.error('Error marking invoice paid:', error)
     }
   }
 
   const handleNewInvoice = async (inv) => {
-
-  try {
-
-    await addPayment({
-      member: inv.member,
-      plan: inv.plan,
-
-      amount: inv.amount,
-      paid: inv.paid,
-
-      due: inv.due,
-      paidOn: inv.paidOn,
-
-      method: inv.method,
-      status: inv.status,
-
-      avatar: inv.avatar,
-    })
-
-    setShowNew(false)
-
-  } catch (error) {
-
-    console.error(
-      'Error adding payment:',
-      error
-    )
+    try {
+      await addPayment({
+        memberId:   inv.memberId,
+        member:     inv.memberName,
+        memberName: inv.memberName,
+        plan:       inv.plan,
+        amount:     inv.amount,
+        paid:       inv.paid,
+        due:        inv.due,
+        paidOn:     inv.paidOn,
+        method:     inv.method,
+        status:     inv.status,
+        avatar:     inv.avatar,
+      })
+      setShowNew(false)
+    } catch (error) {
+      console.error('Error adding payment:', error)
+    }
   }
-}
 
   function filterBtn(active) {
     return ({
@@ -549,20 +489,12 @@ export default function Payments({ search = '' }) {
       {/* Page header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 30, letterSpacing: 2, color: '#F3F4F6' }}>
-            payments & BILLING
-          </div>
+          <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 30, letterSpacing: 2, color: '#F3F4F6' }}>payments & BILLING</div>
           <div style={{ color: '#6B7280', fontSize: 13, marginTop: 2 }}>
             {stats.paidCount} paid · {stats.collectionRate}% collection rate · {invoices.length} total invoices
           </div>
         </div>
-        <button onClick={() => setShowNew(true)} style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '10px 20px', background: 'linear-gradient(135deg,#FF4B2B,#F59E0B)',
-          border: 'none', borderRadius: 10, color: '#fff',
-          fontWeight: 800, fontSize: 13, cursor: 'pointer', letterSpacing: 0.5,
-          boxShadow: '0 4px 20px #FF4B2B40',
-        }}>
+        <button onClick={() => setShowNew(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: 'linear-gradient(135deg,#FF4B2B,#F59E0B)', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer', letterSpacing: 0.5, boxShadow: '0 4px 20px #FF4B2B40' }}>
           <span style={{ fontSize: 16 }}>+</span> NEW INVOICE
         </button>
       </div>
@@ -570,16 +502,12 @@ export default function Payments({ search = '' }) {
       {/* Revenue cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 14, marginBottom: 24 }}>
         {[
-          { label: 'Total Invoiced',  value: fmt(stats.total),     icon: '📋', color: '#60A5FA', sub: `${invoices.length} invoices` },
-          { label: 'Collected',       value: fmt(stats.collected),  icon: '✅', color: '#10B981', sub: `${stats.collectionRate}% rate` },
-          { label: 'Pending',         value: fmt(stats.pending),    icon: '⏳', color: '#F59E0B', sub: 'awaiting payment' },
-          { label: 'Overdue',         value: fmt(stats.overdue),    icon: '🚨', color: '#EF4444', sub: 'needs attention' },
+          { label: 'Total Invoiced', value: fmt(stats.total),     icon: '📋', color: '#60A5FA', sub: `${invoices.length} invoices` },
+          { label: 'Collected',      value: fmt(stats.collected),  icon: '✅', color: '#10B981', sub: `${stats.collectionRate}% rate` },
+          { label: 'Pending',        value: fmt(stats.pending),    icon: '⏳', color: '#F59E0B', sub: 'awaiting payment' },
+          { label: 'Overdue',        value: fmt(stats.overdue),    icon: '🚨', color: '#EF4444', sub: 'needs attention' },
         ].map(s => (
-          <div key={s.label} style={{
-            background: 'linear-gradient(160deg,#161616,#1a1a1a)',
-            border: '1px solid #ffffff10', borderRadius: 14, padding: '18px 20px',
-            position: 'relative', overflow: 'hidden',
-          }}>
+          <div key={s.label} style={{ background: 'linear-gradient(160deg,#161616,#1a1a1a)', border: '1px solid #ffffff10', borderRadius: 14, padding: '18px 20px', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: `radial-gradient(circle, ${s.color}15, transparent 70%)` }} />
             <div style={{ fontSize: 22, marginBottom: 8 }}>{s.icon}</div>
             <div style={{ fontSize: 20, fontWeight: 900, color: s.color, lineHeight: 1, fontFamily: "'Bebas Neue',sans-serif", letterSpacing: 0.5 }}>{s.value}</div>
@@ -589,31 +517,20 @@ export default function Payments({ search = '' }) {
         ))}
       </div>
 
-      {/* Collection rate bar + Revenue chart side by side */}
+      {/* Collection rate + Revenue chart */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 24 }}>
-        {/* Collection rate */}
         <div style={{ background: '#161616', border: '1px solid #ffffff10', borderRadius: 14, padding: '18px 20px' }}>
-          <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14 }}>
-            Collection Rate
-          </div>
+          <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14 }}>Collection Rate</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 12 }}>
-            <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 42, color: stats.collectionRate >= 80 ? '#10B981' : '#F59E0B', lineHeight: 1 }}>
-              {stats.collectionRate}%
-            </span>
+            <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 42, color: stats.collectionRate >= 80 ? '#10B981' : '#F59E0B', lineHeight: 1 }}>{stats.collectionRate}%</span>
             <span style={{ fontSize: 12, color: '#6B7280' }}>of invoiced</span>
           </div>
           <div style={{ height: 10, borderRadius: 5, background: '#ffffff10', overflow: 'hidden', marginBottom: 12 }}>
-            <div style={{
-              width: `${stats.collectionRate}%`, height: '100%', borderRadius: 5,
-              background: stats.collectionRate >= 80
-                ? 'linear-gradient(90deg,#10B981,#34D399)'
-                : 'linear-gradient(90deg,#F59E0B,#FBB826)',
-              transition: 'width 0.6s ease',
-            }} />
+            <div style={{ width: `${stats.collectionRate}%`, height: '100%', borderRadius: 5, background: stats.collectionRate >= 80 ? 'linear-gradient(90deg,#10B981,#34D399)' : 'linear-gradient(90deg,#F59E0B,#FBB826)', transition: 'width 0.6s ease' }} />
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
             {[
-              ['Paid', invoices.filter(i => i.status === 'Paid').length, '#10B981'],
+              ['Paid',    invoices.filter(i => i.status === 'Paid').length,    '#10B981'],
               ['Pending', invoices.filter(i => i.status === 'Pending').length, '#F59E0B'],
               ['Overdue', invoices.filter(i => i.status === 'Overdue').length, '#EF4444'],
               ['Partial', invoices.filter(i => i.status === 'Partial').length, '#8B5CF6'],
@@ -625,12 +542,8 @@ export default function Payments({ search = '' }) {
             ))}
           </div>
         </div>
-
-        {/* Revenue chart */}
         <div style={{ background: '#161616', border: '1px solid #ffffff10', borderRadius: 14, padding: '18px 20px' }}>
-          <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14 }}>
-            Monthly Revenue vs Target
-          </div>
+          <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14 }}>Monthly Revenue vs Target</div>
           <RevenueChart data={MONTHLY_REVENUE} />
         </div>
       </div>
@@ -639,12 +552,7 @@ export default function Payments({ search = '' }) {
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
           <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#6B7280', fontSize: 14 }}>🔍</span>
-          <input
-            value={localSearch}
-            onChange={e => setLocalSearch(e.target.value)}
-            placeholder="Search member, invoice ID, plan..."
-            style={{ width: '100%', paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, boxSizing: 'border-box', background: '#161616', border: '1px solid #ffffff15', borderRadius: 10, color: '#F3F4F6', fontSize: 13, outline: 'none' }}
-          />
+          <input value={localSearch} onChange={e => setLocalSearch(e.target.value)} placeholder="Search member, invoice ID, plan..." style={{ width: '100%', paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, boxSizing: 'border-box', background: '#161616', border: '1px solid #ffffff15', borderRadius: 10, color: '#F3F4F6', fontSize: 13, outline: 'none' }} />
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {['All', ...STATUSES].map(s => (
@@ -670,70 +578,25 @@ export default function Payments({ search = '' }) {
               </tr>
             </thead>
             <tbody>
-
-  {loading ? (
-
-    <tr>
-      <td
-        colSpan={8}
-        style={{
-          padding: '40px',
-          textAlign: 'center',
-          color: '#6B7280'
-        }}
-      >
-        Loading invoices...
-      </td>
-    </tr>
-
-  ) : filtered.length === 0 ? (
-
-    <tr>
-      <td
-        colSpan={8}
-        style={{
-          padding: '48px',
-          textAlign: 'center',
-          color: '#6B7280',
-          borderBottom: '1px solid #ffffff08'
-        }}
-      >
-        <div style={{ fontSize: 36, marginBottom: 10 }}>
-          💳
-        </div>
-
-        <div style={{
-          fontFamily: "'Bebas Neue',sans-serif",
-          fontSize: 18,
-          letterSpacing: 1
-        }}>
-          NO INVOICES FOUND
-        </div>
-
-        <div style={{ fontSize: 12, marginTop: 4 }}>
-          Try adjusting your filters.
-        </div>
-      </td>
-    </tr>
-
-  ) : (
-
-    filtered.map(inv => (
-      <InvoiceRow
-        key={inv.firestoreId}
-        inv={inv}
-        onClick={setViewInvoice}
-        onDelete={deletePayment}
-      />
-    ))
-
-  )}
-
-</tbody>
+              {loading ? (
+                <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#6B7280' }}>Loading invoices...</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={8} style={{ padding: '48px', textAlign: 'center', color: '#6B7280', borderBottom: '1px solid #ffffff08' }}>
+                    <div style={{ fontSize: 36, marginBottom: 10 }}>💳</div>
+                    <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, letterSpacing: 1 }}>NO INVOICES FOUND</div>
+                    <div style={{ fontSize: 12, marginTop: 4 }}>Try adjusting your filters.</div>
+                  </td>
+                </tr>
+              ) : (
+                filtered.map(inv => (
+                  <InvoiceRow key={inv.firestoreId} inv={inv} onClick={setViewInvoice} onDelete={deletePayment} />
+                ))
+              )}
+            </tbody>
           </table>
         </div>
 
-        {/* Table footer */}
         {filtered.length > 0 && (
           <div style={{ padding: '12px 20px', borderTop: '1px solid #ffffff08', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
             <span style={{ fontSize: 12, color: '#6B7280' }}>{filtered.length} of {invoices.length} invoices</span>
@@ -746,14 +609,9 @@ export default function Payments({ search = '' }) {
       </div>
 
       {/* Modals */}
-      {viewInvoice && (
-        <InvoiceModal
-          invoice={viewInvoice}
-          onClose={() => setViewInvoice(null)}
-          onMarkPaid={handleMarkPaid}
-        />
-      )}
-      {showNew && <NewInvoiceModal onSave={handleNewInvoice} onClose={() => setShowNew(false)} />}
+      {viewInvoice && <InvoiceModal invoice={viewInvoice} onClose={() => setViewInvoice(null)} onMarkPaid={handleMarkPaid} />}
+      {/* ← CHANGED: pass members to modal */}
+      {showNew && <NewInvoiceModal onSave={handleNewInvoice} onClose={() => setShowNew(false)} members={members} />}
     </div>
   )
 }
