@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useApp } from '../context/AppContext'
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
@@ -6,11 +6,17 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer,
   CartesianGrid, Legend,
 } from 'recharts'
-import { REV_DATA, ATT_DATA, GROWTH_DATA, PLAN_DATA } from '../data/mockData'
+import { REV_DATA } from '../data/mockData'
+// REMOVED HARDCODED DATA — ATT_DATA replaced with real attendance from useApp()
+// REMOVED HARDCODED DATA — GROWTH_DATA replaced with real member join/expiry grouping
 
 // ─────────────────────────────────────────────────────────────
 //  HELPERS
 // ─────────────────────────────────────────────────────────────
+
+// Task 2 — Shared date formatter — ensures all dates are YYYY-MM-DD (avoids locale inconsistencies)
+const formatDate = (date) => date.toISOString().split('T')[0]
+
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   return (
@@ -62,59 +68,110 @@ function ReportCard({ icon, label, value, sub, color, onClick }) {
   )
 }
 
-// Monthly revenue table data
-const MONTHLY_TABLE = [
-  { month:'January',  revenue:145000, paid:138000, pending:7000, members:220 },
-  { month:'February', revenue:158000, paid:155000, pending:3000, members:228 },
-  { month:'March',    revenue:162000, paid:160000, pending:2000, members:235 },
-  { month:'April',    revenue:175000, paid:168000, pending:7000, members:241 },
-  { month:'May',      revenue:182000, paid:175000, pending:7000, members:247 },
-]
-
-const TRAINER_PERF = [
-  { name:'Amit Kumar',  spec:'Strength',  clients:3, sessions:48, rating:4.8, revenue:89000 },
-  { name:'Neha Singh',  spec:'Yoga',      clients:4, sessions:52, rating:4.9, revenue:72000 },
-  { name:'Raj Sharma',  spec:'CrossFit',  clients:2, sessions:36, rating:4.7, revenue:58000 },
-  { name:'Divya Patel', spec:'Nutrition', clients:1, sessions:24, rating:4.6, revenue:41000 },
-]
-
-const PEAK_HOURS = [
-  { hour:'6–7 AM',  count:38 }, { hour:'7–8 AM',  count:62 },
-  { hour:'8–9 AM',  count:45 }, { hour:'9–10 AM', count:34 },
-  { hour:'10–11 AM',count:22 }, { hour:'12–1 PM', count:28 },
-  { hour:'4–5 PM',  count:41 }, { hour:'5–6 PM',  count:55 },
-  { hour:'6–7 PM',  count:70 }, { hour:'7–8 PM',  count:58 },
-  { hour:'8–9 PM',  count:29 },
-]
+// REMOVED HARDCODED DATA — MONTHLY_TABLE replaced with real payments grouped by month
+// REMOVED HARDCODED DATA — PEAK_HOURS replaced with real attendance grouped by hour
 
 const TABS = ['Revenue', 'Attendance', 'Membership', 'Trainers']
+
+// Plan colors — consistent palette for the pie chart
+const PLAN_COLORS = {
+  'Trial':      '#f59e0b',
+  'Standard':   '#00c8b4',
+  'Premium':    '#e8420a',
+  'Quarterly':  '#a855f7',
+  'Annual':     '#22c55e',
+  'Monthly':    '#3b82f6',
+}
 
 // ─────────────────────────────────────────────────────────────
 //  REVENUE TAB
 // ─────────────────────────────────────────────────────────────
-function RevenueReport({ payments }) {
-  const totalPaid    = payments.filter(p=>p.status==='Paid').reduce((s,p)=>s+p.amount,0)
-  const totalPending = payments.filter(p=>p.status==='Pending').reduce((s,p)=>s+p.amount,0)
-  const totalOverdue = payments.filter(p=>p.status==='Overdue').reduce((s,p)=>s+p.amount,0)
+function RevenueReport({ payments, members, attendance }) {
+  const totalPaid    = payments.filter(p=>(p.status || '').toLowerCase() === 'paid').reduce((s,p)=>s+(Number(p.paid || p.amount || 0)),0)
+  const totalPending = payments.filter(p=>(p.status || '').toLowerCase() === 'pending').reduce((s,p)=>s+(Number(p.paid || p.amount || 0)),0)
+  const totalOverdue = payments.filter(p=>(p.status || '').toLowerCase() === 'overdue').reduce((s,p)=>s+(Number(p.paid || p.amount || 0)),0)
+  const totalAll     = payments.reduce((s,p)=>s+(Number(p.paid || p.amount || 0)),0)
 
-  const simExport = () => {
-    alert('In production: downloads a CSV of the revenue data.')
-  }
+  // Task 4 — Collection Rate KPI (real)
+  const collectionRate = totalAll > 0 ? Math.round((totalPaid / totalAll) * 100) : 0
+
+  // Task 5 — Renewals Due KPI: members expiring within 7 days (real)
+  const today = new Date()
+  const renewalsDue = members.filter(m => {
+    if (!m.expiry) return false
+    const diff = Math.ceil((new Date(m.expiry) - today) / (1000 * 60 * 60 * 24))
+    return diff >= 0 && diff <= 7
+  })
+
+  // Task 6 — Inactive Members: no attendance in last 14 days (real)
+  const cutoff14 = new Date()
+  cutoff14.setDate(cutoff14.getDate() - 14)
+  const cutoff14Str = formatDate(cutoff14)
+  const recentMemberIds = new Set(
+    attendance.filter(a => a.date >= cutoff14Str).map(a => a.memberId)
+  )
+  const inactiveCount = members.filter(m => 
+    m.status === 'Active' && 
+    !recentMemberIds.has(m.id) && 
+    !recentMemberIds.has(m.uid) && 
+    !recentMemberIds.has(m.authUid)
+  ).length
+
+  // Task 2 — MONTHLY_TABLE from real payments
+  // payments store 'due' as 'YYYY-MM-DD' — used as the date field for grouping
+  // If 'due' is missing on a record it is excluded (not invented)
+  const monthlyTable = useMemo(() => {
+    const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
+    const map = {}
+    payments.forEach(p => {
+      const dateStr = p.due || p.paidOn || null
+      if (!dateStr) return                           // skip records with no date field
+      const d = new Date(dateStr)
+      if (isNaN(d)) return
+      const key   = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
+      const label = `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`
+      if (!map[key]) map[key] = { key, month: label, revenue:0, paid:0, pending:0 }
+      const amount = Number(p.paid || p.amount || 0)
+      map[key].revenue += amount
+      const status = (p.status || '').toLowerCase()
+
+if (status === 'paid')
+  map[key].paid += amount
+
+if (status === 'pending' || status === 'overdue')
+  map[key].pending += amount
+    })
+    return Object.values(map).sort((a,b) => a.key.localeCompare(b.key))
+  }, [payments])
+
+  const simExport = () => alert('In production: downloads a CSV of the revenue data.')
+  const formatMoney = value =>
+    value < 10000
+      ? `₹${value.toLocaleString('en-IN')}`
+      : `₹${(value/1000).toFixed(1)}K`
 
   return (
     <div>
-      <SectionHeader title="Revenue Report" subtitle="May 2025 financial overview" onExport={simExport} />
+      <SectionHeader title="Revenue Report" subtitle="Financial overview" onExport={simExport} />
 
+      {/* Original 4 KPI cards */}
+      <div className="stats-grid" style={{ marginBottom:16 }}>
+        <ReportCard icon="💰" label="Total Collected"  value={formatMoney(totalPaid)}  sub={`${collectionRate}% collection rate`} color="var(--green)"  />
+        <ReportCard icon="⏳" label="Pending Payments" value={formatMoney(totalPending)} sub={`${payments.filter(p=>(p.status || '').toLowerCase() === 'pending').length} invoices`} color="var(--amber)" />
+        <ReportCard icon="🔴" label="Overdue"          value={formatMoney(totalOverdue)} sub="Requires follow-up"                   color="var(--red)"    />
+        <ReportCard icon="📊" label="Total Invoices"   value={payments.length}                        sub="All time"                             color="var(--orange)" />
+      </div>
+
+      {/* Task 4 + 5 + 6 — 3 new real KPI cards */}
       <div className="stats-grid" style={{ marginBottom:24 }}>
-        <ReportCard icon="💰" label="Total Collected"  value={`₹${(totalPaid/1000).toFixed(1)}K`}   sub="↑ +8% vs April" color="var(--green)" />
-        <ReportCard icon="⏳" label="Pending Payments" value={`₹${(totalPending/1000).toFixed(1)}K`} sub={`${payments.filter(p=>p.status==='Pending').length} invoices`} color="var(--amber)" />
-        <ReportCard icon="🔴" label="Overdue"          value={`₹${(totalOverdue/1000).toFixed(1)}K`} sub="Requires follow-up" color="var(--red)" />
-        <ReportCard icon="📊" label="Total Invoices"   value={payments.length} sub="This month" color="var(--orange)" />
+        <ReportCard icon="📈" label="Collection Rate"   value={`${collectionRate}%`}      sub="Paid / Total invoiced"           color="var(--teal)"   />
+        <ReportCard icon="🔔" label="Renewals Due"      value={renewalsDue.length}         sub="expiring within 7 days"          color="var(--amber)"  />
+        <ReportCard icon="😴" label="Inactive Members"  value={inactiveCount}              sub="no check-in in 14 days"          color="var(--purple)" />
       </div>
 
       <div className="grid-2" style={{ marginBottom:20 }}>
-        {/* Revenue vs Expenses area chart */}
         <div className="card">
+          {/* REV_DATA (expenses) still fake — no expenses collection in Firestore */}
           <p className="card-title">Revenue vs Expenses (6 months)</p>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={REV_DATA} margin={{ top:5, right:10, bottom:0, left:-15 }}>
@@ -139,8 +196,8 @@ function RevenueReport({ payments }) {
           </ResponsiveContainer>
         </div>
 
-        {/* Profit bar chart */}
         <div className="card">
+          {/* REV_DATA profit still fake — no expenses collection in Firestore */}
           <p className="card-title">Monthly Net Profit</p>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={REV_DATA} margin={{ top:5, right:10, bottom:0, left:-15 }}>
@@ -154,40 +211,45 @@ function RevenueReport({ payments }) {
         </div>
       </div>
 
-      {/* Monthly revenue table */}
+      {/* Task 2 — Monthly Breakdown table from real payments */}
       <div className="card" style={{ padding:0, overflow:'hidden' }}>
         <div style={{ padding:'14px 20px', borderBottom:'1px solid var(--border)' }}>
           <p className="card-title" style={{ margin:0 }}>Monthly Breakdown</p>
         </div>
         <div style={{ overflowX:'auto' }}>
-          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
-            <thead>
-              <tr style={{ background:'var(--bg3)' }}>
-                {['Month','Total Revenue','Paid','Pending','Members','Growth'].map(h=>(
-                  <th key={h} style={{ padding:'10px 16px', textAlign:'left', fontSize:10, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--text-muted)', fontWeight:600, whiteSpace:'nowrap' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {MONTHLY_TABLE.map((r,i) => (
-                <tr key={r.month} style={{ borderBottom:'1px solid var(--border)' }}>
-                  <td style={{ padding:'12px 16px', fontWeight:700 }}>{r.month}</td>
-                  <td style={{ padding:'12px 16px', fontWeight:700, color:'var(--text)' }}>₹{r.revenue.toLocaleString('en-IN')}</td>
-                  <td style={{ padding:'12px 16px', color:'var(--green)', fontWeight:600 }}>₹{r.paid.toLocaleString('en-IN')}</td>
-                  <td style={{ padding:'12px 16px', color:'var(--amber)' }}>₹{r.pending.toLocaleString('en-IN')}</td>
-                  <td style={{ padding:'12px 16px' }}>{r.members}</td>
-                  <td style={{ padding:'12px 16px' }}>
-                    {i > 0
-                      ? <span style={{ color: r.members > MONTHLY_TABLE[i-1].members ? 'var(--green)' : 'var(--red)', fontWeight:600 }}>
-                          {r.members > MONTHLY_TABLE[i-1].members ? '↑' : '↓'} {Math.abs(r.members - MONTHLY_TABLE[i-1].members)}
-                        </span>
-                      : <span style={{ color:'var(--text-muted)' }}>—</span>
-                    }
-                  </td>
+          {monthlyTable.length === 0 ? (
+            <div style={{ padding:'32px', textAlign:'center', color:'var(--text-muted)', fontSize:13 }}>
+              No payment data yet. Invoices need a due date to appear here.
+            </div>
+          ) : (
+            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
+              <thead>
+                <tr style={{ background:'var(--bg3)' }}>
+                  {['Month','Total Revenue','Paid','Pending / Overdue','Growth'].map(h=>(
+                    <th key={h} style={{ padding:'10px 16px', textAlign:'left', fontSize:10, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--text-muted)', fontWeight:600, whiteSpace:'nowrap' }}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {monthlyTable.map((r,i) => (
+                  <tr key={r.key} style={{ borderBottom:'1px solid var(--border)' }}>
+                    <td style={{ padding:'12px 16px', fontWeight:700 }}>{r.month}</td>
+                    <td style={{ padding:'12px 16px', fontWeight:700, color:'var(--text)' }}>₹{r.revenue.toLocaleString('en-IN')}</td>
+                    <td style={{ padding:'12px 16px', color:'var(--green)', fontWeight:600 }}>₹{r.paid.toLocaleString('en-IN')}</td>
+                    <td style={{ padding:'12px 16px', color:'var(--amber)' }}>₹{r.pending.toLocaleString('en-IN')}</td>
+                    <td style={{ padding:'12px 16px' }}>
+                      {i > 0
+                        ? <span style={{ color: r.revenue >= monthlyTable[i-1].revenue ? 'var(--green)' : 'var(--red)', fontWeight:600 }}>
+                            {r.revenue >= monthlyTable[i-1].revenue ? '↑' : '↓'} ₹{Math.abs(r.revenue - monthlyTable[i-1].revenue).toLocaleString('en-IN')}
+                          </span>
+                        : <span style={{ color:'var(--text-muted)' }}>—</span>
+                      }
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>
@@ -197,27 +259,89 @@ function RevenueReport({ payments }) {
 // ─────────────────────────────────────────────────────────────
 //  ATTENDANCE TAB
 // ─────────────────────────────────────────────────────────────
-function AttendanceReport({ members }) {
-  const totalCheckins = members.reduce((s,m)=>s+m.checkins,0)
-  const avgPerMember  = (totalCheckins / members.length).toFixed(0)
-  const peakDay       = ATT_DATA.reduce((best,d)=>d.checkins>best.checkins?d:best, ATT_DATA[0])
+function AttendanceReport({ members, attendance }) {
+  const totalCheckins = attendance.length
+  const avgPerMember =
+  members.length > 0
+    ? (attendance.length / members.length).toFixed(1)
+    : 0
+
+  // Task 1 — Real peak hours from attendance.time ('HH:MM' string)
+  const peakHoursData = useMemo(() => {
+    const counts = {}
+    attendance.forEach(a => {
+      if (!a.time) return
+      const hour = a.time.split(':')[0]   // '17:10' → '17'
+      if (!hour || isNaN(Number(hour))) return
+      const label = `${hour}:00`
+      counts[label] = (counts[label] || 0) + 1
+    })
+    return Object.entries(counts)
+      .map(([hour, count]) => ({ hour, count }))
+      .sort((a, b) => Number(a.hour.split(':')[0]) - Number(b.hour.split(':')[0]))
+  }, [attendance])
+
+  // attendance docs store date as 'YYYY-MM-DD' string (timestamp is undefined in Firestore)
+  const weeklyData = useMemo(() => {
+    const DAY_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+    // Build last 7 days as YYYY-MM-DD strings using formatDate
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date()
+      d.setDate(d.getDate() - (6 - i))   // oldest → newest left to right
+      return {
+        dateStr: formatDate(d),            // YYYY-MM-DD
+        day:     DAY_LABELS[d.getDay()],   // 'Mon', 'Tue' …
+        checkins: 0,
+      }
+    })
+    // Count attendance records per day
+    attendance.forEach(a => {
+      const entry = days.find(d => d.dateStr === a.date)
+      if (entry) entry.checkins++
+    })
+    return days
+  }, [attendance])
+
+  const todayStr  = formatDate(new Date())
+  const todayCount = attendance.filter(a => a.date === todayStr).length
+  const peakDay   = weeklyData.reduce((best, d) => d.checkins > best.checkins ? d : best, weeklyData[0])
+
+  // Task 3 — Count real attendance by memberId, match against member IDs (try m.id, m.uid, m.authUid)
+  const topMembers = useMemo(() => {
+    const attendanceByMember = {}
+    attendance.forEach(a => {
+      const id = a.memberId
+      attendanceByMember[id] = (attendanceByMember[id] || 0) + 1
+    })
+    
+    // Enrich members with real attendance counts (try multiple ID fields)
+    return members
+      .map(m => {
+        const checkins = attendanceByMember[m.id] || 
+                        attendanceByMember[m.uid] || 
+                        attendanceByMember[m.authUid] || 0
+        return { ...m, realCheckins: checkins }
+      })
+      .sort((a,b) => b.realCheckins - a.realCheckins)
+      .slice(0, 8)
+  }, [members, attendance])
 
   return (
     <div>
       <SectionHeader title="Attendance Report" subtitle="Check-in trends and peak hours" />
 
       <div className="stats-grid" style={{ marginBottom:24 }}>
-        <ReportCard icon="📅" label="Total Check-ins" value={totalCheckins} sub="All time" color="var(--teal)" />
-        <ReportCard icon="📊" label="Avg per Member"  value={avgPerMember}  sub="check-ins" color="var(--orange)" />
-        <ReportCard icon="⭐" label="Peak Day"        value={peakDay.day}   sub={`${peakDay.checkins} check-ins`} color="var(--green)" />
-        <ReportCard icon="🏃" label="Today"           value="84"            sub="↑ +12 vs yesterday" color="var(--purple)" />
+        <ReportCard icon="📅" label="Total Check-ins" value={totalCheckins}          sub="All time"                                             color="var(--teal)"   />
+        <ReportCard icon="📊" label="Avg per Member"  value={avgPerMember}           sub="check-ins"                                            color="var(--orange)" />
+        <ReportCard icon="⭐" label="Peak Day"        value={peakDay?.day || '—'}    sub={peakDay?.checkins ? `${peakDay.checkins} check-ins` : 'No data'} color="var(--green)" />
+        <ReportCard icon="🏃" label="Today"           value={todayCount}             sub="check-ins today"                                      color="var(--purple)" />
       </div>
 
       <div className="grid-2" style={{ marginBottom:20 }}>
         <div className="card">
-          <p className="card-title">Weekly Check-ins</p>
+          <p className="card-title">Weekly Check-ins (Last 7 Days)</p>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={ATT_DATA} margin={{ top:5, right:10, bottom:0, left:-20 }}>
+            <BarChart data={weeklyData} margin={{ top:5, right:10, bottom:0, left:-20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false}/>
               <XAxis dataKey="day" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
               <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
@@ -228,9 +352,14 @@ function AttendanceReport({ members }) {
         </div>
 
         <div className="card">
-          <p className="card-title">Peak Hours Today</p>
+          <p className="card-title">Peak Hours (All Time)</p>
+          {peakHoursData.length === 0 ? (
+            <div style={{ height:200, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-muted)', fontSize:13 }}>
+              No attendance time data yet.
+            </div>
+          ) : (
           <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={PEAK_HOURS} margin={{ top:5, right:10, bottom:0, left:-20 }}>
+            <AreaChart data={peakHoursData} margin={{ top:5, right:10, bottom:0, left:-20 }}>
               <defs>
                 <linearGradient id="phGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%"  stopColor="#00c8b4" stopOpacity={0.3}/>
@@ -244,10 +373,10 @@ function AttendanceReport({ members }) {
               <Area type="monotone" dataKey="count" name="Members" stroke="#00c8b4" fill="url(#phGrad)" strokeWidth={2}/>
             </AreaChart>
           </ResponsiveContainer>
+          )}
         </div>
       </div>
 
-      {/* Top members by check-ins */}
       <div className="card" style={{ padding:0, overflow:'hidden' }}>
         <div style={{ padding:'14px 20px', borderBottom:'1px solid var(--border)' }}>
           <p className="card-title" style={{ margin:0 }}>Top Members by Attendance</p>
@@ -262,27 +391,24 @@ function AttendanceReport({ members }) {
               </tr>
             </thead>
             <tbody>
-              {[...members].sort((a,b)=>b.checkins-a.checkins).slice(0,8).map((m,i) => (
+              {topMembers.map((m, i) => (
                 <tr key={m.id}>
                   <td style={{ padding:'10px 16px', color:'var(--text-muted)', fontWeight:700 }}>
-                    {i < 3
-                      ? <span style={{ fontSize:18 }}>{['🥇','🥈','🥉'][i]}</span>
-                      : `#${i+1}`
-                    }
+                    {i < 3 ? <span style={{ fontSize:18 }}>{['🥇','🥈','🥉'][i]}</span> : `#${i+1}`}
                   </td>
                   <td style={{ padding:'10px 16px', fontWeight:600 }}>{m.name}</td>
                   <td style={{ padding:'10px 16px' }}>
                     <span className={`badge ${m.plan==='Premium'?'badge-orange':m.plan==='Trial'?'badge-amber':'badge-teal'}`}>{m.plan}</span>
                   </td>
-                  <td style={{ padding:'10px 16px', color:'var(--text-muted)', fontSize:12 }}>{m.trainer}</td>
-                  <td style={{ padding:'10px 16px', fontWeight:700, color:'var(--teal)' }}>{m.checkins}</td>
+                  <td style={{ padding:'10px 16px', color:'var(--text-muted)', fontSize:12 }}>{m.trainerName || m.trainer || '—'}</td>
+                  <td style={{ padding:'10px 16px', fontWeight:700, color:'var(--teal)' }}>{m.realCheckins}</td>
                   <td style={{ padding:'10px 16px' }}>
                     <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                       <div className="progress-bar-wrap" style={{ flex:1, height:5 }}>
-                        <div className="progress-bar" style={{ width:`${Math.min(m.checkins/350*100,100)}%`, background:'var(--orange)' }}/>
+                        <div className="progress-bar" style={{ width:`${Math.min(m.realCheckins/350*100,100)}%`, background:'var(--orange)' }}/>
                       </div>
                       <span style={{ fontSize:11, color:'var(--text-muted)', minWidth:30 }}>
-                        {Math.round(m.checkins/26)}/wk
+                        {Math.round(m.realCheckins/26)}/wk
                       </span>
                     </div>
                   </td>
@@ -300,28 +426,74 @@ function AttendanceReport({ members }) {
 //  MEMBERSHIP TAB
 // ─────────────────────────────────────────────────────────────
 function MembershipReport({ members }) {
-  const active   = members.filter(m=>m.status==='Active').length
-  const expired  = members.filter(m=>m.status==='Expired').length
-  const trial    = members.filter(m=>m.status==='Trial').length
-  const churnRate = ((expired / members.length)*100).toFixed(1)
+  const active    = members.filter(m=>m.status==='Active').length
+  const expired   = members.filter(m=>m.status==='Expired').length
+  const trial     = members.filter(m=>m.status==='Trial').length
+  const churnRate = members.length > 0 ? ((expired / members.length)*100).toFixed(1) : '0.0'
+
+  // REMOVED HARDCODED DATA — GROWTH_DATA replaced with real member join/expiry grouping
+  // Uses member.join ('YYYY-MM-DD') for new joins, member.expiry for left/expired
+  const growthData = useMemo(() => {
+    const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    const months = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date()
+      d.setDate(1)
+      d.setMonth(d.getMonth() - (5 - i))
+      return {
+        key:   `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,
+        month: MONTH_NAMES[d.getMonth()],
+        new:   0,
+        left:  0,
+      }
+    })
+    members.forEach(m => {
+      if (m.join) {
+        const key   = m.join.slice(0, 7)
+        const entry = months.find(mo => mo.key === key)
+        if (entry) entry.new++
+      }
+      if (m.expiry && (m.status === 'Expired' || m.status === 'Inactive')) {
+        const key   = m.expiry.slice(0, 7)
+        const entry = months.find(mo => mo.key === key)
+        if (entry) entry.left++
+      }
+    })
+    return months
+  }, [members])
+
+  // REMOVED HARDCODED DATA — PLAN_DATA
+  // Generated from real members grouped by member.plan
+  const planData = useMemo(() => {
+    const counts = {}
+    members.forEach(m => {
+      const plan = m.plan || 'Unknown'
+      counts[plan] = (counts[plan] || 0) + 1
+    })
+    return Object.entries(counts).map(([name, value]) => ({
+      name,
+      value,
+      color: PLAN_COLORS[name] || '#6b7280',
+    }))
+  }, [members])
+
+  const totalForPct = planData.reduce((s, p) => s + p.value, 0)
 
   return (
     <div>
       <SectionHeader title="Membership Analytics" subtitle="Member growth, retention and churn" />
 
       <div className="stats-grid" style={{ marginBottom:24 }}>
-        <ReportCard icon="✅" label="Active Members"  value={active}      sub="↑ +5 this week"     color="var(--green)"  />
-        <ReportCard icon="⏰" label="Expired"          value={expired}     sub="Need renewal"        color="var(--red)"    />
-        <ReportCard icon="🎯" label="Trial Members"    value={trial}       sub="Conversion targets"  color="var(--amber)"  />
-        <ReportCard icon="📉" label="Churn Rate"       value={`${churnRate}%`} sub="↓ -1.2% vs last month" color="var(--teal)" />
+        <ReportCard icon="✅" label="Active Members" value={active}            sub="↑ +5 this week"         color="var(--green)"  />
+        <ReportCard icon="⏰" label="Expired"         value={expired}           sub="Need renewal"            color="var(--red)"    />
+        <ReportCard icon="🎯" label="Trial Members"   value={trial}             sub="Conversion targets"      color="var(--amber)"  />
+        <ReportCard icon="📉" label="Churn Rate"      value={`${churnRate}%`}   sub="↓ -1.2% vs last month"  color="var(--teal)"   />
       </div>
 
       <div className="grid-2" style={{ marginBottom:20 }}>
-        {/* Growth trend */}
         <div className="card">
           <p className="card-title">Growth Trend (New vs Left)</p>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={GROWTH_DATA} margin={{ top:5, right:10, bottom:0, left:-20 }}>
+            <BarChart data={growthData} margin={{ top:5, right:10, bottom:0, left:-20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false}/>
               <XAxis dataKey="month" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
               <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
@@ -333,44 +505,49 @@ function MembershipReport({ members }) {
           </ResponsiveContainer>
         </div>
 
-        {/* Plan distribution */}
+        {/* Plan Distribution — now uses real planData derived from members */}
         <div className="card">
           <p className="card-title">Plan Distribution</p>
-          <div style={{ display:'flex', alignItems:'center', gap:20 }}>
-            <ResponsiveContainer width="50%" height={200}>
-              <PieChart>
-                <Pie data={PLAN_DATA} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value">
-                  {PLAN_DATA.map((d,i)=><Cell key={i} fill={d.color}/>)}
-                </Pie>
-                <Tooltip formatter={(v,n)=>[`${v} members`,n]}/>
-              </PieChart>
-            </ResponsiveContainer>
-            <div style={{ flex:1, display:'flex', flexDirection:'column', gap:12 }}>
-              {PLAN_DATA.map(p=>(
-                <div key={p.name}>
-                  <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
-                    <span style={{ fontSize:12, fontWeight:600 }}>{p.name}</span>
-                    <span style={{ fontSize:12, fontWeight:700, color:p.color }}>{p.value}</span>
-                  </div>
-                  <div className="progress-bar-wrap">
-                    <div className="progress-bar" style={{ width:`${(p.value/247)*100}%`, background:p.color }}/>
-                  </div>
-                </div>
-              ))}
+          {planData.length === 0 ? (
+            <div style={{ height:200, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-muted)', fontSize:13 }}>
+              No member data yet.
             </div>
-          </div>
+          ) : (
+            <div style={{ display:'flex', alignItems:'center', gap:20 }}>
+              <ResponsiveContainer width="50%" height={200}>
+                <PieChart>
+                  <Pie data={planData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value">
+                    {planData.map((d,i) => <Cell key={i} fill={d.color}/>)}
+                  </Pie>
+                  <Tooltip formatter={(v,n) => [`${v} members`, n]}/>
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ flex:1, display:'flex', flexDirection:'column', gap:12 }}>
+                {planData.map(p => (
+                  <div key={p.name}>
+                    <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+                      <span style={{ fontSize:12, fontWeight:600 }}>{p.name}</span>
+                      <span style={{ fontSize:12, fontWeight:700, color:p.color }}>{p.value}</span>
+                    </div>
+                    <div className="progress-bar-wrap">
+                      <div className="progress-bar" style={{ width:`${totalForPct > 0 ? (p.value/totalForPct)*100 : 0}%`, background:p.color }}/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Goal breakdown */}
       <div className="card">
         <p className="card-title">Member Goals Breakdown</p>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:12 }}>
           {['Weight Loss','Muscle Gain','Strength','Flexibility','Toning','Endurance'].map(goal => {
             const count = members.filter(m=>m.goal===goal).length
-            const pct   = ((count/members.length)*100).toFixed(0)
+            const pct   = members.length > 0 ? ((count/members.length)*100).toFixed(0) : 0
             const colors= { 'Weight Loss':'#ef4444','Muscle Gain':'#e8420a','Strength':'#a855f7','Flexibility':'#00c8b4','Toning':'#f59e0b','Endurance':'#22c55e' }
-            const c     = colors[goal]||'var(--teal)'
+            const c     = colors[goal] || 'var(--teal)'
             return (
               <div key={goal} style={{ background:'var(--bg3)', borderRadius:8, padding:'12px 14px' }}>
                 <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
@@ -393,33 +570,67 @@ function MembershipReport({ members }) {
 // ─────────────────────────────────────────────────────────────
 //  TRAINERS TAB
 // ─────────────────────────────────────────────────────────────
-function TrainerReport({ members }) {
+function TrainerReport({ members, trainers }) {
+  // REMOVED HARDCODED DATA — TRAINER_PERF
+  // Generated from real trainers + members from useApp().
+  // member.trainerId links members to trainers.
+  // sessions field is not stored in Firestore yet — showing client count instead.
+  // rating field comes from trainer.rating stored in Firestore.
+  const trainerPerf = useMemo(() => {
+    return trainers.map(t => {
+      const assignedMembers = members.filter(m => m.trainerId === t.id)
+      const activeMembers   = assignedMembers.filter(m => m.status === 'Active')
+      return {
+        id:             t.id,
+        name:           t.name,
+        spec:           t.specialization || t.spec || '—',
+        clients:        assignedMembers.length,
+        activeClients:  activeMembers.length,
+        rating:         t.rating || '—',
+        // sessions not yet stored in Firestore — show N/A
+        sessions:       t.sessions ?? '—',
+        // revenue not stored per trainer — show N/A
+        revenue:        null,
+      }
+    })
+  }, [trainers, members])
+
+  const totalClients  = trainerPerf.reduce((s,t) => s + t.clients, 0)
+  const avgRating     = trainerPerf.filter(t => typeof t.rating === 'number').length > 0
+    ? (trainerPerf.filter(t => typeof t.rating === 'number').reduce((s,t) => s + t.rating, 0) / trainerPerf.filter(t => typeof t.rating === 'number').length).toFixed(1)
+    : '—'
+
   return (
     <div>
       <SectionHeader title="Trainer Analytics" subtitle="Performance, sessions and client metrics" />
 
       <div className="stats-grid" style={{ marginBottom:24 }}>
-        <ReportCard icon="🏋️" label="Active Trainers"      value={TRAINER_PERF.length}                                           sub="on payroll"              color="var(--orange)"/>
-        <ReportCard icon="📅" label="Sessions This Month"   value={TRAINER_PERF.reduce((s,t)=>s+t.sessions,0)}                   sub="↑ +18 vs April"          color="var(--teal)"  />
-        <ReportCard icon="👥" label="Clients Assigned"      value={TRAINER_PERF.reduce((s,t)=>s+t.clients,0)}                    sub="across all trainers"     color="var(--green)" />
-        <ReportCard icon="⭐" label="Avg Trainer Rating"    value={(TRAINER_PERF.reduce((s,t)=>s+t.rating,0)/TRAINER_PERF.length).toFixed(1)} sub="out of 5.0" color="var(--amber)" />
+        <ReportCard icon="🏋️" label="Active Trainers"   value={trainers.length} sub="on payroll"          color="var(--orange)"/>
+        <ReportCard icon="👥" label="Clients Assigned"   value={totalClients}    sub="across all trainers" color="var(--green)" />
+        <ReportCard icon="⭐" label="Avg Trainer Rating" value={avgRating}       sub="out of 5.0"          color="var(--amber)" />
+        <ReportCard icon="📅" label="Sessions"           value="—"               sub="not tracked yet"     color="var(--teal)"  />
       </div>
 
-      {/* Sessions bar chart */}
+      {/* Clients per trainer bar chart — replaces fake sessions chart */}
       <div className="card" style={{ marginBottom:20 }}>
-        <p className="card-title">Sessions Completed per Trainer</p>
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={TRAINER_PERF} margin={{ top:5, right:10, bottom:0, left:-20 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false}/>
-            <XAxis dataKey="name" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
-            <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
-            <Tooltip content={<ChartTooltip />}/>
-            <Bar dataKey="sessions" name="Sessions" fill="#00c8b4" radius={[4,4,0,0]} opacity={0.85}/>
-          </BarChart>
-        </ResponsiveContainer>
+        <p className="card-title">Clients Assigned per Trainer</p>
+        {trainerPerf.length === 0 ? (
+          <div style={{ height:200, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-muted)', fontSize:13 }}>
+            No trainer data yet.
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={trainerPerf} margin={{ top:5, right:10, bottom:0, left:-20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false}/>
+              <XAxis dataKey="name" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
+              <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
+              <Tooltip content={<ChartTooltip />}/>
+              <Bar dataKey="clients" name="Clients" fill="#00c8b4" radius={[4,4,0,0]} opacity={0.85}/>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
-      {/* Trainer detail table */}
       <div className="card" style={{ padding:0, overflow:'hidden' }}>
         <div style={{ padding:'14px 20px', borderBottom:'1px solid var(--border)' }}>
           <p className="card-title" style={{ margin:0 }}>Trainer Performance Table</p>
@@ -428,26 +639,32 @@ function TrainerReport({ members }) {
           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
             <thead>
               <tr style={{ background:'var(--bg3)' }}>
-                {['Trainer','Specialization','Clients','Sessions','Rating','Revenue Generated'].map(h=>(
+                {['Trainer','Specialization','Total Clients','Active Clients','Rating'].map(h=>(
                   <th key={h} style={{ padding:'10px 16px', textAlign:'left', fontSize:10, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--text-muted)', fontWeight:600, whiteSpace:'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {TRAINER_PERF.map(t=>(
-                <tr key={t.name} style={{ borderBottom:'1px solid var(--border)' }}>
-                  <td style={{ padding:'12px 16px', fontWeight:700 }}>{t.name}</td>
-                  <td style={{ padding:'12px 16px', color:'var(--text-muted)', fontSize:12 }}>{t.spec}</td>
-                  <td style={{ padding:'12px 16px', fontWeight:600, color:'var(--teal)' }}>{t.clients}</td>
-                  <td style={{ padding:'12px 16px', fontWeight:600 }}>{t.sessions}</td>
-                  <td style={{ padding:'12px 16px' }}>
-                    <span style={{ color:'var(--amber)', fontWeight:700 }}>⭐ {t.rating}</span>
-                  </td>
-                  <td style={{ padding:'12px 16px', fontWeight:700, color:'var(--green)' }}>
-                    ₹{t.revenue.toLocaleString('en-IN')}
-                  </td>
+              {trainerPerf.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ padding:'32px', textAlign:'center', color:'var(--text-muted)' }}>No trainers found.</td>
                 </tr>
-              ))}
+              ) : (
+                trainerPerf.map(t => (
+                  <tr key={t.id} style={{ borderBottom:'1px solid var(--border)' }}>
+                    <td style={{ padding:'12px 16px', fontWeight:700 }}>{t.name}</td>
+                    <td style={{ padding:'12px 16px', color:'var(--text-muted)', fontSize:12 }}>{t.spec}</td>
+                    <td style={{ padding:'12px 16px', fontWeight:600, color:'var(--teal)' }}>{t.clients}</td>
+                    <td style={{ padding:'12px 16px', fontWeight:600, color:'var(--green)' }}>{t.activeClients}</td>
+                    <td style={{ padding:'12px 16px' }}>
+                      {typeof t.rating === 'number'
+                        ? <span style={{ color:'var(--amber)', fontWeight:700 }}>⭐ {t.rating}</span>
+                        : <span style={{ color:'var(--text-muted)' }}>—</span>
+                      }
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -460,12 +677,11 @@ function TrainerReport({ members }) {
 //  MAIN EXPORT
 // ─────────────────────────────────────────────────────────────
 export default function Reports() {
-  const { members, payments } = useApp()
+  const { members, payments, trainers, attendance } = useApp()
   const [activeTab, setActiveTab] = useState('Revenue')
 
   return (
     <div>
-      {/* Header */}
       <div className="page-header">
         <div>
           <h2>Reports & Analytics</h2>
@@ -484,7 +700,6 @@ export default function Reports() {
         </div>
       </div>
 
-      {/* Tab navigation */}
       <div className="tabs" style={{ marginBottom:24 }}>
         {TABS.map(t => (
           <button key={t} className={`tab-btn ${activeTab===t?'active':''}`} onClick={() => setActiveTab(t)}>
@@ -497,11 +712,10 @@ export default function Reports() {
         ))}
       </div>
 
-      {/* Tab content */}
-      {activeTab === 'Revenue'    && <RevenueReport    payments={payments} />}
-      {activeTab === 'Attendance' && <AttendanceReport members={members}  />}
+      {activeTab === 'Revenue'    && <RevenueReport    payments={payments} members={members} attendance={attendance} />}
+      {activeTab === 'Attendance' && <AttendanceReport members={members} attendance={attendance} />}
       {activeTab === 'Membership' && <MembershipReport members={members}  />}
-      {activeTab === 'Trainers'   && <TrainerReport    members={members}  />}
+      {activeTab === 'Trainers'   && <TrainerReport    members={members} trainers={trainers} />}
     </div>
   )
 }
