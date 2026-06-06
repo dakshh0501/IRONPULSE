@@ -306,3 +306,18 @@ export async function deleteTrainer(
     await deleteDoc(userRef)
   }
 }
+
+// ─────────────────────────────────────────────
+// SETTINGS
+// ─────────────────────────────────────────────
+
+// Read settings document from /settings/{docId}
+export async function getSettings(docId = 'gym') {
+  const snap = await getDoc(doc(db, 'settings', docId))
+  return snap.exists() ? snap.data() : null
+}
+
+// Write (merge) settings document to /settings/{docId}
+export async function saveSettings(docId = 'gym', data) {
+  await setDoc(doc(db, 'settings', docId), data, { merge: true })
+}

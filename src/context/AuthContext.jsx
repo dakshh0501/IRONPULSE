@@ -30,28 +30,21 @@ export function AuthProvider({ children }) {
 
         try {
 
-          const profile =
-            await getUserProfile(
-              firebaseUser.uid
-            )
+          const profile = await getUserProfile(firebaseUser.uid)
 
           if (!profile) {
-
-            await logOut()
-
-            setCurrentUser(null)
+            setCurrentUser(firebaseUser)
             setUserProfile(null)
             setRole(null)
-
+            setAuthLoading(false)
             return
           }
 
           setCurrentUser(firebaseUser)
           setUserProfile(profile)
-          setRole(profile.role)
+          setRole(profile?.role ?? 'member')
 
-        } catch {
-
+        } catch (err) {
           setCurrentUser(null)
           setUserProfile(null)
           setRole(null)
@@ -135,6 +128,7 @@ export function AuthProvider({ children }) {
     const map = {
       'auth/user-not-found':       'No account found with this email.',
       'auth/wrong-password':       'Incorrect password. Try again.',
+      'auth/invalid-credential': 'Incorrect email or password.',
       'auth/email-already-in-use': 'This email is already registered.',
       'auth/weak-password':        'Password must be at least 6 characters.',
       'auth/invalid-email':        'Please enter a valid email address.',

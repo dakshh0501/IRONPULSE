@@ -11,18 +11,15 @@ import {
   addMember as addMemberToFirestore,
   updateMember as updateMemberInFirestore,
   deleteMember as deleteMemberFromFirestore,
-
   subscribeToPayments,
   addPayment as addPaymentToFirestore,
   updatePayment as updatePaymentInFirestore,
   deletePayment as deletePaymentFromFirestore,
-
   subscribeToTrainers,
   addTrainer as addTrainerToFirestore,
   updateTrainer as updateTrainerInFirestore,
   deleteTrainer as deleteTrainerFromFirestore,
 } from '../services/firestoreService'
-
 import {
   subscribeAttendance,
   addAttendance as addAttendanceToFirestore,
@@ -33,10 +30,14 @@ const AppContext = createContext()
 export function AppProvider({ children }) {
 
   // ── Auth ───────────────────────────────────────────────
-  const { currentUser, authLoading } = useAuth()
+  const { currentUser, authLoading, userProfile } = useAuth()
 
   // ── Theme ──────────────────────────────────────────────
-  const [darkMode, setDarkMode] = useState(true)
+  // FIX: read from localStorage on startup so dark mode persists across refreshes
+  const [darkMode, setDarkMode] = useState(() => {
+    const stored = localStorage.getItem('ironpulse-darkMode')
+    return stored === null ? true : stored === 'true'
+  })
 
   // ── Data ───────────────────────────────────────────────
   const [members,    setMembers]    = useState([])
@@ -47,64 +48,144 @@ export function AppProvider({ children }) {
   const [checkinLog, setCheckinLog] = useState([])
   const [attendance, setAttendance] = useState([])
 
-  // ── Realtime Firestore listeners ───────────────────────
+  // ── Members listener ───────────────────────────────────
   useEffect(() => {
-    if (authLoading || !currentUser) return
-    const unsubscribe = subscribeToMembers(async (data) => {
+  if (authLoading || !currentUser) return
+
+  if (
+    userProfile?.role !== 'admin' &&
+    userProfile?.role !== 'trainer'
+  ) {
+    return
+  }
+
+  const unsubscribe = subscribeToMembers(
+    async (data) => {
       setMembers(data)
+
       const today = new Date()
+
       data.forEach(async (member) => {
         if (!member.expiry) return
-        const expiryDate = new Date(member.expiry)
-        const isExpired  = expiryDate < today
-        if (isExpired && member.status !== 'Expired') {
+
+        const isExpired =
+          new Date(member.expiry) < today
+
+        if (
+          isExpired &&
+          member.status !== 'Expired'
+        ) {
           try {
-            await updateMemberInFirestore(member.id, { status: 'Expired' })
+            await updateMemberInFirestore(
+              member.id,
+              { status: 'Expired' }
+            )
           } catch (error) {
-            console.error('Expiry update failed:', error)
+            console.error(
+              'Expiry update failed:',
+              error
+            )
           }
         }
       })
-    })
-    return unsubscribe
-  }, [currentUser, authLoading])
+    }
+  )
 
+  return unsubscribe
+
+}, [
+  currentUser,
+  authLoading,
+  userProfile
+])
+
+  // ── Payments listener — ADMIN ONLY ─────────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
+    if (userProfile?.role !== 'admin') return
     const unsubscribe = subscribeToPayments((data) => setPayments(data))
     return unsubscribe
-  }, [currentUser, authLoading])
+  }, [currentUser, authLoading, userProfile])
 
+  // ── Trainers listener ──────────────────────────────────
   useEffect(() => {
-    if (authLoading || !currentUser) return
-    const unsubscribe = subscribeToTrainers((data) => setTrainers(data))
-    return unsubscribe
-  }, [currentUser, authLoading])
+  if (authLoading || !currentUser) return
 
+  if (
+    userProfile?.role !== 'admin' &&
+    userProfile?.role !== 'trainer'
+  ) {
+    return
+  }
+
+  const unsubscribe =
+    subscribeToTrainers((data) =>
+      setTrainers(data)
+    )
+
+  return unsubscribe
+}, [
+  currentUser,
+  authLoading,
+  userProfile
+])
+
+  // ── Attendance listener ────────────────────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
     const unsubscribe = subscribeAttendance((data) => setAttendance(data))
     return unsubscribe
   }, [currentUser, authLoading])
 
+  // ── Auto-sync member payment fields ───────────────────
+  useEffect(() => {
+    if (authLoading || !currentUser) return
+    if (userProfile?.role !== 'admin') return
+    if (members.length === 0 || payments.length === 0) return
+
+    members.forEach(member => {
+      const totalPaid = payments
+        .filter(p => p.memberId === member.id && p.status === 'Paid')
+        .reduce((sum, p) => sum + Number(p.paid || 0), 0)
+
+      const planPrice  = Number(member.planPrice || 0)
+      const balanceDue = Math.max(0, planPrice - totalPaid)
+
+      let paymentStatus = 'Pending'
+      if (totalPaid >= planPrice && planPrice > 0) paymentStatus = 'Paid'
+      else if (totalPaid > 0)                      paymentStatus = 'Partial'
+
+      const hasChanged =
+        (member.amountPaid    || 0)         !== totalPaid    ||
+        (member.balanceDue    || 0)         !== balanceDue   ||
+        (member.paymentStatus || 'Pending') !== paymentStatus
+
+      if (hasChanged) {
+        try {
+          updateMemberInFirestore(member.id, { amountPaid: totalPaid, balanceDue, paymentStatus })
+        } catch (error) {
+          console.error('Error syncing member payment data:', error)
+        }
+      }
+    })
+  }, [payments, members, currentUser, authLoading, userProfile])
+
   // ── Persist dark mode ──────────────────────────────────
+  // FIX: also save to localStorage whenever darkMode changes
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light')
+    localStorage.setItem('ironpulse-darkMode', darkMode)
   }, [darkMode])
 
-  // ── Notifications — generated from real Firebase data ──
-  // Recalculated whenever members or attendance changes.
-  // No hardcoded data. No fake entries.
+  // ── Notifications — derived from real data ─────────────
   const notifications = useMemo(() => {
-    const list = []
-    const today = new Date()
-    const todayStr = today.toLocaleDateString('en-CA')  // 'YYYY-MM-DD'
+    const list     = []
+    const today    = new Date()
+    const todayStr = today.toISOString().split('T')[0]
 
-    // A. Membership expiring within 7 days
     members.forEach(m => {
       if (!m.expiry || m.status === 'Expired') return
-      const expiryDate = new Date(m.expiry)
-      const diffDays   = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24))
+      const diffDays = Math.ceil((new Date(m.expiry) - today) / (1000 * 60 * 60 * 24))
       if (diffDays >= 0 && diffDays <= 7) {
         list.push({
           id:    `expiry-soon-${m.id}`,
@@ -117,11 +198,9 @@ export function AppProvider({ children }) {
       }
     })
 
-    // B. Membership already expired
     members.forEach(m => {
       if (!m.expiry) return
-      const expiryDate = new Date(m.expiry)
-      const diffDays   = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24))
+      const diffDays = Math.ceil((new Date(m.expiry) - today) / (1000 * 60 * 60 * 24))
       if (diffDays < 0) {
         list.push({
           id:    `expiry-expired-${m.id}`,
@@ -134,11 +213,9 @@ export function AppProvider({ children }) {
       }
     })
 
-    // C. New members (joined within last 7 days)
     members.forEach(m => {
       if (!m.join) return
-      const joinDate = new Date(m.join)
-      const diffDays = Math.ceil((today - joinDate) / (1000 * 60 * 60 * 24))
+      const diffDays = Math.ceil((today - new Date(m.join)) / (1000 * 60 * 60 * 24))
       if (diffDays >= 0 && diffDays <= 7) {
         list.push({
           id:    `new-member-${m.id}`,
@@ -151,29 +228,22 @@ export function AppProvider({ children }) {
       }
     })
 
-    // D. Today's check-ins
-    const todayCheckins = attendance.filter(a => a.date === todayStr)
-    todayCheckins.forEach(a => {
-      list.push({
-        id:    `checkin-${a.id || a.memberId + '-' + a.time}`,
-        type:  'checkin',
-        title: 'Member Checked In',
-        msg:   `${a.memberName} checked in at ${a.time || 'today'}.`,
-        time:  a.time || 'Today',
-        read:  true,
+    attendance
+      .filter(a => a.date === todayStr)
+      .forEach(a => {
+        list.push({
+          id:    `checkin-${a.id || a.memberId + '-' + a.time}`,
+          type:  'checkin',
+          title: 'Member Checked In',
+          msg:   `${a.memberName} checked in at ${a.time || 'today'}.`,
+          time:  a.time || 'Today',
+          read:  true,
+        })
       })
-    })
 
-    // Sort: unread first, then by time string descending
-    return list.sort((a, b) => {
-      if (a.read !== b.read) return a.read ? 1 : -1
-      return 0
-    })
+    return list.sort((a, b) => (a.read === b.read ? 0 : a.read ? 1 : -1))
   }, [members, attendance])
 
-  // ── Notification helpers ───────────────────────────────
-  // Since notifications are derived (useMemo), markRead/markAllRead
-  // are no-ops kept for API compatibility — the UI dismisses locally.
   const markAllRead = () => {}
   const markRead    = () => {}
   const unreadCount = notifications.filter(n => !n.read).length
@@ -217,13 +287,13 @@ export function AppProvider({ children }) {
   const checkInMember = async (member) => {
     try {
       await addAttendanceToFirestore({
-        memberId:    member.id,
+        memberId:    member.authUid || member.uid || member.id,
         memberName:  member.name,
         trainerId:   member.trainerId   || '',
         trainerName: member.trainerName || '',
         type:        'checkin',
       })
-      await updateMember(member.id, { checkins: (member.checkins || 0) + 1 })
+      await updateMemberInFirestore(member.id, { checkins: (member.checkins || 0) + 1 })
     } catch (error) {
       console.error('Error checking in:', error)
     }
@@ -292,28 +362,23 @@ export function AppProvider({ children }) {
   const checkIn = (member) => {
     const now     = new Date()
     const timeStr = now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' })
-    setCheckinLog(p => [{ id: Date.now(), name: member.name, avatar: member.avatar, time: timeStr, out: '—' }, ...p])
+    setCheckinLog(p => [{
+      id: Date.now(), name: member.name,
+      avatar: member.avatar, time: timeStr, out: '—',
+    }, ...p])
     updateMember(member.id, { checkins: Number(member.checkins || 0) + 1 })
   }
 
   return (
     <AppContext.Provider value={{
       darkMode, setDarkMode,
-
-      members, addMember, updateMember, deleteMember,
-
+      members,  addMember,  updateMember,  deleteMember,
       trainers, addTrainer, updateTrainer, deleteTrainer,
-
       payments, addPayment, updatePayment, deletePayment,
-
       workouts, setWorkouts,
-
       dietPlans, setDietPlans,
-
       notifications, markAllRead, markRead, unreadCount,
-
       checkinLog, checkIn,
-
       attendance, checkInMember,
     }}>
       {children}

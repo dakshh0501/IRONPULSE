@@ -134,9 +134,26 @@ export async function getUserRole(uid) {
 
 // ─── Get Profile ──────────────────────────────────────────────
 export async function getUserProfile(uid) {
-  const snap = await getDoc(doc(db, 'users', uid))
-  if (!snap.exists()) return null
-  return snap.data()
+  try {
+    const snap = await getDoc(
+      doc(db, 'users', uid)
+    )
+
+    if (!snap.exists()) {
+      return null
+    }
+
+    return snap.data()
+
+  } catch (error) {
+
+    console.error(
+      'getUserProfile failed:',
+      error
+    )
+
+    return null
+  }
 }
 
 // ─── Auth State Observer ──────────────────────────────────────

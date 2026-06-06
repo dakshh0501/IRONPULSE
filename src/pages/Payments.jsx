@@ -518,7 +518,14 @@ export default function Payments({ search = '' }) {
       </div>
 
       {/* Collection rate + Revenue chart */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 24 }}>
+      <div
+  style={{
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: 14,
+    marginBottom: 24
+  }}
+>
         <div style={{ background: '#161616', border: '1px solid #ffffff10', borderRadius: 14, padding: '18px 20px' }}>
           <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14 }}>Collection Rate</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 12 }}>
@@ -568,8 +575,8 @@ export default function Payments({ search = '' }) {
 
       {/* Invoice table */}
       <div style={{ background: '#161616', border: '1px solid #ffffff10', borderRadius: 14, overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="payments-table-wrapper" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table className="payments-table" style={{ width: '100%', minWidth: 700, borderCollapse: 'collapse' }}>
             <thead>
               <tr>
                 {['Member', 'Invoice ID', 'Amount', 'Balance', 'Status', 'Due Date', 'Method', 'Actions'].map(h => (

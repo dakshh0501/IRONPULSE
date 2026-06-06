@@ -261,9 +261,12 @@ function AttendanceHistory({ records }) {
 // ─── main component ──────────────────────────────────────────
 export default function MemberDashboard() {
   const { attendance, payments, members } = useApp()
-  const { currentUser } = useAuth()
+  const {
+  currentUser,
+  userProfile
+} = useAuth()
 
-  const me = members.find(m => m.email === currentUser?.email)
+  const me = userProfile
 
   const myAttendance = useMemo(
     () => attendance.filter(a => a.memberId === currentUser?.uid),
