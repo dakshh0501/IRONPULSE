@@ -24,6 +24,7 @@ import {
   subscribeAttendance,
   addAttendance as addAttendanceToFirestore,
 } from '../services/attendanceService'
+import { getPendingUsers } from '../services/authService'
 
 const AppContext = createContext()
 
@@ -40,13 +41,14 @@ export function AppProvider({ children }) {
   })
 
   // ── Data ───────────────────────────────────────────────
-  const [members,    setMembers]    = useState([])
-  const [trainers,   setTrainers]   = useState([])
-  const [payments,   setPayments]   = useState([])
-  const [workouts,   setWorkouts]   = useState([])
-  const [dietPlans,  setDietPlans]  = useState([])
-  const [checkinLog, setCheckinLog] = useState([])
-  const [attendance, setAttendance] = useState([])
+  const [members,       setMembers]       = useState([])
+  const [trainers,      setTrainers]      = useState([])
+  const [payments,      setPayments]      = useState([])
+  const [workouts,      setWorkouts]      = useState([])
+  const [dietPlans,     setDietPlans]     = useState([])
+  const [checkinLog,    setCheckinLog]    = useState([])
+  const [attendance,    setAttendance]    = useState([])
+  const [pendingCount,  setPendingCount]  = useState(0)
 
   // ── Members listener ───────────────────────────────────
   useEffect(() => {
@@ -136,6 +138,27 @@ export function AppProvider({ children }) {
     const unsubscribe = subscribeAttendance((data) => setAttendance(data))
     return unsubscribe
   }, [currentUser, authLoading])
+
+  // ── Pending approvals count — ADMIN ONLY ───────────────
+  useEffect(() => {
+    if (authLoading || !currentUser) return
+    if (userProfile?.role !== 'admin') return
+    let mounted = true
+    async function loadPendingCount() {
+      try {
+        const pending = await getPendingUsers()
+        if (mounted) setPendingCount(pending.length)
+      } catch (e) {
+        console.error('Failed to load pending count:', e)
+      }
+    }
+    loadPendingCount()
+    const interval = setInterval(loadPendingCount, 30000)
+    return () => {
+      mounted = false
+      clearInterval(interval)
+    }
+  }, [currentUser, authLoading, userProfile])
 
   // ── Auto-sync member payment fields ───────────────────
   useEffect(() => {
@@ -380,6 +403,7 @@ export function AppProvider({ children }) {
       notifications, markAllRead, markRead, unreadCount,
       checkinLog, checkIn,
       attendance, checkInMember,
+      pendingCount,
     }}>
       {children}
     </AppContext.Provider>

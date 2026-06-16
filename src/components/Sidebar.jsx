@@ -7,6 +7,7 @@ const ADMIN_NAV = [
   { key:'dashboard',     label:'Dashboard',       icon:'📊' },
   { key:'members',       label:'Members',          icon:'👥' },
   { key:'trainers',      label:'Trainers',          icon:'🏋️' },
+  { key:'pending',       label:'Pending Approvals', icon:'⏳', badge:'pending' },
   { section:'Programs' },
   { key:'workouts',      label:'Workout Plans',    icon:'💪' },
   { key:'diet',          label:'Diet Plans',       icon:'🥗' },
@@ -16,6 +17,8 @@ const ADMIN_NAV = [
   { key:'attendance',    label:'QR Check-in',      icon:'📱' },
   { key:'notifications', label:'Notifications',    icon:'🔔', badge:'notifs' },
   { key:'reports',       label:'Reports',          icon:'📋' },
+  { section:'Engagement' },
+  { key:'whatsapp',      label:'WhatsApp Reminders', icon:'💬', badge:'pending' },
   { section:'System' },
   { key:'settings',      label:'Settings',         icon:'⚙️' },
   { icon: '🖥',label: 'Reception', key: 'reception', }
@@ -51,18 +54,20 @@ const NAV_MAP = { admin: ADMIN_NAV, trainer: TRAINER_NAV, member: MEMBER_NAV }
 
 export default function Sidebar({ currentPage, setPage, mobileOpen, setMobileOpen }) {
   const { currentUser, logout, userProfile } = useAuth()
-  const { unreadCount} = useApp()
+  const { unreadCount, pendingCount } = useApp()
   const navigate = useNavigate()
 
-  const role = userProfile?.role || 'member'
-  const nav =
-    NAV_MAP[role] || MEMBER_NAV
+  const role = userProfile?.role
+
+const nav =
+  NAV_MAP[role] || []
 
   const overdueCount = 0
 
   const getBadge = (badge) => {
     if (badge === 'notifs')  return unreadCount  || null
     if (badge === 'payments') return overdueCount || null
+    if (badge === 'pending') return pendingCount || null
     return null
   }
 
@@ -119,7 +124,9 @@ export default function Sidebar({ currentPage, setPage, mobileOpen, setMobileOpe
           </div>
           <div className="sidebar-user-info">
             <div className="sidebar-user-name">{userProfile?.name || 'User'}</div>
-            <div className="sidebar-user-role">{role || 'admin'}</div>
+            <div className="sidebar-user-role">
+  {role || 'User'}
+</div>
           </div>
           <span style={{ fontSize:14, color:'var(--text-muted)' }}>⚙</span>
         </div>

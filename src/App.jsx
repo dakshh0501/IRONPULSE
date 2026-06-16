@@ -20,6 +20,8 @@ import Progress       from './pages/Progress'
 import Notifications  from './pages/Notifications'
 import Reports        from './pages/Reports'
 import Settings       from './pages/Settings'
+import PendingApprovals from './pages/PendingApprovals'
+import WhatsAppReminders from './pages/WhatsAppReminders'
 
 // ─────────────────────────────────────────────────────────────
 //  PLACEHOLDER
@@ -58,6 +60,7 @@ function buildPageMap(setPage, search, role) {
       dashboard:     <AdminDashboard setPage={setPage} />,
       members:       <Members        search={search} setPage={setPage} />,
       trainers:      <Trainers       search={search} setPage={setPage} />,
+      pending:       <PendingApprovals />,
       workouts:      <Workouts       search={search} setPage={setPage} />,
       diet:          <Diet           search={search} setPage={setPage} />,
       payments:      <Payments       search={search} setPage={setPage} />,
@@ -67,6 +70,7 @@ function buildPageMap(setPage, search, role) {
       notifications: <Notifications  search={search} setPage={setPage} />,
       reports:       <Reports        search={search} setPage={setPage} />,
       settings:      <Settings       search={search} setPage={setPage} />,
+      whatsapp:      <WhatsAppReminders search={search} />,
     }
   }
   if (role === 'trainer') {

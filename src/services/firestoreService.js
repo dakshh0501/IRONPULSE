@@ -20,8 +20,7 @@ import {
   setDoc
 } from 'firebase/firestore'
 import {
-  auth,
-  secondaryAuth
+  auth
 } from '../firebase'
 import { db } from '../firebase'
 

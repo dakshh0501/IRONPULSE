@@ -13,6 +13,7 @@ const PAGE_TITLES = {
   notifications: 'Notifications',
   reports:       'Reports & Analytics',
   settings:      'Settings',
+  whatsapp:      'WhatsApp Reminders',
 }
 
 export default function Header({ currentPage, setPage, search, setSearch, setMobileOpen }) {
