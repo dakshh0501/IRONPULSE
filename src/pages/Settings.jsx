@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
+import { applyAccentColor, DEFAULT_ACCENT } from '../utils/theme'
 import { useAuth } from '../context/AuthContext'
 import { getSettings, saveSettings } from '../services/firestoreService'
+import { doc, updateDoc } from 'firebase/firestore'
+import { db } from '../firebase'
 
 // ─────────────────────────────────────────────────────────────
 //  HELPERS — defined at top level so they never cause focus loss
@@ -65,7 +68,6 @@ function SettingRow({ label, desc, children }) {
   )
 }
 
-// ── Moved OUTSIDE Settings to prevent focus-loss bug ──────────
 function InputField({ label, k, type = 'text', state, setState, ...rest }) {
   return (
     <div className="form-group" style={{ margin:0 }}>
@@ -117,28 +119,23 @@ const DEFAULT_GYM = {
 // ─────────────────────────────────────────────────────────────
 export default function Settings() {
   const { darkMode, setDarkMode } = useApp()
-  const { currentUser, logout }   = useAuth()
+  const { currentUser, logout, updateUserProfile } = useAuth()
   const [activeTab, setActiveTab] = useState('gym')
 
-  // ── Gym Settings — REAL: reads/writes Firestore ───────────
+  // ── Gym Settings ──────────────────────────────────────────
   const [gymForm,    setGymForm]    = useState(DEFAULT_GYM)
   const [gymSaved,   setGymSaved]   = useState(false)
   const [gymError,   setGymError]   = useState('')
   const [gymLoading, setGymLoading] = useState(true)
-
   const setGym = (k, v) => setGymForm(p => ({ ...p, [k]: v }))
 
-  // Load gym settings from Firestore on mount
   useEffect(() => {
     getSettings('gym')
-      .then(data => {
-        if (data) setGymForm(prev => ({ ...prev, ...data }))
-      })
+      .then(data => { if (data) setGymForm(prev => ({ ...prev, ...data })) })
       .catch(err => console.error('Failed to load gym settings:', err))
       .finally(() => setGymLoading(false))
   }, [])
 
-  // Save gym settings to Firestore
   const saveGym = async () => {
     setGymError('')
     try {
@@ -146,52 +143,154 @@ export default function Settings() {
       setGymSaved(true)
       setTimeout(() => setGymSaved(false), 2500)
     } catch (err) {
-      console.error('Failed to save gym settings:', err)
       setGymError('Save failed. Check your connection.')
       setTimeout(() => setGymError(''), 3000)
     }
   }
 
-  // ── Pricing — local state only (fake) ─────────────────────
-  const [prices, setPrices]       = useState({ trial:499, standard:1499, premium:2999, quarterly:3999, annual:12999, dayPass:199 })
-  const [priceSaved, setPriceSaved] = useState(false)
-  const setPrice   = (k, v) => setPrices(p => ({ ...p, [k]: v }))
-  const savePrices = () => { setPriceSaved(true); setTimeout(() => setPriceSaved(false), 2500) }
+  // ── Pricing ───────────────────────────────────────────────
+  const [prices, setPrices]           = useState({ trial:499, standard:1499, premium:2999, quarterly:3999, annual:12999, dayPass:199 })
+  const [priceSaved, setPriceSaved]   = useState(false)
+  const [priceError, setPriceError]   = useState('')
+  const [priceLoading, setPriceLoading] = useState(true)
+  const setPrice = (k, v) => setPrices(p => ({ ...p, [k]: v }))
 
-  // ── Theme — darkMode persists via AppContext → localStorage ─
-  // darkMode is read from localStorage on startup (see AppContext)
-  const [accentColor, setAccentColor] = useState('#e8420a')
-  const [themeSaved,  setThemeSaved]  = useState(false)
-  const saveTheme = () => { setThemeSaved(true); setTimeout(() => setThemeSaved(false), 2500) }
+  useEffect(() => {
+    getSettings('pricing')
+      .then(data => { if (data) setPrices(prev => ({ ...prev, ...data })) })
+      .catch(err => console.error('Failed to load pricing:', err))
+      .finally(() => setPriceLoading(false))
+  }, [])
 
-  // ── Profile — local state only (fake) ─────────────────────
-  const [profile, setProfile]       = useState({ name: currentUser?.displayName || 'Admin User', email: currentUser?.email || '', phone: '', bio: '' })
-  const [profileSaved, setProfileSaved] = useState(false)
-  const setProf    = (k, v) => setProfile(p => ({ ...p, [k]: v }))
-  const saveProfile = () => { setProfileSaved(true); setTimeout(() => setProfileSaved(false), 2500) }
+  const savePrices = async () => {
+    setPriceError('')
+    try {
+      await saveSettings('pricing', prices)
+      setPriceSaved(true)
+      setTimeout(() => setPriceSaved(false), 2500)
+    } catch (err) {
+      setPriceError('Save failed. Check your connection.')
+      setTimeout(() => setPriceError(''), 3000)
+    }
+  }
 
-  // ── Password — local validation only (fake) ───────────────
-  const [pwForm, setPwForm]   = useState({ current:'', newPw:'', confirm:'' })
+  // ── Theme ─────────────────────────────────────────────────
+  const [accentColor, setAccentColor] = useState(DEFAULT_ACCENT)
+  const [themeSaved,    setThemeSaved]    = useState(false)
+  const [themeError,    setThemeError]    = useState('')
+  const [themeLoading,  setThemeLoading]  = useState(true)
+
+  useEffect(() => {
+    getSettings('theme')
+      .then(data => {
+        if (data?.accentColor) {
+          setAccentColor(data.accentColor)
+          applyAccentColor(data.accentColor)
+        }
+      })
+      .catch(err => console.error('Failed to load theme:', err))
+      .finally(() => setThemeLoading(false))
+  }, [])
+
+  const saveTheme = async () => {
+    setThemeError('')
+    try {
+      await saveSettings('theme', { accentColor })
+      applyAccentColor(accentColor)
+      setThemeSaved(true)
+      setTimeout(() => setThemeSaved(false), 2500)
+    } catch (err) {
+      setThemeError('Save failed. Check your connection.')
+      setTimeout(() => setThemeError(''), 3000)
+    }
+  }
+
+  // ── Profile ───────────────────────────────────────────────
+  const [profile,       setProfileState] = useState({ name: '', email: currentUser?.email || '', phone: '', bio: '' })
+  const [profileSaved,  setProfileSaved]  = useState(false)
+  const [profileError,  setProfileError]  = useState('')
+  const [profileLoading,setProfileLoading]= useState(true)
+  const setProf = (k, v) => setProfileState(p => ({ ...p, [k]: v }))
+
+  useEffect(() => {
+    if (!currentUser?.uid) return
+    getSettings(`profile_${currentUser.uid}`)
+      .then(data => {
+        if (data) setProfileState(prev => ({ ...prev, ...data }))
+        else setProfileState(prev => ({ ...prev, name: currentUser?.displayName || '' }))
+      })
+      .catch(err => console.error('Failed to load profile:', err))
+      .finally(() => setProfileLoading(false))
+  }, [currentUser?.uid])
+
+  // ── FIX: saveProfile now updates BOTH locations ────────────
+  const saveProfile = async () => {
+    if (!currentUser?.uid) return
+    setProfileError('')
+    try {
+      const { name, phone, bio } = profile
+
+      // 1. Save to settings/profile_{uid} (existing behavior)
+      await saveSettings(`profile_${currentUser.uid}`, { name, phone, bio })
+
+      // 2. Also update users/{uid} so Sidebar/Header see updated name immediately
+      await updateDoc(doc(db, 'users', currentUser.uid), { name })
+
+      // 3. Update AuthContext userProfile in memory so UI updates immediately
+      //    without requiring a page refresh
+      updateUserProfile({ name })
+
+      setProfileSaved(true)
+      setTimeout(() => setProfileSaved(false), 2500)
+    } catch (err) {
+      console.error('Failed to save profile:', err)
+      setProfileError('Save failed. Check your connection.')
+      setTimeout(() => setProfileError(''), 3000)
+    }
+  }
+
+  // ── Password ──────────────────────────────────────────────
+  const [pwForm, setPwForm] = useState({ current:'', newPw:'', confirm:'' })
   const [pwError, setPwError] = useState('')
   const [pwSaved, setPwSaved] = useState(false)
   const setPw = (k, v) => { setPwForm(p => ({ ...p, [k]: v })); setPwError('') }
   const savePassword = () => {
-    if (!pwForm.current)              { setPwError('Enter current password'); return }
-    if (pwForm.newPw.length < 6)      { setPwError('New password must be at least 6 characters'); return }
-    if (pwForm.newPw !== pwForm.confirm) { setPwError('Passwords do not match'); return }
+    if (!pwForm.current)                 { setPwError('Enter current password'); return }
+    if (pwForm.newPw.length < 6)         { setPwError('New password must be at least 6 characters'); return }
+    if (pwForm.newPw !== pwForm.confirm)  { setPwError('Passwords do not match'); return }
     setPwSaved(true); setPwForm({ current:'', newPw:'', confirm:'' })
     setTimeout(() => setPwSaved(false), 2500)
   }
 
-  // ── Notifications — local state only (fake) ───────────────
+  // ── Notifications ─────────────────────────────────────────
   const [notifSettings, setNotifSettings] = useState({
     emailAlerts:true, paymentReminders:true, expiryAlerts:true,
     workoutReminders:false, newMemberAlert:true, weeklyReport:true,
     smsAlerts:false, whatsappAlerts:false,
   })
-  const [notifSaved, setNotifSaved] = useState(false)
+  const [notifSaved,    setNotifSaved]    = useState(false)
+  const [notifError,    setNotifError]    = useState('')
+  const [notifLoading,  setNotifLoading]  = useState(true)
   const toggleNotif = (k) => setNotifSettings(p => ({ ...p, [k]: !p[k] }))
-  const saveNotifs  = () => { setNotifSaved(true); setTimeout(() => setNotifSaved(false), 2500) }
+
+  useEffect(() => {
+    getSettings('notifications')
+      .then(data => { if (data) setNotifSettings(prev => ({ ...prev, ...data })) })
+      .catch(err => console.error('Failed to load notifications:', err))
+      .finally(() => setNotifLoading(false))
+  }, [])
+
+  const saveNotifs = async () => {
+    setNotifError('')
+    try {
+      await saveSettings('notifications', notifSettings)
+      setNotifSaved(true)
+      setTimeout(() => setNotifSaved(false), 2500)
+    } catch (err) {
+      setNotifError('Save failed. Check your connection.')
+      setTimeout(() => setNotifError(''), 3000)
+    }
+  }
 
   return (
     <div style={{ maxWidth:900 }}>
@@ -242,12 +341,10 @@ export default function Settings() {
         {/* Tab content */}
         <div style={{ flex:1 }}>
 
-          {/* ── GYM SETTINGS — REAL Firestore ── */}
+          {/* GYM */}
           {activeTab === 'gym' && (
             <SectionCard icon="🏋️" title="Gym Information" subtitle="Saved to Firestore — persists across refreshes">
-              {gymLoading ? (
-                <p style={{ color:'var(--text-muted)', fontSize:13 }}>Loading…</p>
-              ) : (
+              {gymLoading ? <p style={{ color:'var(--text-muted)', fontSize:13 }}>Loading…</p> : (
                 <>
                   <div className="form-row" style={{ marginBottom:14 }}>
                     <InputField label="Gym Name"  k="name"    state={gymForm} setState={setGym} placeholder="IronForge Gym" />
@@ -308,108 +405,130 @@ export default function Settings() {
             </SectionCard>
           )}
 
-          {/* ── PRICING — local only ── */}
+          {/* PRICING */}
           {activeTab === 'pricing' && (
-            <SectionCard icon="💰" title="Membership Pricing" subtitle="Set prices for each plan. Changes apply to new members.">
-              {[
-                { key:'trial',     label:'Trial / Day Pass',   desc:'Short-term access, no commitment' },
-                { key:'standard',  label:'Standard (Monthly)', desc:'Regular monthly membership' },
-                { key:'premium',   label:'Premium (Monthly)',  desc:'Premium with unlimited trainer access' },
-                { key:'quarterly', label:'Quarterly Plan',     desc:'3-month commitment with discount' },
-                { key:'annual',    label:'Annual Plan',        desc:'12-month membership, best value' },
-                { key:'dayPass',   label:'Day Pass',           desc:'Single-day access' },
-              ].map(plan => (
-                <div key={plan.key} style={{ display:'flex', alignItems:'center', gap:16, padding:'14px 0', borderBottom:'1px solid var(--border)' }}>
-                  <div style={{ flex:1 }}>
-                    <p style={{ fontSize:14, fontWeight:600 }}>{plan.label}</p>
-                    <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:2 }}>{plan.desc}</p>
-                  </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
-                    <span style={{ fontSize:18, color:'var(--text-muted)' }}>₹</span>
-                    <input className="form-input" type="number" value={prices[plan.key]}
-                      onChange={e => setPrice(plan.key, Number(e.target.value))}
-                      style={{ width:100, textAlign:'center', fontWeight:700, fontSize:15 }} />
-                    <span style={{ fontSize:12, color:'var(--text-muted)' }}>
-                      {plan.key === 'annual' ? '/year' : plan.key === 'quarterly' ? '/3mo' : plan.key === 'dayPass' ? '/day' : '/month'}
-                    </span>
-                  </div>
-                </div>
-              ))}
-              <SaveBar onSave={savePrices} saved={priceSaved} />
-            </SectionCard>
-          )}
-
-          {/* ── THEME — darkMode persists via localStorage ── */}
-          {activeTab === 'theme' && (
-            <SectionCard icon="🎨" title="Theme & Appearance" subtitle="Dark mode persists across refreshes">
-              <SettingRow label="Dark Mode" desc="Toggle between dark and light interface">
-                <Toggle on={darkMode} onChange={setDarkMode} />
-              </SettingRow>
-              <div style={{ padding:'16px 0', borderBottom:'1px solid var(--border)' }}>
-                <p style={{ fontSize:14, fontWeight:600, marginBottom:4 }}>Accent Color</p>
-                <p style={{ fontSize:12, color:'var(--text-muted)', marginBottom:14 }}>
-                  Primary color used throughout the interface
-                </p>
-                <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
-                  {ACCENT_COLORS.map(c => (
-                    <div key={c.value} title={c.name} onClick={() => setAccentColor(c.value)} style={{
-                      width:36, height:36, borderRadius:'50%', background:c.value, cursor:'pointer',
-                      border: accentColor === c.value ? '3px solid white' : '3px solid transparent',
-                      boxShadow: accentColor === c.value ? `0 0 0 2px ${c.value}` : 'none',
-                      transition:'all 0.15s',
-                    }} />
+            <SectionCard icon="💰" title="Membership Pricing" subtitle="Saved to Firestore — persists across refreshes">
+              {priceLoading ? <p style={{ color:'var(--text-muted)', fontSize:13 }}>Loading…</p> : (
+                <>
+                  {[
+                    { key:'trial',     label:'Trial / Day Pass',   desc:'Short-term access, no commitment' },
+                    { key:'standard',  label:'Standard (Monthly)', desc:'Regular monthly membership' },
+                    { key:'premium',   label:'Premium (Monthly)',  desc:'Premium with unlimited trainer access' },
+                    { key:'quarterly', label:'Quarterly Plan',     desc:'3-month commitment with discount' },
+                    { key:'annual',    label:'Annual Plan',        desc:'12-month membership, best value' },
+                    { key:'dayPass',   label:'Day Pass',           desc:'Single-day access' },
+                  ].map(plan => (
+                    <div key={plan.key} style={{ display:'flex', alignItems:'center', gap:16, padding:'14px 0', borderBottom:'1px solid var(--border)' }}>
+                      <div style={{ flex:1 }}>
+                        <p style={{ fontSize:14, fontWeight:600 }}>{plan.label}</p>
+                        <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:2 }}>{plan.desc}</p>
+                      </div>
+                      <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+                        <span style={{ fontSize:18, color:'var(--text-muted)' }}>₹</span>
+                        <input className="form-input" type="number" value={prices[plan.key]}
+                          onChange={e => setPrice(plan.key, Number(e.target.value))}
+                          style={{ width:100, textAlign:'center', fontWeight:700, fontSize:15 }} />
+                        <span style={{ fontSize:12, color:'var(--text-muted)' }}>
+                          {plan.key === 'annual' ? '/year' : plan.key === 'quarterly' ? '/3mo' : plan.key === 'dayPass' ? '/day' : '/month'}
+                        </span>
+                      </div>
+                    </div>
                   ))}
-                </div>
-                <p style={{ fontSize:11, color:'var(--text-muted)', marginTop:10 }}>
-                  Selected: <span style={{ color:accentColor, fontWeight:700 }}>
-                    {ACCENT_COLORS.find(c => c.value === accentColor)?.name}
-                  </span>
-                  {' '}— accent color persistence coming soon
-                </p>
-              </div>
-              <SettingRow label="Compact Mode" desc="Reduce padding and font sizes for more content density">
-                <Toggle on={false} onChange={() => {}} />
-              </SettingRow>
-              <SettingRow label="Animations" desc="Enable smooth transitions and micro-animations">
-                <Toggle on={true} onChange={() => {}} />
-              </SettingRow>
-              <SaveBar onSave={saveTheme} saved={themeSaved} />
+                  <SaveBar onSave={savePrices} saved={priceSaved} error={priceError} />
+                </>
+              )}
             </SectionCard>
           )}
 
-          {/* ── PROFILE — local only ── */}
+          {/* THEME */}
+          {activeTab === 'theme' && (
+            <SectionCard icon="🎨" title="Theme & Appearance" subtitle="Dark mode persists via localStorage; accent color saved to Firestore">
+              {themeLoading ? <p style={{ color:'var(--text-muted)', fontSize:13 }}>Loading…</p> : (
+                <>
+                  <SettingRow label="Dark Mode" desc="Toggle between dark and light interface">
+                    <Toggle on={darkMode} onChange={setDarkMode} />
+                  </SettingRow>
+                  <div style={{ padding:'16px 0', borderBottom:'1px solid var(--border)' }}>
+                    <p style={{ fontSize:14, fontWeight:600, marginBottom:4 }}>Accent Color</p>
+                    <p style={{ fontSize:12, color:'var(--text-muted)', marginBottom:14 }}>
+                      Primary color used throughout the interface
+                    </p>
+                    <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                      {ACCENT_COLORS.map(c => (
+                        <div key={c.value} title={c.name} onClick={() => {
+                          setAccentColor(c.value);
+                          applyAccentColor(c.value);
+                        }} style={{
+                          width:36, height:36, borderRadius:'50%', background:c.value, cursor:'pointer',
+                          border: accentColor === c.value ? '3px solid white' : '3px solid transparent',
+                          boxShadow: accentColor === c.value ? `0 0 0 2px ${c.value}` : 'none',
+                          transition:'all 0.15s',
+                        }} />
+                      ))}
+                    </div>
+                    <p style={{ fontSize:11, color:'var(--text-muted)', marginTop:10 }}>
+                      Selected: <span style={{ color:accentColor, fontWeight:700 }}>
+                        {ACCENT_COLORS.find(c => c.value === accentColor)?.name}
+                      </span>
+                    </p>
+                  </div>
+                  <SettingRow label="Compact Mode" desc="Reduce padding and font sizes for more content density">
+                    <Toggle on={false} onChange={() => {}} />
+                  </SettingRow>
+                  <SettingRow label="Animations" desc="Enable smooth transitions and micro-animations">
+                    <Toggle on={true} onChange={() => {}} />
+                  </SettingRow>
+                  <SaveBar onSave={saveTheme} saved={themeSaved} error={themeError} />
+                </>
+              )}
+            </SectionCard>
+          )}
+
+          {/* PROFILE */}
           {activeTab === 'profile' && (
             <>
-              <SectionCard icon="👤" title="Profile Settings" subtitle="Your personal account information">
-                <div style={{ display:'flex', alignItems:'center', gap:16, marginBottom:20 }}>
-                  <div className="avatar av-orange" style={{ width:64, height:64, fontSize:22 }}>
-                    {(currentUser?.displayName || 'A')[0].toUpperCase()}
-                  </div>
-                  <div>
-                    <button className="btn btn-outline btn-sm"
-                      onClick={() => alert('Photo upload requires Firebase Storage setup.')}>
-                      Change Photo
-                    </button>
-                    <p style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>JPG or PNG, max 1MB</p>
-                  </div>
-                </div>
-                <div className="form-row" style={{ marginBottom:14 }}>
-                  <InputField label="Full Name"     k="name"  state={profile} setState={setProf} />
-                  <InputField label="Email Address" k="email" state={profile} setState={setProf} type="email" />
-                </div>
-                <div className="form-row" style={{ marginBottom:14 }}>
-                  <InputField label="Phone Number" k="phone" state={profile} setState={setProf} />
-                  <div className="form-group" style={{ margin:0 }}>
-                    <label className="form-label">Role</label>
-                    <input className="form-input" value="admin" disabled style={{ opacity:0.5, cursor:'not-allowed' }} />
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Bio</label>
-                  <textarea className="form-input" rows={3} value={profile.bio}
-                    onChange={e => setProf('bio', e.target.value)} />
-                </div>
-                <SaveBar onSave={saveProfile} saved={profileSaved} />
+              <SectionCard icon="👤" title="Profile Settings" subtitle="Saved to Firestore — updates Sidebar and Header immediately">
+                {profileLoading ? <p style={{ color:'var(--text-muted)', fontSize:13 }}>Loading…</p> : (
+                  <>
+                    <div style={{ display:'flex', alignItems:'center', gap:16, marginBottom:20 }}>
+                      <div className="avatar av-orange" style={{ width:64, height:64, fontSize:22 }}>
+                        {(profile.name || currentUser?.displayName || 'A')[0].toUpperCase()}
+                      </div>
+                      <div>
+                        <button className="btn btn-outline btn-sm"
+                          onClick={() => alert('Photo upload requires Firebase Storage setup.')}>
+                          Change Photo
+                        </button>
+                        <p style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>JPG or PNG, max 1MB</p>
+                      </div>
+                    </div>
+                    <div className="form-row" style={{ marginBottom:14 }}>
+                      <InputField label="Full Name" k="name" state={profile} setState={setProf} />
+                      <div className="form-group" style={{ margin:0 }}>
+                        <label className="form-label">Email Address</label>
+                        <input
+                          className="form-input"
+                          value={profile.email}
+                          disabled
+                          style={{ opacity:0.6, cursor:'not-allowed' }}
+                        />
+                      </div>
+                    </div>
+                    <div className="form-row" style={{ marginBottom:14 }}>
+                      <InputField label="Phone Number" k="phone" state={profile} setState={setProf} />
+                      <div className="form-group" style={{ margin:0 }}>
+                        <label className="form-label">Role</label>
+                        <input className="form-input" value="admin" disabled style={{ opacity:0.5, cursor:'not-allowed' }} />
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Bio</label>
+                      <textarea className="form-input" rows={3} value={profile.bio}
+                        onChange={e => setProf('bio', e.target.value)} />
+                    </div>
+                    <SaveBar onSave={saveProfile} saved={profileSaved} error={profileError} />
+                  </>
+                )}
               </SectionCard>
 
               <SectionCard icon="🔑" title="Change Password" subtitle="Use a strong password with at least 6 characters">
@@ -440,28 +559,32 @@ export default function Settings() {
             </>
           )}
 
-          {/* ── NOTIFICATIONS — local only ── */}
+          {/* NOTIFICATIONS */}
           {activeTab === 'notifs' && (
-            <SectionCard icon="🔔" title="Notification Settings" subtitle="Control which alerts you receive and how">
-              {[
-                { key:'emailAlerts',      label:'Email Notifications',      desc:'Receive alerts and reports via email' },
-                { key:'paymentReminders', label:'Payment Reminders',         desc:'Auto-remind members before payment due dates' },
-                { key:'expiryAlerts',     label:'Membership Expiry Alerts',  desc:'Notify when memberships are about to expire' },
-                { key:'workoutReminders', label:'Workout Reminders',         desc:'Send weekly workout plan reminders to members' },
-                { key:'newMemberAlert',   label:'New Member Alert',          desc:'Get notified when a new member joins' },
-                { key:'weeklyReport',     label:'Weekly Summary Report',     desc:'Receive a weekly business summary every Monday' },
-                { key:'smsAlerts',        label:'SMS Notifications',         desc:'Send SMS alerts to members (requires SMS gateway)' },
-                { key:'whatsappAlerts',   label:'WhatsApp Alerts',           desc:'Send WhatsApp messages via Business API (coming soon)' },
-              ].map(s => (
-                <SettingRow key={s.key} label={s.label} desc={s.desc}>
-                  <Toggle on={notifSettings[s.key]} onChange={() => toggleNotif(s.key)} />
-                </SettingRow>
-              ))}
-              <SaveBar onSave={saveNotifs} saved={notifSaved} />
+            <SectionCard icon="🔔" title="Notification Settings" subtitle="Saved to Firestore — persists across refreshes">
+              {notifLoading ? <p style={{ color:'var(--text-muted)', fontSize:13 }}>Loading…</p> : (
+                <>
+                  {[
+                    { key:'emailAlerts',      label:'Email Notifications',      desc:'Receive alerts and reports via email' },
+                    { key:'paymentReminders', label:'Payment Reminders',         desc:'Auto-remind members before payment due dates' },
+                    { key:'expiryAlerts',     label:'Membership Expiry Alerts',  desc:'Notify when memberships are about to expire' },
+                    { key:'workoutReminders', label:'Workout Reminders',         desc:'Send weekly workout plan reminders to members' },
+                    { key:'newMemberAlert',   label:'New Member Alert',          desc:'Get notified when a new member joins' },
+                    { key:'weeklyReport',     label:'Weekly Summary Report',     desc:'Receive a weekly business summary every Monday' },
+                    { key:'smsAlerts',        label:'SMS Notifications',         desc:'Send SMS alerts to members (requires SMS gateway)' },
+                    { key:'whatsappAlerts',   label:'WhatsApp Alerts',           desc:'Send WhatsApp messages via Business API (coming soon)' },
+                  ].map(s => (
+                    <SettingRow key={s.key} label={s.label} desc={s.desc}>
+                      <Toggle on={notifSettings[s.key]} onChange={() => toggleNotif(s.key)} />
+                    </SettingRow>
+                  ))}
+                  <SaveBar onSave={saveNotifs} saved={notifSaved} error={notifError} />
+                </>
+              )}
             </SectionCard>
           )}
 
-          {/* ── SECURITY ── */}
+          {/* SECURITY */}
           {activeTab === 'security' && (
             <>
               <SectionCard icon="🔒" title="Security Settings" subtitle="Manage access and protect your account">

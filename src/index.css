@@ -12,6 +12,9 @@
   --red:         #ef4444;
   --amber:       #f59e0b;
   --purple:      #a855f7;
+  --accent:      #e8420a;
+  --accent-rgb:  232, 66, 10;
+  --accent-lit:  #ff5520;
   --sidebar-w:   240px;
   --header-h:    60px;
   --radius:      10px;
@@ -24,7 +27,7 @@
   --bg2:         #0e1220;
   --bg3:         #131828;
   --card:        #111828;
-  --card-border: rgba(0,200,180,0.12);
+  --card-border: rgba(var(--accent-rgb), 0.12);
   --sidebar-bg:  #0c0f1a;
   --sidebar-text:#6070a0;
   --text:        #e8eaf0;
@@ -41,7 +44,7 @@
   --bg2:         #e8eaf0;
   --bg3:         #dde0ea;
   --card:        #ffffff;
-  --card-border: rgba(0,0,0,0.08);
+  --card-border: rgba(var(--accent-rgb), 0.08);
   --sidebar-bg:  #ffffff;
   --sidebar-text:#475569;
   --text:        #1a1a2e;
@@ -109,7 +112,7 @@ a { text-decoration: none; color: inherit; }
   font-family: 'Bebas Neue', sans-serif;
   font-size: 28px;
   letter-spacing: 0.1em;
-  color: var(--orange);
+  color: var(--accent);
   line-height: 1;
 }
 .sidebar-logo p {
@@ -146,9 +149,9 @@ a { text-decoration: none; color: inherit; }
 }
 .sidebar-item:hover { color: #c0c8e0; background: rgba(255,255,255,0.04); }
 .sidebar-item.active {
-  color: var(--teal);
-  background: rgba(0,200,180,0.08);
-  border-left-color: var(--teal);
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.08);
+  border-left-color: var(--accent);
 }
 .sidebar-item .icon { font-size: 17px; width: 20px; flex-shrink: 0; }
 .sidebar-item .badge {
@@ -455,7 +458,7 @@ tbody tr:last-child td { border-bottom: none; }
   outline: none;
   transition: border-color var(--transition);
 }
-.form-input:focus, .form-select:focus { border-color: var(--teal); }
+.form-input:focus, .form-select:focus { border-color: var(--accent); }
 .form-input::placeholder { color: var(--text-muted); }
 .form-select option { background: var(--bg2); }
 textarea.form-input { resize: vertical; min-height: 80px; }

@@ -6,7 +6,6 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer,
   CartesianGrid, Legend,
 } from 'recharts'
-import { REV_DATA } from '../data/mockData'
 // REMOVED HARDCODED DATA — ATT_DATA replaced with real attendance from useApp()
 // REMOVED HARDCODED DATA — GROWTH_DATA replaced with real member join/expiry grouping
 
@@ -144,6 +143,51 @@ if (status === 'pending' || status === 'overdue')
     return Object.values(map).sort((a,b) => a.key.localeCompare(b.key))
   }, [payments])
 
+  // Task 1 & 4 — revenueChartData: payments grouped by month for charts
+  // Uses paidOn date for revenue, due date for pending/overdue
+  const revenueChartData = useMemo(() => {
+    const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    const map = {}
+    
+    // Get last 6 months
+    const sixMonthsAgo = new Date()
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5)
+    sixMonthsAgo.setDate(1)
+    
+    payments.forEach(p => {
+      // Use paidOn for revenue (when actually collected), due for pending/overdue
+      const dateStr = (p.status || '').toLowerCase() === 'paid' ? (p.paidOn || p.due) : (p.due || p.paidOn)
+      if (!dateStr) return
+      const d = new Date(dateStr)
+      if (isNaN(d)) return
+      if (d < sixMonthsAgo) return
+      
+      const key   = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
+      const label = `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`
+      if (!map[key]) map[key] = { key, month: label, revenue:0, pending:0 }
+      const amount = Number(p.paid || p.amount || 0)
+      const status = (p.status || '').toLowerCase()
+      
+      if (status === 'paid') {
+        map[key].revenue += amount
+      } else if (status === 'pending' || status === 'overdue') {
+        map[key].pending += amount
+      }
+    })
+    
+    // Ensure all 6 months are present (fill missing with 0)
+    const result = []
+    for (let i = 0; i < 6; i++) {
+      const d = new Date()
+      d.setDate(1)
+      d.setMonth(d.getMonth() - (5 - i))
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
+      const label = `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`
+      result.push(map[key] || { key, month: label, revenue: 0, pending: 0 })
+    }
+    return result
+  }, [payments])
+
   const simExport = () => alert('In production: downloads a CSV of the revenue data.')
   const formatMoney = value =>
     value < 10000
@@ -171,10 +215,9 @@ if (status === 'pending' || status === 'overdue')
 
       <div className="grid-2" style={{ marginBottom:20 }}>
         <div className="card">
-          {/* REV_DATA (expenses) still fake — no expenses collection in Firestore */}
-          <p className="card-title">Revenue vs Expenses (6 months)</p>
+          <p className="card-title">Revenue vs Pending (6 months)</p>
           <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={REV_DATA} margin={{ top:5, right:10, bottom:0, left:-15 }}>
+            <AreaChart data={revenueChartData} margin={{ top:5, right:10, bottom:0, left:-15 }}>
               <defs>
                 <linearGradient id="rGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%"  stopColor="#e8420a" stopOpacity={0.3}/>
@@ -189,23 +232,22 @@ if (status === 'pending' || status === 'overdue')
               <XAxis dataKey="month" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
               <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false} tickFormatter={v=>`₹${v/1000}K`}/>
               <Tooltip content={<ChartTooltip />}/>
-              <Legend wrapperStyle={{ fontSize:11, color:'var(--text-muted)' }}/>
+              <Legend wrapperStyle={{ fontSize:11, color:'var(--text-muted)' }}/> 
               <Area type="monotone" dataKey="revenue"  name="Revenue"  stroke="#e8420a" fill="url(#rGrad)" strokeWidth={2}/>
-              <Area type="monotone" dataKey="expenses" name="Expenses" stroke="#00c8b4" fill="url(#eGrad)" strokeWidth={2}/>
+              <Area type="monotone" dataKey="pending" name="Pending" stroke="#00c8b4" fill="url(#eGrad)" strokeWidth={2}/>
             </AreaChart>
           </ResponsiveContainer>
         </div>
 
         <div className="card">
-          {/* REV_DATA profit still fake — no expenses collection in Firestore */}
-          <p className="card-title">Monthly Net Profit</p>
+          <p className="card-title">Monthly Revenue</p>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={REV_DATA} margin={{ top:5, right:10, bottom:0, left:-15 }}>
+            <BarChart data={revenueChartData} margin={{ top:5, right:10, bottom:0, left:-15 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false}/>
               <XAxis dataKey="month" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
               <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false} tickFormatter={v=>`₹${v/1000}K`}/>
               <Tooltip content={<ChartTooltip />}/>
-              <Bar dataKey="profit" name="Net Profit" fill="#22c55e" radius={[4,4,0,0]} opacity={0.85}/>
+              <Bar dataKey="revenue" name="Revenue" fill="#22c55e" radius={[4,4,0,0]} opacity={0.85}/>
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -431,6 +473,41 @@ function MembershipReport({ members }) {
   const trial     = members.filter(m=>m.status==='Trial').length
   const churnRate = members.length > 0 ? ((expired / members.length)*100).toFixed(1) : '0.0'
 
+  // Task 2 — Real member growth: new members joined in last 7 days
+  const sevenDaysAgo = new Date()
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+  const sevenDaysAgoStr = formatDate(sevenDaysAgo)
+  const newMembersThisWeek = members.filter(m => m.join && m.join >= sevenDaysAgoStr).length
+
+  // Task 3 — Real churn trend: compare expired members this month vs last month
+  const now = new Date()
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`
+  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const lastMonthKey = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth()+1).padStart(2,'0')}`
+  
+  const currentMonthExpired = members.filter(m => 
+    m.expiry && m.expiry.slice(0, 7) === currentMonthKey && (m.status === 'Expired' || m.status === 'Inactive')
+  ).length
+  
+  const previousMonthExpired = members.filter(m => 
+    m.expiry && m.expiry.slice(0, 7) === lastMonthKey && (m.status === 'Expired' || m.status === 'Inactive')
+  ).length
+  
+  let churnTrendSub = 'No trend data'
+  if (previousMonthExpired > 0 || currentMonthExpired > 0) {
+    if (currentMonthExpired < previousMonthExpired) {
+      const improvement = previousMonthExpired - currentMonthExpired
+      const pct = ((improvement / previousMonthExpired) * 100).toFixed(1)
+      churnTrendSub = `↓ ${pct}% vs last month`
+    } else if (currentMonthExpired > previousMonthExpired) {
+      const worsening = currentMonthExpired - previousMonthExpired
+      const pct = previousMonthExpired > 0 ? ((worsening / previousMonthExpired) * 100).toFixed(1) : '100'
+      churnTrendSub = `↑ ${pct}% vs last month`
+    } else {
+      churnTrendSub = '→ No change vs last month'
+    }
+  }
+
   // REMOVED HARDCODED DATA — GROWTH_DATA replaced with real member join/expiry grouping
   // Uses member.join ('YYYY-MM-DD') for new joins, member.expiry for left/expired
   const growthData = useMemo(() => {
@@ -483,10 +560,10 @@ function MembershipReport({ members }) {
       <SectionHeader title="Membership Analytics" subtitle="Member growth, retention and churn" />
 
       <div className="stats-grid" style={{ marginBottom:24 }}>
-        <ReportCard icon="✅" label="Active Members" value={active}            sub="↑ +5 this week"         color="var(--green)"  />
+        <ReportCard icon="✅" label="Active Members" value={active}            sub={`↑ ${newMembersThisWeek} joined this week`}         color="var(--green)"  />
         <ReportCard icon="⏰" label="Expired"         value={expired}           sub="Need renewal"            color="var(--red)"    />
         <ReportCard icon="🎯" label="Trial Members"   value={trial}             sub="Conversion targets"      color="var(--amber)"  />
-        <ReportCard icon="📉" label="Churn Rate"      value={`${churnRate}%`}   sub="↓ -1.2% vs last month"  color="var(--teal)"   />
+        <ReportCard icon="📉" label="Churn Rate"      value={`${churnRate}%`}   sub={churnTrendSub}  color="var(--teal)"   />
       </div>
 
       <div className="grid-2" style={{ marginBottom:20 }}>

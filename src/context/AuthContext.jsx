@@ -12,39 +12,56 @@ import {
   resetPassword,
   getUserProfile,
 } from '../services/authService'
+import { getSettings } from '../services/firestoreService'
+import { applyAccentColor, DEFAULT_ACCENT } from '../utils/theme'
 
 const AuthContext = createContext(null)
+
+// Loads the gym-wide accent color from Firestore and applies it.
+// Falls back to the default on any failure (e.g. not yet signed in).
+async function loadAndApplyAccent() {
+  try {
+    const theme = await getSettings('theme')
+    applyAccentColor(theme?.accentColor || DEFAULT_ACCENT)
+  } catch (err) {
+    console.error('Failed to load theme:', err)
+    applyAccentColor(DEFAULT_ACCENT)
+  }
+}
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null) // Firebase user
   const [userProfile, setUserProfile] = useState(null) // /users/{uid} doc
-  const [role, setRole] = useState(null) // 'admin' | 'trainer' | 'member' | 'pending'
+  const [role, setRole] = useState(null)               // 'admin' | 'trainer' | 'member'
   const [authLoading, setAuthLoading] = useState(true)
   const [authError, setAuthError] = useState('')
 
   // ─────────────────────────────────────────────────────────────
+  // ACCENT: apply the safe default immediately on mount so the
+  // public landing/auth page never flashes the wrong color while
+  // we wait to find out if anyone is logged in.
+  // ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    applyAccentColor(DEFAULT_ACCENT)
+  }, [])
+
+  // ─────────────────────────────────────────────────────────────
   // SUBSCRIPTION: Listen to Firebase Auth state
-  // When user logs in/out, check their /users/{uid} for role
   // ─────────────────────────────────────────────────────────────
   useEffect(() => {
     const unsubscribe = subscribeToAuthState(async (firebaseUser) => {
       try {
         if (!firebaseUser) {
-  setCurrentUser(null)
-  setUserProfile(null)
-  setRole(null)
+          setCurrentUser(null)
+          setUserProfile(null)
+          setRole(null)
+          setAuthLoading(false)
+          return
+        }
 
-  // DON'T clear authError here
-
-  setAuthLoading(false)
-  return
-}
-
-        // User is logged in — fetch their profile
         const profile = await getUserProfile(firebaseUser.uid)
 
         if (!profile) {
-          // Profile doesn't exist (shouldn't happen)
           await logOut()
           setCurrentUser(null)
           setUserProfile(null)
@@ -54,9 +71,6 @@ export function AuthProvider({ children }) {
           return
         }
 
-        // ← THIS SHOULD NOT HAPPEN in normal flow
-        // (signIn already checks for pending)
-        // But as a safety check:
         if (profile.role === 'pending') {
           await logOut()
           setCurrentUser(null)
@@ -67,11 +81,15 @@ export function AuthProvider({ children }) {
           return
         }
 
-        // User is approved — set auth state
+        // Approved — set state
         setCurrentUser(firebaseUser)
         setUserProfile(profile)
         setRole(profile.role)
         setAuthError('')
+
+        // Load on login / load on refresh — gym-wide accent applies
+        // to admin, trainer, and member alike.
+        await loadAndApplyAccent()
       } catch (err) {
         console.error('Auth subscription error:', err)
         setCurrentUser(null)
@@ -85,13 +103,13 @@ export function AuthProvider({ children }) {
   }, [])
 
   // ─────────────────────────────────────────────────────────────
-  // REGISTER: Create new account (always pending)
+  // REGISTER: Always creates pending account
   // ─────────────────────────────────────────────────────────────
   async function register({ name, email, password }) {
     setAuthError('')
     try {
       await signUp({ name, email, password })
-      return 'pending' // Signal to UI to show pending screen
+      return 'pending'
     } catch (err) {
       const msg = friendlyError(err.code || err.message)
       setAuthError(msg)
@@ -100,35 +118,33 @@ export function AuthProvider({ children }) {
   }
 
   // ─────────────────────────────────────────────────────────────
-  // LOGIN: Authenticate user
-  // Returns role if successful, throws if pending/error
+  // LOGIN: Returns role on success, throws on pending/error
   // ─────────────────────────────────────────────────────────────
   async function login(email, password) {
     setAuthError('')
     try {
       const { user, role: userRole } = await signIn(email, password)
+      const profile = await getUserProfile(user.uid)
+      setCurrentUser(user)
+      setUserProfile(profile)
+      setRole(userRole)
 
-const profile = await getUserProfile(user.uid)
+      // Belt-and-suspenders: apply accent here too in case this path
+      // resolves before the subscription listener above does.
+      await loadAndApplyAccent()
 
-setCurrentUser(user)
-setUserProfile(profile)
-setRole(userRole)
-
-return userRole
+      return userRole
     } catch (err) {
-      let msg = err.message
-      if (err.message === 'pending') {
-        msg = 'Your account is awaiting admin approval.'
-      } else {
-        msg = friendlyError(err.code || err.message)
-      }
+      const msg = err.message === 'pending'
+        ? 'Your account is awaiting admin approval.'
+        : friendlyError(err.code || err.message)
       setAuthError(msg)
       throw err
     }
   }
 
   // ─────────────────────────────────────────────────────────────
-  // LOGOUT: Sign out
+  // LOGOUT
   // ─────────────────────────────────────────────────────────────
   async function logout() {
     try {
@@ -138,6 +154,7 @@ return userRole
       setUserProfile(null)
       setRole(null)
       setAuthError('')
+      applyAccentColor(DEFAULT_ACCENT) // reset to default on sign-out
     }
   }
 
@@ -156,18 +173,25 @@ return userRole
   }
 
   // ─────────────────────────────────────────────────────────────
-  // Helper: Turn Firebase error codes into friendly messages
+  // UPDATE USER PROFILE IN MEMORY
+  // ─────────────────────────────────────────────────────────────
+  function updateUserProfile(updates) {
+    setUserProfile(prev => prev ? { ...prev, ...updates } : prev)
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Friendly error messages
   // ─────────────────────────────────────────────────────────────
   function friendlyError(code) {
     const map = {
-      'auth/user-not-found': 'No account found with this email.',
-      'auth/wrong-password': 'Incorrect password.',
-      'auth/invalid-credential': 'Incorrect email or password.',
-      'auth/email-already-in-use': 'This email is already registered.',
-      'auth/weak-password': 'Password must be at least 6 characters.',
-      'auth/invalid-email': 'Please enter a valid email.',
-      'auth/too-many-requests': 'Too many attempts. Please wait.',
-      'auth/network-request-failed': 'Network error. Check your connection.',
+      'auth/user-not-found':          'No account found with this email.',
+      'auth/wrong-password':          'Incorrect password.',
+      'auth/invalid-credential':      'Incorrect email or password.',
+      'auth/email-already-in-use':    'This email is already registered.',
+      'auth/weak-password':           'Password must be at least 6 characters.',
+      'auth/invalid-email':           'Please enter a valid email.',
+      'auth/too-many-requests':       'Too many attempts. Please wait.',
+      'auth/network-request-failed':  'Network error. Check your connection.',
     }
     return map[code] || 'Something went wrong. Please try again.'
   }
@@ -181,15 +205,16 @@ return userRole
     role,
     authLoading,
     authError,
-    isLoggedIn: !!currentUser && role !== 'pending',
-    isAdmin: role === 'admin',
-    isTrainer: role === 'trainer',
-    isMember: role === 'member',
+    isLoggedIn:  !!currentUser && role !== 'pending',
+    isAdmin:     role === 'admin',
+    isTrainer:   role === 'trainer',
+    isMember:    role === 'member',
     login,
     register,
     logout,
     sendPasswordReset,
     setAuthError,
+    updateUserProfile,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
