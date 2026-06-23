@@ -124,6 +124,7 @@ export function subscribeToAuthState(callback) {
 // ─────────────────────────────────────────────────────────────
 // ADMIN: Approve a pending user
 // Updates /users/{uid}.role from 'pending' to 'member'|'trainer'
+// Also creates /members/{uid} for member approvals if none exists
 // ─────────────────────────────────────────────────────────────
 export async function approveUser(uid, newRole) {
   try {
@@ -131,6 +132,22 @@ export async function approveUser(uid, newRole) {
       throw new Error('Invalid role')
     }
     await updateDoc(doc(db, 'users', uid), { role: newRole })
+
+    if (newRole === 'member') {
+      const memberRef = doc(db, 'members', uid)
+      const memberSnap = await getDoc(memberRef)
+      if (!memberSnap.exists()) {
+        const userSnap = await getDoc(doc(db, 'users', uid))
+        const userData = userSnap.exists() ? userSnap.data() : {}
+        await setDoc(memberRef, {
+          authUid: uid,
+          name: userData.name || '',
+          email: userData.email || '',
+          status: 'Active',
+          createdAt: serverTimestamp(),
+        })
+      }
+    }
   } catch (err) {
     throw err
   }

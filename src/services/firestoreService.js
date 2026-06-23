@@ -182,12 +182,10 @@ export async function updatePayment(
   const paymentRef =
     doc(db, 'payments', paymentId)
 
-  await updateDoc(paymentRef, {
-    ...updatedData,
-
-    amount:
-      Number(updatedData.amount) || 0,
-  })
+  const { amount, ...rest } = updatedData
+  const updateFields = { ...rest }
+  if (amount !== undefined) updateFields.amount = Number(amount) || 0
+  await updateDoc(paymentRef, updateFields)
 }
 
 // Delete payment

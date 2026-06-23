@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppProvider } from './context/AppContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -124,9 +124,13 @@ function AuthLoadingScreen() {
 // ─────────────────────────────────────────────────────────────
 function AppShell() {
   const { role } = useAuth()
-  const [page,       setPage]       = useState('dashboard')
+  const [page,       setPage]       = useState(() => sessionStorage.getItem('ironpulse-page') || 'dashboard')
   const [search,     setSearch]     = useState('')
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  useEffect(() => {
+    sessionStorage.setItem('ironpulse-page', page)
+  }, [page])
 
   const pageMap = useMemo(
   () => buildPageMap(setPage, search, role),

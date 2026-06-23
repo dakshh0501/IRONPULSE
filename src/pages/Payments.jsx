@@ -1,5 +1,12 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useApp } from '../context/AppContext'
+import { 
+  buildPaymentReceiptWhatsAppMessage, 
+  buildPaymentReceiptWhatsAppLink,
+  formatReceiptCurrency,
+  formatReceiptDate
+} from '../utils/whatsappReminders'
+import { jsPDF } from 'jspdf'
 
 // ─── Seed Data ───────────────────────────────────────────────────────────────
 
@@ -88,9 +95,158 @@ function RevenueChart({ data }) {
 }
 
 // ─── Invoice Detail Modal ─────────────────────────────────────────────────────
-function InvoiceModal({ invoice, onClose, onMarkPaid, gymName }) {
+function InvoiceModal({ invoice, onClose, onMarkPaid, gymName, gymSettings = {} }) {
   const c       = STATUS_CFG[invoice.status]
   const balance = (Number(invoice.amount) || 0) - (Number(invoice.paid) || 0)
+  const contactInfo = gymSettings?.contact || ''
+  const addressInfo = gymSettings?.address || ''
+  const emailInfo = gymSettings?.email || ''
+  const receiptNumber = invoice.invoiceNumber || invoice.id || invoice.firestoreId || `RCP-${Date.now()}`
+
+  const handlePrint = () => {
+    const win = window.open('', '_blank')
+    if (!win) return
+    win.document.write(`<!DOCTYPE html>
+<html>
+<head><title>Receipt - ${receiptNumber}</title>
+<style>
+  @page { margin: 12mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; color: #1a1a1a; padding: 40px; line-height: 1.5; }
+  .r { max-width: 500px; margin: 0 auto; }
+  .hdr { text-align: center; border-bottom: 2px solid #FF4B2B; padding-bottom: 20px; margin-bottom: 24px; }
+  .hdr h1 { font-size: 26px; font-weight: 900; color: #FF4B2B; letter-spacing: 1px; }
+  .hdr .sub { font-size: 12px; color: #666; margin-top: 4px; }
+  .hdr .inf { font-size: 11px; color: #888; margin-top: 2px; }
+  .ttl { text-align: center; font-size: 16px; font-weight: 700; margin-bottom: 20px; letter-spacing: 2px; color: #333; }
+  .det { margin-bottom: 20px; }
+  .rw { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px; }
+  .rw:last-child { border-bottom: none; }
+  .lb { color: #666; }
+  .vl { font-weight: 600; color: #1a1a1a; }
+  .mi { background: #f9f9f9; border-radius: 8px; padding: 14px; margin-bottom: 20px; }
+  .ft { text-align: center; margin-top: 28px; padding-top: 16px; border-top: 2px solid #eee; font-size: 11px; color: #888; }
+</style>
+</head>
+<body>
+<div class="r">
+  <div class="hdr">
+    <h1>${gymName}</h1>
+    <div class="sub">${addressInfo}</div>
+    <div class="inf">${contactInfo}${contactInfo && emailInfo ? ' · ' : ''}${emailInfo}</div>
+  </div>
+  <div class="ttl">PAYMENT RECEIPT</div>
+  <div class="mi">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:14px;font-weight:700">${invoice.member || invoice.memberName}</div>
+        <div style="font-size:12px;color:#666">${invoice.plan}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:#888">Receipt #</div>
+        <div style="font-size:13px;font-weight:700">${receiptNumber}</div>
+      </div>
+    </div>
+  </div>
+  <div class="det">
+    <div class="rw"><span class="lb">Invoice Amount</span><span class="vl">${fmt(invoice.amount)}</span></div>
+    <div class="rw"><span class="lb">Amount Paid</span><span class="vl" style="color:#059669">${fmt(invoice.paid)}</span></div>
+    <div class="rw"><span class="lb">Balance Due</span><span class="vl" style="color:${balance > 0 ? '#dc2626' : '#059669'}">${fmt(balance)}</span></div>
+    <div class="rw"><span class="lb">Payment Method</span><span class="vl">${invoice.method || '—'}</span></div>
+    <div class="rw"><span class="lb">Payment Date</span><span class="vl">${fmtDate(invoice.paidOn)}</span></div>
+    <div class="rw"><span class="lb">Due Date</span><span class="vl">${fmtDate(invoice.due)}</span></div>
+    <div class="rw"><span class="lb">Status</span><span class="vl">${invoice.status}</span></div>
+  </div>
+  <div class="ft">
+    <p>Thank you for your payment!</p>
+    <p style="margin-top:4px">Generated on ${new Date().toLocaleString('en-IN')} from ${gymName} Gym Management App</p>
+  </div>
+</div>
+</body>
+</html>`)
+    win.document.close()
+    win.focus()
+    win.print()
+  }
+
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+    const pw = 210
+    const m = 20
+    let y = 25
+    doc.setFontSize(22)
+    doc.setTextColor(255, 75, 43)
+    doc.text(gymName, pw / 2, y, { align: 'center' })
+    y += 7
+    doc.setFontSize(9)
+    doc.setTextColor(100)
+    doc.text(addressInfo, pw / 2, y, { align: 'center' })
+    y += 5
+    if (contactInfo || emailInfo) {
+      doc.text([contactInfo, emailInfo].filter(Boolean).join(' · '), pw / 2, y, { align: 'center' })
+      y += 5
+    }
+    y += 4
+    doc.setDrawColor(255, 75, 43)
+    doc.setLineWidth(0.5)
+    doc.line(m, y, pw - m, y)
+    y += 8
+    doc.setFontSize(14)
+    doc.setTextColor(50)
+    doc.text('PAYMENT RECEIPT', pw / 2, y, { align: 'center' })
+    y += 8
+    doc.setDrawColor(200)
+    doc.setFillColor(249, 249, 249)
+    doc.roundedRect(m, y, pw - m * 2, 18, 3, 3, 'F')
+    doc.setFontSize(11)
+    doc.setTextColor(0)
+    doc.text(`${invoice.member || invoice.memberName}`, m + 5, y + 7)
+    doc.setFontSize(9)
+    doc.setTextColor(100)
+    doc.text(invoice.plan, m + 5, y + 13)
+    doc.setFontSize(9)
+    doc.setTextColor(100)
+    doc.text(`Receipt #: ${receiptNumber}`, pw - m - 5, y + 7, { align: 'right' })
+    y += 24
+    const details = [
+      ['Invoice Amount', fmt(invoice.amount), '#111'],
+      ['Amount Paid', fmt(invoice.paid), '#059669'],
+      ['Balance Due', fmt(balance), balance > 0 ? '#dc2626' : '#059669'],
+      ['Payment Method', invoice.method || '—', '#111'],
+      ['Payment Date', fmtDate(invoice.paidOn), '#111'],
+      ['Due Date', fmtDate(invoice.due), '#111'],
+      ['Status', invoice.status, '#111'],
+    ]
+    details.forEach(([label, val, color]) => {
+      doc.setFontSize(10)
+      doc.setTextColor(100)
+      doc.text(label, m + 3, y)
+      doc.setTextColor(color)
+      doc.text(val, pw - m - 3, y, { align: 'right' })
+      y += 7
+      if (label !== 'Status') {
+        doc.setDrawColor(230)
+        doc.line(m + 3, y - 2, pw - m - 3, y - 2)
+      }
+    })
+    y = 270
+    doc.setDrawColor(200)
+    doc.line(m, y, pw - m, y)
+    y += 6
+    doc.setFontSize(9)
+    doc.setTextColor(130)
+    doc.text('Thank you for your payment!', pw / 2, y, { align: 'center' })
+    y += 4
+    doc.text(`Generated on ${new Date().toLocaleString('en-IN')}`, pw / 2, y, { align: 'center' })
+    doc.save(`Receipt-${receiptNumber}.pdf`)
+  }
+
+  const handleShareWhatsApp = () => {
+    const msg = buildPaymentReceiptWhatsAppMessage({ ...invoice, id: receiptNumber }, gymName, gymSettings)
+    const link = buildPaymentReceiptWhatsAppLink(msg)
+    window.open(link, '_blank', 'noopener,noreferrer')
+  }
+
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, backdropFilter: 'blur(6px)' }} onClick={onClose}>
       <div style={{ background: '#111', border: `1px solid ${c.border}`, borderRadius: 20, width: '100%', maxWidth: 480, boxShadow: '0 30px 80px #000' }} onClick={e => e.stopPropagation()}>
@@ -98,7 +254,7 @@ function InvoiceModal({ invoice, onClose, onMarkPaid, gymName }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 13, color: '#6B7280', letterSpacing: 2 }}>{gymName} FITNESS</div>
-              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: '#F3F4F6', letterSpacing: 1, marginTop: 2 }}>{invoice.id}</div>
+              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: '#F3F4F6', letterSpacing: 1, marginTop: 2 }}>{receiptNumber}</div>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <StatusBadge status={invoice.status} />
@@ -157,15 +313,28 @@ function InvoiceModal({ invoice, onClose, onMarkPaid, gymName }) {
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: 8 }}>
-            {(invoice.status === 'Pending' || invoice.status === 'Overdue' || invoice.status === 'Partial') && (
-              <button onClick={() => onMarkPaid(invoice.firestoreId)} style={{ flex: 1, padding: '11px', background: 'linear-gradient(135deg,#10B981,#059669)', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer', letterSpacing: 0.5 }}>
-                ✓ MARK AS PAID
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {(invoice.status === 'Pending' || invoice.status === 'Overdue' || invoice.status === 'Partial') && (
+                <button onClick={() => onMarkPaid(invoice.firestoreId)} style={{ flex: 1, padding: '11px', background: 'linear-gradient(135deg,#10B981,#059669)', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer', letterSpacing: 0.5 }}>
+                  ✓ MARK AS PAID
+                </button>
+              )}
+              <button onClick={onClose} style={{ flex: 1, padding: '11px', background: '#ffffff08', border: '1px solid #ffffff15', borderRadius: 10, color: '#9CA3AF', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                CLOSE
               </button>
-            )}
-            <button onClick={onClose} style={{ flex: 1, padding: '11px', background: '#ffffff08', border: '1px solid #ffffff15', borderRadius: 10, color: '#9CA3AF', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
-              CLOSE
-            </button>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={handlePrint} style={{ flex: 1, padding: '10px', background: '#ffffff06', border: '1px solid #ffffff12', borderRadius: 10, color: '#E5E7EB', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                🖨️ PRINT
+              </button>
+              <button onClick={handleDownloadPDF} style={{ flex: 1, padding: '10px', background: '#ffffff06', border: '1px solid #ffffff12', borderRadius: 10, color: '#E5E7EB', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                📥 PDF
+              </button>
+              <button onClick={handleShareWhatsApp} style={{ flex: 1, padding: '10px', background: '#25D36615', border: '1px solid #25D36630', borderRadius: 10, color: '#25D366', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                📱 WHATSAPP
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -617,7 +786,7 @@ export default function Payments({ search = '' }) {
       </div>
 
       {/* Modals */}
-      {viewInvoice && <InvoiceModal invoice={viewInvoice} onClose={() => setViewInvoice(null)} onMarkPaid={handleMarkPaid} gymName={gymName} />}
+      {viewInvoice && <InvoiceModal invoice={viewInvoice} onClose={() => setViewInvoice(null)} onMarkPaid={handleMarkPaid} gymName={gymName} gymSettings={gymSettings} />}
       {/* ← CHANGED: pass members to modal */}
       {showNew && <NewInvoiceModal onSave={handleNewInvoice} onClose={() => setShowNew(false)} members={members} />}
     </div>

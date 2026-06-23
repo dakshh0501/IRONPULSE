@@ -3,7 +3,7 @@
 // Single source of truth for auth state
 // No duplicate logic, no role defaults
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import {
   subscribeToAuthState,
   signUp,
@@ -35,6 +35,7 @@ export function AuthProvider({ children }) {
   const [role, setRole] = useState(null)               // 'admin' | 'trainer' | 'member'
   const [authLoading, setAuthLoading] = useState(true)
   const [authError, setAuthError] = useState('')
+  const signingUpRef = useRef(false)
 
   // ─────────────────────────────────────────────────────────────
   // ACCENT: apply the safe default immediately on mount so the
@@ -62,12 +63,14 @@ export function AuthProvider({ children }) {
         const profile = await getUserProfile(firebaseUser.uid)
 
         if (!profile) {
-          await logOut()
-          setCurrentUser(null)
-          setUserProfile(null)
-          setRole(null)
-          setAuthError('Account profile not found.')
-          setAuthLoading(false)
+          if (!signingUpRef.current) {
+            await logOut()
+            setCurrentUser(null)
+            setUserProfile(null)
+            setRole(null)
+            setAuthError('Account profile not found.')
+            setAuthLoading(false)
+          }
           return
         }
 
@@ -107,6 +110,7 @@ export function AuthProvider({ children }) {
   // ─────────────────────────────────────────────────────────────
   async function register({ name, email, password }) {
     setAuthError('')
+    signingUpRef.current = true
     try {
       await signUp({ name, email, password })
       return 'pending'
@@ -114,6 +118,8 @@ export function AuthProvider({ children }) {
       const msg = friendlyError(err.code || err.message)
       setAuthError(msg)
       throw err
+    } finally {
+      signingUpRef.current = false
     }
   }
 

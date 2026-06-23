@@ -357,7 +357,10 @@ export function AppProvider({ children }) {
 
   const updatePayment = async (id, data) => {
     try {
-      await updatePaymentInFirestore(id, { ...data, amount: Number(data.amount) || 0 })
+      const { amount, ...rest } = data
+      const payload = { ...rest }
+      if (amount !== undefined) payload.amount = Number(amount) || 0
+      await updatePaymentInFirestore(id, payload)
     } catch (error) {
       console.error('Error updating payment:', error)
     }

@@ -296,3 +296,71 @@ export function buildWorkoutPlanWhatsAppLink(message) {
   const encodedMessage = encodeURIComponent(message)
   return `https://wa.me/?text=${encodedMessage}`
 }
+
+/**
+ * Build WhatsApp message for payment receipt sharing
+ * @param {Object} invoice - Payment invoice object
+ * @param {string} gymName - Gym name for branding
+ * @param {Object} gymSettings - Gym settings object (contact, address, email)
+ * @returns {string} Formatted message for WhatsApp
+ */
+export function buildPaymentReceiptWhatsAppMessage(invoice, gymName = 'IronForge Gym', gymSettings = {}) {
+  const { 
+    id, 
+    member, 
+    memberName, 
+    plan, 
+    amount, 
+    paid, 
+    method, 
+    paidOn, 
+    status 
+  } = invoice
+  
+  const memberDisplayName = member || memberName || 'Member'
+  const contactInfo = gymSettings.contact ? `\n📞 ${gymSettings.contact}` : ''
+  const addressInfo = gymSettings.address ? `\n📍 ${gymSettings.address}` : ''
+  const emailInfo = gymSettings.email ? `\n📧 ${gymSettings.email}` : ''
+  
+  const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+  const timestamp = new Date().toLocaleString('en-IN')
+  
+  return `🧾 *PAYMENT RECEIPT*\n\n` +
+    `🏋️ *${gymName}*${contactInfo}${addressInfo}${emailInfo}\n\n` +
+    `📋 *Receipt #:* ${id}\n` +
+    `👤 *Member:* ${memberDisplayName}\n` +
+    `📦 *Plan:* ${plan}\n` +
+    `💰 *Amount Paid:* ${fmt(paid || amount)}\n` +
+    `💳 *Method:* ${method || '—'}\n` +
+    `📅 *Payment Date:* ${fmtDate(paidOn)}\n` +
+    `✅ *Status:* ${status}\n\n` +
+    `🕐 *Generated:* ${timestamp}\n\n` +
+    `Thank you for your payment! We appreciate your business.\n\n` +
+    `---\n` +
+    `Generated from ${gymName} Gym Management App`
+}
+
+/**
+ * Build WhatsApp share link for payment receipt (no phone number - opens contact picker)
+ * @param {string} message - Pre-filled message text
+ * @returns {string} WhatsApp wa.me URL with contact picker
+ */
+export function buildPaymentReceiptWhatsAppLink(message) {
+  const encodedMessage = encodeURIComponent(message)
+  return `https://wa.me/?text=${encodedMessage}`
+}
+
+/**
+ * Format currency for receipt
+ */
+export function formatReceiptCurrency(amount) {
+  return `₹${Number(amount || 0).toLocaleString('en-IN')}`
+}
+
+/**
+ * Format date for receipt
+ */
+export function formatReceiptDate(date) {
+  return date ? new Date(date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+}
