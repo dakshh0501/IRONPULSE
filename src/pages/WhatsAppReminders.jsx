@@ -14,9 +14,10 @@ import {
 const TYPE_ORDER = ['expired', '1day', '3day', '7day']
 
 export default function WhatsAppReminders({ search = '' }) {
-  const { members } = useApp()
+  const { members, gymSettings } = useApp()
   const { role } = useAuth()
   const isAdmin = role === 'admin'
+  const gymName = gymSettings?.name || 'IronForge Gym'
 
   if (!isAdmin) {
   return (
@@ -28,7 +29,7 @@ export default function WhatsAppReminders({ search = '' }) {
 }
 
   // Generate reminders from members data
-  const reminders = useMemo(() => generateReminders(members), [members])
+  const reminders = useMemo(() => generateReminders(members, gymName), [members, gymName])
   const summary = useMemo(() => getReminderSummary(reminders), [reminders])
 
   // Filter reminders by search (uses global search prop)

@@ -41,9 +41,10 @@ export function getReminderType(daysLeft) {
  * Generate professional gym renewal reminder message
  * @param {Object} member - Member object with name, plan, expiry, planPrice
  * @param {string} type - Reminder type: '7day' | '3day' | '1day' | 'expired'
+ * @param {string} gymName - Gym name for branding
  * @returns {string} Formatted message for WhatsApp
  */
-export function generateReminderMessage(member, type) {
+export function generateReminderMessage(member, type, gymName = 'IronForge Gym') {
   const { name, plan, expiry, planPrice } = member
   const formattedExpiry = expiry ? new Date(expiry).toLocaleDateString('en-IN', {
     day: 'numeric',
@@ -56,7 +57,7 @@ export function generateReminderMessage(member, type) {
   const templates = {
     '7day': `Hi ${name}! 👋
 
-This is a friendly reminder from IRONPULSE Gym that your ${plan} membership expires in 7 days on ${formattedExpiry}.
+This is a friendly reminder from ${gymName} that your ${plan} membership expires in 7 days on ${formattedExpiry}.
 
 To continue enjoying uninterrupted access to all facilities, please renew your membership before the expiry date.
 
@@ -66,11 +67,11 @@ Visit the front desk or reply to this message to process your renewal.
 
 Thank you for being a valued member! 💪
 
-— Team IRONPULSE`,
+— Team ${gymName}`,
 
     '3day': `Hi ${name}! ⏰
 
-Your ${plan} membership at IRONPULSE Gym expires in 3 days on ${formattedExpiry}.
+Your ${plan} membership at ${gymName} expires in 3 days on ${formattedExpiry}.
 
 Don't let your fitness journey pause! Renew now to maintain continuous access.
 
@@ -80,13 +81,13 @@ Visit the front desk or reply to this message to complete your renewal.
 
 See you at the gym! 🏋️
 
-— Team IRONPULSE`,
+— Team ${gymName}`,
 
     '1day': `Hi ${name}! 🚨
 
 URGENT: Your ${plan} membership expires TOMORROW (${formattedExpiry}).
 
-This is your final reminder to renew and avoid losing access to IRONPULSE facilities.
+This is your final reminder to renew and avoid losing access to ${gymName} facilities.
 
 Renewal Amount: ${priceText}
 
@@ -94,11 +95,11 @@ Please visit the front desk TODAY or reply immediately to process your renewal.
 
 Don't break your streak! 💪
 
-— Team IRONPULSE`,
+— Team ${gymName}`,
 
     'expired': `Hi ${name}! 😔
 
-Your ${plan} membership at IRONPULSE Gym has expired on ${formattedExpiry}.
+Your ${plan} membership at ${gymName} has expired on ${formattedExpiry}.
 
 We miss seeing you at the gym! Your access has been paused, but you can reactivate instantly by renewing.
 
@@ -108,7 +109,7 @@ Visit the front desk or reply to this message to restore your membership and get
 
 Welcome back! 🏋️
 
-— Team IRONPULSE`
+— Team ${gymName}`
   }
   
   return templates[type] || templates['7day']
@@ -138,9 +139,10 @@ export function buildWhatsAppLink(phone, message) {
 /**
  * Process members array and generate reminders
  * @param {Array} members - Array of member objects from Firestore
+ * @param {string} gymName - Gym name for branding
  * @returns {Array} Array of reminder objects with member data and reminder info
  */
-export function generateReminders(members) {
+export function generateReminders(members, gymName = 'IronForge Gym') {
   if (!Array.isArray(members)) return []
   
   const reminders = []
@@ -156,7 +158,7 @@ export function generateReminders(members) {
     const reminderType = getReminderType(daysLeft)
     
     if (reminderType) {
-      const message = generateReminderMessage(member, reminderType)
+      const message = generateReminderMessage(member, reminderType, gymName)
       const whatsappLink = buildWhatsAppLink(member.contact, message)
       
       reminders.push({

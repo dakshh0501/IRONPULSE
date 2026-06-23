@@ -88,7 +88,7 @@ function RevenueChart({ data }) {
 }
 
 // ─── Invoice Detail Modal ─────────────────────────────────────────────────────
-function InvoiceModal({ invoice, onClose, onMarkPaid }) {
+function InvoiceModal({ invoice, onClose, onMarkPaid, gymName }) {
   const c       = STATUS_CFG[invoice.status]
   const balance = (Number(invoice.amount) || 0) - (Number(invoice.paid) || 0)
   return (
@@ -97,7 +97,7 @@ function InvoiceModal({ invoice, onClose, onMarkPaid }) {
         <div style={{ background: `linear-gradient(135deg, ${c.bg}, transparent)`, borderRadius: '20px 20px 0 0', padding: '22px 26px', borderBottom: '1px solid #ffffff10' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 13, color: '#6B7280', letterSpacing: 2 }}>IRONPULSE FITNESS</div>
+              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 13, color: '#6B7280', letterSpacing: 2 }}>{gymName} FITNESS</div>
               <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: '#F3F4F6', letterSpacing: 1, marginTop: 2 }}>{invoice.id}</div>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -390,7 +390,8 @@ function InvoiceRow({ inv, onClick, onDelete }) {
 
 // ─── Main Payments Page ───────────────────────────────────────────────────────
 export default function Payments({ search = '' }) {
-  const { payments, members, addPayment, updatePayment, deletePayment } = useApp()  // ← added members
+  const { payments, members, addPayment, updatePayment, deletePayment, gymSettings } = useApp()
+  const gymName = gymSettings?.name || 'IronForge Gym'
 
   const invoices = payments
 
@@ -616,7 +617,7 @@ export default function Payments({ search = '' }) {
       </div>
 
       {/* Modals */}
-      {viewInvoice && <InvoiceModal invoice={viewInvoice} onClose={() => setViewInvoice(null)} onMarkPaid={handleMarkPaid} />}
+      {viewInvoice && <InvoiceModal invoice={viewInvoice} onClose={() => setViewInvoice(null)} onMarkPaid={handleMarkPaid} gymName={gymName} />}
       {/* ← CHANGED: pass members to modal */}
       {showNew && <NewInvoiceModal onSave={handleNewInvoice} onClose={() => setShowNew(false)} members={members} />}
     </div>

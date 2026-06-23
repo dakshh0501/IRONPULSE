@@ -286,7 +286,8 @@ function ManualModal({ members, checkedInIds, onCheckIn, onClose }) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function ReceptionMode() {
-  const { attendance, members } = useApp()
+  const { attendance, members, gymSettings } = useApp()
+  const gymName = gymSettings?.name || 'IronForge Gym'
 
   const safeAttendance = attendance || []
   const safeMembers    = members    || []
@@ -429,7 +430,7 @@ export default function ReceptionMode() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
           <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: '0.1em', color: 'var(--orange)', flexShrink: 0 }}>
-            IRONPULSE
+            {gymName}
           </div>
           <div style={{ width: 1, height: 20, background: 'var(--border)', flexShrink: 0 }} />
           <div style={{ minWidth: 0 }}>
