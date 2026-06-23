@@ -3,12 +3,16 @@
 // Shows pending approval screen when needed
 
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function Auth() {
   const { login, register, sendPasswordReset, authError, setAuthError } = useAuth()
+  const [searchParams] = useSearchParams()
 
-  const [mode, setMode] = useState('login') // 'login' | 'signup' | 'reset' | 'pending'
+  const [mode, setMode] = useState(
+    searchParams.get('tab') === 'signup' ? 'signup' : 'login'
+  ) // 'login' | 'signup' | 'reset' | 'pending'
   const [loading, setLoading] = useState(false)
   const [resetSent, setResetSent] = useState(false)
   const [pendingName, setPendingName] = useState('')

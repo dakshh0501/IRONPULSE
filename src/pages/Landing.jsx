@@ -24,7 +24,7 @@ export default function Landing() {
           <a href="#pricing">Pricing</a>
           <a href="#about">About</a>
           <button className="cta-outline" style={{ padding:'8px 20px', fontSize:'12px' }}
-            onClick={() => navigate('/auth')}>
+            onClick={() => navigate('/auth?tab=login')}>
             Sign In
           </button>
         </div>
@@ -42,8 +42,8 @@ export default function Landing() {
           all in one high-performance platform.
         </p>
         <div className="hero-cta">
-          <button className="cta-primary" onClick={() => navigate('/auth')}>GET STARTED →</button>
-          <button className="cta-outline" onClick={() => navigate('/auth')}>SIGN IN</button>
+          <button className="cta-primary" onClick={() => navigate('/auth?tab=signup')}>GET STARTED →</button>
+          <button className="cta-outline" onClick={() => navigate('/auth?tab=login')}>SIGN IN</button>
         </div>
 
         {/* ROLE CARDS */}
