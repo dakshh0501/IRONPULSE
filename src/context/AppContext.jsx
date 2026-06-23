@@ -19,6 +19,7 @@ import {
   addTrainer as addTrainerToFirestore,
   updateTrainer as updateTrainerInFirestore,
   deleteTrainer as deleteTrainerFromFirestore,
+  getSettings,
 } from '../services/firestoreService'
 import {
   subscribeAttendance,
@@ -49,6 +50,7 @@ export function AppProvider({ children }) {
   const [checkinLog,    setCheckinLog]    = useState([])
   const [attendance,    setAttendance]    = useState([])
   const [pendingCount,  setPendingCount]  = useState(0)
+  const [gymSettings,   setGymSettings]   = useState({ name: 'IronForge Gym' })
 
   // ── Members listener ───────────────────────────────────
   useEffect(() => {
@@ -199,6 +201,23 @@ export function AppProvider({ children }) {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light')
     localStorage.setItem('ironpulse-darkMode', darkMode)
   }, [darkMode])
+
+  // ── Load Gym Settings ──────────────────────────────────
+  useEffect(() => {
+    if (authLoading || !currentUser) return
+    if (userProfile?.role !== 'admin' && userProfile?.role !== 'trainer') return
+    
+    let mounted = true
+    getSettings('gym')
+      .then(data => {
+        if (mounted && data) {
+          setGymSettings(prev => ({ ...prev, ...data }))
+        }
+      })
+      .catch(err => console.error('Failed to load gym settings:', err))
+    
+    return () => { mounted = false }
+  }, [currentUser, authLoading, userProfile])
 
   // ── Notifications — derived from real data ─────────────
   const notifications = useMemo(() => {
@@ -404,6 +423,7 @@ export function AppProvider({ children }) {
       checkinLog, checkIn,
       attendance, checkInMember,
       pendingCount,
+      gymSettings,
     }}>
       {children}
     </AppContext.Provider>

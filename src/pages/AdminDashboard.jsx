@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext'
 
 export default function AdminDashboard({ setPage }) {
 
-  const { members, trainers, payments, attendance } = useApp()
+  const { members, trainers, payments, attendance, gymSettings } = useApp()
   const { role } = useAuth()
 
   const isAdmin   = role === 'admin'
@@ -11,6 +11,7 @@ export default function AdminDashboard({ setPage }) {
   const isMember  = role === 'member'
 
   const greetingName = isAdmin ? 'Admin' : isTrainer ? 'Trainer' : 'Member'
+  const gymName = gymSettings?.name || 'IronForge Gym'
 
   const totalMembers = members.length
   const todayDate    = new Date()

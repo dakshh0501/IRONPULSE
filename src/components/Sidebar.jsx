@@ -54,10 +54,11 @@ const NAV_MAP = { admin: ADMIN_NAV, trainer: TRAINER_NAV, member: MEMBER_NAV }
 
 export default function Sidebar({ currentPage, setPage, mobileOpen, setMobileOpen }) {
   const { currentUser, logout, userProfile } = useAuth()
-  const { unreadCount, pendingCount } = useApp()
+  const { unreadCount, pendingCount, gymSettings } = useApp()
   const navigate = useNavigate()
 
   const role = userProfile?.role
+  const gymName = gymSettings?.name || 'IronForge Gym'
 
 const nav =
   NAV_MAP[role] || []
@@ -86,7 +87,7 @@ const nav =
     <aside className={`sidebar ${mobileOpen ? 'open' : ''}`}>
       {/* Logo */}
       <div className="sidebar-logo">
-        <h1>IRONPULSE</h1>
+        <h1>{gymName}</h1>
         <p>Gym Management</p>
       </div>
 

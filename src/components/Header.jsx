@@ -17,10 +17,11 @@ const PAGE_TITLES = {
 }
 
 export default function Header({ currentPage, setPage, search, setSearch, setMobileOpen }) {
-  const { darkMode, setDarkMode, unreadCount, notifications, markAllRead, currentUser } = useApp()
+  const { darkMode, setDarkMode, unreadCount, notifications, markAllRead, currentUser, gymSettings } = useApp()
   const [notifOpen, setNotifOpen] = useState(false)
 
   const typeIcon = { expiry:'⏰', payment:'💳', checkin:'✅', new:'🎉', system:'⚙️', workout:'💪' }
+  const gymName = gymSettings?.name || 'IronForge Gym'
 
   return (
     <>
@@ -32,7 +33,7 @@ export default function Header({ currentPage, setPage, search, setSearch, setMob
 >          ☰
         </button>
 
-        <div className="header-title">{PAGE_TITLES[currentPage] || 'Dashboard'}</div>
+        <div className="header-title">{gymName} · {PAGE_TITLES[currentPage] || 'Dashboard'}</div>
 
         {/* Search */}
         <div className="header-search">
