@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useApp } from '../context/AppContext'
+import { buildWorkoutPlanWhatsAppMessage, buildWorkoutPlanWhatsAppLink } from '../utils/whatsappReminders'
 
 // ─────────────────────────────────────────────────────────────
 //  CONSTANTS
@@ -161,10 +162,17 @@ function ExerciseTable({ exercises, compact = false }) {
 // ─────────────────────────────────────────────────────────────
 //  WORKOUT CARD
 // ─────────────────────────────────────────────────────────────
-function WorkoutCard({ plan, members, trainers, onView, onEdit, onDelete }) {
+function WorkoutCard({ plan, members, trainers, onView, onEdit, onDelete, gymName }) {
   const member  = members.find(m => m.name === plan.member)
   const trainer = trainers.find(t => t.name === plan.trainer)
   const gc      = GOAL_COLOR[plan.goal] || { bg: 'var(--bg3)', text: 'var(--text-muted)' }
+
+  const handleWhatsAppShare = (e) => {
+    e.stopPropagation()
+    const message = buildWorkoutPlanWhatsAppMessage(plan, gymName)
+    const link = buildWorkoutPlanWhatsAppLink(message)
+    window.open(link, '_blank', 'noopener,noreferrer')
+  }
 
   return (
     <div
@@ -193,6 +201,7 @@ function WorkoutCard({ plan, members, trainers, onView, onEdit, onDelete }) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
+          <button className="btn btn-sm btn-ghost" onClick={handleWhatsAppShare} style={{ background: '#25D366', border: 'none', color: '#fff' }}>💬</button>
           <button className="btn btn-sm btn-ghost" onClick={() => onEdit(plan)}>✏️</button>
           <button className="btn btn-sm btn-red"   onClick={() => onDelete(plan)}>🗑</button>
         </div>
@@ -280,10 +289,16 @@ function WorkoutCard({ plan, members, trainers, onView, onEdit, onDelete }) {
 // ─────────────────────────────────────────────────────────────
 //  WORKOUT DETAIL MODAL
 // ─────────────────────────────────────────────────────────────
-function WorkoutDetailModal({ plan, members, trainers, onEdit, onClose }) {
+function WorkoutDetailModal({ plan, members, trainers, onEdit, onClose, gymName }) {
   const member  = members.find(m => m.name === plan.member)
   const trainer = trainers.find(t => t.name === plan.trainer)
   const gc      = GOAL_COLOR[plan.goal] || { bg: 'var(--bg3)', text: 'var(--orange)' }
+
+  const handleWhatsAppShare = () => {
+    const message = buildWorkoutPlanWhatsAppMessage(plan, gymName)
+    const link = buildWorkoutPlanWhatsAppLink(message)
+    window.open(link, '_blank', 'noopener,noreferrer')
+  }
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -297,7 +312,12 @@ function WorkoutDetailModal({ plan, members, trainers, onEdit, onClose }) {
             </div>
             <h3 style={{ fontSize: 20, fontWeight: 800 }}>{plan.name}</h3>
           </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-sm" onClick={handleWhatsAppShare} style={{ background: '#25D366', border: 'none', color: '#fff' }}>
+              💬 Share via WhatsApp
+            </button>
+            <button className="modal-close" onClick={onClose}>✕</button>
+          </div>
         </div>
 
         {/* Top stats */}
@@ -803,7 +823,8 @@ function DeleteModal({ plan, onConfirm, onClose }) {
 //  MAIN PAGE EXPORT
 // ─────────────────────────────────────────────────────────────
 export default function Workouts({ search = '' }) {
-  const { workouts, setWorkouts, members, trainers } = useApp()
+  const { workouts, setWorkouts, members, trainers, gymSettings } = useApp()
+  const gymName = gymSettings?.name || 'IronForge Gym'
 
   const [goalFilter, setGoalFilter] = useState('All')
   const [viewPlan,   setViewPlan]   = useState(null)
@@ -911,6 +932,7 @@ export default function Workouts({ search = '' }) {
               onView={setViewPlan}
               onEdit={(p) => { setEditPlan(p); setFormOpen(true) }}
               onDelete={setDelPlan}
+              gymName={gymName}
             />
           ))}
         </div>
@@ -939,6 +961,7 @@ export default function Workouts({ search = '' }) {
           trainers={trainers}
           onEdit={(p) => { setEditPlan(p); setFormOpen(true) }}
           onClose={() => setViewPlan(null)}
+          gymName={gymName}
         />
       )}
 

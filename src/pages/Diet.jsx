@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useApp } from '../context/AppContext'
+import { buildDietPlanWhatsAppMessage, buildDietPlanWhatsAppLink } from '../utils/whatsappReminders'
 // ─── Mock / seed data (mirrors mockData.js pattern) ────────────────────────
 const INITIAL_PLANS = [
   {
@@ -327,10 +328,16 @@ function PlanCard({ plan, onView, onEdit, onDelete }) {
 }
 
 // ─── Detail Modal ────────────────────────────────────────────────────────────
-function PlanDetailModal({ plan, onClose, onEdit }) {
+function PlanDetailModal({ plan, onClose, onEdit, gymName }) {
   const pct = calcMacroPercent(plan.protein, plan.carbs, plan.fat)
   const totalMealCal = plan.meals.reduce((s, m) => s + m.calories, 0)
   const gc = goalColor(plan.goal)
+
+  const handleWhatsAppShare = () => {
+    const message = buildDietPlanWhatsAppMessage(plan, gymName)
+    const link = buildDietPlanWhatsAppLink(message)
+    window.open(link, '_blank', 'noopener,noreferrer')
+  }
 
   return (
     <div style={{
@@ -366,6 +373,14 @@ function PlanDetailModal({ plan, onClose, onEdit }) {
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={handleWhatsAppShare} style={{
+                padding: '8px 16px', background: '#25D366',
+                border: 'none', borderRadius: 8,
+                color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                💬 Share via WhatsApp
+              </button>
               <button onClick={() => { onClose(); onEdit(plan) }} style={{
                 padding: '8px 16px', background: '#ffffff10',
                 border: '1px solid #ffffff20', borderRadius: 8,
@@ -707,7 +722,8 @@ function DeleteConfirm({ plan, onConfirm, onCancel }) {
 
 // ─── Main Diet Page ───────────────────────────────────────────────────────────
 export default function Diet({ search = '' }) {
-  const { darkMode } = useApp()
+  const { darkMode, gymSettings } = useApp()
+  const gymName = gymSettings?.name || 'IronForge Gym'
   const [plans, setPlans] = useState(INITIAL_PLANS)
   const [viewPlan, setViewPlan] = useState(null)
   const [editPlan, setEditPlan] = useState(null)
@@ -849,7 +865,7 @@ export default function Diet({ search = '' }) {
       )}
 
       {/* Modals */}
-      {viewPlan && <PlanDetailModal plan={viewPlan} onClose={() => setViewPlan(null)} onEdit={(p) => { setViewPlan(null); openEdit(p) }} />}
+      {viewPlan && <PlanDetailModal plan={viewPlan} onClose={() => setViewPlan(null)} onEdit={(p) => { setViewPlan(null); openEdit(p) }} gymName={gymName} />}
       {showForm && <PlanFormModal existing={editPlan} onSave={handleSave} onClose={() => { setShowForm(false); setEditPlan(null) }} />}
       {deletePlan && <DeleteConfirm plan={deletePlan} onConfirm={() => handleDelete(deletePlan.id)} onCancel={() => setDeletePlan(null)} />}
     </div>

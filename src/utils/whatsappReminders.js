@@ -214,3 +214,85 @@ export function getReminderTypeConfig(type) {
   }
   return configs[type] || configs['7day']
 }
+
+/**
+ * Build WhatsApp message for diet plan sharing
+ * @param {Object} plan - Diet plan object
+ * @param {string} gymName - Gym name for branding
+ * @returns {string} Formatted message for WhatsApp
+ */
+export function buildDietPlanWhatsAppMessage(plan, gymName = 'IronForge Gym') {
+  const { name, goal, calories, protein, carbs, fat, assignedMember, assignedTrainer, duration, meals } = plan
+  
+  const mealLines = meals.map((meal, i) => 
+    `${i + 1}. ${meal.name} (${meal.time}) - ${meal.calories} kcal\n   ${meal.items.join(', ')}`
+  ).join('\n\n')
+  
+  return `🍽️ *${name}*\n\n` +
+    `🏋️ *Gym:* ${gymName}\n` +
+    `🎯 *Goal:* ${goal}\n` +
+    `⏱ *Duration:* ${duration}\n\n` +
+    `📊 *Macros (Daily)*\n` +
+    `• Calories: ${calories.toLocaleString()} kcal\n` +
+    `• Protein: ${protein}g\n` +
+    `• Carbs: ${carbs}g\n` +
+    `• Fat: ${fat}g\n\n` +
+    `👤 *Member:* ${assignedMember}\n` +
+    `🏋️ *Trainer:* ${assignedTrainer}\n\n` +
+    `📋 *Meal Schedule*\n${mealLines}\n\n` +
+    `---\n` +
+    `Shared from ${gymName} Gym Management App`
+}
+
+/**
+ * Build WhatsApp share link for diet plan (no phone number - opens contact picker)
+ * @param {string} message - Pre-filled message text
+ * @returns {string} WhatsApp wa.me URL with contact picker
+ */
+export function buildDietPlanWhatsAppLink(message) {
+  const encodedMessage = encodeURIComponent(message)
+  return `https://wa.me/?text=${encodedMessage}`
+}
+
+/**
+ * Build WhatsApp message for workout plan sharing
+ * @param {Object} plan - Workout plan object
+ * @param {string} gymName - Gym name for branding
+ * @returns {string} Formatted message for WhatsApp
+ */
+export function buildWorkoutPlanWhatsAppMessage(plan, gymName = 'IronForge Gym') {
+  const { name, goal, level, days, duration, exercises, member, trainer } = plan
+  const exerciseCount = exercises?.length || 0
+  
+  const exerciseLines = exercises?.map((ex, i) => 
+    `${i + 1}. ${ex.name} — ${ex.sets}×${ex.reps} (${ex.rest}) [${ex.muscle}]`
+  ).join('\n') || 'No exercises added'
+  
+  const muscleGroups = exercises?.length > 0 
+    ? [...new Set(exercises.map(e => e.muscle))].join(', ')
+    : 'N/A'
+
+  return `💪 *${name}*\n\n` +
+    `🏋️ *Gym:* ${gymName}\n` +
+    `🎯 *Goal:* ${goal}\n` +
+    `📊 *Level:* ${level}\n` +
+    `📅 *Days/Week:* ${days}x\n` +
+    `⏱ *Session Duration:* ${duration}\n` +
+    `💪 *Total Exercises:* ${exerciseCount}\n` +
+    `🎯 *Muscles Targeted:* ${muscleGroups}\n\n` +
+    `📋 *Exercise List*\n${exerciseLines}\n\n` +
+    `👤 *Assigned Member:* ${member || 'Unassigned'}\n` +
+    `🏋️ *Assigned Trainer:* ${trainer || 'Unassigned'}\n\n` +
+    `---\n` +
+    `Shared from ${gymName} Gym Management App`
+}
+
+/**
+ * Build WhatsApp share link for workout plan (no phone number - opens contact picker)
+ * @param {string} message - Pre-filled message text
+ * @returns {string} WhatsApp wa.me URL with contact picker
+ */
+export function buildWorkoutPlanWhatsAppLink(message) {
+  const encodedMessage = encodeURIComponent(message)
+  return `https://wa.me/?text=${encodedMessage}`
+}
