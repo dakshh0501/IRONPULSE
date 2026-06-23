@@ -810,23 +810,9 @@ textarea.form-input { resize: vertical; min-height: 80px; }
     transform: translateX(-100%);
     transition: transform 0.28s ease;
     z-index: 300;
-    /* Remove any width-based hiding from desktop */
     flex-shrink: 0;
-    .header-search {
-    display: none;
-    .header {
-  height: 64px;
-  padding: 0 12px 0 72px;
+    overflow-y: auto;
   }
-  }
-
-  .header-actions {
-    gap: 8px;
-  }
-  .sidebar {
-  overflow-y: auto;
-}
-}
   .sidebar.open {
     transform: translateX(0);
   }

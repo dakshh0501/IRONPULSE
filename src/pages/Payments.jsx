@@ -1,10 +1,8 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { 
   buildPaymentReceiptWhatsAppMessage, 
   buildPaymentReceiptWhatsAppLink,
-  formatReceiptCurrency,
-  formatReceiptDate
 } from '../utils/whatsappReminders'
 import { jsPDF } from 'jspdf'
 

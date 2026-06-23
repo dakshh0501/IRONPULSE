@@ -191,14 +191,14 @@ export default function Attendance({ search = '' }) {
 
   const todayLogs    = useMemo(() => attendance.filter(l => l.date === todayStr), [attendance])
   const totalCheckins = todayLogs.length
-  const qrCheckins    = todayLogs.filter(l => l.method === 'QR').length
-  const avgDuration   = Math.round(todayLogs.reduce((s, l) => s + (l.duration || 0), 0) / (todayLogs.length || 1))
-  const peakHour      = (() => {
+  const qrCheckins    = useMemo(() => todayLogs.filter(l => l.method === 'QR').length, [todayLogs])
+  const avgDuration   = useMemo(() => Math.round(todayLogs.reduce((s, l) => s + (l.duration || 0), 0) / (todayLogs.length || 1)), [todayLogs])
+  const peakHour      = useMemo(() => {
     const hrs = {}
     todayLogs.forEach(l => { if (l.time) { const h = l.time.split(':')[0]; hrs[h] = (hrs[h] || 0) + 1 } })
     const peak = Object.entries(hrs).sort((a, b) => b[1] - a[1])[0]
     return peak ? `${peak[0]}:00` : '—'
-  })()
+  }, [todayLogs])
 
   // ── Single check-in handler — used by scanner ────────────────────────────
   const handleCheckIn = async (member) => {

@@ -64,34 +64,8 @@ export function AppProvider({ children }) {
   }
 
   const unsubscribe = subscribeToMembers(
-    async (data) => {
+    (data) => {
       setMembers(data)
-
-      const today = new Date()
-
-      data.forEach(async (member) => {
-        if (!member.expiry) return
-
-        const isExpired =
-          new Date(member.expiry) < today
-
-        if (
-          isExpired &&
-          member.status !== 'Expired'
-        ) {
-          try {
-            await updateMemberInFirestore(
-              member.id,
-              { status: 'Expired' }
-            )
-          } catch (error) {
-            console.error(
-              'Expiry update failed:',
-              error
-            )
-          }
-        }
-      })
     }
   )
 
@@ -168,6 +142,8 @@ export function AppProvider({ children }) {
     if (userProfile?.role !== 'admin') return
     if (members.length === 0 || payments.length === 0) return
 
+    const updates = []
+
     members.forEach(member => {
       const totalPaid = payments
         .filter(p => p.memberId === member.id && p.status === 'Paid')
@@ -186,13 +162,16 @@ export function AppProvider({ children }) {
         (member.paymentStatus || 'Pending') !== paymentStatus
 
       if (hasChanged) {
-        try {
+        updates.push(
           updateMemberInFirestore(member.id, { amountPaid: totalPaid, balanceDue, paymentStatus })
-        } catch (error) {
-          console.error('Error syncing member payment data:', error)
-        }
+            .catch(error => console.error('Error syncing member payment data:', error))
+        )
       }
     })
+
+    if (updates.length > 0) {
+      Promise.allSettled(updates)
+    }
   }, [payments, members, currentUser, authLoading, userProfile])
 
   // ── Persist dark mode ──────────────────────────────────
@@ -286,9 +265,24 @@ export function AppProvider({ children }) {
     return list.sort((a, b) => (a.read === b.read ? 0 : a.read ? 1 : -1))
   }, [members, attendance])
 
-  const markAllRead = () => {}
-  const markRead    = () => {}
-  const unreadCount = notifications.filter(n => !n.read).length
+  const markAllRead = () => {
+    setReadIds(prev => {
+      const next = new Set(prev)
+      notifications.forEach(n => next.add(n.id))
+      return next
+    })
+  }
+  const markRead = (id) => {
+    setReadIds(prev => new Set(prev).add(id))
+  }
+  const [readIds, setReadIds] = useState(() => new Set())
+  const notificationsWithRead = useMemo(() => {
+    return notifications.map(n => ({
+      ...n,
+      read: n.read || readIds.has(n.id),
+    }))
+  }, [notifications, readIds])
+  const unreadCount = notificationsWithRead.filter(n => !n.read).length
 
   // ── Member CRUD ────────────────────────────────────────
   const addMember = async (memberData) => {
@@ -422,7 +416,7 @@ export function AppProvider({ children }) {
       payments, addPayment, updatePayment, deletePayment,
       workouts, setWorkouts,
       dietPlans, setDietPlans,
-      notifications, markAllRead, markRead, unreadCount,
+      notifications: notificationsWithRead, markAllRead, markRead, unreadCount,
       checkinLog, checkIn,
       attendance, checkInMember,
       pendingCount,

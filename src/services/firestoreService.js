@@ -19,10 +19,18 @@ import {
 import {
   setDoc
 } from 'firebase/firestore'
+import { initializeApp } from 'firebase/app'
+import { getAuth } from 'firebase/auth'
 import {
+  firebaseConfig,
   auth
 } from '../firebase'
 import { db } from '../firebase'
+
+// Secondary auth instance for creating trainer accounts
+// so the admin stays logged in on the main auth instance
+const secondaryApp = initializeApp(firebaseConfig, 'secondary')
+const secondaryAuth = getAuth(secondaryApp)
 
 // ─────────────────────────────────────────────
 // MEMBERS
@@ -205,38 +213,52 @@ export async function addTrainer(trainerData) {
 
   const password = 'Trainer@123'
 
-  const authResult =
-    await createUserWithEmailAndPassword(
-  secondaryAuth,
-  trainerData.email,
-  password
+  let user
+
+  try {
+    const authResult =
+      await createUserWithEmailAndPassword(
+    secondaryAuth,
+    trainerData.email,
+    password
+      )
+
+    user = authResult.user
+
+    await secondaryAuth.signOut()
+
+    await setDoc(
+      doc(db, 'users', user.uid),
+      {
+        uid: user.uid,
+        name: trainerData.name,
+        email: trainerData.email,
+        role: 'trainer',
+        createdAt: serverTimestamp(),
+      }
     )
 
-  const user = authResult.user
+    const docRef = await addDoc(
+      collection(db, 'trainers'),
+      {
+        ...trainerData,
+        authUid: user.uid,
+        createdAt: serverTimestamp(),
+      }
+    )
 
-  await secondaryAuth.signOut()
-
-  await setDoc(
-    doc(db, 'users', user.uid),
-    {
-      uid: user.uid,
-      name: trainerData.name,
-      email: trainerData.email,
-      role: 'trainer',
-      createdAt: serverTimestamp(),
+    return docRef.id
+  } catch (error) {
+    // Cleanup: delete the auth user if Firestore write failed
+    if (user) {
+      try {
+        await user.delete()
+      } catch (cleanupErr) {
+        console.error('Failed to cleanup auth user:', cleanupErr)
+      }
     }
-  )
-
-  const docRef = await addDoc(
-    collection(db, 'trainers'),
-    {
-      ...trainerData,
-      authUid: user.uid,
-      createdAt: serverTimestamp(),
-    }
-  )
-
-  return docRef.id
+    throw error
+  }
 }
 
 // Subscribe realtime trainers

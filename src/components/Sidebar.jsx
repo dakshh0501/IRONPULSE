@@ -54,7 +54,7 @@ const NAV_MAP = { admin: ADMIN_NAV, trainer: TRAINER_NAV, member: MEMBER_NAV }
 
 export default function Sidebar({ currentPage, setPage, mobileOpen, setMobileOpen }) {
   const { currentUser, logout, userProfile } = useAuth()
-  const { unreadCount, pendingCount, gymSettings } = useApp()
+  const { unreadCount, pendingCount, gymSettings, payments, members } = useApp()
   const navigate = useNavigate()
 
   const role = userProfile?.role
@@ -63,7 +63,7 @@ export default function Sidebar({ currentPage, setPage, mobileOpen, setMobileOpe
 const nav =
   NAV_MAP[role] || []
 
-  const overdueCount = 0
+  const overdueCount = payments.filter(p => p.status === 'Overdue' || p.status === 'Pending').length
 
   const getBadge = (badge) => {
     if (badge === 'notifs')  return unreadCount  || null

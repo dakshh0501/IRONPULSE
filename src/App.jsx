@@ -134,7 +134,7 @@ function AppShell() {
 
   const pageMap = useMemo(
   () => buildPageMap(setPage, search, role),
-  [role, page]
+  [role, search, page]
 ) || {}
 
 const safePage =

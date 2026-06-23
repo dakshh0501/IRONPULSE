@@ -6,8 +6,6 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   ReferenceLine, Legend,
 } from 'recharts'
-import { PROGRESS_DATA } from '../data/mockData'
-
 // ─────────────────────────────────────────────────────────────
 //  CONSTANTS
 // ─────────────────────────────────────────────────────────────

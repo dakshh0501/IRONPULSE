@@ -1,18 +1,7 @@
-import { useState } from 'react'
-import Auth from '../components/Auth'
 import { useNavigate } from 'react-router-dom'
 
 export default function Landing() {
   const navigate = useNavigate()
-  const [showAuth, setShowAuth] = useState(false)
-  const [defaultRole, setDefaultRole] = useState('admin')
-  const [defaultTab, setDefaultTab] = useState('login')
-
-  const openAuth = (role = 'admin', tab = 'login') => {
-    setDefaultRole(role)
-    setDefaultTab(tab)
-    setShowAuth(true)
-  }
 
   return (
     <div className="landing">
@@ -135,14 +124,6 @@ export default function Landing() {
         </div>
       </footer>
 
-      {/* AUTH MODAL */}
-      {showAuth && (
-        <Auth
-          defaultRole={defaultRole}
-          defaultTab={defaultTab}
-          onClose={() => setShowAuth(false)}
-        />
-      )}
     </div>
   )
 }

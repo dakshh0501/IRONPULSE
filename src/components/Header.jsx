@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useApp } from '../context/AppContext'
+import { useAuth } from '../context/AuthContext'
 
 const PAGE_TITLES = {
   dashboard:     'Dashboard',
@@ -17,7 +18,8 @@ const PAGE_TITLES = {
 }
 
 export default function Header({ currentPage, setPage, search, setSearch, setMobileOpen }) {
-  const { darkMode, setDarkMode, unreadCount, notifications, markAllRead, currentUser, gymSettings } = useApp()
+  const { darkMode, setDarkMode, unreadCount, notifications, markAllRead, gymSettings } = useApp()
+  const { userProfile } = useAuth()
   const [notifOpen, setNotifOpen] = useState(false)
 
   const typeIcon = { expiry:'⏰', payment:'💳', checkin:'✅', new:'🎉', system:'⚙️', workout:'💪' }
@@ -66,9 +68,9 @@ export default function Header({ currentPage, setPage, search, setSearch, setMob
             className="avatar av-orange"
             style={{ width:34, height:34, fontSize:13, cursor:'pointer' }}
             onClick={() => setPage('settings')}
-            title={currentUser?.name}
+            title={userProfile?.name}
           >
-            {currentUser?.avatar || 'U'}
+            {userProfile?.name?.[0] || 'U'}
           </div>
         </div>
       </header>

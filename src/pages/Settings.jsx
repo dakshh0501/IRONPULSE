@@ -254,15 +254,26 @@ export default function Settings() {
   const [pwError, setPwError] = useState('')
   const [pwSaved, setPwSaved] = useState(false)
   const setPw = (k, v) => { setPwForm(p => ({ ...p, [k]: v })); setPwError('') }
-  const savePassword = () => {
+  const savePassword = async () => {
     if (!pwForm.current)                 { setPwError('Enter current password'); return }
     if (pwForm.newPw.length < 6)         { setPwError('New password must be at least 6 characters'); return }
     if (pwForm.newPw !== pwForm.confirm)  { setPwError('Passwords do not match'); return }
-    setPwSaved(true); setPwForm({ current:'', newPw:'', confirm:'' })
-    setTimeout(() => setPwSaved(false), 2500)
+    try {
+      const { EmailAuthProvider, reauthenticateWithCredential, updatePassword } = await import('firebase/auth')
+      const credential = EmailAuthProvider.credential(currentUser.email, pwForm.current)
+      await reauthenticateWithCredential(currentUser, credential)
+      await updatePassword(currentUser, pwForm.newPw)
+      setPwSaved(true); setPwForm({ current:'', newPw:'', confirm:'' })
+      setTimeout(() => setPwSaved(false), 2500)
+    } catch (err) {
+      setPwError(err.code === 'auth/wrong-password' ? 'Current password is incorrect' : 'Failed to update password')
+    }
   }
 
   // ── Notifications ─────────────────────────────────────────
+  const [compactMode, setCompactMode] = useState(false)
+  const [animations, setAnimations] = useState(true)
+
   const [notifSettings, setNotifSettings] = useState({
     emailAlerts:true, paymentReminders:true, expiryAlerts:true,
     workoutReminders:false, newMemberAlert:true, weeklyReport:true,
@@ -473,10 +484,10 @@ export default function Settings() {
                     </p>
                   </div>
                   <SettingRow label="Compact Mode" desc="Reduce padding and font sizes for more content density">
-                    <Toggle on={false} onChange={() => {}} />
+                    <Toggle on={compactMode} onChange={setCompactMode} />
                   </SettingRow>
                   <SettingRow label="Animations" desc="Enable smooth transitions and micro-animations">
-                    <Toggle on={true} onChange={() => {}} />
+                    <Toggle on={animations} onChange={setAnimations} />
                   </SettingRow>
                   <SaveBar onSave={saveTheme} saved={themeSaved} error={themeError} />
                 </>

@@ -260,7 +260,7 @@ function AttendanceHistory({ records }) {
 
 // ─── main component ──────────────────────────────────────────
 export default function MemberDashboard() {
-  const { attendance, payments, members } = useApp()
+  const { attendance, payments } = useApp()
   const {
   currentUser,
   userProfile

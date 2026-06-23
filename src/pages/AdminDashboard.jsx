@@ -39,44 +39,40 @@ export default function AdminDashboard({ setPage }) {
   // ── Recent Activity — sorted by a.date + a.time, shows real time ──────────
   const recentActivity = [...attendance]
     .sort((a, b) => {
-      const recentActivity = [...attendance]
-  .sort((a, b) => {
-    const aTime = a.timestamp?.seconds
-      ? a.timestamp.seconds * 1000
-      : new Date(`${a.date} ${a.time}`).getTime()
+      const aTime = a.timestamp?.seconds
+        ? a.timestamp.seconds * 1000
+        : new Date(`${a.date} ${a.time}`).getTime()
 
-    const bTime = b.timestamp?.seconds
-      ? b.timestamp.seconds * 1000
-      : new Date(`${b.date} ${b.time}`).getTime()
+      const bTime = b.timestamp?.seconds
+        ? b.timestamp.seconds * 1000
+        : new Date(`${b.date} ${b.time}`).getTime()
 
-    return bTime - aTime
-  })
-  .slice(0, 5)
+      return bTime - aTime
     })
     .slice(0, 5)
 
-    const getRelativeTime = (activity) => {
-  let time
+  const getRelativeTime = (activity) => {
+    let time
 
-  if (activity.timestamp?.seconds) {
-    time = activity.timestamp.seconds * 1000
-  } else {
-    time = new Date(`${activity.date} ${activity.time}`).getTime()
+    if (activity.timestamp?.seconds) {
+      time = activity.timestamp.seconds * 1000
+    } else {
+      time = new Date(`${activity.date} ${activity.time}`).getTime()
+    }
+
+    const diff = Date.now() - time
+
+    const mins = Math.floor(diff / 60000)
+
+    if (mins < 1) return 'Just now'
+    if (mins < 60) return `${mins} min ago`
+
+    const hrs = Math.floor(mins / 60)
+
+    if (hrs < 24) return `${hrs} hr ago`
+
+    return new Date(time).toLocaleDateString()
   }
-
-  const diff = Date.now() - time
-
-  const mins = Math.floor(diff / 60000)
-
-  if (mins < 1) return 'Just now'
-  if (mins < 60) return `${mins} min ago`
-
-  const hrs = Math.floor(mins / 60)
-
-  if (hrs < 24) return `${hrs} hr ago`
-
-  return new Date(time).toLocaleDateString()
-}
 
   return (
     <div>
