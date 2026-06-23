@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useApp } from '../context/AppContext'
+import { useAuth } from '../context/AuthContext'
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -11,23 +12,19 @@ import { PROGRESS_DATA } from '../data/mockData'
 //  CONSTANTS
 // ─────────────────────────────────────────────────────────────
 const INITIAL_LOG = [
-  { id:1, date:'2025-01-06', weight:85.0, bodyFat:22.0, bmi:27.8, muscle:63.0, bench:70, squat:90, deadlift:110, cardio:'22 min' },
-  { id:2, date:'2025-01-13', weight:84.2, bodyFat:21.5, bmi:27.5, muscle:63.5, bench:72, squat:92, deadlift:115, cardio:'21 min' },
-  { id:3, date:'2025-01-20', weight:83.5, bodyFat:21.0, bmi:27.2, muscle:64.0, bench:75, squat:95, deadlift:120, cardio:'20 min' },
-  { id:4, date:'2025-01-27', weight:82.8, bodyFat:20.5, bmi:27.0, muscle:64.5, bench:77, squat:98, deadlift:122, cardio:'19 min' },
-  { id:5, date:'2025-02-03', weight:82.0, bodyFat:20.0, bmi:26.8, muscle:65.0, bench:80, squat:100, deadlift:125, cardio:'19 min' },
-  { id:6, date:'2025-02-10', weight:81.5, bodyFat:19.5, bmi:26.6, muscle:65.5, bench:82, squat:102, deadlift:128, cardio:'18 min' },
+  { id:1, date:'2025-01-06', weight:85.0, bodyFat:22.0, bmi:27.8, muscle:63.0, bench:70, squat:90, deadlift:110, cardio:'22 min', memberId: '1', memberName: 'Rohan Sharma' },
+  { id:2, date:'2025-01-13', weight:84.2, bodyFat:21.5, bmi:27.5, muscle:63.5, bench:72, squat:92, deadlift:115, cardio:'21 min', memberId: '1', memberName: 'Rohan Sharma' },
+  { id:3, date:'2025-01-20', weight:83.5, bodyFat:21.0, bmi:27.2, muscle:64.0, bench:75, squat:95, deadlift:120, cardio:'20 min', memberId: '1', memberName: 'Rohan Sharma' },
+  { id:4, date:'2025-01-27', weight:82.8, bodyFat:20.5, bmi:27.0, muscle:64.5, bench:77, squat:98, deadlift:122, cardio:'19 min', memberId: '1', memberName: 'Rohan Sharma' },
+  { id:5, date:'2025-02-03', weight:82.0, bodyFat:20.0, bmi:26.8, muscle:65.0, bench:80, squat:100, deadlift:125, cardio:'19 min', memberId: '1', memberName: 'Rohan Sharma' },
+  { id:6, date:'2025-02-10', weight:81.5, bodyFat:19.5, bmi:26.6, muscle:65.5, bench:82, squat:102, deadlift:128, cardio:'18 min', memberId: '1', memberName: 'Rohan Sharma' },
 ]
 
 const EMPTY_LOG = {
   date: '', weight: '', bodyFat: '', bmi: '', muscle: '',
   bench: '', squat: '', deadlift: '', cardio: '',
+  memberId: '', memberName: '',
 }
-
-const MEMBERS_LIST = [
-  'Rohan Sharma', 'Priya Mehta', 'Aarav Joshi',
-  'Anjali Singh', 'Vikram Patel', 'Nisha Rao', 'Arjun Kapoor',
-]
 
 // ─────────────────────────────────────────────────────────────
 //  CUSTOM TOOLTIP
@@ -97,8 +94,29 @@ function ProgressRow({ label, value, max, color, unit }) {
 // ─────────────────────────────────────────────────────────────
 //  LOG ENTRY MODAL
 // ─────────────────────────────────────────────────────────────
-function LogModal({ onSave, onClose }) {
-  const [form, setForm] = useState({ ...EMPTY_LOG, date: new Date().toISOString().split('T')[0] })
+function LogModal({ onSave, onClose, members, currentUser, userProfile }) {
+  const isAdmin = userProfile?.role === 'admin'
+  const isTrainer = userProfile?.role === 'trainer'
+  const isMember = userProfile?.role === 'member'
+
+  // Get active members for dropdown
+  const activeMembers = useMemo(() => 
+    members?.filter(m => m.status === 'Active') || [], [members])
+
+  // Default member for member role (own profile)
+  const defaultMember = useMemo(() => {
+    if (isMember && currentUser) {
+      return activeMembers.find(m => m.authUid === currentUser.uid) || activeMembers[0]
+    }
+    return activeMembers[0]
+  }, [activeMembers, currentUser, isMember])
+
+  const [form, setForm] = useState(() => ({
+    ...EMPTY_LOG,
+    date: new Date().toISOString().split('T')[0],
+    memberId: defaultMember?.id || '',
+    memberName: defaultMember?.name || '',
+  }))
   const [errors, setErrors] = useState({})
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
@@ -106,6 +124,9 @@ function LogModal({ onSave, onClose }) {
   const handleSave = () => {
     if (!form.date)   { setErrors({ date: 'Date is required' }); return }
     if (!form.weight) { setErrors({ weight: 'Weight is required' }); return }
+    if (isAdmin || isTrainer) {
+      if (!form.memberId) { setErrors({ memberId: 'Member is required' }); return }
+    }
     onSave({ ...form, id: Date.now() })
     onClose()
   }
@@ -129,6 +150,32 @@ function LogModal({ onSave, onClose }) {
           <div><h3>Log Progress Entry</h3><p>Record today's measurements</p></div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
+
+        {/* Member Selection for Admin/Trainer */}
+        {(isAdmin || isTrainer) && activeMembers.length > 0 && (
+          <div className="form-group" style={{ marginBottom: 14 }}>
+            <label className="form-label">Member *</label>
+            <select className="form-select" value={form.memberId} onChange={e => {
+              const selected = activeMembers.find(m => m.id === e.target.value)
+              set('memberId', e.target.value)
+              set('memberName', selected?.name || '')
+            }}>
+              <option value="">— Select Member —</option>
+              {activeMembers.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+            {errors.memberId && <p style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>⚠ {errors.memberId}</p>}
+          </div>
+        )}
+
+        {/* Hidden member fields for member role */}
+        {isMember && (
+          <>
+            <input type="hidden" value={form.memberId} readOnly />
+            <input type="hidden" value={form.memberName} readOnly />
+          </>
+        )}
 
         <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>
           📏 Body Measurements
@@ -173,20 +220,36 @@ function LogModal({ onSave, onClose }) {
 // ─────────────────────────────────────────────────────────────
 export default function Progress({ search = '' }) {
   const { currentUser, members } = useApp()
-  const isAdmin = currentUser?.role === 'admin'
+  const { userProfile } = useAuth()
+  const isAdmin = userProfile?.role === 'admin'
+  const isTrainer = userProfile?.role === 'trainer'
+  const isMember = userProfile?.role === 'member'
+  const canSelectMember = isAdmin || isTrainer
+
+  // Active members for dropdown
+  const activeMembers = useMemo(() => 
+    members?.filter(m => m.status === 'Active') || [], [members])
+
+  // Default selected member for admin/trainer
+  const defaultMember = activeMembers[0]?.name || ''
 
   const [log,         setLog]         = useState(INITIAL_LOG)
   const [logOpen,     setLogOpen]     = useState(false)
   const [chartTab,    setChartTab]    = useState('body')    // 'body' | 'strength'
-  const [selectedMember, setSelectedMember] = useState('Rohan Sharma')
+  const [selectedMember, setSelectedMember] = useState(defaultMember)
 
   const addEntry = (entry) => setLog(p => [...p, entry].sort((a,b) => a.date.localeCompare(b.date)))
 
-  const latest = log[log.length - 1] || {}
-  const first  = log[0] || {}
+  // Filter log by selected member for admin/trainer
+  const filteredLog = canSelectMember && selectedMember
+    ? log.filter(e => e.memberName === selectedMember)
+    : log
+
+  const latest = filteredLog[filteredLog.length - 1] || {}
+  const first  = filteredLog[0] || {}
 
   // Chart labels — show last 6
-  const chartData = log.slice(-6).map(e => ({
+  const chartData = filteredLog.slice(-6).map(e => ({
     ...e,
     week: new Date(e.date).toLocaleDateString('en-IN', { day:'numeric', month:'short' }),
   }))
@@ -200,10 +263,10 @@ export default function Progress({ search = '' }) {
           <p>Physical and strength metrics over time</p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          {isAdmin && (
+          {canSelectMember && activeMembers.length > 0 && (
             <select className="form-select" style={{ width: 200 }}
               value={selectedMember} onChange={e => setSelectedMember(e.target.value)}>
-              {MEMBERS_LIST.map(m => <option key={m}>{m}</option>)}
+              {activeMembers.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
             </select>
           )}
           <button className="btn btn-primary" onClick={() => setLogOpen(true)}>
@@ -212,8 +275,8 @@ export default function Progress({ search = '' }) {
         </div>
       </div>
 
-      {/* ── Member info banner (admin only) ── */}
-      {isAdmin && (
+      {/* ── Member info banner (admin/trainer) ── */}
+      {canSelectMember && selectedMember && (
         <div style={{
           background: 'linear-gradient(135deg,rgba(232,66,10,0.1),rgba(0,200,180,0.06))',
           border: '1px solid rgba(232,66,10,0.2)', borderRadius: 'var(--radius)',
@@ -227,11 +290,33 @@ export default function Progress({ search = '' }) {
             <div>
               <p style={{ fontWeight: 700, fontSize: 14 }}>{selectedMember}</p>
               <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                Goal: Weight Loss · Plan: Premium · {log.length} entries logged
+                {filteredLog.length} entries logged
               </p>
             </div>
           </div>
-          <span className="badge badge-green">On Track ↓3.5kg</span>
+          <span className="badge badge-green">On Track</span>
+        </div>
+      )}
+
+      {/* ── Member info for member role ── */}
+      {isMember && userProfile && (
+        <div style={{
+          background: 'linear-gradient(135deg,rgba(232,66,10,0.1),rgba(0,200,180,0.06))',
+          border: '1px solid rgba(232,66,10,0.2)', borderRadius: 'var(--radius)',
+          padding: '14px 20px', marginBottom: 24,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div className="avatar av-orange" style={{ width: 40, height: 40, fontSize: 14 }}>
+              {userProfile.name?.split(' ').map(w=>w[0]).join('') || 'U'}
+            </div>
+            <div>
+              <p style={{ fontWeight: 700, fontSize: 14 }}>{userProfile.name}</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                {filteredLog.length} entries logged
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -343,21 +428,29 @@ export default function Progress({ search = '' }) {
       {/* ── Progress Log Timeline ── */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <p className="card-title" style={{ margin: 0 }}>Entry Log ({log.length} records)</p>
+          <p className="card-title" style={{ margin: 0 }}>Entry Log ({filteredLog.length} records)</p>
           <button className="btn btn-sm btn-outline" onClick={() => setLogOpen(true)}>+ Add Entry</button>
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr>
-                {['Date','Weight','Body Fat','BMI','Muscle','Bench','Squat','Deadlift','Cardio'].map(h => (
+                {[
+                  ...(canSelectMember ? ['Member'] : []),
+                  'Date','Weight','Body Fat','BMI','Muscle','Bench','Squat','Deadlift','Cardio'
+                ].map(h => (
                   <th key={h} style={{ padding:'9px 14px', textAlign:'left', fontSize:10, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--text-muted)', borderBottom:'1px solid var(--border)', fontWeight:600, whiteSpace:'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {[...log].reverse().map((e, i) => (
+              {[...filteredLog].reverse().map((e, i) => (
                 <tr key={e.id} style={{ background: i === 0 ? 'rgba(0,200,180,0.04)' : 'transparent' }}>
+                  {canSelectMember && (
+                    <td style={{ padding:'10px 14px', fontWeight:600, color:'var(--text)', whiteSpace:'nowrap' }}>
+                      {e.memberName || '—'}
+                    </td>
+                  )}
                   <td style={{ padding:'10px 14px', fontWeight:600, color:'var(--teal)', whiteSpace:'nowrap' }}>
                     {new Date(e.date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}
                     {i === 0 && <span className="badge badge-teal" style={{ marginLeft:6, fontSize:9 }}>Latest</span>}
@@ -377,7 +470,13 @@ export default function Progress({ search = '' }) {
         </div>
       </div>
 
-      {logOpen && <LogModal onSave={addEntry} onClose={() => setLogOpen(false)} />}
+      {logOpen && <LogModal 
+    onSave={addEntry} 
+    onClose={() => setLogOpen(false)} 
+    members={members}
+    currentUser={currentUser}
+    userProfile={userProfile}
+  />}
     </div>
   )
 }
