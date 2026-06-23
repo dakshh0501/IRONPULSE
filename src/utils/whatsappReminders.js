@@ -224,7 +224,7 @@ export function getReminderTypeConfig(type) {
 export function buildDietPlanWhatsAppMessage(plan, gymName = 'IronForge Gym') {
   const { name, goal, calories, protein, carbs, fat, assignedMember, assignedTrainer, duration, meals } = plan
   
-  const mealLines = meals.map((meal, i) => 
+  const mealLines = (meals || []).map((meal, i) => 
     `${i + 1}. ${meal.name} (${meal.time}) - ${meal.calories} kcal\n   ${meal.items.join(', ')}`
   ).join('\n\n')
   

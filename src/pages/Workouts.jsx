@@ -544,7 +544,7 @@ function PlanFormModal({ plan, members, trainers, onSave, onClose }) {
     if (!form.goal)           e.goal    = 'Select a goal'
     if (!form.level)          e.level   = 'Select a level'
     if (form.exercises.length < 1) e.exercises = 'Add at least 1 exercise'
-    if (form.exercises.some(ex => !ex.name.trim())) e.exercises = 'All exercises must have a name'
+    if (form.exercises.some(ex => !ex.name || !ex.name.trim())) e.exercises = 'All exercises must have a name'
     return e
   }
 

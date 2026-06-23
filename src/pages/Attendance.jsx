@@ -210,17 +210,23 @@ export default function Attendance({ search = '' }) {
     }
     const now = new Date()
     const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
-    await addAttendanceService({
-      memberId:   uid,
-      memberName: member.name,
-      avatar:     member.avatar || (member.name || 'M').slice(0, 2).toUpperCase(),
-      color:      member.color  || '#00c8b4',
-      plan:       member.plan   || member.membershipPlan || 'Standard',
-      date:       todayStr,
-      time,
-      method:     'QR',
-      duration:   90,
-    })
+    try {
+      await addAttendanceService({
+        memberId:   uid,
+        memberName: member.name,
+        avatar:     member.avatar || (member.name || 'M').slice(0, 2).toUpperCase(),
+        color:      member.color  || '#00c8b4',
+        plan:       member.plan   || member.membershipPlan || 'Standard',
+        date:       todayStr,
+        time,
+        method:     'QR',
+        duration:   90,
+      })
+    } catch (err) {
+      console.error('Failed to record attendance:', err)
+      alert('Failed to check in. Please try again.')
+      return
+    }
     setScanResult({ member, time })
     setTimeout(() => setScanResult(null), 4000)
   }

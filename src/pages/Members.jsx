@@ -406,20 +406,25 @@ export default function Members({ search }) {
                           className="btn btn-sm btn-ghost"
                           title="Renew Membership"
                           onClick={async () => {
-                            const today    = new Date()
-                            const nextMonth = new Date()
-                            nextMonth.setDate(today.getDate() + 30)
-                            const expiry = nextMonth.toISOString().split('T')[0]
-                            await updateMember(m.id, { status:'Active', expiry })
-                            await addPayment({
-                              memberId:   m.id,
-                              memberName: m.name,
-                              amount:     m.planPrice || 1499,
-                              status:     'Paid',
-                              plan:       m.plan,
-                              date:       today.toISOString().split('T')[0],
-                            })
-                            alert(`${m.name}'s membership renewed successfully`)
+                            try {
+                              const today    = new Date()
+                              const nextMonth = new Date()
+                              nextMonth.setDate(today.getDate() + 30)
+                              const expiry = nextMonth.toISOString().split('T')[0]
+                              await updateMember(m.id, { status:'Active', expiry })
+                              await addPayment({
+                                memberId:   m.id,
+                                memberName: m.name,
+                                amount:     m.planPrice || 1499,
+                                status:     'Paid',
+                                plan:       m.plan,
+                                date:       today.toISOString().split('T')[0],
+                              })
+                              alert(`${m.name}'s membership renewed successfully`)
+                            } catch (err) {
+                              console.error('Failed to renew membership:', err)
+                              alert('Failed to renew membership. Please try again.')
+                            }
                           }}
                         >🔄</button>
                       )}

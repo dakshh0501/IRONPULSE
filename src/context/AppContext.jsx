@@ -398,14 +398,18 @@ export function AppProvider({ children }) {
   }
 
   // ── Local check-in log ─────────────────────────────────
-  const checkIn = (member) => {
+  const checkIn = async (member) => {
     const now     = new Date()
     const timeStr = now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' })
     setCheckinLog(p => [{
       id: Date.now(), name: member.name,
-      avatar: member.avatar, time: timeStr, out: '—',
+      avatar: member.avatar, time: timeStr, out: '�',
     }, ...p])
-    updateMember(member.id, { checkins: Number(member.checkins || 0) + 1 })
+    try {
+      await updateMember(member.id, { checkins: Number(member.checkins || 0) + 1 })
+    } catch (err) {
+      console.error('Failed to update checkin count:', err)
+    }
   }
 
   return (

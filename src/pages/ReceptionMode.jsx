@@ -343,17 +343,24 @@ export default function ReceptionMode() {
     const hh   = String(now.getHours()).padStart(2, '0')
     const mm   = String(now.getMinutes()).padStart(2, '0')
     const time = hh + ':' + mm
-    const result = await addAttendanceService({
-      memberId:   uid,
-      memberName: member.name,
-      avatar:     member.avatar || getInitials(member.name),
-      color:      member.color  || '#00c8b4',
-      plan:       member.plan   || member.membershipPlan || 'Standard',
-      date:       todayStr,
-      time,
-      method:     method || 'QR',
-      duration:   90,
-    })
+    let result
+    try {
+      result = await addAttendanceService({
+        memberId:   uid,
+        memberName: member.name,
+        avatar:     member.avatar || getInitials(member.name),
+        color:      member.color  || '#00c8b4',
+        plan:       member.plan   || member.membershipPlan || 'Standard',
+        date:       todayStr,
+        time,
+        method:     method || 'QR',
+        duration:   90,
+      })
+    } catch (err) {
+      console.error('Failed to record attendance:', err)
+      pushFeedback(FB_ERROR, member, { message: 'Could not save attendance. Please try again.' })
+      return
+    }
     if (result && result.success === false) {
       pushFeedback(FB_ERROR, member, { message: result.error || 'Could not save. Please try again.' })
       return
