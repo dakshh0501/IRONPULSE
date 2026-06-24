@@ -340,3 +340,61 @@ export async function getSettings(docId = 'gym') {
 export async function saveSettings(docId = 'gym', data) {
   await setDoc(doc(db, 'settings', docId), data, { merge: true })
 }
+
+// ─────────────────────────────────────────────
+// PLANS
+// ─────────────────────────────────────────────
+
+// Realtime plans listener
+export function subscribeToPlans(callback) {
+  return onSnapshot(
+    collection(db, 'plans'),
+    (snapshot) => {
+      const plans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      callback(plans)
+    }
+  )
+}
+
+// Add plan
+export async function addPlan(planData) {
+  const docRef = await addDoc(
+    collection(db, 'plans'),
+    {
+      ...planData,
+      active: planData.active !== undefined ? planData.active : true,
+      createdAt: serverTimestamp(),
+    }
+  )
+  return docRef.id
+}
+
+// Update plan
+export async function updatePlan(planId, updatedData) {
+  await updateDoc(doc(db, 'plans', planId), updatedData)
+}
+
+// Delete plan
+export async function deletePlan(planId) {
+  await deleteDoc(doc(db, 'plans', planId))
+}
+
+// Migrate default plans if collection is empty
+export async function migrateDefaultPlans() {
+  const snapshot = await getDocs(collection(db, 'plans'))
+  if (!snapshot.empty) return false
+
+  const defaults = [
+    { name: 'Trial', price: 499, duration: '7 Days', durationDays: 7, description: 'Short-term trial membership, no commitment', active: true, order: 1 },
+    { name: 'Standard', price: 1499, duration: '1 Month', durationDays: 30, description: 'Regular monthly membership with full gym access', active: true, order: 2 },
+    { name: 'Premium', price: 2999, duration: '1 Month', durationDays: 30, description: 'Premium with unlimited trainer access and perks', active: true, order: 3 },
+    { name: 'Quarterly', price: 3999, duration: '3 Months', durationDays: 90, description: '3-month commitment with discounted rate', active: true, order: 4 },
+    { name: 'Annual', price: 12999, duration: '12 Months', durationDays: 365, description: '12-month membership, best value for money', active: true, order: 5 },
+    { name: 'Day Pass', price: 199, duration: '1 Day', durationDays: 1, description: 'Single-day access pass', active: true, order: 6 },
+  ]
+
+  for (const plan of defaults) {
+    await addDoc(collection(db, 'plans'), { ...plan, createdAt: serverTimestamp() })
+  }
+  return true
+}

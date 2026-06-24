@@ -20,6 +20,11 @@ import {
   updateTrainer as updateTrainerInFirestore,
   deleteTrainer as deleteTrainerFromFirestore,
   getSettings,
+  subscribeToPlans,
+  addPlan as addPlanToFirestore,
+  updatePlan as updatePlanInFirestore,
+  deletePlan as deletePlanFromFirestore,
+  migrateDefaultPlans,
 } from '../services/firestoreService'
 import {
   subscribeAttendance,
@@ -45,6 +50,7 @@ export function AppProvider({ children }) {
   const [members,       setMembers]       = useState([])
   const [trainers,      setTrainers]      = useState([])
   const [payments,      setPayments]      = useState([])
+  const [plans,         setPlans]         = useState([])
   const [workouts,      setWorkouts]      = useState([])
   const [dietPlans,     setDietPlans]     = useState([])
   const [checkinLog,    setCheckinLog]    = useState([])
@@ -107,6 +113,20 @@ export function AppProvider({ children }) {
   authLoading,
   userProfile
 ])
+
+  // ── Plans listener — ADMIN & TRAINER ─────────────────────
+  useEffect(() => {
+    if (authLoading || !currentUser) return
+    if (userProfile?.role !== 'admin' && userProfile?.role !== 'trainer') return
+
+    // Only admin auto-migrates default plans
+    if (userProfile?.role === 'admin') {
+      migrateDefaultPlans().catch(err => console.error('Failed to migrate plans:', err))
+    }
+
+    const unsubscribe = subscribeToPlans((data) => setPlans(data))
+    return unsubscribe
+  }, [currentUser, authLoading, userProfile])
 
   // ── Attendance listener ────────────────────────────────
   useEffect(() => {
@@ -397,13 +417,38 @@ export function AppProvider({ children }) {
     }
   }
 
+  // ── Plans CRUD ─────────────────────────────────────────
+  const addPlan = async (planData) => {
+    try {
+      return await addPlanToFirestore(planData)
+    } catch (error) {
+      console.error('Error adding plan:', error)
+    }
+  }
+
+  const updatePlan = async (id, data) => {
+    try {
+      await updatePlanInFirestore(id, data)
+    } catch (error) {
+      console.error('Error updating plan:', error)
+    }
+  }
+
+  const deletePlan = async (id) => {
+    try {
+      await deletePlanFromFirestore(id)
+    } catch (error) {
+      console.error('Error deleting plan:', error)
+    }
+  }
+
   // ── Local check-in log ─────────────────────────────────
   const checkIn = async (member) => {
     const now     = new Date()
     const timeStr = now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' })
     setCheckinLog(p => [{
       id: Date.now(), name: member.name,
-      avatar: member.avatar, time: timeStr, out: '�',
+      avatar: member.avatar, time: timeStr, out: '�',
     }, ...p])
     try {
       await updateMember(member.id, { checkins: Number(member.checkins || 0) + 1 })
@@ -418,6 +463,7 @@ export function AppProvider({ children }) {
       members,  addMember,  updateMember,  deleteMember,
       trainers, addTrainer, updateTrainer, deleteTrainer,
       payments, addPayment, updatePayment, deletePayment,
+      plans,    addPlan,    updatePlan,    deletePlan,
       workouts, setWorkouts,
       dietPlans, setDietPlans,
       notifications: notificationsWithRead, markAllRead, markRead, unreadCount,

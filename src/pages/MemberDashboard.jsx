@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import MemberQR from '../components/MemberQR'
+import MemberAvatar from '../components/MemberAvatar'
 
 // ─── helpers ────────────────────────────────────────────────
 function monthKey(dateStr) {
@@ -303,9 +304,12 @@ export default function MemberDashboard() {
     <div className="dashboard-page">
 
       {/* Hero */}
-      <div className="hero-card">
-        <h1>Welcome back 👋</h1>
-        <p>Track your fitness journey and gym activity.</p>
+      <div className="hero-card" style={{ display:'flex', alignItems:'center', gap:18 }}>
+        <MemberAvatar member={me} size={64} fontSize={22} />
+        <div>
+          <h1>Welcome back 👋</h1>
+          <p>Track your fitness journey and gym activity.</p>
+        </div>
       </div>
 
       {/* ── 4 Stat Cards ── */}

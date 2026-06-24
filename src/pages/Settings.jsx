@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useApp } from '../context/AppContext'
 import { applyAccentColor, DEFAULT_ACCENT } from '../utils/theme'
 import { useAuth } from '../context/AuthContext'
@@ -94,6 +94,7 @@ const ACCENT_COLORS = [
 
 const TABS = [
   { key:'gym',      label:'Gym',           icon:'🏋️' },
+  { key:'plans',    label:'Plans',         icon:'📋' },
   { key:'pricing',  label:'Pricing',       icon:'💰' },
   { key:'theme',    label:'Theme',         icon:'🎨' },
   { key:'profile',  label:'Profile',       icon:'👤' },
@@ -174,7 +175,48 @@ export default function Settings() {
     }
   }
 
-  // ── Theme ─────────────────────────────────────────────────
+  // ── Plans ─────────────────────────────────────────────────
+  const { plans, addPlan, updatePlan, deletePlan } = useApp()
+  const [planModal, setPlanModal] = useState(null)
+  const [planForm, setPlanForm] = useState({ name: '', price: '', duration: '', durationDays: 30, description: '', active: true })
+  const [planSaving, setPlanSaving] = useState(false)
+
+  const openPlanModal = (plan = null) => {
+    if (plan) {
+      setPlanForm({ name: plan.name, price: plan.price, duration: plan.duration, durationDays: plan.durationDays || 30, description: plan.description || '', active: plan.active !== false })
+      setPlanModal(plan)
+    } else {
+      setPlanForm({ name: '', price: '', duration: '1 Month', durationDays: 30, description: '', active: true })
+      setPlanModal({ id: null })
+    }
+  }
+
+  const savePlan = async () => {
+    if (!planForm.name.trim() || !planForm.price) return
+    setPlanSaving(true)
+    try {
+      const data = {
+        name: planForm.name.trim(),
+        price: Number(planForm.price),
+        duration: planForm.duration || '1 Month',
+        durationDays: Number(planForm.durationDays) || 30,
+        description: planForm.description.trim(),
+        active: planForm.active,
+      }
+      if (planModal?.id) {
+        await updatePlan(planModal.id, data)
+      } else {
+        await addPlan(data)
+      }
+      setPlanModal(null)
+    } catch (err) {
+      console.error('Failed to save plan:', err)
+    } finally {
+      setPlanSaving(false)
+    }
+  }
+
+    // ── Theme ─────────────────────────────────────────────────
   const [accentColor, setAccentColor] = useState(DEFAULT_ACCENT)
   const [themeSaved,    setThemeSaved]    = useState(false)
   const [themeError,    setThemeError]    = useState('')
@@ -414,6 +456,105 @@ export default function Settings() {
                 </>
               )}
             </SectionCard>
+          )}
+
+          {/* PLANS */}
+          {activeTab === 'plans' && (
+            <SectionCard icon="📋" title="Membership Plans" subtitle="Managed in Firestore — used by Members, Payments, and Renewals">
+              {plans.length === 0 ? (
+                <p style={{ color:'var(--text-muted)', fontSize:13 }}>Loading plans…</p>
+              ) : (
+                <>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+                    <p style={{ fontSize:12, color:'var(--text-muted)' }}>{plans.length} plan{plans.length !== 1 ? 's' : ''} configured</p>
+                    <button className="btn btn-primary btn-sm" onClick={() => openPlanModal(null)}>+ Add Plan</button>
+                  </div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                    {plans.sort((a, b) => (a.order || 99) - (b.order || 99)).map(plan => (
+                      <div key={plan.id} style={{
+                        display:'flex', alignItems:'center', gap:14,
+                        padding:'12px 16px', background:'var(--bg3)', borderRadius:'var(--radius-sm)',
+                        border:'1px solid var(--border)', opacity: plan.active === false ? 0.55 : 1,
+                      }}>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                            <span style={{ fontWeight:700, fontSize:14 }}>{plan.name}</span>
+                            {plan.active === false && <span className="badge badge-red" style={{ fontSize:10 }}>Inactive</span>}
+                          </div>
+                          <div style={{ fontSize:12, color:'var(--text-muted)', marginTop:2 }}>
+                            ₹{plan.price} · {plan.duration} · {plan.description}
+                          </div>
+                        </div>
+                        <div style={{ display:'flex', gap:6, flexShrink:0 }}>
+                          <button className="btn btn-sm btn-ghost" title="Edit" onClick={() => openPlanModal(plan)}>✏️</button>
+                          <button className="btn btn-sm btn-red" title="Delete" onClick={async () => {
+                            if (window.confirm(`Delete plan "${plan.name}"?`)) await deletePlan(plan.id)
+                          }}>🗑</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </SectionCard>
+          )}
+
+          {/* Plan Add/Edit Modal */}
+          {planModal !== null && (
+            <div className="modal-overlay" onClick={() => setPlanModal(null)}>
+              <div className="modal modal-md" onClick={e => e.stopPropagation()}>
+                <div className="modal-header">
+                  <div>
+                    <h3>{planModal?.id ? 'Edit Plan' : 'Add New Plan'}</h3>
+                    <p>{planModal?.id ? 'Update plan details' : 'Create a new membership plan'}</p>
+                  </div>
+                  <button className="modal-close" onClick={() => setPlanModal(null)}>✕</button>
+                </div>
+                <div style={{ padding:'16px 24px' }}>
+                  <div className="form-row" style={{ marginBottom:14 }}>
+                    <div className="form-group" style={{ margin:0 }}>
+                      <label className="form-label">Plan Name *</label>
+                      <input className="form-input" placeholder="e.g. Standard Monthly"
+                        value={planForm.name} onChange={e => setPlanForm(p => ({ ...p, name: e.target.value }))} />
+                    </div>
+                    <div className="form-group" style={{ margin:0 }}>
+                      <label className="form-label">Price (₹) *</label>
+                      <input className="form-input" type="number" placeholder="1499"
+                        value={planForm.price} onChange={e => setPlanForm(p => ({ ...p, price: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div className="form-row" style={{ marginBottom:14 }}>
+                    <div className="form-group" style={{ margin:0 }}>
+                      <label className="form-label">Duration Label</label>
+                      <input className="form-input" placeholder="e.g. 1 Month"
+                        value={planForm.duration} onChange={e => setPlanForm(p => ({ ...p, duration: e.target.value }))} />
+                    </div>
+                    <div className="form-group" style={{ margin:0 }}>
+                      <label className="form-label">Duration (days)</label>
+                      <input className="form-input" type="number" placeholder="30"
+                        value={planForm.durationDays} onChange={e => setPlanForm(p => ({ ...p, durationDays: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div className="form-group" style={{ marginBottom:14 }}>
+                    <label className="form-label">Description</label>
+                    <textarea className="form-input" rows={2} placeholder="Describe the plan..."
+                      value={planForm.description} onChange={e => setPlanForm(p => ({ ...p, description: e.target.value }))} />
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
+                    <div className={`toggle ${planForm.active ? 'on' : ''}`} onClick={() => setPlanForm(p => ({ ...p, active: !p.active }))}>
+                      <div className="toggle-thumb" />
+                    </div>
+                    <span style={{ fontSize:13, fontWeight:600 }}>Active</span>
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button className="btn btn-ghost" onClick={() => setPlanModal(null)}>Cancel</button>
+                  <button className="btn btn-primary" onClick={savePlan} disabled={planSaving || !planForm.name.trim() || !planForm.price}>
+                    {planSaving ? 'Saving…' : planModal?.id ? '💾 Save Changes' : '+ Add Plan'}
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* PRICING */}

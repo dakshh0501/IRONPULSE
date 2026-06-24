@@ -1,8 +1,12 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
-import { addPayment } from '../services/firestoreService'
+import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import { db } from '../firebase'
+import { addPayment, updateMember as updateMemberService } from '../services/firestoreService'
+import { uploadMemberPhoto } from '../services/storageService'
 import MemberQR from '../components/MemberQR'
+import MemberAvatar from '../components/MemberAvatar'
 
 const EMPTY_MEMBER = {
   name:'', age:'', weight:'', height:'',
@@ -11,10 +15,10 @@ const EMPTY_MEMBER = {
   trainerId:'', trainerName:'',
   join:'', expiry:'', status:'Active',
   checkins:0, avatar:'', bf:0, strength:0,
+  photoUrl:'', storagePath:'',
 }
 
 const GOALS    = ['Weight Loss','Muscle Gain','Strength','Flexibility','Toning','Endurance','General Fitness']
-const PLANS    = ['Trial','Standard','Premium','Quarterly','Annual']
 const STATUSES = ['Active','Expired','Trial','Inactive']
 
 // ─────────────────────────────────────────────────────────────
@@ -33,15 +37,47 @@ function Field({ label, error, children }) {
 // ─────────────────────────────────────────────────────────────
 //  MEMBER FORM MODAL
 // ─────────────────────────────────────────────────────────────
-function MemberModal({ member, trainers, onSave, onClose }) {
+function MemberModal({ member, trainers, onSave, onClose, plans }) {
   const isEdit = Boolean(member)
+  const activePlans = plans?.filter(p => p.active !== false) || []
   const [form, setForm]     = useState(member ? { ...member, password:'' } : { ...EMPTY_MEMBER })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadError, setUploadError] = useState('')
+  const [previewUrl, setPreviewUrl] = useState(member?.photoUrl || '')
+  const fileInputRef = useRef(null)
 
   const set = (k, v) => {
     setForm(p => ({ ...p, [k]: v }))
     setErrors(p => ({ ...p, [k]: '' }))
+  }
+
+  const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+  const MAX_FILE_SIZE = 5 * 1024 * 1024
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setUploadError('')
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setUploadError('Only JPG, JPEG, PNG, and WEBP files are accepted.')
+      return
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      setUploadError('File size must be less than 5MB.')
+      return
+    }
+    setSelectedFile(file)
+    setPreviewUrl(URL.createObjectURL(file))
+  }
+
+  const handleRemovePhoto = () => {
+    setSelectedFile(null)
+    setPreviewUrl(member?.photoUrl || '')
+    setUploadError('')
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const validate = () => {
@@ -58,10 +94,35 @@ function MemberModal({ member, trainers, onSave, onClose }) {
     const e = validate()
     if (Object.keys(e).length) { setErrors(e); return }
     setLoading(true)
+    setUploadError('')
     try {
       const avatar = form.name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase()
-      const planPrices = { Trial:499, Standard:1499, Premium:2999, Quarterly:3999, Annual:12999 }
-      await onSave({ ...form, avatar, planPrice: planPrices[form.plan] || 1499 })
+      const matchedPlan = activePlans.find(p => p.name === form.plan)
+      const payload = { ...form, avatar, planPrice: matchedPlan?.price || form.planPrice || 1499 }
+
+      let memberId = member?.id
+
+      // Save member data first
+      if (!memberId) {
+        memberId = await onSave(payload)
+      } else {
+        await onSave(payload)
+      }
+
+      // Upload photo if selected
+      if (selectedFile && memberId) {
+        const { downloadUrl } = await uploadMemberPhoto(selectedFile, memberId, setUploadProgress)
+        await updateMemberService(memberId, { photoUrl: downloadUrl })
+
+        // Also update the user profile document so MemberDashboard can show the photo
+        const authUid = form.authUid || member?.authUid
+        if (authUid) {
+          await updateDoc(doc(db, 'users', authUid), { photoUrl: downloadUrl })
+        }
+
+        setPreviewUrl(downloadUrl)
+      }
+
       onClose()
     } catch (err) {
       if (err?.code === 'auth/email-already-in-use') {
@@ -71,6 +132,7 @@ function MemberModal({ member, trainers, onSave, onClose }) {
       }
     } finally {
       setLoading(false)
+      setUploadProgress(0)
     }
   }
 
@@ -99,6 +161,43 @@ function MemberModal({ member, trainers, onSave, onClose }) {
             <input className="form-input" type="email" placeholder="email@example.com"
               value={form.email} onChange={e => set('email', e.target.value)} />
           </Field>
+        </div>
+
+        {/* ── Photo Upload ── */}
+        <div style={{ marginBottom:16 }}>
+          <label className="form-label">Profile Photo</label>
+          <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+            <MemberAvatar member={{ ...member, photoUrl: previewUrl }} size={56} fontSize={18} />
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                onChange={handleFileSelect}
+                style={{ display:'none' }}
+              />
+              <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                <button type="button" className="btn btn-outline btn-sm" onClick={() => fileInputRef.current?.click()}>
+                  {previewUrl ? 'Change Photo' : 'Upload Photo'}
+                </button>
+                {previewUrl && (
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={handleRemovePhoto} style={{ color:'var(--red)' }}>
+                    Remove
+                  </button>
+                )}
+              </div>
+              <p style={{ fontSize:11, color:'var(--text-muted)', marginTop:4 }}>JPG, JPEG, PNG, WEBP · Max 5MB</p>
+            </div>
+          </div>
+          {uploadProgress > 0 && (
+            <div style={{ marginTop:8 }}>
+              <div style={{ height:4, background:'var(--border)', borderRadius:4, overflow:'hidden' }}>
+                <div style={{ height:'100%', width:`${uploadProgress}%`, background:'var(--teal)', borderRadius:4, transition:'width 0.3s' }} />
+              </div>
+              <p style={{ fontSize:11, color:'var(--text-muted)', marginTop:4 }}>Uploading… {Math.round(uploadProgress)}%</p>
+            </div>
+          )}
+          {uploadError && <p style={{ fontSize:11, color:'var(--red)', marginTop:4 }}>⚠ {uploadError}</p>}
         </div>
 
         {/* ── Temporary Password — only shown when adding new member ── */}
@@ -179,8 +278,13 @@ function MemberModal({ member, trainers, onSave, onClose }) {
         <div className="form-row" style={{ marginBottom:14 }}>
           <div className="form-group" style={{ margin:0 }}>
             <label className="form-label">Plan</label>
-            <select className="form-select" value={form.plan} onChange={e => set('plan', e.target.value)}>
-              {PLANS.map(p => <option key={p}>{p}</option>)}
+            <select className="form-select" value={form.plan} onChange={e => {
+              set('plan', e.target.value)
+              const p = activePlans.find(pl => pl.name === e.target.value)
+              if (p) set('planPrice', p.price)
+            }}>
+              {activePlans.length > 0 ? activePlans.map(p => <option key={p.id || p.name} value={p.name}>{p.name} (₹{p.price})</option>)
+              : <option>No plans configured</option>}
             </select>
           </div>
           <div className="form-group" style={{ margin:0 }}>
@@ -238,7 +342,7 @@ function MemberModal({ member, trainers, onSave, onClose }) {
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
           <button className="btn btn-primary" onClick={handleSave} disabled={loading}>
-            {loading ? 'Creating…' : isEdit ? '💾 Save Changes' : '+ Add Member'}
+            {loading ? (uploadProgress > 0 ? `Uploading ${Math.round(uploadProgress)}%` : isEdit ? 'Saving…' : 'Creating…') : isEdit ? '💾 Save Changes' : '+ Add Member'}
           </button>
         </div>
 
@@ -277,13 +381,11 @@ const STATUS_BADGE = {
   Trial:    'badge badge-amber',
   Inactive: 'badge badge-purple',
 }
-const AV_COLORS = ['av-orange','av-teal','av-green','av-purple','av-amber']
-
 // ─────────────────────────────────────────────────────────────
 //  MAIN PAGE
 // ─────────────────────────────────────────────────────────────
 export default function Members({ search }) {
-  const { members, trainers, addMember, updateMember, deleteMember, checkInMember, attendance } = useApp()
+  const { members, trainers, plans, addMember, updateMember, deleteMember, checkInMember, attendance } = useApp()
   const { role, currentUser } = useAuth()
   const isAdmin   = role === 'admin'
   const isTrainer = role === 'trainer'
@@ -320,8 +422,6 @@ export default function Members({ search }) {
       (m.plan || '').toLowerCase().includes(q)
     return matchTrainer && matchFilter && matchSearch
   })
-
-  const avColor = (m) => AV_COLORS[m.name.charCodeAt(0) % AV_COLORS.length]
 
   return (
     <div>
@@ -370,7 +470,7 @@ export default function Members({ search }) {
                   <td style={{ color:'var(--text-muted)', fontSize:12 }}>{String(i+1).padStart(3,'0')}</td>
                   <td>
                     <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                      <div className={`avatar ${avColor(m)}`} style={{ width:34, height:34, fontSize:12 }}>{m.avatar}</div>
+                      <MemberAvatar member={m} size={34} fontSize={12} />
                       <div>
                         <div style={{ fontWeight:600 }}>{m.name}</div>
                         <div style={{ fontSize:11, color:'var(--text-muted)' }}>{m.email}</div>
@@ -408,14 +508,17 @@ export default function Members({ search }) {
                           onClick={async () => {
                             try {
                               const today    = new Date()
-                              const nextMonth = new Date()
-                              nextMonth.setDate(today.getDate() + 30)
-                              const expiry = nextMonth.toISOString().split('T')[0]
-                              await updateMember(m.id, { status:'Active', expiry })
+                              const matchedPlan = plans.find(p => p.name === m.plan)
+                              const planPrice = matchedPlan?.price || m.planPrice || 1499
+                              const durationDays = matchedPlan?.durationDays || 30
+                              const nextDate = new Date()
+                              nextDate.setDate(today.getDate() + durationDays)
+                              const expiry = nextDate.toISOString().split('T')[0]
+                              await updateMember(m.id, { status:'Active', expiry, planPrice })
                               await addPayment({
                                 memberId:   m.id,
                                 memberName: m.name,
-                                amount:     m.planPrice || 1499,
+                                amount:     planPrice,
                                 status:     'Paid',
                                 plan:       m.plan,
                                 date:       today.toISOString().split('T')[0],
@@ -450,7 +553,7 @@ export default function Members({ search }) {
           <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <div style={{ display:'flex', gap:14, alignItems:'center' }}>
-                <div className={`avatar ${avColor(viewMember)}`} style={{ width:52, height:52, fontSize:18 }}>{viewMember.avatar}</div>
+                <MemberAvatar member={viewMember} size={52} fontSize={18} />
                 <div>
                   <h3>{viewMember.name}</h3>
                   <p>{viewMember.email} · {viewMember.contact}</p>
@@ -498,6 +601,7 @@ export default function Members({ search }) {
         <MemberModal
           member={editMember}
           trainers={trainers}
+          plans={plans}
           onSave={data => editMember ? updateMember(editMember.id, data) : addMember(data)}
           onClose={() => { setModalOpen(false); setEditMember(null) }}
         />
