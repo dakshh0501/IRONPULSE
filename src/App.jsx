@@ -91,7 +91,6 @@ function buildPageMap(setPage, search, role) {
       progress:      <Progress       search={search} setPage={setPage} />,
       workouts:      <Workouts       search={search} setPage={setPage} />,
       diet:          <Diet           search={search} setPage={setPage} />,
-      payments:      <Payments       search={search} setPage={setPage} />,
       attendance:    <Attendance     search={search} setPage={setPage} />,
       notifications: <Notifications  search={search} setPage={setPage} />,
     }
@@ -184,10 +183,12 @@ const pageContent =
 // ─────────────────────────────────────────────────────────────
 //  ROUTE GUARDS
 // ─────────────────────────────────────────────────────────────
-function ProtectedRoute({ children }) {
-  const { isLoggedIn, authLoading } = useAuth()
+function ProtectedRoute({ children, allowedRoles }) {
+  const { isLoggedIn, role, authLoading } = useAuth()
   if (authLoading) return <AuthLoadingScreen />
-  return isLoggedIn ? children : <Navigate to="/" replace />
+  if (!isLoggedIn) return <Navigate to="/" replace />
+  if (allowedRoles && !allowedRoles.includes(role)) return <Navigate to="/dashboard" replace />
+  return children
 }
 
 function PublicRoute({ children }) {
@@ -205,7 +206,7 @@ function RouterTree() {
       <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
       <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><AppShell /></ProtectedRoute>} />
-      <Route path="/reception" element={<ProtectedRoute><ReceptionMode /></ProtectedRoute>} />
+      <Route path="/reception" element={<ProtectedRoute allowedRoles={['admin','trainer']}><ReceptionMode /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

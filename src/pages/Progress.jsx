@@ -9,15 +9,6 @@ import {
 // ─────────────────────────────────────────────────────────────
 //  CONSTANTS
 // ─────────────────────────────────────────────────────────────
-const INITIAL_LOG = [
-  { id:1, date:'2025-01-06', weight:85.0, bodyFat:22.0, bmi:27.8, muscle:63.0, bench:70, squat:90, deadlift:110, cardio:'22 min', memberId: '1', memberName: 'Rohan Sharma' },
-  { id:2, date:'2025-01-13', weight:84.2, bodyFat:21.5, bmi:27.5, muscle:63.5, bench:72, squat:92, deadlift:115, cardio:'21 min', memberId: '1', memberName: 'Rohan Sharma' },
-  { id:3, date:'2025-01-20', weight:83.5, bodyFat:21.0, bmi:27.2, muscle:64.0, bench:75, squat:95, deadlift:120, cardio:'20 min', memberId: '1', memberName: 'Rohan Sharma' },
-  { id:4, date:'2025-01-27', weight:82.8, bodyFat:20.5, bmi:27.0, muscle:64.5, bench:77, squat:98, deadlift:122, cardio:'19 min', memberId: '1', memberName: 'Rohan Sharma' },
-  { id:5, date:'2025-02-03', weight:82.0, bodyFat:20.0, bmi:26.8, muscle:65.0, bench:80, squat:100, deadlift:125, cardio:'19 min', memberId: '1', memberName: 'Rohan Sharma' },
-  { id:6, date:'2025-02-10', weight:81.5, bodyFat:19.5, bmi:26.6, muscle:65.5, bench:82, squat:102, deadlift:128, cardio:'18 min', memberId: '1', memberName: 'Rohan Sharma' },
-]
-
 const EMPTY_LOG = {
   date: '', weight: '', bodyFat: '', bmi: '', muscle: '',
   bench: '', squat: '', deadlift: '', cardio: '',
@@ -217,7 +208,7 @@ function LogModal({ onSave, onClose, members, currentUser, userProfile }) {
 //  MAIN EXPORT
 // ─────────────────────────────────────────────────────────────
 export default function Progress({ search = '' }) {
-  const { currentUser, members } = useApp()
+  const { currentUser, members, progressLogs, addProgressLog } = useApp()
   const { userProfile } = useAuth()
   const isAdmin = userProfile?.role === 'admin'
   const isTrainer = userProfile?.role === 'trainer'
@@ -233,15 +224,20 @@ export default function Progress({ search = '' }) {
 
   const [log,         setLog]         = useState(INITIAL_LOG)
   const [logOpen,     setLogOpen]     = useState(false)
-  const [chartTab,    setChartTab]    = useState('body')    // 'body' | 'strength'
+  const [chartTab,    setChartTab]    = useState('body')
   const [selectedMember, setSelectedMember] = useState(defaultMember)
 
-  const addEntry = (entry) => setLog(p => [...p, entry].sort((a,b) => a.date.localeCompare(b.date)))
+  const addEntry = async (entry) => {
+    try {
+      await addProgressLog(entry)
+    } catch (e) {
+      console.error('Failed to save progress entry:', e)
+    }
+  }
 
-  // Filter log by selected member for admin/trainer
   const filteredLog = canSelectMember && selectedMember
-    ? log.filter(e => e.memberName === selectedMember)
-    : log
+    ? progressLogs.filter(e => e.memberName === selectedMember)
+    : progressLogs
 
   const latest = filteredLog[filteredLog.length - 1] || {}
   const first  = filteredLog[0] || {}
@@ -403,17 +399,17 @@ export default function Progress({ search = '' }) {
       <div className="grid-2" style={{ marginBottom: 20 }}>
         <div className="card">
           <p className="card-title">Strength Benchmarks</p>
-          <ProgressRow label="Bench Press" value={latest.bench}    max={150} color="#e8420a" unit="kg" />
-          <ProgressRow label="Squat"       value={latest.squat}    max={200} color="#00c8b4" unit="kg" />
-          <ProgressRow label="Deadlift"    value={latest.deadlift} max={250} color="#a855f7" unit="kg" />
+          <ProgressRow label="Bench Press" value={latest.bench}    max={150} color="var(--orange)" unit="kg" />
+          <ProgressRow label="Squat"       value={latest.squat}    max={200} color="var(--teal)" unit="kg" />
+          <ProgressRow label="Deadlift"    value={latest.deadlift} max={250} color="var(--purple)" unit="kg" />
           <ProgressRow label="Cardio"      value={parseFloat(latest.cardio)||18} max={60} color="#22c55e" unit=" min" />
         </div>
 
         <div className="card">
           <p className="card-title">Body Composition</p>
-          <ProgressRow label="Muscle Mass" value={latest.muscle}  max={80}  color="#22c55e" unit="kg" />
-          <ProgressRow label="Body Fat"    value={latest.bodyFat} max={40}  color="#f59e0b" unit="%" />
-          <ProgressRow label="BMI"         value={latest.bmi}     max={40}  color="#00c8b4" unit="" />
+          <ProgressRow label="Muscle Mass" value={latest.muscle}  max={80}  color="var(--green)" unit="kg" />
+          <ProgressRow label="Body Fat"    value={latest.bodyFat} max={40}  color="var(--amber)" unit="%" />
+          <ProgressRow label="BMI"         value={latest.bmi}     max={40}  color="var(--teal)" unit="" />
           <div style={{ marginTop: 16, padding: 12, background: 'var(--bg3)', borderRadius: 8 }}>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>BMI Classification</p>
             <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--amber)' }}>

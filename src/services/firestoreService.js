@@ -39,30 +39,55 @@ const secondaryAuth = getAuth(secondaryApp)
 // Add new member
 export async function addMember(memberData) {
 
-  const docRef = await addDoc(
-    collection(db, 'members'),
-    {
-      ...memberData,
+  const { password, ...cleanData } = memberData
 
-      // Safe defaults
-      status:
-        memberData.status || 'Active',
+  let user
 
-      plan:
-        memberData.plan || 'Monthly',
+  try {
+    if (cleanData.email && password) {
+      const authResult =
+        await createUserWithEmailAndPassword(
+          secondaryAuth,
+          cleanData.email,
+          password
+        )
+      user = authResult.user
+      await secondaryAuth.signOut()
 
-      amountPaid:
-        Number(memberData.amountPaid) || 0,
-
-      checkins:
-        Number(memberData.checkins) || 0,
-
-      createdAt:
-        serverTimestamp(),
+      await setDoc(
+        doc(db, 'users', user.uid),
+        {
+          uid: user.uid,
+          email: user.email,
+          name: cleanData.name || '',
+          role: 'member',
+          createdAt: serverTimestamp(),
+        }
+      )
     }
-  )
 
-  return docRef.id
+    const docRef = await addDoc(
+      collection(db, 'members'),
+      {
+        ...cleanData,
+        authUid: user?.uid || cleanData.authUid || null,
+        status: cleanData.status || 'Active',
+        plan: cleanData.plan || 'Monthly',
+        amountPaid: Number(cleanData.amountPaid) || 0,
+        checkins: Number(cleanData.checkins) || 0,
+        createdAt: serverTimestamp(),
+      }
+    )
+
+    return docRef.id
+  } catch (error) {
+    if (user) {
+      try { await user.delete() } catch (cleanupErr) {
+        console.error('Failed to cleanup auth user:', cleanupErr)
+      }
+    }
+    throw error
+  }
 }
 
 // Realtime members listener
@@ -374,6 +399,38 @@ export async function saveSettings(docId = 'gym', data) {
 }
 
 // ─────────────────────────────────────────────
+// PROGRESS LOGS
+// ─────────────────────────────────────────────
+
+export function subscribeToProgressLogs(callback) {
+  return onSnapshot(
+    collection(db, 'progressLogs'),
+    (snapshot) => {
+      const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      callback(logs)
+    }
+  )
+}
+
+export async function addProgressLog(logData) {
+  const docRef = await addDoc(
+    collection(db, 'progressLogs'),
+    {
+      ...logData,
+      weight: Number(logData.weight) || 0,
+      bodyFat: Number(logData.bodyFat) || 0,
+      bmi: Number(logData.bmi) || 0,
+      muscle: Number(logData.muscle) || 0,
+      bench: Number(logData.bench) || 0,
+      squat: Number(logData.squat) || 0,
+      deadlift: Number(logData.deadlift) || 0,
+      createdAt: serverTimestamp(),
+    }
+  )
+  return docRef.id
+}
+
+// ─────────────────────────────────────────────
 // PLANS
 // ─────────────────────────────────────────────
 
@@ -429,4 +486,119 @@ export async function migrateDefaultPlans() {
     await addDoc(collection(db, 'plans'), { ...plan, createdAt: serverTimestamp() })
   }
   return true
+}
+
+// ─────────────────────────────────────────────
+// DIET PLANS
+// ─────────────────────────────────────────────
+
+export function subscribeToDietPlans(callback) {
+  return onSnapshot(
+    collection(db, 'dietPlans'),
+    (snapshot) => {
+      const plans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      callback(plans)
+    }
+  )
+}
+
+export async function addDietPlan(planData) {
+  const docRef = await addDoc(
+    collection(db, 'dietPlans'),
+    { ...planData, createdAt: serverTimestamp() }
+  )
+  return docRef.id
+}
+
+export async function updateDietPlan(planId, updatedData) {
+  await updateDoc(doc(db, 'dietPlans', planId), updatedData)
+}
+
+export async function deleteDietPlan(planId) {
+  await deleteDoc(doc(db, 'dietPlans', planId))
+}
+
+// ─────────────────────────────────────────────
+// WORKOUT PLANS
+// ─────────────────────────────────────────────
+
+export function subscribeToWorkoutPlans(callback) {
+  return onSnapshot(
+    collection(db, 'workoutPlans'),
+    (snapshot) => {
+      const plans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      callback(plans)
+    }
+  )
+}
+
+export async function addWorkoutPlan(planData) {
+  const docRef = await addDoc(
+    collection(db, 'workoutPlans'),
+    { ...planData, createdAt: serverTimestamp() }
+  )
+  return docRef.id
+}
+
+export async function updateWorkoutPlan(planId, updatedData) {
+  await updateDoc(doc(db, 'workoutPlans', planId), updatedData)
+}
+
+export async function deleteWorkoutPlan(planId) {
+  await deleteDoc(doc(db, 'workoutPlans', planId))
+}
+
+// ─────────────────────────────────────────────
+// BACKFILL: populate memberId/authUid on existing dietPlans/workoutPlans
+// Call once after schema update to backfill legacy records.
+// ─────────────────────────────────────────────
+
+export async function backfillOwnershipFields() {
+  // Build member name → { id, authUid } map
+  const memberSnap = await getDocs(collection(db, 'members'))
+  const memberMap = {}
+  memberSnap.forEach(d => {
+    const data = d.data()
+    memberMap[data.name] = { id: d.id, authUid: data.authUid }
+  })
+
+  const results = { updated: 0, unmatched: 0, unmatchedNames: [] }
+
+  // Backfill dietPlans (field: assignedMember)
+  const dietSnap = await getDocs(collection(db, 'dietPlans'))
+  for (const docSnap of dietSnap.docs) {
+    const data = docSnap.data()
+    if (data.memberId && data.authUid) continue
+    const entry = memberMap[data.assignedMember]
+    if (entry) {
+      await updateDoc(doc(db, 'dietPlans', docSnap.id), {
+        memberId: entry.id,
+        authUid: entry.authUid
+      })
+      results.updated++
+    } else if (data.assignedMember) {
+      results.unmatched++
+      results.unmatchedNames.push(`dietPlans/${docSnap.id} → "${data.assignedMember}"`)
+    }
+  }
+
+  // Backfill workoutPlans (field: member)
+  const workoutSnap = await getDocs(collection(db, 'workoutPlans'))
+  for (const docSnap of workoutSnap.docs) {
+    const data = docSnap.data()
+    if (data.memberId && data.authUid) continue
+    const entry = memberMap[data.member]
+    if (entry) {
+      await updateDoc(doc(db, 'workoutPlans', docSnap.id), {
+        memberId: entry.id,
+        authUid: entry.authUid
+      })
+      results.updated++
+    } else if (data.member) {
+      results.unmatched++
+      results.unmatchedNames.push(`workoutPlans/${docSnap.id} → "${data.member}"`)
+    }
+  }
+
+  return results
 }

@@ -1,0 +1,245 @@
+rules_version = '2';
+
+// ══════════════════════════════════════════════════════════
+//  IRONPULSE — Firestore Security Rules
+//  Roles: admin | trainer | member | pending
+// ══════════════════════════════════════════════════════════
+
+service cloud.firestore {
+
+  match /databases/{database}/documents {
+
+    // ── HELPERS ───────────────────────────────────────────
+    // Defined inside match scope so $(database) resolves.
+
+    function getRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAuthed() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthed() && getRole() == 'admin';
+    }
+
+    function isTrainer() {
+      return isAuthed() && getRole() == 'trainer';
+    }
+
+    function isMember() {
+      return isAuthed() && getRole() == 'member';
+    }
+
+    function isStaff() {
+      return isAdmin() || isTrainer();
+    }
+
+    function isApproved() {
+      return isAuthed() && (
+        getRole() == 'admin' ||
+        getRole() == 'trainer' ||
+        getRole() == 'member'
+      );
+    }
+
+    function isOwnAttendance(resourceMemberId) {
+      return isMember() && resourceMemberId == request.auth.uid;
+    }
+
+    function isOwnMemberDoc(resourceMemberId) {
+      let memberPath = /databases/$(database)/documents/members/$(resourceMemberId);
+      return isMember() &&
+        exists(memberPath) &&
+        get(memberPath).data.authUid == request.auth.uid;
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  USERS
+    //  Doc ID = Firebase Auth UID. Role stored here.
+    // ════════════════════════════════════════════════════════
+    match /users/{uid} {
+
+      allow read: if isAuthed() && (
+        request.auth.uid == uid || isAdmin()
+      );
+
+      allow create: if (isAuthed() && request.auth.uid == uid) || isAdmin();
+
+      allow update: if isAuthed() && (
+        (request.auth.uid == uid &&
+          request.resource.data.role == resource.data.role)
+        || isAdmin()
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  MEMBERS
+    //  authUid = Firebase Auth UID. trainerId = Firestore doc ID.
+    // ════════════════════════════════════════════════════════
+    match /members/{memberId} {
+
+      allow read: if isStaff() || (
+        isMember() &&
+        resource.data.authUid == request.auth.uid
+      );
+
+      allow create: if isAdmin();
+
+      allow update: if isAdmin() || (
+        isTrainer() &&
+        request.resource.data.amountPaid == resource.data.amountPaid &&
+        request.resource.data.planPrice == resource.data.planPrice &&
+        request.resource.data.checkins == resource.data.checkins
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  TRAINERS
+    //  authUid = Firebase Auth UID.
+    // ════════════════════════════════════════════════════════
+    match /trainers/{trainerId} {
+
+      allow read: if isStaff();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  PAYMENTS
+    //  memberId = Firestore doc ID of the member.
+    // ════════════════════════════════════════════════════════
+    match /payments/{paymentId} {
+
+      allow read: if isAdmin() || isOwnMemberDoc(resource.data.memberId);
+
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  ATTENDANCE
+    //  memberId = Firebase Auth UID.
+    // ════════════════════════════════════════════════════════
+    match /attendance/{attendanceId} {
+
+      allow read: if isStaff() || isOwnAttendance(resource.data.memberId);
+
+      allow create: if isStaff() || (
+        isMember() &&
+        request.resource.data.memberId == request.auth.uid
+      );
+
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  PLANS (membership pricing)
+    // ════════════════════════════════════════════════════════
+    match /plans/{planId} {
+
+      allow read: if isApproved();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  DIET PLANS
+    // ════════════════════════════════════════════════════════
+    match /dietPlans/{planId} {
+
+      allow read: if isStaff() || (
+        isMember() &&
+        (resource.data.memberId == request.auth.uid ||
+         resource.data.authUid == request.auth.uid)
+      );
+
+      allow create: if isStaff();
+      allow update: if isStaff();
+      allow delete: if isAdmin();
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  WORKOUT PLANS
+    // ════════════════════════════════════════════════════════
+    match /workoutPlans/{planId} {
+
+      allow read: if isStaff() || (
+        isMember() &&
+        (resource.data.memberId == request.auth.uid ||
+         resource.data.authUid == request.auth.uid)
+      );
+
+      allow create: if isStaff();
+      allow update: if isStaff();
+      allow delete: if isAdmin();
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  PROGRESS LOGS
+    //  memberId = Firestore doc ID of the member.
+    // ════════════════════════════════════════════════════════
+    match /progressLogs/{logId} {
+
+      allow read: if isStaff() || isOwnMemberDoc(resource.data.memberId);
+
+      allow create: if isStaff() || (
+        isMember() &&
+        isOwnMemberDoc(request.resource.data.memberId)
+      );
+
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  SUPPORT TICKETS
+    //  No owner field in current app schema — admin-only read.
+    // ════════════════════════════════════════════════════════
+    match /supportTickets/{ticketId} {
+
+      allow read: if isAdmin();
+      allow create: if isAuthed();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  FEATURE REQUESTS
+    //  Same access as supportTickets.
+    // ════════════════════════════════════════════════════════
+    match /featureRequests/{requestId} {
+
+      allow read: if isAdmin();
+      allow create: if isAuthed();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  SETTINGS
+    //  docId = 'gym' | 'pricing' | 'theme' | 'notifications' | ...
+    // ════════════════════════════════════════════════════════
+    match /settings/{docId} {
+
+      allow read: if isAdmin() || (
+        isApproved() &&
+        docId == 'gym'
+      );
+
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+  } // end match /databases/{database}/documents
+} // end service cloud.firestore

@@ -98,23 +98,23 @@ const MEAL_TIMES = ['6:00 AM', '7:00 AM', '7:30 AM', '8:00 AM', '9:00 AM', '10:0
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const GOAL_COLORS = {
-  'Fat Loss':         { bg: '#FF4B2B22', border: '#FF4B2B', text: '#FF6B4A', label: 'bg-red' },
-  'Muscle Gain':      { bg: '#F59E0B22', border: '#F59E0B', text: '#FBB826', label: 'bg-amber' },
-  'Keto / Low Carb':  { bg: '#8B5CF622', border: '#8B5CF6', text: '#A78BFA', label: 'bg-purple' },
-  'Maintenance':      { bg: '#10B98122', border: '#10B981', text: '#34D399', label: 'bg-green' },
-  'Endurance':        { bg: '#3B82F622', border: '#3B82F6', text: '#60A5FA', label: 'bg-blue' },
-  'Vegan':            { bg: '#22C55E22', border: '#22C55E', text: '#4ADE80', label: 'bg-emerald' },
-  'Diabetic Friendly':{ bg: '#06B6D422', border: '#06B6D4', text: '#22D3EE', label: 'bg-cyan' },
+  'Fat Loss':         { bg: 'rgba(232,66,10,0.13)', border: 'var(--orange)', text: 'var(--orange)', label: 'bg-red' },
+  'Muscle Gain':      { bg: 'rgba(245,158,11,0.13)', border: 'var(--amber)', text: 'var(--amber)', label: 'bg-amber' },
+  'Keto / Low Carb':  { bg: 'rgba(168,85,247,0.13)', border: 'var(--purple)', text: 'var(--purple)', label: 'bg-purple' },
+  'Maintenance':      { bg: 'rgba(34,197,94,0.13)', border: 'var(--green)', text: 'var(--green)', label: 'bg-green' },
+  'Endurance':        { bg: 'rgba(59,130,246,0.13)', border: '#3B82F6', text: '#60A5FA', label: 'bg-blue' },
+  'Vegan':            { bg: 'rgba(34,197,94,0.13)', border: 'var(--green)', text: 'var(--green)', label: 'bg-emerald' },
+  'Diabetic Friendly':{ bg: 'rgba(6,182,212,0.13)', border: 'var(--teal)', text: 'var(--teal)', label: 'bg-cyan' },
 }
 const goalColor = (goal) => GOAL_COLORS[goal] || { bg: '#ffffff11', border: '#666', text: '#aaa' }
 
 const STATUS_STYLE = {
-  Active:    { dot: '#10B981', text: '#34D399', bg: '#10B98120' },
-  Paused:    { dot: '#F59E0B', text: '#FBB826', bg: '#F59E0B20' },
-  Completed: { dot: '#6B7280', text: '#9CA3AF', bg: '#6B728020' },
+  Active:    { dot: 'var(--green)', text: 'var(--green)', bg: 'rgba(34,197,94,0.13)' },
+  Paused:    { dot: 'var(--amber)', text: 'var(--amber)', bg: 'rgba(245,158,11,0.13)' },
+  Completed: { dot: 'var(--text-muted)', text: 'var(--text-muted)', bg: 'rgba(96,112,160,0.13)' },
 }
 
-const macroColor = { protein: '#FF4B2B', carbs: '#F59E0B', fat: '#8B5CF6' }
+const macroColor = { protein: 'var(--orange)', carbs: 'var(--amber)', fat: 'var(--purple)' }
 
 function calcMacroPercent(protein, carbs, fat) {
   const pc = protein * 4, cc = carbs * 4, fc = fat * 9
@@ -137,8 +137,8 @@ function MacroBar({ protein, carbs, fat }) {
         {[['Protein', protein, 'g', macroColor.protein], ['Carbs', carbs, 'g', macroColor.carbs], ['Fat', fat, 'g', macroColor.fat]].map(([label, val, unit, color]) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
             <div style={{ width: 7, height: 7, borderRadius: 2, background: color }} />
-            <span style={{ color: '#9CA3AF' }}>{label}</span>
-            <span style={{ color: '#E5E7EB', fontWeight: 700 }}>{val}{unit}</span>
+            <span style={{ color: 'var(--text-muted)' }}>{label}</span>
+            <span style={{ color: 'var(--text)', fontWeight: 700 }}>{val}{unit}</span>
           </div>
         ))}
       </div>
@@ -155,7 +155,7 @@ function StatPill({ icon, value, label, color }) {
     }}>
       <span style={{ fontSize: 18 }}>{icon}</span>
       <span style={{ fontSize: 15, fontWeight: 800, color: color || '#fff', lineHeight: 1.2, marginTop: 2 }}>{value}</span>
-      <span style={{ fontSize: 10, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</span>
+      <span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</span>
     </div>
   )
 }
@@ -195,7 +195,7 @@ function MealTimeline({ meals }) {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 18 }}>
             <div style={{
               width: 12, height: 12, borderRadius: '50%',
-              background: 'linear-gradient(135deg,#FF4B2B,#F59E0B)',
+              background: 'linear-gradient(135deg,var(--orange),#F59E0B)',
               border: '2px solid #1a1a1a', zIndex: 1, marginTop: 4, flexShrink: 0,
             }} />
             {i < meals.length - 1 && (
@@ -204,15 +204,15 @@ function MealTimeline({ meals }) {
           </div>
           <div style={{ flex: 1, paddingBottom: i < meals.length - 1 ? 20 : 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-              <span style={{ fontWeight: 700, color: '#E5E7EB', fontSize: 13 }}>{meal.name}</span>
+              <span style={{ fontWeight: 700, color: 'var(--text)', fontSize: 13 }}>{meal.name}</span>
               <span style={{ fontSize: 11, color: '#F59E0B', fontWeight: 600 }}>{meal.calories} kcal</span>
             </div>
-            <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>{meal.time}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{meal.time}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
               {meal.items.map((item, j) => (
                 <span key={j} style={{
                   background: '#ffffff08', border: '1px solid #ffffff10',
-                  color: '#9CA3AF', borderRadius: 4, padding: '2px 7px', fontSize: 11,
+                  color: 'var(--text-muted)', borderRadius: 4, padding: '2px 7px', fontSize: 11,
                 }}>{item}</span>
               ))}
             </div>
@@ -256,7 +256,7 @@ function PlanCard({ plan, onView, onEdit, onDelete }) {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: 16, color: '#F3F4F6', marginBottom: 6, letterSpacing: -0.3 }}>
+          <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--text)', marginBottom: 6, letterSpacing: -0.3 }}>
             {plan.name}
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -272,11 +272,11 @@ function PlanCard({ plan, onView, onEdit, onDelete }) {
         marginBottom: 10, padding: '10px 14px',
         background: '#ffffff06', borderRadius: 10, border: '1px solid #ffffff08',
       }}>
-        <span style={{ fontSize: 32, fontWeight: 900, color: '#FF4B2B', lineHeight: 1, fontFamily: "'Bebas Neue',sans-serif" }}>
+        <span style={{ fontSize: 32, fontWeight: 900, color: 'var(--orange)', lineHeight: 1, fontFamily: "'Bebas Neue',sans-serif" }}>
           {plan.calories.toLocaleString()}
         </span>
-        <span style={{ color: '#6B7280', fontSize: 13, fontWeight: 600 }}>kcal / day</span>
-        <div style={{ marginLeft: 'auto', fontSize: 11, color: '#6B7280' }}>⏱ {plan.duration}</div>
+        <span style={{ color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>kcal / day</span>
+        <div style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-muted)' }}>⏱ {plan.duration}</div>
       </div>
 
       {/* Macro bar */}
@@ -290,16 +290,16 @@ function PlanCard({ plan, onView, onEdit, onDelete }) {
         background: '#ffffff05', borderRadius: 8, border: '1px solid #ffffff08',
       }}>
         <div style={{ flex: 1, fontSize: 12 }}>
-          <div style={{ color: '#6B7280', marginBottom: 1 }}>Member</div>
-          <div style={{ color: '#E5E7EB', fontWeight: 600 }}>👤 {plan.assignedMember}</div>
+          <div style={{ color: 'var(--text-muted)', marginBottom: 1 }}>Member</div>
+          <div style={{ color: 'var(--text)', fontWeight: 600 }}>👤 {plan.assignedMember}</div>
         </div>
         <div style={{ flex: 1, fontSize: 12 }}>
-          <div style={{ color: '#6B7280', marginBottom: 1 }}>Trainer</div>
-          <div style={{ color: '#E5E7EB', fontWeight: 600 }}>🏋️ {plan.assignedTrainer}</div>
+          <div style={{ color: 'var(--text-muted)', marginBottom: 1 }}>Trainer</div>
+          <div style={{ color: 'var(--text)', fontWeight: 600 }}>🏋️ {plan.assignedTrainer}</div>
         </div>
         <div style={{ fontSize: 12 }}>
-          <div style={{ color: '#6B7280', marginBottom: 1 }}>Meals</div>
-          <div style={{ color: '#E5E7EB', fontWeight: 600 }}>🍽️ {plan.meals.length}</div>
+          <div style={{ color: 'var(--text-muted)', marginBottom: 1 }}>Meals</div>
+          <div style={{ color: 'var(--text)', fontWeight: 600 }}>🍽️ {plan.meals.length}</div>
         </div>
       </div>
 
@@ -315,12 +315,12 @@ function PlanCard({ plan, onView, onEdit, onDelete }) {
         <button onClick={() => onEdit(plan)} style={{
           padding: '8px 14px',
           background: '#ffffff08', border: '1px solid #ffffff15',
-          borderRadius: 8, color: '#9CA3AF', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+          borderRadius: 8, color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
         }}>✏️</button>
         <button onClick={() => onDelete(plan.id)} style={{
           padding: '8px 14px',
-          background: '#FF4B2B11', border: '1px solid #FF4B2B30',
-          borderRadius: 8, color: '#FF6B4A', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+          background: 'var(--orange)11', border: '1px solid var(--orange)30',
+          borderRadius: 8, color: 'var(--orange)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
         }}>🗑</button>
       </div>
     </div>
@@ -364,7 +364,7 @@ function PlanDetailModal({ plan, onClose, onEdit, gymName }) {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 26, color: '#F3F4F6', letterSpacing: 1 }}>
+              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 26, color: 'var(--text)', letterSpacing: 1 }}>
                 {plan.name}
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
@@ -384,12 +384,12 @@ function PlanDetailModal({ plan, onClose, onEdit, gymName }) {
               <button onClick={() => { onClose(); onEdit(plan) }} style={{
                 padding: '8px 16px', background: '#ffffff10',
                 border: '1px solid #ffffff20', borderRadius: 8,
-                color: '#E5E7EB', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                color: 'var(--text)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
               }}>✏️ EDIT</button>
               <button onClick={onClose} style={{
                 width: 36, height: 36, borderRadius: 8,
-                background: '#FF4B2B15', border: '1px solid #FF4B2B30',
-                color: '#FF6B4A', fontSize: 18, cursor: 'pointer',
+                background: 'var(--orange)15', border: '1px solid var(--orange)30',
+                color: 'var(--orange)', fontSize: 18, cursor: 'pointer',
               }}>×</button>
             </div>
           </div>
@@ -398,8 +398,8 @@ function PlanDetailModal({ plan, onClose, onEdit, gymName }) {
         <div style={{ padding: '24px 28px' }}>
           {/* Stat row */}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
-            <StatPill icon="🔥" value={plan.calories.toLocaleString()} label="kcal" color="#FF4B2B" />
-            <StatPill icon="🥩" value={`${plan.protein}g`} label="Protein" color="#FF4B2B" />
+            <StatPill icon="🔥" value={plan.calories.toLocaleString()} label="kcal" color="var(--orange)" />
+            <StatPill icon="🥩" value={`${plan.protein}g`} label="Protein" color="var(--orange)" />
             <StatPill icon="🍞" value={`${plan.carbs}g`} label="Carbs" color="#F59E0B" />
             <StatPill icon="🥑" value={`${plan.fat}g`} label="Fat" color="#8B5CF6" />
             <StatPill icon="🍽️" value={plan.meals.length} label="Meals" color="#10B981" />
@@ -411,25 +411,25 @@ function PlanDetailModal({ plan, onClose, onEdit, gymName }) {
             background: '#ffffff06', border: '1px solid #ffffff10',
             borderRadius: 12, padding: '16px 20px', marginBottom: 24,
           }}>
-            <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
               Macro Distribution
             </div>
             <div style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden', gap: 2, marginBottom: 12 }}>
-              <div style={{ width: `${pct.protein}%`, background: `linear-gradient(90deg, #FF4B2B, #FF6B4A)`, borderRadius: 6 }} />
-              <div style={{ width: `${pct.carbs}%`, background: `linear-gradient(90deg, #F59E0B, #FBB826)`, borderRadius: 6 }} />
-              <div style={{ width: `${pct.fat}%`, background: `linear-gradient(90deg, #8B5CF6, #A78BFA)`, borderRadius: 6 }} />
+              <div style={{ width: `${pct.protein}%`, background: `linear-gradient(90deg, var(--orange), var(--orange))`, borderRadius: 6 }} />
+              <div style={{ width: `${pct.carbs}%`, background: `linear-gradient(90deg, #F59E0B, var(--amber))`, borderRadius: 6 }} />
+              <div style={{ width: `${pct.fat}%`, background: `linear-gradient(90deg, #8B5CF6, var(--purple))`, borderRadius: 6 }} />
             </div>
             <div style={{ display: 'flex', gap: 20 }}>
               {[
-                ['Protein', plan.protein, 'g', pct.protein, '#FF4B2B'],
+                ['Protein', plan.protein, 'g', pct.protein, 'var(--orange)'],
                 ['Carbohydrates', plan.carbs, 'g', pct.carbs, '#F59E0B'],
                 ['Fat', plan.fat, 'g', pct.fat, '#8B5CF6'],
               ].map(([name, val, unit, perc, color]) => (
                 <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ width: 10, height: 10, borderRadius: 3, background: color }} />
                   <div>
-                    <div style={{ fontSize: 11, color: '#6B7280' }}>{name}</div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#E5E7EB' }}>{val}{unit} <span style={{ fontSize: 11, color, fontWeight: 600 }}>({perc}%)</span></div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{name}</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>{val}{unit} <span style={{ fontSize: 11, color, fontWeight: 600 }}>({perc}%)</span></div>
                   </div>
                 </div>
               ))}
@@ -446,15 +446,15 @@ function PlanDetailModal({ plan, onClose, onEdit, gymName }) {
                 background: '#ffffff06', border: '1px solid #ffffff10',
                 borderRadius: 10, padding: '12px 16px',
               }}>
-                <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>{label}</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#E5E7EB' }}>{val}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{label}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{val}</div>
               </div>
             ))}
           </div>
 
           {/* Meal Timeline */}
           <div>
-            <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>
               Meal Schedule · {totalMealCal} kcal total
             </div>
             <MealTimeline meals={plan.meals} />
@@ -472,8 +472,18 @@ const EMPTY_PLAN = {
   meals: [{ id: Date.now(), name: 'Breakfast', time: '7:00 AM', calories: '', items: [''] }],
 }
 
-function PlanFormModal({ existing, onSave, onClose }) {
-  const [form, setForm] = useState(existing ? { ...existing, meals: existing.meals.map(m => ({ ...m, items: [...m.items] })) } : { ...EMPTY_PLAN, meals: [{ id: Date.now(), name: 'Breakfast', time: '7:00 AM', calories: '', items: [''] }] })
+function PlanFormModal({ existing, onSave, onClose, members = [] }) {
+  const [form, setForm] = useState(() => {
+    if (existing) {
+      const f = { ...existing, meals: existing.meals.map(m => ({ ...m, items: [...m.items] })) }
+      if (!f.memberId) {
+        const m = members.find(x => x.name === f.assignedMember)
+        if (m) { f.memberId = m.id; f.authUid = m.authUid }
+      }
+      return f
+    }
+    return { ...EMPTY_PLAN, meals: [{ id: Date.now(), name: 'Breakfast', time: '7:00 AM', calories: '', items: [''] }] }
+  })
   const [errors, setErrors] = useState({})
   const [step, setStep] = useState(0) // 0=details, 1=meals
 
@@ -530,15 +540,15 @@ function PlanFormModal({ existing, onSave, onClose }) {
     type,
     style: {
       width: '100%', padding: '10px 12px', boxSizing: 'border-box',
-      background: errors[key] ? '#FF4B2B11' : '#ffffff08',
-      border: `1px solid ${errors[key] ? '#FF4B2B60' : '#ffffff15'}`,
-      borderRadius: 8, color: '#F3F4F6', fontSize: 13, outline: 'none',
+      background: errors[key] ? 'var(--orange)11' : '#ffffff08',
+      border: `1px solid ${errors[key] ? 'var(--orange)60' : '#ffffff15'}`,
+      borderRadius: 8, color: 'var(--text)', fontSize: 13, outline: 'none',
     },
     ...extra
   })
 
-  const labelStyle = { fontSize: 11, color: '#6B7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4, display: 'block' }
-  const errStyle = { color: '#FF6B4A', fontSize: 11, marginTop: 3 }
+  const labelStyle = { fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4, display: 'block' }
+  const errStyle = { color: 'var(--orange)', fontSize: 11, marginTop: 3 }
   const gridTwo = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }
   const gridThree = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }
 
@@ -549,14 +559,14 @@ function PlanFormModal({ existing, onSave, onClose }) {
         {/* Header */}
         <div style={{ padding: '22px 26px 18px', borderBottom: '1px solid #ffffff10', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: '#111', zIndex: 2, borderRadius: '20px 20px 0 0' }}>
           <div>
-            <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: '#F3F4F6', letterSpacing: 1 }}>
+            <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: 'var(--text)', letterSpacing: 1 }}>
               {existing ? 'EDIT DIET PLAN' : 'CREATE DIET PLAN'}
             </div>
-            <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
               {existing ? `Editing: ${existing.name}` : 'Add a new nutrition plan for a member'}
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 8, background: '#FF4B2B15', border: '1px solid #FF4B2B30', color: '#FF6B4A', fontSize: 18, cursor: 'pointer' }}>×</button>
+          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--orange)15', border: '1px solid var(--orange)30', color: 'var(--orange)', fontSize: 18, cursor: 'pointer' }}>×</button>
         </div>
 
         {/* Step tabs */}
@@ -564,9 +574,9 @@ function PlanFormModal({ existing, onSave, onClose }) {
           {['📋 Plan Details', '🍽️ Meal Schedule'].map((label, i) => (
             <button key={i} onClick={() => setStep(i)} style={{
               flex: 1, padding: '12px 0',
-              background: step === i ? '#FF4B2B18' : 'transparent',
-              border: 'none', borderBottom: `2px solid ${step === i ? '#FF4B2B' : 'transparent'}`,
-              color: step === i ? '#FF6B4A' : '#6B7280',
+              background: step === i ? 'var(--orange)18' : 'transparent',
+              border: 'none', borderBottom: `2px solid ${step === i ? 'var(--orange)' : 'transparent'}`,
+              color: step === i ? 'var(--orange)' : 'var(--text-muted)',
               fontSize: 12, fontWeight: 700, cursor: 'pointer', letterSpacing: 0.5,
             }}>{label}</button>
           ))}
@@ -611,15 +621,31 @@ function PlanFormModal({ existing, onSave, onClose }) {
               </div>
               {form.protein && form.carbs && form.fat && (
                 <div style={{ background: '#ffffff06', borderRadius: 10, padding: '12px 16px' }}>
-                  <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 8, fontWeight: 700 }}>MACRO PREVIEW</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 700 }}>MACRO PREVIEW</div>
                   <MacroBar protein={+form.protein} carbs={+form.carbs} fat={+form.fat} />
                 </div>
               )}
               <div style={gridTwo}>
                 <div>
                   <label style={labelStyle}>Assigned Member *</label>
-                  <input {...inp('assignedMember', 'Member name')} />
+                  <select value={form.assignedMember} onChange={e => {
+                    const val = e.target.value
+                    const m = members.find(x => x.name === val)
+                    setForm(f => ({ ...f, assignedMember: val, memberId: m ? m.id : '', authUid: m ? m.authUid : '' }))
+                    setErrors(err => ({ ...err, assignedMember: '' }))
+                  }} style={{ ...inp('assignedMember').style, cursor: 'pointer' }}>
+                    <option value="">— Select member —</option>
+                    {members.map(m => <option key={m.id} value={m.name} style={{ background: '#1a1a1a' }}>{m.name} ({m.plan})</option>)}
+                  </select>
                   {errors.assignedMember && <div style={errStyle}>{errors.assignedMember}</div>}
+                  {form.assignedMember && members.find(x => x.name === form.assignedMember) && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, background: '#ffffff08', borderRadius: 8, padding: '8px 12px' }}>
+                      <div>
+                        <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>{form.assignedMember}</p>
+                        <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{members.find(x => x.name === form.assignedMember)?.goal} · {members.find(x => x.name === form.assignedMember)?.plan}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label style={labelStyle}>Assigned Trainer *</label>
@@ -633,7 +659,7 @@ function PlanFormModal({ existing, onSave, onClose }) {
                 {errors.duration && <div style={errStyle}>{errors.duration}</div>}
               </div>
               <button onClick={() => setStep(1)} style={{
-                width: '100%', padding: '12px', background: 'linear-gradient(135deg,#FF4B2B,#F59E0B)',
+                width: '100%', padding: '12px', background: 'linear-gradient(135deg,var(--orange),#F59E0B)',
                 border: 'none', borderRadius: 10, color: '#fff', fontWeight: 800, fontSize: 14,
                 cursor: 'pointer', letterSpacing: 1,
               }}>NEXT: MEAL SCHEDULE →</button>
@@ -645,26 +671,26 @@ function PlanFormModal({ existing, onSave, onClose }) {
               {form.meals.map((meal, mIdx) => (
                 <div key={meal.id} style={{ background: '#ffffff06', border: '1px solid #ffffff10', borderRadius: 12, padding: 16 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <div style={{ fontWeight: 700, color: '#E5E7EB', fontSize: 14 }}>Meal {mIdx + 1}</div>
+                    <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: 14 }}>Meal {mIdx + 1}</div>
                     {form.meals.length > 1 && (
-                      <button onClick={() => removeMeal(mIdx)} style={{ background: '#FF4B2B15', border: '1px solid #FF4B2B30', color: '#FF6B4A', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}>Remove</button>
+                      <button onClick={() => removeMeal(mIdx)} style={{ background: 'var(--orange)15', border: '1px solid var(--orange)30', color: 'var(--orange)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}>Remove</button>
                     )}
                   </div>
                   <div style={{ ...gridThree, marginBottom: 12 }}>
                     <div>
                       <label style={labelStyle}>Meal Name *</label>
-                      <input value={meal.name} onChange={e => updateMeal(mIdx, 'name', e.target.value)} placeholder="e.g. Breakfast" style={{ width: '100%', padding: '9px 11px', boxSizing: 'border-box', background: '#ffffff08', border: `1px solid ${errors[`meal_name_${mIdx}`] ? '#FF4B2B60' : '#ffffff15'}`, borderRadius: 8, color: '#F3F4F6', fontSize: 13, outline: 'none' }} />
+                      <input value={meal.name} onChange={e => updateMeal(mIdx, 'name', e.target.value)} placeholder="e.g. Breakfast" style={{ width: '100%', padding: '9px 11px', boxSizing: 'border-box', background: '#ffffff08', border: `1px solid ${errors[`meal_name_${mIdx}`] ? 'var(--orange)60' : '#ffffff15'}`, borderRadius: 8, color: 'var(--text)', fontSize: 13, outline: 'none' }} />
                       {errors[`meal_name_${mIdx}`] && <div style={errStyle}>{errors[`meal_name_${mIdx}`]}</div>}
                     </div>
                     <div>
                       <label style={labelStyle}>Time</label>
-                      <select value={meal.time} onChange={e => updateMeal(mIdx, 'time', e.target.value)} style={{ width: '100%', padding: '9px 11px', background: '#ffffff08', border: '1px solid #ffffff15', borderRadius: 8, color: '#F3F4F6', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
+                      <select value={meal.time} onChange={e => updateMeal(mIdx, 'time', e.target.value)} style={{ width: '100%', padding: '9px 11px', background: '#ffffff08', border: '1px solid #ffffff15', borderRadius: 8, color: 'var(--text)', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
                         {MEAL_TIMES.map(t => <option key={t} value={t} style={{ background: '#1a1a1a' }}>{t}</option>)}
                       </select>
                     </div>
                     <div>
                       <label style={labelStyle}>Calories *</label>
-                      <input value={meal.calories} onChange={e => updateMeal(mIdx, 'calories', e.target.value)} placeholder="kcal" type="number" min="0" style={{ width: '100%', padding: '9px 11px', boxSizing: 'border-box', background: '#ffffff08', border: `1px solid ${errors[`meal_cal_${mIdx}`] ? '#FF4B2B60' : '#ffffff15'}`, borderRadius: 8, color: '#F3F4F6', fontSize: 13, outline: 'none' }} />
+                      <input value={meal.calories} onChange={e => updateMeal(mIdx, 'calories', e.target.value)} placeholder="kcal" type="number" min="0" style={{ width: '100%', padding: '9px 11px', boxSizing: 'border-box', background: '#ffffff08', border: `1px solid ${errors[`meal_cal_${mIdx}`] ? 'var(--orange)60' : '#ffffff15'}`, borderRadius: 8, color: 'var(--text)', fontSize: 13, outline: 'none' }} />
                       {errors[`meal_cal_${mIdx}`] && <div style={errStyle}>{errors[`meal_cal_${mIdx}`]}</div>}
                     </div>
                   </div>
@@ -673,23 +699,23 @@ function PlanFormModal({ existing, onSave, onClose }) {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {meal.items.map((item, iIdx) => (
                         <div key={iIdx} style={{ display: 'flex', gap: 6 }}>
-                          <input value={item} onChange={e => updateItem(mIdx, iIdx, e.target.value)} placeholder={`Item ${iIdx + 1}`} style={{ flex: 1, padding: '8px 11px', background: '#ffffff08', border: '1px solid #ffffff12', borderRadius: 7, color: '#F3F4F6', fontSize: 12, outline: 'none' }} />
+                          <input value={item} onChange={e => updateItem(mIdx, iIdx, e.target.value)} placeholder={`Item ${iIdx + 1}`} style={{ flex: 1, padding: '8px 11px', background: '#ffffff08', border: '1px solid #ffffff12', borderRadius: 7, color: 'var(--text)', fontSize: 12, outline: 'none' }} />
                           {meal.items.length > 1 && (
-                            <button onClick={() => removeItem(mIdx, iIdx)} style={{ background: '#FF4B2B10', border: '1px solid #FF4B2B20', color: '#FF6B4A', borderRadius: 7, width: 32, cursor: 'pointer', fontSize: 14 }}>×</button>
+                            <button onClick={() => removeItem(mIdx, iIdx)} style={{ background: 'var(--orange)10', border: '1px solid var(--orange)20', color: 'var(--orange)', borderRadius: 7, width: 32, cursor: 'pointer', fontSize: 14 }}>×</button>
                           )}
                         </div>
                       ))}
-                      <button onClick={() => addItem(mIdx)} style={{ padding: '7px', background: '#ffffff06', border: '1px dashed #ffffff20', borderRadius: 7, color: '#6B7280', fontSize: 12, cursor: 'pointer' }}>+ Add Item</button>
+                      <button onClick={() => addItem(mIdx)} style={{ padding: '7px', background: '#ffffff06', border: '1px dashed #ffffff20', borderRadius: 7, color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer' }}>+ Add Item</button>
                     </div>
                   </div>
                 </div>
               ))}
 
-              <button onClick={addMeal} style={{ padding: '10px', background: '#ffffff06', border: '1px dashed #ffffff20', borderRadius: 10, color: '#6B7280', fontSize: 13, cursor: 'pointer' }}>+ ADD MEAL</button>
+              <button onClick={addMeal} style={{ padding: '10px', background: '#ffffff06', border: '1px dashed #ffffff20', borderRadius: 10, color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer' }}>+ ADD MEAL</button>
 
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button onClick={() => setStep(0)} style={{ flex: 1, padding: '12px', background: '#ffffff08', border: '1px solid #ffffff15', borderRadius: 10, color: '#9CA3AF', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>← BACK</button>
-                <button onClick={handleSave} style={{ flex: 2, padding: '12px', background: 'linear-gradient(135deg,#FF4B2B,#F59E0B)', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', letterSpacing: 1 }}>
+                <button onClick={() => setStep(0)} style={{ flex: 1, padding: '12px', background: '#ffffff08', border: '1px solid #ffffff15', borderRadius: 10, color: 'var(--text-muted)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>← BACK</button>
+                <button onClick={handleSave} style={{ flex: 2, padding: '12px', background: 'linear-gradient(135deg,var(--orange),#F59E0B)', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', letterSpacing: 1 }}>
                   {existing ? '✔ SAVE CHANGES' : '✔ CREATE PLAN'}
                 </button>
               </div>
@@ -705,15 +731,15 @@ function PlanFormModal({ existing, onSave, onClose }) {
 function DeleteConfirm({ plan, onConfirm, onCancel }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(6px)' }}>
-      <div style={{ background: '#111', border: '1px solid #FF4B2B30', borderRadius: 16, padding: 28, maxWidth: 380, width: '90%', textAlign: 'center', boxShadow: '0 20px 60px #000' }}>
+      <div style={{ background: '#111', border: '1px solid var(--orange)30', borderRadius: 16, padding: 28, maxWidth: 380, width: '90%', textAlign: 'center', boxShadow: '0 20px 60px #000' }}>
         <div style={{ fontSize: 40, marginBottom: 12 }}>🗑️</div>
-        <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, color: '#F3F4F6', letterSpacing: 1, marginBottom: 8 }}>DELETE PLAN?</div>
-        <div style={{ color: '#6B7280', fontSize: 13, marginBottom: 22 }}>
-          This will permanently delete <span style={{ color: '#FF6B4A', fontWeight: 700 }}>{plan.name}</span>. This action cannot be undone.
+        <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, color: 'var(--text)', letterSpacing: 1, marginBottom: 8 }}>DELETE PLAN?</div>
+        <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 22 }}>
+          This will permanently delete <span style={{ color: 'var(--orange)', fontWeight: 700 }}>{plan.name}</span>. This action cannot be undone.
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={onCancel} style={{ flex: 1, padding: '11px', background: '#ffffff08', border: '1px solid #ffffff15', borderRadius: 9, color: '#9CA3AF', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
-          <button onClick={onConfirm} style={{ flex: 1, padding: '11px', background: 'linear-gradient(135deg,#FF4B2B,#c0392b)', border: 'none', borderRadius: 9, color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Delete</button>
+          <button onClick={onCancel} style={{ flex: 1, padding: '11px', background: '#ffffff08', border: '1px solid #ffffff15', borderRadius: 9, color: 'var(--text-muted)', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={onConfirm} style={{ flex: 1, padding: '11px', background: 'linear-gradient(135deg,var(--orange),#c0392b)', border: 'none', borderRadius: 9, color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Delete</button>
         </div>
       </div>
     </div>
@@ -722,46 +748,58 @@ function DeleteConfirm({ plan, onConfirm, onCancel }) {
 
 // ─── Main Diet Page ───────────────────────────────────────────────────────────
 export default function Diet({ search = '' }) {
-  const { darkMode, gymSettings } = useApp()
+  const { darkMode, gymSettings, dietPlans, addDietPlan, updateDietPlan, deleteDietPlan, members } = useApp()
   const gymName = gymSettings?.name || 'IronForge Gym'
-  const [plans, setPlans] = useState(INITIAL_PLANS)
   const [viewPlan, setViewPlan] = useState(null)
   const [editPlan, setEditPlan] = useState(null)
   const [showForm, setShowForm] = useState(false)
-  const [deletePlan, setDeletePlan] = useState(null)
+  const [delPlan, setDelPlan] = useState(null)
   const [filterGoal, setFilterGoal] = useState('All')
   const [filterStatus, setFilterStatus] = useState('All')
   const [localSearch, setLocalSearch] = useState('')
 
   const searchTerm = (search || localSearch).toLowerCase()
 
-  const filtered = useMemo(() => plans.filter(p => {
+  const filtered = useMemo(() => dietPlans.filter(p => {
     const matchSearch = !searchTerm ||
       p.name.toLowerCase().includes(searchTerm) ||
-      p.assignedMember.toLowerCase().includes(searchTerm) ||
-      p.assignedTrainer.toLowerCase().includes(searchTerm) ||
+      (p.assignedMember || '').toLowerCase().includes(searchTerm) ||
+      (p.assignedTrainer || '').toLowerCase().includes(searchTerm) ||
       p.goal.toLowerCase().includes(searchTerm)
     const matchGoal = filterGoal === 'All' || p.goal === filterGoal
     const matchStatus = filterStatus === 'All' || p.status === filterStatus
     return matchSearch && matchGoal && matchStatus
-  }), [plans, searchTerm, filterGoal, filterStatus])
+  }), [dietPlans, searchTerm, filterGoal, filterStatus])
 
   const stats = useMemo(() => ({
-    total: plans.length,
-    active: plans.filter(p => p.status === 'Active').length,
-    avgCal: Math.round(plans.reduce((s, p) => s + p.calories, 0) / (plans.length || 1)),
-    goals: [...new Set(plans.map(p => p.goal))].length,
-  }), [plans])
+    total: dietPlans.length,
+    active: dietPlans.filter(p => p.status === 'Active').length,
+    avgCal: Math.round(dietPlans.reduce((s, p) => s + p.calories, 0) / (dietPlans.length || 1)),
+    goals: [...new Set(dietPlans.map(p => p.goal))].length,
+  }), [dietPlans])
 
-  const handleSave = (plan) => {
-    setPlans(ps => plan.id && ps.find(p => p.id === plan.id) ? ps.map(p => p.id === plan.id ? plan : p) : [...ps, plan])
+  const handleSave = async (plan) => {
+    try {
+      if (plan.id && dietPlans.find(p => p.id === plan.id)) {
+        await updateDietPlan(plan.id, plan)
+      } else {
+        const { id, ...rest } = plan
+        await addDietPlan(rest)
+      }
+    } catch (e) {
+      console.error('Failed to save diet plan:', e)
+    }
     setShowForm(false)
     setEditPlan(null)
   }
 
-  const handleDelete = (id) => {
-    setPlans(ps => ps.filter(p => p.id !== id))
-    setDeletePlan(null)
+  const handleDelete = async (id) => {
+    try {
+      await deleteDietPlan(id)
+    } catch (e) {
+      console.error('Failed to delete diet plan:', e)
+    }
+    setDelPlan(null)
   }
 
   const openEdit = (plan) => { setEditPlan(plan); setShowForm(true) }
@@ -770,30 +808,30 @@ export default function Diet({ search = '' }) {
   const filterBtn = (active) => ({
     padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
     cursor: 'pointer', transition: 'all 0.15s',
-    background: active ? 'linear-gradient(135deg,#FF4B2B,#F59E0B)' : '#ffffff09',
+    background: active ? 'linear-gradient(135deg,var(--orange),#F59E0B)' : '#ffffff09',
     border: active ? 'none' : '1px solid #ffffff15',
-    color: active ? '#fff' : '#6B7280',
+    color: active ? '#fff' : 'var(--text-muted)',
   })
 
   return (
-    <div style={{ padding: '24px 28px', minHeight: '100vh', fontFamily: "'Barlow', sans-serif", color: '#F3F4F6' }}>
+    <div style={{ padding: '24px 28px', minHeight: '100vh', fontFamily: "'Barlow', sans-serif", color: 'var(--text)' }}>
 
       {/* Page header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 30, letterSpacing: 2, color: '#F3F4F6' }}>
+          <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 30, letterSpacing: 2, color: 'var(--text)' }}>
             DIET PLANS
           </div>
-          <div style={{ color: '#6B7280', fontSize: 13, marginTop: 2 }}>
+          <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 2 }}>
             {stats.active} active plans · {stats.total} total · {stats.goals} goal types
           </div>
         </div>
         <button onClick={() => { setEditPlan(null); setShowForm(true) }} style={{
           display: 'flex', alignItems: 'center', gap: 8,
-          padding: '10px 20px', background: 'linear-gradient(135deg,#FF4B2B,#F59E0B)',
+          padding: '10px 20px', background: 'linear-gradient(135deg,var(--orange),#F59E0B)',
           border: 'none', borderRadius: 10, color: '#fff',
           fontWeight: 800, fontSize: 13, cursor: 'pointer', letterSpacing: 0.5,
-          boxShadow: '0 4px 20px #FF4B2B40',
+          boxShadow: '0 4px 20px var(--orange)40',
         }}>
           <span style={{ fontSize: 16 }}>+</span> CREATE PLAN
         </button>
@@ -804,7 +842,7 @@ export default function Diet({ search = '' }) {
         {[
           { label: 'Total Plans', value: stats.total, icon: '📋', color: '#60A5FA' },
           { label: 'Active Plans', value: stats.active, icon: '✅', color: '#10B981' },
-          { label: 'Avg Calories', value: `${stats.avgCal.toLocaleString()} kcal`, icon: '🔥', color: '#FF4B2B' },
+          { label: 'Avg Calories', value: `${stats.avgCal.toLocaleString()} kcal`, icon: '🔥', color: 'var(--orange)' },
           { label: 'Goal Types', value: stats.goals, icon: '🎯', color: '#F59E0B' },
         ].map(s => (
           <div key={s.label} style={{
@@ -815,7 +853,7 @@ export default function Diet({ search = '' }) {
             <span style={{ fontSize: 22 }}>{s.icon}</span>
             <div>
               <div style={{ fontSize: 20, fontWeight: 900, color: s.color, lineHeight: 1 }}>{s.value}</div>
-              <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>{s.label}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{s.label}</div>
             </div>
           </div>
         ))}
@@ -824,12 +862,12 @@ export default function Diet({ search = '' }) {
       {/* Search + filters */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 22, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
-          <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#6B7280', fontSize: 14 }}>🔍</span>
+          <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: 14 }}>🔍</span>
           <input
             value={localSearch}
             onChange={e => setLocalSearch(e.target.value)}
             placeholder="Search plans, members, trainers..."
-            style={{ width: '100%', paddingLeft: 36, paddingRight: 12, paddingTop: 10, paddingBottom: 10, boxSizing: 'border-box', background: '#161616', border: '1px solid #ffffff15', borderRadius: 10, color: '#F3F4F6', fontSize: 13, outline: 'none' }}
+            style={{ width: '100%', paddingLeft: 36, paddingRight: 12, paddingTop: 10, paddingBottom: 10, boxSizing: 'border-box', background: '#161616', border: '1px solid #ffffff15', borderRadius: 10, color: 'var(--text)', fontSize: 13, outline: 'none' }}
           />
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -837,7 +875,7 @@ export default function Diet({ search = '' }) {
             <button key={s} onClick={() => setFilterStatus(s)} style={filterBtn(filterStatus === s)}>{s}</button>
           ))}
         </div>
-        <select value={filterGoal} onChange={e => setFilterGoal(e.target.value)} style={{ padding: '8px 12px', background: '#161616', border: '1px solid #ffffff15', borderRadius: 10, color: filterGoal === 'All' ? '#6B7280' : '#F3F4F6', fontSize: 12, cursor: 'pointer', outline: 'none' }}>
+        <select value={filterGoal} onChange={e => setFilterGoal(e.target.value)} style={{ padding: '8px 12px', background: '#161616', border: '1px solid #ffffff15', borderRadius: 10, color: filterGoal === 'All' ? 'var(--text-muted)' : 'var(--text)', fontSize: 12, cursor: 'pointer', outline: 'none' }}>
           <option value="All">All Goals</option>
           {GOALS.map(g => <option key={g} value={g}>{g}</option>)}
         </select>
@@ -845,7 +883,7 @@ export default function Diet({ search = '' }) {
 
       {/* Plans grid */}
       {filtered.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#6B7280' }}>
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>🥗</div>
           <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, letterSpacing: 1, marginBottom: 8 }}>NO PLANS FOUND</div>
           <div style={{ fontSize: 13 }}>Try adjusting your filters or create a new diet plan.</div>
@@ -858,7 +896,7 @@ export default function Diet({ search = '' }) {
               plan={plan}
               onView={setViewPlan}
               onEdit={openEdit}
-              onDelete={(id) => setDeletePlan(plans.find(p => p.id === id))}
+              onDelete={(id) => setDelPlan(dietPlans.find(p => p.id === id))}
             />
           ))}
         </div>
@@ -866,8 +904,8 @@ export default function Diet({ search = '' }) {
 
       {/* Modals */}
       {viewPlan && <PlanDetailModal plan={viewPlan} onClose={() => setViewPlan(null)} onEdit={(p) => { setViewPlan(null); openEdit(p) }} gymName={gymName} />}
-      {showForm && <PlanFormModal existing={editPlan} onSave={handleSave} onClose={() => { setShowForm(false); setEditPlan(null) }} />}
-      {deletePlan && <DeleteConfirm plan={deletePlan} onConfirm={() => handleDelete(deletePlan.id)} onCancel={() => setDeletePlan(null)} />}
+      {showForm && <PlanFormModal existing={editPlan} onSave={handleSave} onClose={() => { setShowForm(false); setEditPlan(null) }} members={members} />}
+      {delPlan && <DeleteConfirm plan={delPlan} onConfirm={() => handleDelete(delPlan.id)} onCancel={() => setDelPlan(null)} />}
     </div>
   )
 }

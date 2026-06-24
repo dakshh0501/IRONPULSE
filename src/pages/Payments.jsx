@@ -11,20 +11,12 @@ import { jsPDF } from 'jspdf'
 const METHODS  = ['UPI', 'Credit Card', 'Debit Card', 'Cash', 'Bank Transfer', 'Net Banking']
 const STATUSES = ['Paid', 'Pending', 'Overdue', 'Partial']
 
-const MONTHLY_REVENUE = [
-  { month: 'Jan', revenue: 48000, target: 50000 },
-  { month: 'Feb', revenue: 39000, target: 50000 },
-  { month: 'Mar', revenue: 52000, target: 50000 },
-  { month: 'Apr', revenue: 61000, target: 55000 },
-  { month: 'May', revenue: 34000, target: 55000 },
-]
-
 // --- Helpers -----------------------------------------------------------------
 const STATUS_CFG = {
-  Paid:    { bg: '#10B98120', border: '#10B98140', text: '#34D399', dot: '#10B981', icon: '?' },
-  Pending: { bg: '#F59E0B20', border: '#F59E0B40', text: '#FBB826', dot: '#F59E0B', icon: '?' },
-  Overdue: { bg: '#EF444420', border: '#EF444440', text: '#F87171', dot: '#EF4444', icon: '!' },
-  Partial: { bg: '#8B5CF620', border: '#8B5CF640', text: '#A78BFA', dot: '#8B5CF6', icon: '�' },
+  Paid:    { bg: '#10B98120', border: '#10B98140', text: 'var(--green)', dot: '#10B981', icon: '✓' },
+  Pending: { bg: '#F59E0B20', border: '#F59E0B40', text: 'var(--amber)', dot: '#F59E0B', icon: '⏳' },
+  Overdue: { bg: '#EF444420', border: '#EF444440', text: 'var(--red)', dot: '#EF4444', icon: '!' },
+  Partial: { bg: '#8B5CF620', border: '#8B5CF640', text: 'var(--purple)', dot: '#8B5CF6', icon: '◐' },
 }
 
 const METHOD_ICON = { UPI: '??', 'Credit Card': '??', 'Debit Card': '??', Cash: '??', 'Bank Transfer': '??', 'Net Banking': '??' }
@@ -33,7 +25,7 @@ const fmt     = (n) => n ? `₹${Number(n).toLocaleString('en-IN')}` : '₹0'
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '�'
 
 function avatarColor(initials = 'XX') {
-  const colors = ['#FF4B2B','#F59E0B','#10B981','#3B82F6','#8B5CF6','#EC4899','#06B6D4','#14B8A6']
+  const colors = ['var(--orange)','var(--amber)','var(--green)','#3B82F6','var(--purple)','#EC4899','var(--teal)','#14B8A6']
   const safeInitials = initials || 'XX'
   const first  = safeInitials.charCodeAt(0) || 0
   const second = safeInitials.charCodeAt(1) || 0
@@ -71,20 +63,20 @@ function RevenueChart({ data }) {
           return (
             <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
               <div style={{ width: '100%', display: 'flex', alignItems: 'flex-end', gap: 2, height: 96 }}>
-                <div style={{ flex: 1, height: tarH, background: '#ffffff10', borderRadius: '4px 4px 0 0', border: '1px solid #ffffff15' }} />
-                <div style={{ flex: 1, height: revH, background: isOver ? 'linear-gradient(180deg,#10B981,#059669)' : 'linear-gradient(180deg,#FF4B2B,#c0392b)', borderRadius: '4px 4px 0 0', boxShadow: isOver ? '0 0 12px #10B98140' : '0 0 12px #FF4B2B40' }} />
+                <div style={{ flex: 1, height: tarH, background: 'var(--hover)', borderRadius: '4px 4px 0 0', border: '1px solid var(--border)' }} />
+                <div style={{ flex: 1, height: revH, background: isOver ? 'linear-gradient(180deg,var(--green),#059669)' : 'linear-gradient(180deg,var(--orange),#c0392b)', borderRadius: '4px 4px 0 0', boxShadow: isOver ? '0 0 12px rgba(34,197,94,0.25)' : '0 0 12px rgba(232,66,10,0.25)' }} />
               </div>
-              <span style={{ fontSize: 10, color: '#6B7280', fontWeight: 600 }}>{d.month}</span>
+              <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>{d.month}</span>
             </div>
           )
         })}
       </div>
       <div style={{ display: 'flex', gap: 16, marginTop: 10, justifyContent: 'flex-end' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: '#6B7280' }}>
-          <div style={{ width: 10, height: 10, borderRadius: 2, background: '#ffffff15' }} /> Target
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'var(--text-muted)' }}>
+          <div style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--hover)' }} /> Target
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: '#6B7280' }}>
-          <div style={{ width: 10, height: 10, borderRadius: 2, background: '#FF4B2B' }} /> Actual
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'var(--text-muted)' }}>
+          <div style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--orange)' }} /> Actual
         </div>
       </div>
     </div>
@@ -253,12 +245,12 @@ function InvoiceModal({ invoice, onClose, onMarkPaid, gymName, gymSettings = {} 
         <div style={{ background: `linear-gradient(135deg, ${c.bg}, transparent)`, borderRadius: '20px 20px 0 0', padding: '22px 26px', borderBottom: '1px solid #ffffff10' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 13, color: '#6B7280', letterSpacing: 2 }}>{gymName} FITNESS</div>
-              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: '#F3F4F6', letterSpacing: 1, marginTop: 2 }}>{receiptNumber}</div>
+              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 13, color: 'var(--text-muted)', letterSpacing: 2 }}>{gymName} FITNESS</div>
+              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: 'var(--text)', letterSpacing: 1, marginTop: 2 }}>{receiptNumber}</div>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <StatusBadge status={invoice.status} />
-              <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 8, background: '#ffffff10', border: 'none', color: '#9CA3AF', fontSize: 18, cursor: 'pointer' }}>�</button>
+              <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 8, background: '#ffffff10', border: 'none', color: 'var(--text-muted)', fontSize: 18, cursor: 'pointer' }}>�</button>
             </div>
           </div>
         </div>
@@ -269,8 +261,8 @@ function InvoiceModal({ invoice, onClose, onMarkPaid, gymName, gymSettings = {} 
               {invoice.avatar || 'XX'}
             </div>
             <div>
-              <div style={{ fontWeight: 700, color: '#F3F4F6', fontSize: 15 }}>{invoice.member || invoice.memberName}</div>
-              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{invoice.plan}</div>
+              <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: 15 }}>{invoice.member || invoice.memberName}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{invoice.plan}</div>
             </div>
           </div>
 
@@ -281,7 +273,7 @@ function InvoiceModal({ invoice, onClose, onMarkPaid, gymName, gymSettings = {} 
               ['Balance Due',    fmt(balance),         balance > 0 ? '#EF4444' : '#10B981'],
             ].map(([label, val, color]) => (
               <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#ffffff06', borderRadius: 9 }}>
-                <span style={{ fontSize: 13, color: '#6B7280' }}>{label}</span>
+                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{label}</span>
                 <span style={{ fontSize: 15, fontWeight: 800, color }}>{val}</span>
               </div>
             ))}
@@ -289,7 +281,7 @@ function InvoiceModal({ invoice, onClose, onMarkPaid, gymName, gymSettings = {} 
 
           {invoice.status === 'Partial' && (
             <div style={{ marginBottom: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6B7280', marginBottom: 6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
                 <span>Payment Progress</span>
                 <span style={{ color: '#A78BFA', fontWeight: 700 }}>{Math.round(invoice.amount > 0 ? (invoice.paid / invoice.amount) * 100 : 0)}%</span>
               </div>
@@ -307,7 +299,7 @@ function InvoiceModal({ invoice, onClose, onMarkPaid, gymName, gymSettings = {} 
               ['Plan',     invoice.plan],
             ].map(([label, val]) => (
               <div key={label} style={{ background: '#ffffff06', borderRadius: 9, padding: '10px 13px' }}>
-                <div style={{ fontSize: 10, color: '#6B7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>{label}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>{label}</div>
                 <div style={{ fontSize: 12, color: '#E5E7EB', fontWeight: 600 }}>{val}</div>
               </div>
             ))}
@@ -320,7 +312,7 @@ function InvoiceModal({ invoice, onClose, onMarkPaid, gymName, gymSettings = {} 
                   ? MARK AS PAID
                 </button>
               )}
-              <button onClick={onClose} style={{ flex: 1, padding: '11px', background: '#ffffff08', border: '1px solid #ffffff15', borderRadius: 10, color: '#9CA3AF', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+              <button onClick={onClose} style={{ flex: 1, padding: '11px', background: '#ffffff08', border: '1px solid #ffffff15', borderRadius: 10, color: 'var(--text-muted)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
                 CLOSE
               </button>
             </div>
@@ -403,9 +395,9 @@ function NewInvoiceModal({ onSave, onClose, members, plans }) {
     width: '100%', padding: '10px 12px', boxSizing: 'border-box',
     background: errors[key] ? '#FF4B2B11' : '#ffffff08',
     border: '1px solid #333',
-    borderRadius: 8, color: '#F3F4F6', fontSize: 13, outline: 'none',
+    borderRadius: 8, color: 'var(--text)', fontSize: 13, outline: 'none',
   })
-  const labelStyle = { fontSize: 11, color: '#6B7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4, display: 'block' }
+  const labelStyle = { fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4, display: 'block' }
   const errStyle   = { color: '#FF6B4A', fontSize: 11, marginTop: 3 }
 
   // Active members for dropdown
@@ -416,8 +408,8 @@ function NewInvoiceModal({ onSave, onClose, members, plans }) {
       <div style={{ background: '#111', border: '1px solid #ffffff18', borderRadius: 20, width: '100%', maxWidth: 460, boxShadow: '0 30px 80px #000' }} onClick={e => e.stopPropagation()}>
         <div style={{ padding: '22px 26px 18px', borderBottom: '1px solid #ffffff10', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: '#F3F4F6', letterSpacing: 1 }}>NEW INVOICE</div>
-            <div style={{ fontSize: 12, color: '#6B7280' }}>Generate a payment invoice</div>
+            <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: 'var(--text)', letterSpacing: 1 }}>NEW INVOICE</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Generate a payment invoice</div>
           </div>
           <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 8, background: '#FF4B2B15', border: '1px solid #FF4B2B30', color: '#FF6B4A', fontSize: 18, cursor: 'pointer' }}>�</button>
         </div>
@@ -491,7 +483,7 @@ function NewInvoiceModal({ onSave, onClose, members, plans }) {
           </div>
 
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <button onClick={onClose} style={{ flex: 1, padding: '11px', background: '#ffffff08', border: '1px solid #ffffff15', borderRadius: 10, color: '#9CA3AF', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+            <button onClick={onClose} style={{ flex: 1, padding: '11px', background: '#ffffff08', border: '1px solid #ffffff15', borderRadius: 10, color: 'var(--text-muted)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
             <button onClick={handleSave} style={{ flex: 2, padding: '11px', background: 'linear-gradient(135deg,#FF4B2B,#F59E0B)', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', letterSpacing: 0.5 }}>
               GENERATE INVOICE
             </button>
@@ -523,15 +515,15 @@ function InvoiceRow({ inv, onClick, onDelete }) {
           <div>
             {/* backward compat: show member or memberName */}
             <div style={{ fontWeight: 700, color: '#E5E7EB', fontSize: 13 }}>{inv.member || inv.memberName || '�'}</div>
-            <div style={{ fontSize: 11, color: '#6B7280', marginTop: 1 }}>{inv.plan}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{inv.plan}</div>
           </div>
         </div>
       </td>
       <td style={{ padding: '14px 16px', borderBottom: '1px solid #ffffff08' }}>
-        <span style={{ fontSize: 12, color: '#9CA3AF', fontFamily: 'monospace', background: '#ffffff08', padding: '3px 8px', borderRadius: 5 }}>{inv.firestoreId}</span>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'monospace', background: '#ffffff08', padding: '3px 8px', borderRadius: 5 }}>{inv.firestoreId}</span>
       </td>
       <td style={{ padding: '14px 16px', borderBottom: '1px solid #ffffff08', textAlign: 'right' }}>
-        <div style={{ fontWeight: 800, color: '#F3F4F6', fontSize: 14 }}>{fmt(inv.amount)}</div>
+        <div style={{ fontWeight: 800, color: 'var(--text)', fontSize: 14 }}>{fmt(inv.amount)}</div>
         {inv.status === 'Partial' && <div style={{ fontSize: 10, color: '#A78BFA', marginTop: 2 }}>{fmt(inv.paid)} paid</div>}
       </td>
       <td style={{ padding: '14px 16px', borderBottom: '1px solid #ffffff08', textAlign: 'right' }}>
@@ -541,10 +533,10 @@ function InvoiceRow({ inv, onClick, onDelete }) {
         <StatusBadge status={inv.status} size="sm" />
       </td>
       <td style={{ padding: '14px 16px', borderBottom: '1px solid #ffffff08' }}>
-        <div style={{ fontSize: 12, color: '#9CA3AF' }}>{fmtDate(inv.due)}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{fmtDate(inv.due)}</div>
       </td>
       <td style={{ padding: '14px 16px', borderBottom: '1px solid #ffffff08' }}>
-        <div style={{ fontSize: 12, color: '#6B7280' }}>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
           {inv.method ? `${METHOD_ICON[inv.method] || ''} ${inv.method}` : '—'}
         </div>
       </td>
@@ -616,6 +608,25 @@ export default function Payments({ search = '' }) {
     return { total, collected, pending, overdue, paidCount, collectionRate: total > 0 ? Math.round((collected / total) * 100) : 0 }
   }, [invoices])
 
+  const revenueData = useMemo(() => {
+    if (!payments || payments.length === 0) return []
+    const months = {}
+    payments.forEach(p => {
+      const dateStr = p.paidOn || p.due
+      if (!dateStr) return
+      const date = new Date(dateStr)
+      if (isNaN(date.getTime())) return
+      const monthKey = date.toLocaleString('en-US', { month: 'short' })
+      if (!months[monthKey]) {
+        months[monthKey] = { month: monthKey, revenue: 0, target: 0 }
+      }
+      months[monthKey].revenue += Number(p.paid) || 0
+      months[monthKey].target += Number(p.amount) || 0
+    })
+    const order = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    return Object.values(months).sort((a, b) => order.indexOf(a.month) - order.indexOf(b.month))
+  }, [payments])
+
   const handleMarkPaid = async (id) => {
     try {
       const invoice = invoices.find(inv => inv.firestoreId === id)
@@ -654,23 +665,23 @@ export default function Payments({ search = '' }) {
       cursor: 'pointer', transition: 'all 0.15s',
       background: active ? 'linear-gradient(135deg,#FF4B2B,#F59E0B)' : '#ffffff09',
       border: active ? 'none' : '1px solid #ffffff15',
-      color: active ? '#fff' : '#6B7280',
+      color: active ? '#fff' : 'var(--text-muted)',
     })
   }
 
   const thStyle = {
-    padding: '10px 16px', fontSize: 11, color: '#6B7280',
+    padding: '10px 16px', fontSize: 11, color: 'var(--text-muted)',
     fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8,
     borderBottom: '1px solid #ffffff10', textAlign: 'left',
     background: '#0d0d0d',
   }
 
   return (
-    <div style={{ padding: '24px 28px', minHeight: '100vh', fontFamily: "'Barlow', sans-serif", color: '#F3F4F6' }}>
+    <div style={{ padding: '24px 28px', minHeight: '100vh', fontFamily: "'Barlow', sans-serif", color: 'var(--text)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 30, letterSpacing: 2, color: '#F3F4F6' }}>payments & BILLING</div>
-          <div style={{ color: '#6B7280', fontSize: 13, marginTop: 2 }}>
+          <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 30, letterSpacing: 2, color: 'var(--text)' }}>payments & BILLING</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 2 }}>
             {stats.paidCount} paid · {stats.collectionRate}% collection rate · {invoices.length} total invoices
           </div>
         </div>
@@ -690,18 +701,18 @@ export default function Payments({ search = '' }) {
             <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: `radial-gradient(circle, ${s.color}15, transparent 70%)` }} />
             <div style={{ fontSize: 22, marginBottom: 8 }}>{s.icon}</div>
             <div style={{ fontSize: 20, fontWeight: 900, color: s.color, lineHeight: 1, fontFamily: "'Bebas Neue',sans-serif", letterSpacing: 0.5 }}>{s.value}</div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', marginTop: 4 }}>{s.label}</div>
-            <div style={{ fontSize: 11, color: '#4B5563', marginTop: 2 }}>{s.sub}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', marginTop: 4 }}>{s.label}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{s.sub}</div>
           </div>
         ))}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14, marginBottom: 24 }}>
         <div style={{ background: '#161616', border: '1px solid #ffffff10', borderRadius: 14, padding: '18px 20px' }}>
-          <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14 }}>Collection Rate</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14 }}>Collection Rate</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 12 }}>
             <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 42, color: stats.collectionRate >= 80 ? '#10B981' : '#F59E0B', lineHeight: 1 }}>{stats.collectionRate}%</span>
-            <span style={{ fontSize: 12, color: '#6B7280' }}>of invoiced</span>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>of invoiced</span>
           </div>
           <div style={{ height: 10, borderRadius: 5, background: '#ffffff10', overflow: 'hidden', marginBottom: 12 }}>
             <div style={{ width: `${stats.collectionRate}%`, height: '100%', borderRadius: 5, background: stats.collectionRate >= 80 ? 'linear-gradient(90deg,#10B981,#34D399)' : 'linear-gradient(90deg,#F59E0B,#FBB826)', transition: 'width 0.6s ease' }} />
@@ -715,28 +726,28 @@ export default function Payments({ search = '' }) {
             ].map(([label, count, color]) => (
               <div key={label} style={{ flex: 1, textAlign: 'center', background: '#ffffff06', borderRadius: 8, padding: '8px 4px' }}>
                 <div style={{ fontSize: 18, fontWeight: 900, color, fontFamily: "'Bebas Neue',sans-serif" }}>{count}</div>
-                <div style={{ fontSize: 10, color: '#6B7280' }}>{label}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{label}</div>
               </div>
             ))}
           </div>
         </div>
         <div style={{ background: '#161616', border: '1px solid #ffffff10', borderRadius: 14, padding: '18px 20px' }}>
-          <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14 }}>Monthly Revenue vs Target</div>
-          <RevenueChart data={MONTHLY_REVENUE} />
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14 }}>Monthly Revenue vs Target</div>
+          <RevenueChart data={revenueData} />
         </div>
       </div>
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
-          <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#6B7280', fontSize: 14 }}>🔍</span>
-          <input value={localSearch} onChange={e => setLocalSearch(e.target.value)} placeholder="Search member, invoice ID, plan..." style={{ width: '100%', paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, boxSizing: 'border-box', background: '#161616', border: '1px solid #ffffff15', borderRadius: 10, color: '#F3F4F6', fontSize: 13, outline: 'none' }} />
+          <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: 14 }}>🔍</span>
+          <input value={localSearch} onChange={e => setLocalSearch(e.target.value)} placeholder="Search member, invoice ID, plan..." style={{ width: '100%', paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, boxSizing: 'border-box', background: '#161616', border: '1px solid #ffffff15', borderRadius: 10, color: 'var(--text)', fontSize: 13, outline: 'none' }} />
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {['All', ...STATUSES].map(s => (
             <button key={s} onClick={() => setFilterStatus(s)} style={filterBtn(filterStatus === s)}>{s}</button>
           ))}
         </div>
-        <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ padding: '8px 12px', background: '#161616', border: '1px solid #ffffff15', borderRadius: 10, color: '#9CA3AF', fontSize: 12, cursor: 'pointer', outline: 'none' }}>
+        <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ padding: '8px 12px', background: '#161616', border: '1px solid #ffffff15', borderRadius: 10, color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', outline: 'none' }}>
           <option value="due">Sort: Due Date</option>
           <option value="amount">Sort: Amount</option>
           <option value="member">Sort: Member</option>
@@ -755,10 +766,10 @@ export default function Payments({ search = '' }) {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#6B7280' }}>Loading invoices...</td></tr>
+                <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading invoices...</td></tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: '48px', textAlign: 'center', color: '#6B7280', borderBottom: '1px solid #ffffff08' }}>
+                  <td colSpan={8} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)', borderBottom: '1px solid #ffffff08' }}>
                     <div style={{ fontSize: 36, marginBottom: 10 }}>💳</div>
                     <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, letterSpacing: 1 }}>NO INVOICES FOUND</div>
                     <div style={{ fontSize: 12, marginTop: 4 }}>Try adjusting your filters.</div>
@@ -775,9 +786,9 @@ export default function Payments({ search = '' }) {
 
         {filtered.length > 0 && (
           <div style={{ padding: '12px 20px', borderTop: '1px solid #ffffff08', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-            <span style={{ fontSize: 12, color: '#6B7280' }}>{filtered.length} of {invoices.length} invoices</span>
-            <span style={{ fontSize: 12, color: '#9CA3AF' }}>
-              Showing total: <span style={{ color: '#F3F4F6', fontWeight: 700 }}>{fmt(filtered.reduce((s, i) => s + (Number(i.amount) || 0), 0))}</span>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{filtered.length} of {invoices.length} invoices</span>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              Showing total: <span style={{ color: 'var(--text)', fontWeight: 700 }}>{fmt(filtered.reduce((s, i) => s + (Number(i.amount) || 0), 0))}</span>
               {' '}· Collected: <span style={{ color: '#10B981', fontWeight: 700 }}>{fmt(filtered.reduce((s, i) => s + (Number(i.paid) || 0), 0))}</span>
             </span>
           </div>

@@ -65,7 +65,7 @@ export async function getAttendanceByDate(date) {
  * Real-time listener for all attendance records, ordered by date desc.
  * Returns the unsubscribe function.
  *
- * Usage in AppContext:
+ * Usage in AppContext (admin/trainer):
  *   useEffect(() => {
  *     const unsub = subscribeAttendance(records => setAttendance(records))
  *     return unsub
@@ -81,5 +81,30 @@ export function subscribeAttendance(callback) {
     q,
     (snap) => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
     (err)  => console.error('[attendanceService] subscribeAttendance error:', err)
+  )
+}
+
+/**
+ * subscribeMyAttendance(uid, callback)
+ * Real-time listener for attendance records belonging to a specific member,
+ * ordered by date desc. Used by the Member role so they only see their own data.
+ *
+ * Usage in AppContext (member):
+ *   useEffect(() => {
+ *     const unsub = subscribeMyAttendance(currentUser.uid, records => setAttendance(records))
+ *     return unsub
+ *   }, [currentUser.uid])
+ */
+export function subscribeMyAttendance(uid, callback) {
+  const q = query(
+    collection(db, COLLECTION),
+    where('memberId', '==', uid),
+    orderBy('date', 'desc'),
+    orderBy('time', 'desc')
+  )
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    (err)  => console.error('[attendanceService] subscribeMyAttendance error:', err)
   )
 }

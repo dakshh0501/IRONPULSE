@@ -123,7 +123,17 @@ const DEFAULT_GYM = {
 // ─────────────────────────────────────────────────────────────
 export default function Settings() {
   const { darkMode, setDarkMode } = useApp()
-  const { currentUser, logout, updateUserProfile } = useAuth()
+  const { currentUser, logout, updateUserProfile, role } = useAuth()
+
+  if (role !== 'admin') {
+    return (
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
+        <h3>Access Restricted</h3>
+        <p style={{ marginTop: 8 }}>Only administrators can access Settings.</p>
+      </div>
+    )
+  }
   const [activeTab, setActiveTab] = useState('gym')
 
   // ── Gym Settings ──────────────────────────────────────────

@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useRef } from 'react'
 import { useApp } from '../context/AppContext'
+import { useAuth } from '../context/AuthContext'
 import QRScanner from '../components/QRScanner'
 import { addAttendance as addAttendanceService } from '../services/attendanceService'
 
@@ -287,6 +288,16 @@ function ManualModal({ members, checkedInIds, onCheckIn, onClose }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function ReceptionMode() {
   const { attendance, members, gymSettings } = useApp()
+  const { role } = useAuth()
+  if (role !== 'admin' && role !== 'trainer') {
+    return (
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
+        <h3>Access Restricted</h3>
+        <p style={{ marginTop: 8 }}>Only staff can access Reception mode.</p>
+      </div>
+    )
+  }
   const gymName = gymSettings?.name || 'IronForge Gym'
 
   const safeAttendance = attendance || []

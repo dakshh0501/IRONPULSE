@@ -529,7 +529,17 @@ function ExerciseEditor({ exercises, onChange }) {
 // ─────────────────────────────────────────────────────────────
 function PlanFormModal({ plan, members, trainers, onSave, onClose }) {
   const isEdit = Boolean(plan)
-  const [form,   setForm]   = useState(plan ? { ...plan } : { ...EMPTY_PLAN, exercises: [] })
+  const [form,   setForm]   = useState(() => {
+    if (plan) {
+      const f = { ...plan }
+      if (!f.memberId && f.member) {
+        const m = members.find(x => x.name === f.member)
+        if (m) { f.memberId = m.id; f.authUid = m.authUid }
+      }
+      return f
+    }
+    return { ...EMPTY_PLAN, exercises: [] }
+  })
   const [errors, setErrors] = useState({})
   const [tab,    setTab]    = useState('info')   // 'info' | 'exercises'
 
@@ -644,7 +654,12 @@ function PlanFormModal({ plan, members, trainers, onSave, onClose }) {
               <div className="form-row" style={{ marginBottom: 6 }}>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label">Assign to Member</label>
-                  <select className="form-select" value={form.member} onChange={e => set('member', e.target.value)}>
+                  <select className="form-select" value={form.member} onChange={e => {
+                    const val = e.target.value
+                    const m = members.find(x => x.name === val)
+                    setForm(prev => ({ ...prev, member: val, memberId: m ? m.id : '', authUid: m ? m.authUid : '' }))
+                    setErrors(prev => ({ ...prev, member: '' }))
+                  }}>
                     <option value="">— Select member —</option>
                     {members.map(m => (
                       <option key={m.id} value={m.name}>
@@ -823,7 +838,7 @@ function DeleteModal({ plan, onConfirm, onClose }) {
 //  MAIN PAGE EXPORT
 // ─────────────────────────────────────────────────────────────
 export default function Workouts({ search = '' }) {
-  const { workouts, setWorkouts, members, trainers, gymSettings } = useApp()
+  const { workoutPlans: workouts, addWorkoutPlan, updateWorkoutPlan, deleteWorkoutPlan, members, trainers, gymSettings } = useApp()
   const gymName = gymSettings?.name || 'IronForge Gym'
 
   const [goalFilter, setGoalFilter] = useState('All')
@@ -833,11 +848,17 @@ export default function Workouts({ search = '' }) {
   const [delPlan,    setDelPlan]    = useState(null)
 
   // ── CRUD handlers ─────────────────────────────────────────
-  const addPlan    = (p)     => setWorkouts(prev => [...prev, { ...p, id: Date.now() }])
-  const updatePlan = (p)     => setWorkouts(prev => prev.map(w => w.id === p.id ? p : w))
-  const deletePlan = (id)    => setWorkouts(prev => prev.filter(w => w.id !== id))
-
-  const handleSave = (data) => editPlan ? updatePlan({ ...data, id: editPlan.id }) : addPlan(data)
+  const handleSave = async (data) => {
+    try {
+      if (editPlan) {
+        await updateWorkoutPlan(editPlan.id, data)
+      } else {
+        await addWorkoutPlan(data)
+      }
+    } catch (e) {
+      console.error('Failed to save workout plan:', e)
+    }
+  }
 
   // ── Filter logic ──────────────────────────────────────────
   const goals    = ['All', ...GOALS.filter(g => workouts.some(w => w.goal === g))]
@@ -931,7 +952,7 @@ export default function Workouts({ search = '' }) {
               trainers={trainers}
               onView={setViewPlan}
               onEdit={(p) => { setEditPlan(p); setFormOpen(true) }}
-              onDelete={setDelPlan}
+              onDelete={(p) => setDelPlan(p)}
               gymName={gymName}
             />
           ))}
@@ -978,7 +999,7 @@ export default function Workouts({ search = '' }) {
       {delPlan && (
         <DeleteModal
           plan={delPlan}
-          onConfirm={deletePlan}
+          onConfirm={(id) => { deleteWorkoutPlan(id); setDelPlan(null) }}
           onClose={() => setDelPlan(null)}
         />
       )}

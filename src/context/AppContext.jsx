@@ -25,9 +25,20 @@ import {
   updatePlan as updatePlanInFirestore,
   deletePlan as deletePlanFromFirestore,
   migrateDefaultPlans,
+  subscribeToProgressLogs,
+  addProgressLog as addProgressLogToFirestore,
+  subscribeToDietPlans,
+  addDietPlan as addDietPlanToFirestore,
+  updateDietPlan as updateDietPlanInFirestore,
+  deleteDietPlan as deleteDietPlanFromFirestore,
+  subscribeToWorkoutPlans,
+  addWorkoutPlan as addWorkoutPlanToFirestore,
+  updateWorkoutPlan as updateWorkoutPlanInFirestore,
+  deleteWorkoutPlan as deleteWorkoutPlanFromFirestore,
 } from '../services/firestoreService'
 import {
   subscribeAttendance,
+  subscribeMyAttendance,
   addAttendance as addAttendanceToFirestore,
 } from '../services/attendanceService'
 import { getPendingUsers } from '../services/authService'
@@ -51,12 +62,13 @@ export function AppProvider({ children }) {
   const [trainers,      setTrainers]      = useState([])
   const [payments,      setPayments]      = useState([])
   const [plans,         setPlans]         = useState([])
-  const [workouts,      setWorkouts]      = useState([])
-  const [dietPlans,     setDietPlans]     = useState([])
   const [checkinLog,    setCheckinLog]    = useState([])
   const [attendance,    setAttendance]    = useState([])
   const [pendingCount,  setPendingCount]  = useState(0)
   const [gymSettings,   setGymSettings]   = useState({ name: 'IronForge Gym' })
+  const [progressLogs,  setProgressLogs]  = useState([])
+  const [dietPlans,     setDietPlans]     = useState([])
+  const [workoutPlans,  setWorkoutPlans]  = useState([])
 
   // ── Members listener ───────────────────────────────────
   useEffect(() => {
@@ -128,12 +140,43 @@ export function AppProvider({ children }) {
     return unsubscribe
   }, [currentUser, authLoading, userProfile])
 
+  // ── Progress Logs listener — ADMIN & TRAINER ────────────
+  useEffect(() => {
+    if (authLoading || !currentUser) return
+    if (userProfile?.role !== 'admin' && userProfile?.role !== 'trainer') return
+    const unsubscribe = subscribeToProgressLogs((data) => setProgressLogs(data))
+    return unsubscribe
+  }, [currentUser, authLoading, userProfile])
+
+  // ── Diet Plans listener — ADMIN & TRAINER ──────────────
+  useEffect(() => {
+    if (authLoading || !currentUser) return
+    if (userProfile?.role !== 'admin' && userProfile?.role !== 'trainer') return
+    const unsubscribe = subscribeToDietPlans((data) => setDietPlans(data))
+    return unsubscribe
+  }, [currentUser, authLoading, userProfile])
+
+  // ── Workout Plans listener — ADMIN & TRAINER ───────────
+  useEffect(() => {
+    if (authLoading || !currentUser) return
+    if (userProfile?.role !== 'admin' && userProfile?.role !== 'trainer') return
+    const unsubscribe = subscribeToWorkoutPlans((data) => setWorkoutPlans(data))
+    return unsubscribe
+  }, [currentUser, authLoading, userProfile])
+
   // ── Attendance listener ────────────────────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
-    const unsubscribe = subscribeAttendance((data) => setAttendance(data))
-    return unsubscribe
-  }, [currentUser, authLoading])
+    const isAdminOrTrainer = userProfile?.role === 'admin' || userProfile?.role === 'trainer'
+    if (isAdminOrTrainer) {
+      const unsubscribe = subscribeAttendance((data) => setAttendance(data))
+      return unsubscribe
+    }
+    if (userProfile?.role === 'member' && currentUser?.uid) {
+      const unsubscribe = subscribeMyAttendance(currentUser.uid, (data) => setAttendance(data))
+      return unsubscribe
+    }
+  }, [currentUser, authLoading, userProfile])
 
   // ── Pending approvals count — ADMIN ONLY ───────────────
   useEffect(() => {
@@ -342,12 +385,21 @@ export function AppProvider({ children }) {
 
   const checkInMember = async (member) => {
     try {
+      const now = new Date()
+      const todayStr = now.toISOString().split('T')[0]
+      const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
       await addAttendanceToFirestore({
         memberId:    member.authUid || member.uid || member.id,
         memberName:  member.name,
+        avatar:      member.avatar || (member.name || 'M').slice(0, 2).toUpperCase(),
+        color:       member.color  || '#00c8b4',
+        plan:        member.plan   || member.membershipPlan || 'Standard',
         trainerId:   member.trainerId   || '',
         trainerName: member.trainerName || '',
-        type:        'checkin',
+        date:        todayStr,
+        time,
+        method:      'Manual',
+        duration:    90,
       })
       await updateMemberInFirestore(member.id, { checkins: (member.checkins || 0) + 1 })
     } catch (error) {
@@ -442,6 +494,69 @@ export function AppProvider({ children }) {
     }
   }
 
+  // ── Progress Logs CRUD ──────────────────────────────────
+  const addProgressLog = async (logData) => {
+    try {
+      return await addProgressLogToFirestore({
+        ...logData,
+        memberId: logData.memberId || '',
+        memberName: logData.memberName || '',
+      })
+    } catch (error) {
+      console.error('Error adding progress log:', error)
+    }
+  }
+
+  // ── Diet Plans CRUD ─────────────────────────────────────
+  const addDietPlan = async (planData) => {
+    try {
+      return await addDietPlanToFirestore(planData)
+    } catch (error) {
+      console.error('Error adding diet plan:', error)
+    }
+  }
+
+  const updateDietPlan = async (id, data) => {
+    try {
+      await updateDietPlanInFirestore(id, data)
+    } catch (error) {
+      console.error('Error updating diet plan:', error)
+    }
+  }
+
+  const deleteDietPlan = async (id) => {
+    try {
+      await deleteDietPlanFromFirestore(id)
+    } catch (error) {
+      console.error('Error deleting diet plan:', error)
+    }
+  }
+
+  // ── Workout Plans CRUD ──────────────────────────────────
+  const addWorkoutPlan = async (planData) => {
+    try {
+      return await addWorkoutPlanToFirestore(planData)
+    } catch (error) {
+      console.error('Error adding workout plan:', error)
+    }
+  }
+
+  const updateWorkoutPlan = async (id, data) => {
+    try {
+      await updateWorkoutPlanInFirestore(id, data)
+    } catch (error) {
+      console.error('Error updating workout plan:', error)
+    }
+  }
+
+  const deleteWorkoutPlan = async (id) => {
+    try {
+      await deleteWorkoutPlanFromFirestore(id)
+    } catch (error) {
+      console.error('Error deleting workout plan:', error)
+    }
+  }
+
   // ── Local check-in log ─────────────────────────────────
   const checkIn = async (member) => {
     const now     = new Date()
@@ -464,8 +579,9 @@ export function AppProvider({ children }) {
       trainers, addTrainer, updateTrainer, deleteTrainer,
       payments, addPayment, updatePayment, deletePayment,
       plans,    addPlan,    updatePlan,    deletePlan,
-      workouts, setWorkouts,
-      dietPlans, setDietPlans,
+      progressLogs, addProgressLog,
+      dietPlans, addDietPlan, updateDietPlan, deleteDietPlan,
+      workoutPlans, addWorkoutPlan, updateWorkoutPlan, deleteWorkoutPlan,
       notifications: notificationsWithRead, markAllRead, markRead, unreadCount,
       checkinLog, checkIn,
       attendance, checkInMember,

@@ -95,9 +95,9 @@ function MemberStreakRow({ member, logs }) {
           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{member.name}</span>
           {checkedToday && <span className="badge badge-teal" style={{ fontSize: 9, padding: '1px 6px' }}>TODAY ✓</span>}
         </div>
-        <div style={{ display: 'flex', gap: 3 }}>
+        <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
           {last7.map((present, i) => (
-            <div key={i} style={{ width: 10, height: 10, borderRadius: 2, background: present ? 'var(--teal)' : 'var(--border)' }} />
+            <div key={i} style={{ width: 8, height: 8, borderRadius: 2, background: present ? 'var(--teal)' : 'var(--border)' }} />
           ))}
         </div>
       </div>

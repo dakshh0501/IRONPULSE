@@ -98,13 +98,13 @@ function MemberModal({ member, trainers, onSave, onClose, plans }) {
     try {
       const avatar = form.name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase()
       const matchedPlan = activePlans.find(p => p.name === form.plan)
-      const payload = { ...form, avatar, planPrice: matchedPlan?.price || form.planPrice || 1499 }
+      const { password: formPwd, ...payloadRest } = form
+      const payload = { ...payloadRest, avatar, planPrice: matchedPlan?.price || form.planPrice || 1499 }
 
       let memberId = member?.id
 
-      // Save member data first
       if (!memberId) {
-        memberId = await onSave(payload)
+        memberId = await onSave({ ...payload, password: formPwd })
       } else {
         await onSave(payload)
       }
