@@ -37,23 +37,25 @@
   --input-border:rgba(255,255,255,0.1);
   --hover:       rgba(255,255,255,0.04);
   --shadow:      0 4px 24px rgba(0,0,0,0.4);
+  --chart-grid:  rgba(255,255,255,0.04);
 }
 
 [data-theme="light"] {
-  --bg:          #f0f2f7;
-  --bg2:         #e8eaf0;
-  --bg3:         #dde0ea;
+  --bg:          #f4f6fa;
+  --bg2:         #ffffff;
+  --bg3:         #eef0f5;
   --card:        #ffffff;
   --card-border: rgba(var(--accent-rgb), 0.08);
   --sidebar-bg:  #ffffff;
   --sidebar-text:#475569;
-  --text:        #1a1a2e;
-  --text-muted:  #6070a0;
+  --text:        #0f172a;
+  --text-muted:  #64748b;
   --border:      rgba(0,0,0,0.08);
-  --input-bg:    #f8f9fb;
-  --input-border:rgba(0,0,0,0.12);
-  --hover:       rgba(0,0,0,0.03);
-  --shadow:      0 4px 24px rgba(0,0,0,0.1);
+  --input-bg:    #ffffff;
+  --input-border:rgba(0,0,0,0.15);
+  --hover:       rgba(0,0,0,0.04);
+  --shadow:      0 4px 24px rgba(0,0,0,0.08);
+  --chart-grid:  rgba(0,0,0,0.06);
 }
 
 /* ── Reset ── */
@@ -75,7 +77,7 @@ a { text-decoration: none; color: inherit; }
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
 /* ─────────────────────────────────────────────────────────────
    LAYOUT
@@ -96,7 +98,7 @@ a { text-decoration: none; color: inherit; }
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  border-right: 1px solid rgba(255,255,255,0.04);
+  border-right: 1px solid var(--border);
   overflow-y: auto;
   overflow-x: hidden;
   transition: transform var(--transition);
@@ -105,7 +107,7 @@ a { text-decoration: none; color: inherit; }
 
 .sidebar-logo {
   padding: 20px 20px 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 .sidebar-logo h1 {
@@ -147,7 +149,7 @@ a { text-decoration: none; color: inherit; }
   transition: all var(--transition);
   user-select: none;
 }
-.sidebar-item:hover { color: #c0c8e0; background: rgba(255,255,255,0.04); }
+.sidebar-item:hover { color: var(--text); background: var(--hover); }
 .sidebar-item.active {
   color: var(--accent);
   background: rgba(var(--accent-rgb), 0.08);
@@ -169,7 +171,7 @@ a { text-decoration: none; color: inherit; }
 .sidebar-footer {
   margin-top: auto;
   padding: 12px 16px;
-  border-top: 1px solid rgba(255,255,255,0.05);
+  border-top: 1px solid var(--border);
 }
 .sidebar-user {
   display: flex;
@@ -180,9 +182,9 @@ a { text-decoration: none; color: inherit; }
   cursor: pointer;
   transition: background var(--transition);
 }
-.sidebar-user:hover { background: rgba(255,255,255,0.06); }
+.sidebar-user:hover { background: var(--hover); }
 .sidebar-user-info { flex: 1; overflow: hidden; }
-.sidebar-user-name { font-size: 13px; font-weight: 600; color: #c0c8e0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-user-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sidebar-user-role { font-size: 10px; color: var(--teal); text-transform: uppercase; letter-spacing: 0.1em; }
 
 /* ── Sidebar overlay (mobile backdrop) ── */
@@ -436,7 +438,7 @@ tbody tr:last-child td { border-bottom: none; }
 }
 .btn-outline:hover { background: var(--teal-dim); }
 .btn-ghost   { background: var(--hover); color: var(--text); border: 1px solid var(--border); }
-.btn-ghost:hover { background: rgba(255,255,255,0.08); }
+.btn-ghost:hover { background: var(--bg3); }
 .btn-red     { background: rgba(239,68,68,0.12); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
 .btn-red:hover { background: rgba(239,68,68,0.2); }
 .btn-sm      { padding: 5px 12px; font-size: 12px; }
@@ -508,7 +510,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-.modal-close:hover { color: var(--text); background: rgba(255,255,255,0.1); }
+.modal-close:hover { color: var(--text); background: var(--hover); }
 .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); flex-wrap: wrap; }
 
 /* ─────────────────────────────────────────────────────────────
@@ -876,6 +878,27 @@ textarea.form-input { resize: vertical; min-height: 80px; }
     justify-content: center;
   }
 
+  /* ── Inline modals that don't use .modal-overlay class ── */
+  .modal-overlay-inline {
+    padding: 12px;
+  }
+  .modal-overlay-inline > div {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 92vh !important;
+    border-radius: 16px 16px 0 0 !important;
+    margin-top: auto;
+  }
+
+  /* ── Card grids: smaller minmax on mobile ── */
+  .workout-cards { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  .member-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+
+  /* ── Empty state padding: reduce vertical waste ── */
+  .stats-grid + .card > div[style*="text-align: center"] {
+    padding: 32px 16px !important;
+  }
+
   /* ── Forms: single column ── */
   .form-row { grid-template-columns: 1fr; gap: 12px; }
 
@@ -892,6 +915,23 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   .hero-section { padding: 60px 20px 40px; }
   .hero-cta { flex-direction: column; align-items: center; }
   .role-cards { grid-template-columns: 1fr; max-width: 320px; }
+
+  /* ── Settings sidebar: stack on mobile ── */
+  .settings-layout {
+    flex-direction: column;
+  }
+  .settings-layout > div:first-child {
+    width: 100% !important;
+  }
+
+  /* ── Action button columns: compact on mobile ── */
+  td > div[style*="gap: 6"] {
+    gap: 4px !important;
+  }
+  td > div[style*="gap: 6"] .btn-sm {
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+  }
 }
 
 /* ═════════════════════════════════════════════════════════════
@@ -902,4 +942,23 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   .stat-value { font-size: 26px; }
   .btn { font-size: 12px; padding: 8px 14px; }
   .page-content { padding: 12px; }
+
+  /* ── Smaller card grids ── */
+  .workout-cards { grid-template-columns: 1fr; }
+  .member-grid { grid-template-columns: 1fr; }
+
+  /* ── Modal form grids collapse ── */
+  .modal [style*="gridTemplateColumns: '1fr 1fr 1fr'"],
+  .modal [style*="gridTemplateColumns: \"1fr 1fr 1fr\""] {
+    grid-template-columns: 1fr !important;
+  }
+  .modal [style*="gridTemplateColumns: 'repeat(4, 1fr)'"],
+  .modal [style*="gridTemplateColumns: \"repeat(4, 1fr)\""] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* ── Tighten empty states further ── */
+  .card div[style*="padding: '60px 24px'"] {
+    padding: 32px 16px !important;
+  }
 }

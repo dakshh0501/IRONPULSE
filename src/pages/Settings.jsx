@@ -43,7 +43,7 @@ function SectionCard({ title, subtitle, icon, children }) {
       <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20, paddingBottom:16, borderBottom:'1px solid var(--border)' }}>
         <div style={{
           width:40, height:40, borderRadius:10,
-          background:'rgba(0,200,180,0.1)', border:'1px solid rgba(0,200,180,0.2)',
+          background:'var(--teal-dim)', border:'1px solid rgba(0,200,180,0.2)',
           display:'flex', alignItems:'center', justifyContent:'center', fontSize:20,
         }}>
           {icon}
@@ -496,7 +496,7 @@ export default function Settings() {
         </div>
       </div>
 
-      <div style={{ display:'flex', gap:20, alignItems:'flex-start' }}>
+      <div className="settings-layout" style={{ display:'flex', gap:20, alignItems:'flex-start' }}>
 
         {/* Vertical tab nav */}
         <div style={{

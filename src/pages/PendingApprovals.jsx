@@ -135,7 +135,7 @@ export default function PendingApprovals() {
       {toast && (
         <div style={{
           position: 'fixed', top: 80, right: 24, zIndex: 9999,
-          background: toast.type === 'error' ? '#450a0a' : 'var(--bg2)',
+          background: toast.type === 'error' ? 'rgba(239,68,68,0.1)' : 'var(--bg2)',
           border: `1px solid ${toast.type === 'error' ? '#f87171' : 'var(--teal)'}`,
           borderRadius: 10, padding: '12px 18px',
           display: 'flex', alignItems: 'center', gap: 10,

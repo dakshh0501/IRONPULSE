@@ -222,7 +222,6 @@ export default function Progress({ search = '' }) {
   // Default selected member for admin/trainer
   const defaultMember = activeMembers[0]?.name || ''
 
-  const [log,         setLog]         = useState(INITIAL_LOG)
   const [logOpen,     setLogOpen]     = useState(false)
   const [chartTab,    setChartTab]    = useState('body')
   const [selectedMember, setSelectedMember] = useState(defaultMember)
@@ -345,7 +344,7 @@ export default function Progress({ search = '' }) {
                       <stop offset="95%" stopColor="#e8420a" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                   <XAxis dataKey="week" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
                   <YAxis domain={['dataMin - 1','dataMax + 1']} tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
                   <Tooltip content={<ChartTooltip />}/>
@@ -365,7 +364,7 @@ export default function Progress({ search = '' }) {
                       <stop offset="95%" stopColor="#00c8b4" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                   <XAxis dataKey="week" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
                   <YAxis domain={['dataMin - 1','dataMax + 1']} tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
                   <Tooltip content={<ChartTooltip />}/>
@@ -381,7 +380,7 @@ export default function Progress({ search = '' }) {
             <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 10 }}>🏋️ Strength Progress (kg lifted)</p>
             <ResponsiveContainer width="100%" height={240}>
               <LineChart data={chartData} margin={{ top:5,right:10,bottom:0,left:-20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                 <XAxis dataKey="week" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
                 <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
                 <Tooltip content={<ChartTooltip />}/>

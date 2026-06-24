@@ -239,7 +239,7 @@ if (status === 'pending' || status === 'overdue')
                   <stop offset="95%" stopColor="#00c8b4" stopOpacity={0}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
               <XAxis dataKey="month" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
               <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false} tickFormatter={v=>`₹${v/1000}K`}/>
               <Tooltip content={<ChartTooltip />}/>
@@ -254,7 +254,7 @@ if (status === 'pending' || status === 'overdue')
           <p className="card-title">Monthly Revenue</p>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={revenueChartData} margin={{ top:5, right:10, bottom:0, left:-15 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false}/>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false}/>
               <XAxis dataKey="month" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
               <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false} tickFormatter={v=>`₹${v/1000}K`}/>
               <Tooltip content={<ChartTooltip />}/>
@@ -395,7 +395,7 @@ function AttendanceReport({ members, attendance }) {
           <p className="card-title">Weekly Check-ins (Last 7 Days)</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={weeklyData} margin={{ top:5, right:10, bottom:0, left:-20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false}/>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false}/>
               <XAxis dataKey="day" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
               <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
               <Tooltip content={<ChartTooltip />}/>
@@ -419,7 +419,7 @@ function AttendanceReport({ members, attendance }) {
                   <stop offset="95%" stopColor="#00c8b4" stopOpacity={0}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)"/>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)"/>
               <XAxis dataKey="hour" tick={{ fill:'var(--text-muted)', fontSize:9 }} axisLine={false} tickLine={false}/>
               <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
               <Tooltip content={<ChartTooltip />}/>
@@ -582,7 +582,7 @@ function MembershipReport({ members }) {
           <p className="card-title">Growth Trend (New vs Left)</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={growthData} margin={{ top:5, right:10, bottom:0, left:-20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false}/>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false}/>
               <XAxis dataKey="month" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
               <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
               <Tooltip content={<ChartTooltip />}/>
@@ -601,7 +601,7 @@ function MembershipReport({ members }) {
               No member data yet.
             </div>
           ) : (
-            <div style={{ display:'flex', alignItems:'center', gap:20 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:20, flexWrap:'wrap' }}>
               <ResponsiveContainer width="50%" height={200}>
                 <PieChart>
                   <Pie data={planData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value">
@@ -709,7 +709,7 @@ function TrainerReport({ members, trainers }) {
         ) : (
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={trainerPerf} margin={{ top:5, right:10, bottom:0, left:-20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false}/>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false}/>
               <XAxis dataKey="name" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
               <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
               <Tooltip content={<ChartTooltip />}/>
