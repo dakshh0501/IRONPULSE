@@ -82,6 +82,30 @@ export async function uploadMemberPhoto(file, memberId, onProgress) {
   })
 }
 
+export async function uploadGymLogo(file, onProgress) {
+  validateImage(file)
+  const compressed = await compressImage(file)
+
+  const storagePath = `settings/gym-logo.webp`
+  const storageRef = ref(storage, storagePath)
+  const uploadTask = uploadBytesResumable(storageRef, compressed)
+
+  return new Promise((resolve, reject) => {
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        const pct = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+        if (onProgress) onProgress(pct)
+      },
+      (error) => reject(error),
+      async () => {
+        const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref)
+        resolve({ downloadUrl, storagePath })
+      }
+    )
+  })
+}
+
 export async function deleteMemberPhoto(storagePath) {
   if (!storagePath) return
   try {

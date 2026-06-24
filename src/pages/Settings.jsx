@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext'
 import { getSettings, saveSettings, addSupportTicket, addFeatureRequest } from '../services/firestoreService'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../firebase'
+import { uploadGymLogo } from '../services/storageService'
+import { extractDominantColor } from '../utils/colorExtractor'
 
 // ─────────────────────────────────────────────────────────────
 //  HELPERS — defined at top level so they never cause focus loss
@@ -129,19 +131,67 @@ export default function Settings() {
   const [gymSaved,   setGymSaved]   = useState(false)
   const [gymError,   setGymError]   = useState('')
   const [gymLoading, setGymLoading] = useState(true)
+  const [logoFile,   setLogoFile]   = useState(null)
+  const [logoProgress, setLogoProgress] = useState(0)
+  const [logoError,    setLogoError]    = useState('')
+  const fileInputRef = useRef(null)
   const setGym = (k, v) => setGymForm(p => ({ ...p, [k]: v }))
 
   useEffect(() => {
     getSettings('gym')
-      .then(data => { if (data) setGymForm(prev => ({ ...prev, ...data })) })
+      .then(data => {
+        if (data) {
+          setGymForm(prev => ({ ...prev, ...data }))
+          if (data.primaryColor) applyAccentColor(data.primaryColor)
+        }
+      })
       .catch(err => console.error('Failed to load gym settings:', err))
       .finally(() => setGymLoading(false))
   }, [])
 
+  const handleLogoSelect = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setLogoError('')
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    if (!allowed.includes(file.type)) { setLogoError('Only JPG, PNG, WEBP accepted.'); return }
+    if (file.size > 5 * 1024 * 1024) { setLogoError('File must be under 5MB.'); return }
+
+    setLogoFile(file)
+
+    const previewUrl = URL.createObjectURL(file)
+    setGym('logoUrl', previewUrl)
+
+    try {
+      const img = new Image()
+      img.src = previewUrl
+      await new Promise((resolve, reject) => {
+        img.onload = resolve
+        img.onerror = reject
+      })
+      const primaryColor = extractDominantColor(img)
+      setGym('primaryColor', primaryColor)
+      applyAccentColor(primaryColor)
+    } catch (err) {
+      setLogoError('Could not extract color from image.')
+    }
+
+    try {
+      const { downloadUrl } = await uploadGymLogo(file, setLogoProgress)
+      setGym('logoUrl', downloadUrl)
+      setLogoFile(null)
+      setLogoProgress(0)
+    } catch (err) {
+      setLogoError('Upload failed. The logo preview is local only.')
+    }
+  }
+
   const saveGym = async () => {
     setGymError('')
     try {
-      await saveSettings('gym', gymForm)
+      const data = { ...gymForm }
+      if (data.logoUrl?.startsWith('blob:')) delete data.logoUrl
+      await saveSettings('gym', data)
       setGymSaved(true)
       setTimeout(() => setGymSaved(false), 2500)
     } catch (err) {
@@ -520,18 +570,53 @@ export default function Settings() {
                   </div>
                   <div className="form-group">
                     <label className="form-label">Gym Logo</label>
-                    <div style={{
-                      border:'2px dashed var(--input-border)', borderRadius:8,
-                      padding:'28px', textAlign:'center', cursor:'pointer',
-                      background:'var(--input-bg)', transition:'border-color 0.2s',
-                    }}
-                      onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--teal)'}
-                      onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--input-border)'}
-                      onClick={() => alert('Logo upload requires Firebase Storage setup.')}
-                    >
-                      <div style={{ fontSize:36, marginBottom:8 }}>📷</div>
-                      <p style={{ fontSize:13, color:'var(--text-muted)' }}>Click to upload logo</p>
-                      <p style={{ fontSize:11, color:'var(--text-muted)', marginTop:4 }}>PNG or JPG, max 2MB</p>
+                    <div style={{ display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
+                      {(gymForm.logoUrl || gymForm.logoUrl?.startsWith('blob:')) && (
+                        <div style={{ position:'relative' }}>
+                          <img src={gymForm.logoUrl} alt="Gym logo"
+                            style={{ width:80, height:80, borderRadius:10, objectFit:'cover', border:'2px solid var(--border)' }} />
+                          {gymForm.primaryColor && (
+                            <div style={{
+                              position:'absolute', bottom:-6, right:-6, width:20, height:20, borderRadius:'50%',
+                              background: gymForm.primaryColor, border:'2px solid var(--card)',
+                              boxShadow:'0 2px 6px rgba(0,0,0,0.3)',
+                            }} title={`Dominant color: ${gymForm.primaryColor}`} />
+                          )}
+                        </div>
+                      )}
+                      <div>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png,image/webp"
+                          onChange={handleLogoSelect}
+                          style={{ display:'none' }}
+                        />
+                        <button type="button" className="btn btn-outline btn-sm" onClick={() => fileInputRef.current?.click()}>
+                          {gymForm.logoUrl ? 'Change Logo' : 'Upload Logo'}
+                        </button>
+                        {gymForm.logoUrl && (
+                          <button type="button" className="btn btn-ghost btn-sm" style={{ color:'var(--red)', marginLeft:8 }}
+                            onClick={() => { setGym('logoUrl', ''); setGym('primaryColor', ''); setLogoFile(null) }}>
+                            Remove
+                          </button>
+                        )}
+                        <p style={{ fontSize:11, color:'var(--text-muted)', marginTop:4 }}>PNG or JPG, max 5MB</p>
+                        {logoProgress > 0 && (
+                          <div style={{ marginTop:6 }}>
+                            <div style={{ height:4, background:'var(--border)', borderRadius:4, overflow:'hidden', maxWidth:160 }}>
+                              <div style={{ height:'100%', width:`${logoProgress}%`, background:'var(--teal)', borderRadius:4, transition:'width 0.3s' }} />
+                            </div>
+                            <p style={{ fontSize:11, color:'var(--text-muted)', marginTop:2 }}>Uploading… {Math.round(logoProgress)}%</p>
+                          </div>
+                        )}
+                        {logoError && <p style={{ fontSize:11, color:'var(--red)', marginTop:4 }}>⚠ {logoError}</p>}
+                        {gymForm.primaryColor && (
+                          <p style={{ fontSize:11, color:'var(--text-muted)', marginTop:4 }}>
+                            Theme color extracted: <span style={{ color:gymForm.primaryColor, fontWeight:700 }}>{gymForm.primaryColor}</span>
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <SaveBar onSave={saveGym} saved={gymSaved} error={gymError} />
