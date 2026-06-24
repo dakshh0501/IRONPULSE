@@ -330,6 +330,38 @@ export async function deleteTrainer(
 // SETTINGS
 // ─────────────────────────────────────────────
 
+// ─────────────────────────────────────────────
+// SUPPORT TICKETS
+// ─────────────────────────────────────────────
+
+export async function addSupportTicket(ticketData) {
+  const docRef = await addDoc(
+    collection(db, 'supportTickets'),
+    {
+      ...ticketData,
+      status: ticketData.status || 'Open',
+      createdAt: serverTimestamp(),
+    }
+  )
+  return docRef.id
+}
+
+// ─────────────────────────────────────────────
+// FEATURE REQUESTS
+// ─────────────────────────────────────────────
+
+export async function addFeatureRequest(requestData) {
+  const docRef = await addDoc(
+    collection(db, 'featureRequests'),
+    {
+      ...requestData,
+      status: requestData.status || 'Under Review',
+      createdAt: serverTimestamp(),
+    }
+  )
+  return docRef.id
+}
+
 // Read settings document from /settings/{docId}
 export async function getSettings(docId = 'gym') {
   const snap = await getDoc(doc(db, 'settings', docId))

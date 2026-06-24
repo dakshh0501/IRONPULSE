@@ -62,4 +62,14 @@ export function applyAccentColor(hex) {
   // zero changes to those files.
   root.style.setProperty('--orange', hex)
   root.style.setProperty('--orange-lit', lit)
+
+  // Sync PWA theme-color meta tag so browser chrome matches accent
+  const meta = document.querySelector('meta[name="theme-color"]')
+  if (meta) meta.setAttribute('content', hex)
+  else {
+    const m = document.createElement('meta')
+    m.name = 'theme-color'
+    m.content = hex
+    document.head.appendChild(m)
+  }
 }

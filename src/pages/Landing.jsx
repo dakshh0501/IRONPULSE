@@ -1,7 +1,26 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 export default function Landing() {
   const navigate = useNavigate()
+  const [installPrompt, setInstallPrompt] = useState(null)
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault()
+      setInstallPrompt(e)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  const handleInstall = async () => {
+    if (!installPrompt) return
+    installPrompt.prompt()
+    const result = await installPrompt.userChoice
+    if (result.outcome === 'accepted') setInstallPrompt(null)
+    setInstallPrompt(null)
+  }
 
   return (
     <div className="landing">
@@ -112,6 +131,20 @@ export default function Landing() {
           ))}
         </div>
       </section>
+
+      {/* INSTALL APP */}
+      {installPrompt && (
+        <section style={{ textAlign:'center', padding:'48px 24px', borderTop:'1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ fontSize:'36px', marginBottom:'12px' }}>📲</div>
+          <h3 style={{ fontSize:'22px', fontWeight:700, marginBottom:'8px', color:'#e8eaf0' }}>Take IRONPULSE Anywhere</h3>
+          <p style={{ fontSize:'14px', color:'#6070a0', marginBottom:'20px' }}>
+            Install the app on your device for quick access and offline support.
+          </p>
+          <button className="btn btn-primary" onClick={handleInstall} style={{ padding:'12px 32px', fontSize:'14px' }}>
+            📲 Install App
+          </button>
+        </section>
+      )}
 
       {/* FOOTER */}
       <footer style={{ padding:'32px 48px', borderTop:'1px solid rgba(255,255,255,0.05)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>

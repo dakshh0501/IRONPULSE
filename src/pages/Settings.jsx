@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useApp } from '../context/AppContext'
 import { applyAccentColor, DEFAULT_ACCENT } from '../utils/theme'
 import { useAuth } from '../context/AuthContext'
-import { getSettings, saveSettings } from '../services/firestoreService'
+import { getSettings, saveSettings, addSupportTicket, addFeatureRequest } from '../services/firestoreService'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 
@@ -100,6 +100,7 @@ const TABS = [
   { key:'profile',  label:'Profile',       icon:'👤' },
   { key:'notifs',   label:'Notifications', icon:'🔔' },
   { key:'security', label:'Security',      icon:'🔒' },
+  { key:'support',  label:'Support',       icon:'🆘' },
 ]
 
 const DEFAULT_GYM = {
@@ -213,6 +214,87 @@ export default function Settings() {
       console.error('Failed to save plan:', err)
     } finally {
       setPlanSaving(false)
+    }
+  }
+
+  // ── PWA Install ────────────────────────────────────────────
+  const [installPrompt, setInstallPrompt] = useState(null)
+  const [installSupported, setInstallSupported] = useState(false)
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault()
+      setInstallPrompt(e)
+      setInstallSupported(true)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setInstallSupported(false)
+    }
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  const handleInstall = async () => {
+    if (!installPrompt) return
+    installPrompt.prompt()
+    const result = await installPrompt.userChoice
+    if (result.outcome === 'accepted') setInstallSupported(false)
+    setInstallPrompt(null)
+  }
+
+  // ── Support Center ─────────────────────────────────────────
+  const { gymSettings } = useApp()
+  const gymContact = gymSettings?.contact || '+91 98765 00001'
+  const gymEmail = gymSettings?.email || 'admin@ironpulse.app'
+
+  const [ticketForm, setTicketForm] = useState({ subject: '', category: 'Bug Report', description: '' })
+  const [ticketSaving, setTicketSaving] = useState(false)
+  const [ticketSaved, setTicketSaved] = useState(false)
+  const [ticketError, setTicketError] = useState('')
+
+  const [featureForm, setFeatureForm] = useState({ title: '', description: '' })
+  const [featureSaving, setFeatureSaving] = useState(false)
+  const [featureSaved, setFeatureSaved] = useState(false)
+  const [featureError, setFeatureError] = useState('')
+
+  const [showUserGuide, setShowUserGuide] = useState(false)
+  const [faqOpen, setFaqOpen] = useState(null)
+
+  const handleSubmitTicket = async () => {
+    if (!ticketForm.subject.trim() || !ticketForm.description.trim()) {
+      setTicketError('Subject and description are required.')
+      return
+    }
+    setTicketSaving(true)
+    setTicketError('')
+    try {
+      await addSupportTicket(ticketForm)
+      setTicketSaved(true)
+      setTicketForm({ subject: '', category: 'Bug Report', description: '' })
+      setTimeout(() => setTicketSaved(false), 3000)
+    } catch (err) {
+      setTicketError('Failed to submit ticket. Try again.')
+    } finally {
+      setTicketSaving(false)
+    }
+  }
+
+  const handleSubmitFeature = async () => {
+    if (!featureForm.title.trim() || !featureForm.description.trim()) {
+      setFeatureError('Title and description are required.')
+      return
+    }
+    setFeatureSaving(true)
+    setFeatureError('')
+    try {
+      await addFeatureRequest(featureForm)
+      setFeatureSaved(true)
+      setFeatureForm({ title: '', description: '' })
+      setTimeout(() => setFeatureSaved(false), 3000)
+    } catch (err) {
+      setFeatureError('Failed to submit request. Try again.')
+    } finally {
+      setFeatureSaving(false)
     }
   }
 
@@ -784,6 +866,190 @@ export default function Settings() {
                 ))}
               </div>
             </>
+          )}
+
+          {/* SUPPORT */}
+          {activeTab === 'support' && (
+            <>
+              {/* 1. Contact Support */}
+              <SectionCard icon="📞" title="Contact Support" subtitle="Reach out to the team directly">
+                <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+                  <a href={`tel:${gymContact.replace(/[\s\-\(\)\+]/g, '')}`} className="btn btn-outline" style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 18px', fontSize:13 }}>
+                    📞 Call {gymContact}
+                  </a>
+                  <a href={`mailto:${gymEmail}`} className="btn btn-outline" style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 18px', fontSize:13 }}>
+                    ✉️ Email {gymEmail}
+                  </a>
+                  <a href={`https://wa.me/?text=${encodeURIComponent('Hi, I need help with IRONPULSE.')}`} target="_blank" rel="noopener noreferrer" className="btn btn-outline" style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 18px', fontSize:13 }}>
+                    💬 WhatsApp Support
+                  </a>
+                </div>
+              </SectionCard>
+
+              {/* 2. Raise Ticket */}
+              <SectionCard icon="🎫" title="Raise a Ticket" subtitle="Report issues or get help from our team">
+                <div className="form-group">
+                  <label className="form-label">Subject</label>
+                  <input className="form-input" placeholder="Brief summary of the issue"
+                    value={ticketForm.subject} onChange={e => { setTicketForm(p => ({ ...p, subject: e.target.value })); setTicketError('') }} />
+                </div>
+                <div className="form-row" style={{ marginBottom:14 }}>
+                  <div className="form-group" style={{ margin:0 }}>
+                    <label className="form-label">Category</label>
+                    <select className="form-select" value={ticketForm.category} onChange={e => setTicketForm(p => ({ ...p, category: e.target.value }))}>
+                      {['Bug Report', 'Account Issue', 'Billing', 'General Query', 'Other'].map(c => <option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Description</label>
+                  <textarea className="form-input" rows={3} placeholder="Describe the issue in detail..."
+                    value={ticketForm.description} onChange={e => { setTicketForm(p => ({ ...p, description: e.target.value })); setTicketError('') }} />
+                </div>
+                {ticketError && <p style={{ fontSize:12, color:'var(--red)', marginBottom:8 }}>⚠ {ticketError}</p>}
+                {ticketSaved && <p style={{ fontSize:12, color:'var(--green)', marginBottom:8 }}>✓ Ticket submitted successfully</p>}
+                <SaveBar label={ticketSaving ? 'Submitting…' : 'Submit Ticket'} onSave={handleSubmitTicket} saved={false} />
+              </SectionCard>
+
+              {/* 3. Feature Request */}
+              <SectionCard icon="💡" title="Feature Request" subtitle="Suggest new features or improvements">
+                <div className="form-group">
+                  <label className="form-label">Title</label>
+                  <input className="form-input" placeholder="Feature name"
+                    value={featureForm.title} onChange={e => { setFeatureForm(p => ({ ...p, title: e.target.value })); setFeatureError('') }} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Description</label>
+                  <textarea className="form-input" rows={3} placeholder="Describe the feature and how it would help…"
+                    value={featureForm.description} onChange={e => { setFeatureForm(p => ({ ...p, description: e.target.value })); setFeatureError('') }} />
+                </div>
+                {featureError && <p style={{ fontSize:12, color:'var(--red)', marginBottom:8 }}>⚠ {featureError}</p>}
+                {featureSaved && <p style={{ fontSize:12, color:'var(--green)', marginBottom:8 }}>✓ Feature request submitted</p>}
+                <SaveBar label={featureSaving ? 'Submitting…' : 'Submit Request'} onSave={handleSubmitFeature} saved={false} />
+              </SectionCard>
+
+              {/* 4. User Guide */}
+              <SectionCard icon="📖" title="User Guide" subtitle="Learn how to use IRONPULSE">
+                <p style={{ fontSize:13, color:'var(--text-muted)', marginBottom:14, lineHeight:1.6 }}>
+                  Get started with IRONPULSE by exploring the quick guide below.
+                </p>
+                <button className="btn btn-outline" onClick={() => setShowUserGuide(true)} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  📘 Open User Guide
+                </button>
+              </SectionCard>
+
+              {/* 5. FAQs */}
+              <SectionCard icon="❓" title="Frequently Asked Questions" subtitle="Quick answers to common questions">
+                {[
+                  { q: 'How do I add a new member?', a: 'Go to Members → click "+ Add Member" → fill in the details → save. A Firebase account is created automatically for the member.' },
+                  { q: 'How do renewals work?', a: 'Click the 🔄 button on a member row. The system extends expiry based on the plan duration and creates a payment record with the plan price.' },
+                  { q: 'Can I customize membership plans?', a: 'Yes. Go to Settings → Plans to add, edit, or deactivate plans. Changes reflect immediately in Members and Payments.' },
+                  { q: 'How do I send WhatsApp reminders?', a: 'Go to WhatsApp Reminders from the sidebar. The system auto-detects members expiring soon. Click the WhatsApp button to send a pre-filled message.' },
+                  { q: 'How do I change the app theme?', a: 'Go to Settings → Theme. Toggle dark/light mode and pick an accent color. Changes are saved to Firestore and persist across devices.' },
+                  { q: 'How do I generate reports?', a: 'Go to Reports from the sidebar to view revenue charts, membership stats, and trainer performance.' },
+                  { q: 'How do I set up QR check-in?', a: 'Go to QR Check-in from the sidebar. Members can scan their QR code at reception for quick check-in.' },
+                  { q: 'Is there a mobile app?', a: 'IRONPULSE is a Progressive Web App. Open it in Chrome/Edge and click "Install App" in Settings to add it to your home screen.' },
+                ].map((faq, i) => (
+                  <div key={i} style={{ borderBottom:'1px solid var(--border)' }}>
+                    <button
+                      onClick={() => setFaqOpen(faqOpen === i ? null : i)}
+                      style={{
+                        width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between',
+                        padding:'14px 0', background:'none', border:'none', cursor:'pointer',
+                        fontSize:13, fontWeight:600, color:'var(--text)', textAlign:'left', gap:12,
+                      }}
+                    >
+                      <span>{faq.q}</span>
+                      <span style={{ fontSize:16, color:'var(--text-muted)', flexShrink:0, transition:'transform 0.2s', transform: faqOpen === i ? 'rotate(180deg)' : 'none' }}>
+                        ▾
+                      </span>
+                    </button>
+                    {faqOpen === i && (
+                      <div style={{ padding:'0 0 14px 0', fontSize:13, color:'var(--text-muted)', lineHeight:1.6 }}>
+                        {faq.a}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </SectionCard>
+
+              {/* 6. About Software */}
+              <SectionCard icon="ℹ️" title="About IRONPULSE" subtitle="Software version and information">
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                  {[
+                    ['Product Name', 'IRONPULSE'],
+                    ['Version', '1.0.0'],
+                    ['Build Date', 'June 2026'],
+                    ['Platform', 'Web (PWA)'],
+                    ['Developer', 'IRONPULSE Team'],
+                    ['Contact', gymEmail],
+                    ['License', 'Proprietary'],
+                    ['Stack', 'React + Firebase'],
+                  ].map(([k, v]) => (
+                    <div key={k} style={{ background:'var(--bg3)', borderRadius:'var(--radius-sm)', padding:'12px 14px' }}>
+                      <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--text-muted)', marginBottom:4, fontWeight:600 }}>{k}</div>
+                      <div style={{ fontSize:14, fontWeight:600 }}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+            </>
+          )}
+
+          {/* User Guide Modal */}
+          {showUserGuide && (
+            <div className="modal-overlay" onClick={() => setShowUserGuide(false)}>
+              <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
+                <div className="modal-header">
+                  <div>
+                    <h3>📘 IRONPULSE User Guide</h3>
+                    <p>Quick start guide for gym administrators</p>
+                  </div>
+                  <button className="modal-close" onClick={() => setShowUserGuide(false)}>✕</button>
+                </div>
+                <div style={{ padding:'16px 24px', maxHeight:'60vh', overflowY:'auto' }}>
+                  {[
+                    { title:'👥 Managing Members', steps:['Navigate to Members from the sidebar.', 'Click "+ Add Member" to register a new member.', 'Fill in personal info, assign a plan and trainer.', 'A Firebase account is auto-created so members can sign in.', 'Use the 🔄 button to renew memberships.'] },
+                    { title:'💳 Payments & Billing', steps:['Go to Payments to view all invoices.', 'Click "New Invoice" to generate a bill for any member.', 'Use filters to view Paid, Pending, or Overdue invoices.', 'Click an invoice to view details, print, or send via WhatsApp.', 'Revenue charts show monthly collection vs targets.'] },
+                    { title:'🏋️ Trainer Management', steps:['Go to Trainers to add or edit trainers.', 'Assign members to trainers from the Members page.', 'Each trainer can log in and view their assigned clients.', 'Trainer performance metrics are shown on the Dashboard.'] },
+                    { title:'📱 QR Check-in', steps:['Each member has a unique QR code.', 'Open QR Check-in from the sidebar and scan the code.', 'Check-ins are logged and visible in the attendance report.'] },
+                    { title:'💬 WhatsApp Reminders', steps:['Open WhatsApp Reminders from the sidebar.', 'The system auto-detects memberships expiring soon.', 'Click the WhatsApp button to send a pre-filled reminder.', 'Customize the gym name in Settings → Gym.'] },
+                    { title:'🎨 Customizing the App', steps:['Go to Settings → Theme to switch dark/light mode.', 'Pick an accent color to match your brand.', 'Update gym name, address, and contact in Settings → Gym.', 'Configure notification preferences in Settings → Notifications.'] },
+                    { title:'📊 Reports & Analytics', steps:['Open Reports to view business insights.', 'Track membership growth, revenue, and trainer performance.', 'Export data as needed for offline analysis.'] },
+                    { title:'📲 Install as App', steps:['Open IRONPULSE in Chrome or Edge.', 'Click "Install App" in Settings or use the browser install prompt.', 'The app launches in standalone mode with no browser chrome.', 'Works offline for cached pages.'] },
+                  ].map(section => (
+                    <div key={section.title} style={{ marginBottom:20 }}>
+                      <h4 style={{ fontSize:14, fontWeight:700, marginBottom:8 }}>{section.title}</h4>
+                      <ol style={{ margin:0, paddingLeft:20, display:'flex', flexDirection:'column', gap:4 }}>
+                        {section.steps.map((step, j) => (
+                          <li key={j} style={{ fontSize:13, color:'var(--text-muted)', lineHeight:1.6 }}>{step}</li>
+                        ))}
+                      </ol>
+                    </div>
+                  ))}
+                </div>
+                <div className="modal-footer">
+                  <button className="btn btn-primary" onClick={() => setShowUserGuide(false)}>Got it</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* PWA Install — always visible on Settings */}
+          {installSupported && (
+            <SectionCard icon="📲" title="Install IRONPULSE App" subtitle="Add to your home screen for a native-like experience">
+              <div style={{ display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
+                <div style={{ flex:1, minWidth:200 }}>
+                  <p style={{ fontSize:13, color:'var(--text-muted)', lineHeight:1.6 }}>
+                    Launch IRONPULSE directly from your device — no browser needed.
+                    Works offline for cached pages and sends push notifications when available.
+                  </p>
+                </div>
+                <button className="btn btn-primary" onClick={handleInstall} style={{ flexShrink:0 }}>
+                  📲 Install App
+                </button>
+              </div>
+            </SectionCard>
           )}
 
         </div>
