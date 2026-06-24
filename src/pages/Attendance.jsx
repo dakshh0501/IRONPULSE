@@ -265,7 +265,7 @@ export default function Attendance({ search = '' }) {
       </div>
 
       {/* Scanner + Live feed */}
-      <div className="grid-2" style={{ marginBottom: 20 }}>
+      <div className="grid-2" style={{ marginBottom: 24 }}>
 
         {/* QR scanner panel */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -331,7 +331,7 @@ export default function Attendance({ search = '' }) {
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)', fontFamily: 'monospace' }}>{log.time}</div>
-                  <span className={`badge ${log.method === 'QR' ? 'badge-teal' : 'badge-orange'}`} style={{ fontSize: 9, padding: '1px 6px' }}>{log.method}</span>
+                  <span className={`badge ${log.method === 'QR' ? 'badge-teal' : 'badge-orange'}`}>{log.method}</span>
                 </div>
               </div>
             ))}
@@ -340,13 +340,16 @@ export default function Attendance({ search = '' }) {
       </div>
 
       {/* Analytics row */}
-      <div className="grid-2" style={{ marginBottom: 20 }}>
+      <div className="grid-2" style={{ marginBottom: 24 }}>
         <WeekHeatmap logs={attendance} />
         <div className="card">
           <div className="card-title">Member Streaks — Last 7 Days</div>
-          <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+          <div style={{ maxHeight: 340, overflowY: 'auto' }}>
             {members.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: 13, padding: '20px 0' }}>No members found.</p>
+              <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: 28, marginBottom: 6 }}>👥</div>
+                No members found.
+              </div>
             ) : members.map(m => (
               <MemberStreakRow key={m.id} member={m} logs={attendance} />
             ))}

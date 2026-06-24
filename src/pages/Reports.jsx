@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useApp } from '../context/AppContext'
+import { jsPDF } from 'jspdf'
 import {
   AreaChart, Area, BarChart, Bar,
   PieChart, Pie, Cell,
@@ -188,7 +189,17 @@ if (status === 'pending' || status === 'overdue')
     return result
   }, [payments])
 
-  const simExport = () => alert('In production: downloads a CSV of the revenue data.')
+  const exportCSV = () => {
+    const headers = 'Month,Revenue (₹),Pending (₹)'
+    const rows = revenueChartData.map(r => `${r.month},${r.revenue},${r.pending}`)
+    const csv = [headers, ...rows].join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'revenue-report.csv'
+    link.click()
+    URL.revokeObjectURL(link.href)
+  }
   const formatMoney = value =>
     value < 10000
       ? `₹${value.toLocaleString('en-IN')}`
@@ -196,7 +207,7 @@ if (status === 'pending' || status === 'overdue')
 
   return (
     <div>
-      <SectionHeader title="Revenue Report" subtitle="Financial overview" onExport={simExport} />
+      <SectionHeader title="Revenue Report" subtitle="Financial overview" onExport={exportCSV} />
 
       {/* Original 4 KPI cards */}
       <div className="stats-grid" style={{ marginBottom:16 }}>
@@ -757,6 +768,75 @@ export default function Reports() {
   const { members, payments, trainers, attendance } = useApp()
   const [activeTab, setActiveTab] = useState('Revenue')
 
+  const exportPDF = () => {
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+    const now = new Date()
+    const dateStr = now.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })
+    let y = 20
+
+    const title = (text, size = 16) => {
+      doc.setFontSize(size)
+      doc.setTextColor(232, 66, 10)
+      doc.text(text, 14, y)
+      y += size > 12 ? 10 : 7
+    }
+    const subtitle = (text) => {
+      doc.setFontSize(9)
+      doc.setTextColor(130, 130, 130)
+      doc.text(text, 14, y)
+      y += 5
+    }
+    const stat = (label, value) => {
+      doc.setFontSize(10)
+      doc.setTextColor(50, 50, 50)
+      doc.text(label, 18, y)
+      doc.setFontSize(11)
+      doc.setTextColor(0, 0, 0)
+      doc.text(String(value), 90, y)
+      y += 5
+    }
+    const hr = () => {
+      y += 2
+      doc.setDrawColor(220, 220, 220)
+      doc.line(14, y, 196, y)
+      y += 4
+    }
+
+    title('IRONPULSE — Report', 20)
+    subtitle(`Generated on ${dateStr}`)
+    hr()
+
+    title('Revenue')
+    const paid = payments.filter(p => (p.status || '').toLowerCase() === 'paid')
+    const pending = payments.filter(p => ['pending', 'overdue'].includes((p.status || '').toLowerCase()))
+    stat('Total Collected', `₹${paid.reduce((s, p) => s + Number(p.paid || 0), 0).toLocaleString('en-IN')}`)
+    stat('Pending / Overdue', `₹${pending.reduce((s, p) => s + Number(p.amount || 0), 0).toLocaleString('en-IN')}`)
+    stat('Total Invoices', payments.length)
+    hr()
+
+    title('Attendance')
+    const todayStr = new Date().toISOString().split('T')[0]
+    stat('Total Check-ins', attendance.length)
+    stat("Today's Check-ins", attendance.filter(a => a.date === todayStr).length)
+    stat('Avg per Member', members.length > 0 ? (attendance.length / members.length).toFixed(1) : '—')
+    hr()
+
+    title('Membership')
+    const active = members.filter(m => m.status === 'Active').length
+    const expired = members.filter(m => m.status === 'Expired').length
+    stat('Active Members', active)
+    stat('Expired', expired)
+    stat('Trial', members.filter(m => m.status === 'Trial').length)
+    stat('Churn Rate', `${members.length > 0 ? ((expired / members.length) * 100).toFixed(1) : '0.0'}%`)
+    hr()
+
+    title('Trainers')
+    stat('Active Trainers', trainers.length)
+    stat('Clients Assigned', trainers.reduce((s, t) => s + members.filter(m => m.trainerId === t.id).length, 0))
+
+    doc.save('ironpulse-report.pdf')
+  }
+
   return (
     <div>
       <div className="page-header">
@@ -771,7 +851,7 @@ export default function Reports() {
             <option>March 2025</option>
             <option>Q1 2025</option>
           </select>
-          <button className="btn btn-outline" onClick={() => alert('In production: generates and downloads a full PDF report.')}>
+          <button className="btn btn-outline" onClick={exportPDF}>
             ↓ Export PDF
           </button>
         </div>

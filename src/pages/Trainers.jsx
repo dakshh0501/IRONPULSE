@@ -152,7 +152,7 @@ function TrainerCard({ trainer, members, onEdit, onDelete, onView }) {
         <Pill icon="💰" label="Salary"     value={salary > 0 ? `₹${(salary/1000).toFixed(0)}K` : '—'} color="var(--green)"  />
       </div>
 
-      <div style={{ padding: '0 20px 14px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ padding: '0 20px 16px', display: 'flex', flexDirection: 'column', gap: 4 }}>
         <p style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
           <span>📧</span> {trainer.email}
         </p>
@@ -169,7 +169,7 @@ function TrainerCard({ trainer, members, onEdit, onDelete, onView }) {
       </div>
 
       {myMembers.length > 0 && (
-        <div style={{ padding: '10px 20px 16px', borderTop: '1px solid var(--border)' }}>
+        <div style={{ padding: '12px 20px 16px', borderTop: '1px solid var(--border)' }}>
           <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
             Assigned Members
           </p>
@@ -390,7 +390,7 @@ function TrainerFormModal({ trainer, onSave, onClose }) {
               value={form.email} onChange={e => set('email', e.target.value)} />
           </Field>
         </div>
-        <div className="form-row" style={{ marginBottom: 20 }}>
+        <div className="form-row" style={{ marginBottom: 14 }}>
           <Field label="Phone / Contact" error={errors.contact}>
             <input className="form-input" placeholder="+91 99887 76655"
               value={form.contact} onChange={e => set('contact', e.target.value)} />
@@ -416,7 +416,7 @@ function TrainerFormModal({ trainer, onSave, onClose }) {
               value={form.exp} onChange={e => set('exp', e.target.value)} />
           </Field>
         </div>
-        <div className="form-group" style={{ marginBottom: 20 }}>
+        <div className="form-group" style={{ marginBottom: 14 }}>
           <label className="form-label">Bio / About</label>
           <textarea className="form-input" rows={3} placeholder="Brief description of expertise, certifications, training philosophy…"
             value={form.bio} onChange={e => set('bio', e.target.value)} />
@@ -444,7 +444,7 @@ function TrainerFormModal({ trainer, onSave, onClose }) {
             </button>
           ))}
         </div>
-        {errors.days && <p style={{ fontSize: 11, color: 'var(--red)', marginBottom: 16 }}>⚠ {errors.days}</p>}
+        {errors.days && <p style={{ fontSize: 11, color: 'var(--red)', marginBottom: 14 }}>⚠ {errors.days}</p>}
 
         <div className="modal-footer" style={{ marginTop: 24 }}>
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>

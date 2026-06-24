@@ -478,7 +478,13 @@ export default function Members({ search }) {
                     </div>
                   </td>
                   <td>
-                    <span className={`badge ${m.plan==='Premium'?'badge-orange':m.plan==='Trial'?'badge-amber':'badge-teal'}`}>
+                    <span className={`badge ${
+                      m.plan === 'Premium' ? 'badge-orange' :
+                      m.plan === 'Trial' ? 'badge-amber' :
+                      m.plan === 'Quarterly' ? 'badge-purple' :
+                      m.plan === 'Annual' ? 'badge-green' :
+                      m.plan === 'Standard' ? 'badge-teal' : 'badge-teal'
+                    }`}>
                       {m.plan}
                     </span>
                   </td>
@@ -537,8 +543,10 @@ export default function Members({ search }) {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={9} style={{ textAlign:'center', padding:'40px', color:'var(--text-muted)' }}>
-                    No members found.
+                  <td colSpan={9} style={{ textAlign:'center', padding:'60px 20px', color:'var(--text-muted)' }}>
+                    <div style={{ fontSize: 36, marginBottom: 10 }}>👥</div>
+                    <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, letterSpacing: 1, color:'var(--text)' }}>NO MEMBERS FOUND</div>
+                    <div style={{ fontSize: 12, marginTop: 4 }}>Try adjusting your search or filters.</div>
                   </td>
                 </tr>
               )}

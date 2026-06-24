@@ -83,7 +83,7 @@ export default function AdminDashboard({ setPage }) {
         border: '1px solid rgba(232,66,10,0.2)',
         borderRadius: 'var(--radius)',
         padding: '20px 24px',
-        marginBottom: 24,
+        marginBottom: 20,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -139,8 +139,8 @@ export default function AdminDashboard({ setPage }) {
 
       {/* Critical Alerts */}
       {criticalExpiring.length > 0 && (
-        <div className="card" style={{ border:'1px solid rgba(255,0,0,0.25)', background:'rgba(255,0,0,0.04)', marginBottom:20 }}>
-          <h3 style={{ color:'var(--red)', marginBottom:14 }}>⚠ Critical Expiry Alerts</h3>
+        <div className="card" style={{ border:'1px solid var(--red)40', background:'var(--red)08', marginBottom:20 }}>
+          <h3 style={{ color:'var(--red)', marginBottom:12 }}>⚠ Critical Expiry Alerts</h3>
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
             {criticalExpiring.map(member => (
               <div key={member.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 14px', borderRadius:10, background:'rgba(255,255,255,0.03)' }}>
@@ -161,7 +161,7 @@ export default function AdminDashboard({ setPage }) {
           <p className="card-title">Recent Activity</p>
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
             {recentActivity.length === 0 ? (
-              <p style={{ color:'var(--text-muted)', fontSize:13 }}>No activity today.</p>
+              <p style={{ color:'var(--text-muted)', fontSize:13, padding:'20px 0', textAlign:'center' }}>No activity today.</p>
             ) : (
               recentActivity.map((activity, i) => (
                 <div key={i} className="activity-item">

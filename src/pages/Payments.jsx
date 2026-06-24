@@ -13,10 +13,10 @@ const STATUSES = ['Paid', 'Pending', 'Overdue', 'Partial']
 
 // --- Helpers -----------------------------------------------------------------
 const STATUS_CFG = {
-  Paid:    { bg: '#10B98120', border: '#10B98140', text: 'var(--green)', dot: '#10B981', icon: '✓' },
-  Pending: { bg: '#F59E0B20', border: '#F59E0B40', text: 'var(--amber)', dot: '#F59E0B', icon: '⏳' },
-  Overdue: { bg: '#EF444420', border: '#EF444440', text: 'var(--red)', dot: '#EF4444', icon: '!' },
-  Partial: { bg: '#8B5CF620', border: '#8B5CF640', text: 'var(--purple)', dot: '#8B5CF6', icon: '◐' },
+  Paid:    { bg: 'var(--green)20', border: 'var(--green)40', text: 'var(--green)', dot: 'var(--green)', icon: '✓' },
+  Pending: { bg: 'var(--amber)20', border: 'var(--amber)40', text: 'var(--amber)', dot: 'var(--amber)', icon: '⏳' },
+  Overdue: { bg: 'var(--red)20', border: 'var(--red)40', text: 'var(--red)', dot: 'var(--red)', icon: '!' },
+  Partial: { bg: 'var(--purple)20', border: 'var(--purple)40', text: 'var(--purple)', dot: 'var(--purple)', icon: '◐' },
 }
 
 const METHOD_ICON = { UPI: '??', 'Credit Card': '??', 'Debit Card': '??', Cash: '??', 'Bank Transfer': '??', 'Net Banking': '??' }
@@ -393,12 +393,12 @@ function NewInvoiceModal({ onSave, onClose, members, plans }) {
 
   const inputStyle = (key) => ({
     width: '100%', padding: '10px 12px', boxSizing: 'border-box',
-    background: errors[key] ? '#FF4B2B11' : '#ffffff08',
+    background: errors[key] ? 'var(--orange)11' : '#ffffff08',
     border: '1px solid #333',
     borderRadius: 8, color: 'var(--text)', fontSize: 13, outline: 'none',
   })
   const labelStyle = { fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4, display: 'block' }
-  const errStyle   = { color: '#FF6B4A', fontSize: 11, marginTop: 3 }
+  const errStyle   = { color: 'var(--red)', fontSize: 11, marginTop: 3 }
 
   // Active members for dropdown
   const activeMembers = members.filter(m => m.status === 'Active' || m.status === 'Trial')
@@ -411,7 +411,7 @@ function NewInvoiceModal({ onSave, onClose, members, plans }) {
             <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: 'var(--text)', letterSpacing: 1 }}>NEW INVOICE</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Generate a payment invoice</div>
           </div>
-          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 8, background: '#FF4B2B15', border: '1px solid #FF4B2B30', color: '#FF6B4A', fontSize: 18, cursor: 'pointer' }}>�</button>
+          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--orange)15', border: '1px solid var(--orange)30', color: 'var(--orange)', fontSize: 18, cursor: 'pointer' }}>×</button>
         </div>
 
         <div style={{ padding: '22px 26px', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -484,7 +484,7 @@ function NewInvoiceModal({ onSave, onClose, members, plans }) {
 
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
             <button onClick={onClose} style={{ flex: 1, padding: '11px', background: '#ffffff08', border: '1px solid #ffffff15', borderRadius: 10, color: 'var(--text-muted)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
-            <button onClick={handleSave} style={{ flex: 2, padding: '11px', background: 'linear-gradient(135deg,#FF4B2B,#F59E0B)', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', letterSpacing: 0.5 }}>
+            <button onClick={handleSave} style={{ flex: 2, padding: '11px', background: 'linear-gradient(135deg,var(--orange),#F59E0B)', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', letterSpacing: 0.5 }}>
               GENERATE INVOICE
             </button>
           </div>
@@ -663,7 +663,7 @@ export default function Payments({ search = '' }) {
     return ({
       padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
       cursor: 'pointer', transition: 'all 0.15s',
-      background: active ? 'linear-gradient(135deg,#FF4B2B,#F59E0B)' : '#ffffff09',
+      background: active ? 'linear-gradient(135deg,var(--orange),#F59E0B)' : '#ffffff09',
       border: active ? 'none' : '1px solid #ffffff15',
       color: active ? '#fff' : 'var(--text-muted)',
     })
@@ -685,7 +685,7 @@ export default function Payments({ search = '' }) {
             {stats.paidCount} paid · {stats.collectionRate}% collection rate · {invoices.length} total invoices
           </div>
         </div>
-        <button onClick={() => setShowNew(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: 'linear-gradient(135deg,#FF4B2B,#F59E0B)', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer', letterSpacing: 0.5, boxShadow: '0 4px 20px #FF4B2B40' }}>
+        <button onClick={() => setShowNew(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: 'linear-gradient(135deg,var(--orange),#F59E0B)', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer', letterSpacing: 0.5, boxShadow: '0 4px 20px var(--orange)40' }}>
           <span style={{ fontSize: 16 }}>+</span> NEW INVOICE
         </button>
       </div>
@@ -737,10 +737,10 @@ export default function Payments({ search = '' }) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
           <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: 14 }}>🔍</span>
-          <input value={localSearch} onChange={e => setLocalSearch(e.target.value)} placeholder="Search member, invoice ID, plan..." style={{ width: '100%', paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, boxSizing: 'border-box', background: '#161616', border: '1px solid #ffffff15', borderRadius: 10, color: 'var(--text)', fontSize: 13, outline: 'none' }} />
+          <input value={localSearch} onChange={e => setLocalSearch(e.target.value)} placeholder="Search member, invoice ID, plan..." style={{ width: '100%', paddingLeft: 36, paddingRight: 12, paddingTop: 10, paddingBottom: 10, boxSizing: 'border-box', background: '#161616', border: '1px solid #ffffff15', borderRadius: 10, color: 'var(--text)', fontSize: 13, outline: 'none' }} />
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {['All', ...STATUSES].map(s => (
@@ -769,7 +769,7 @@ export default function Payments({ search = '' }) {
                 <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading invoices...</td></tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)', borderBottom: '1px solid #ffffff08' }}>
+                  <td colSpan={8} style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
                     <div style={{ fontSize: 36, marginBottom: 10 }}>💳</div>
                     <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, letterSpacing: 1 }}>NO INVOICES FOUND</div>
                     <div style={{ fontSize: 12, marginTop: 4 }}>Try adjusting your filters.</div>
