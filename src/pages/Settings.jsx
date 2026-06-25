@@ -122,7 +122,7 @@ const DEFAULT_GYM = {
 //  MAIN EXPORT
 // ─────────────────────────────────────────────────────────────
 export default function Settings() {
-  const { darkMode, setDarkMode } = useApp()
+  const { darkMode, setDarkMode, gymId } = useApp()
   const { currentUser, logout, updateUserProfile, role } = useAuth()
 
   if (role !== 'admin') {
@@ -148,7 +148,7 @@ export default function Settings() {
   const setGym = (k, v) => setGymForm(p => ({ ...p, [k]: v }))
 
   useEffect(() => {
-    getSettings('gym')
+    getSettings('gym', gymId)
       .then(data => {
         if (data) {
           setGymForm(prev => ({ ...prev, ...data }))
@@ -157,7 +157,7 @@ export default function Settings() {
       })
       .catch(err => console.error('Failed to load gym settings:', err))
       .finally(() => setGymLoading(false))
-  }, [])
+  }, [gymId])
 
   const handleLogoSelect = async (e) => {
     const file = e.target.files?.[0]
@@ -201,38 +201,12 @@ export default function Settings() {
     try {
       const data = { ...gymForm }
       if (data.logoUrl?.startsWith('blob:')) delete data.logoUrl
-      await saveSettings('gym', data)
+      await saveSettings('gym', data, gymId)
       setGymSaved(true)
       setTimeout(() => setGymSaved(false), 2500)
     } catch (err) {
       setGymError('Save failed. Check your connection.')
       setTimeout(() => setGymError(''), 3000)
-    }
-  }
-
-  // ── Pricing ───────────────────────────────────────────────
-  const [prices, setPrices]           = useState({ trial:499, standard:1499, premium:2999, quarterly:3999, annual:12999, dayPass:199 })
-  const [priceSaved, setPriceSaved]   = useState(false)
-  const [priceError, setPriceError]   = useState('')
-  const [priceLoading, setPriceLoading] = useState(true)
-  const setPrice = (k, v) => setPrices(p => ({ ...p, [k]: v }))
-
-  useEffect(() => {
-    getSettings('pricing')
-      .then(data => { if (data) setPrices(prev => ({ ...prev, ...data })) })
-      .catch(err => console.error('Failed to load pricing:', err))
-      .finally(() => setPriceLoading(false))
-  }, [])
-
-  const savePrices = async () => {
-    setPriceError('')
-    try {
-      await saveSettings('pricing', prices)
-      setPriceSaved(true)
-      setTimeout(() => setPriceSaved(false), 2500)
-    } catch (err) {
-      setPriceError('Save failed. Check your connection.')
-      setTimeout(() => setPriceError(''), 3000)
     }
   }
 
@@ -365,7 +339,7 @@ export default function Settings() {
   const [themeLoading,  setThemeLoading]  = useState(true)
 
   useEffect(() => {
-    getSettings('theme')
+    getSettings('theme', gymId)
       .then(data => {
         if (data?.accentColor) {
           setAccentColor(data.accentColor)
@@ -374,12 +348,12 @@ export default function Settings() {
       })
       .catch(err => console.error('Failed to load theme:', err))
       .finally(() => setThemeLoading(false))
-  }, [])
+  }, [gymId])
 
   const saveTheme = async () => {
     setThemeError('')
     try {
-      await saveSettings('theme', { accentColor })
+      await saveSettings('theme', { accentColor }, gymId)
       applyAccentColor(accentColor)
       setThemeSaved(true)
       setTimeout(() => setThemeSaved(false), 2500)
@@ -469,16 +443,16 @@ export default function Settings() {
   const toggleNotif = (k) => setNotifSettings(p => ({ ...p, [k]: !p[k] }))
 
   useEffect(() => {
-    getSettings('notifications')
+    getSettings('notifications', gymId)
       .then(data => { if (data) setNotifSettings(prev => ({ ...prev, ...data })) })
       .catch(err => console.error('Failed to load notifications:', err))
       .finally(() => setNotifLoading(false))
-  }, [])
+  }, [gymId])
 
   const saveNotifs = async () => {
     setNotifError('')
     try {
-      await saveSettings('notifications', notifSettings)
+      await saveSettings('notifications', notifSettings, gymId)
       setNotifSaved(true)
       setTimeout(() => setNotifSaved(false), 2500)
     } catch (err) {
@@ -734,36 +708,35 @@ export default function Settings() {
             </div>
           )}
 
-          {/* PRICING */}
+          {/* PRICING — reads directly from plans collection (single source of truth) */}
           {activeTab === 'pricing' && (
-            <SectionCard icon="💰" title="Membership Pricing" subtitle="Saved to Firestore — persists across refreshes">
-              {priceLoading ? <p style={{ color:'var(--text-muted)', fontSize:13 }}>Loading…</p> : (
+            <SectionCard icon="💰" title="Membership Pricing" subtitle="Managed in Plans tab — add, edit, or deactivate plans there">
+              {plans.length === 0 ? (
+                <p style={{ color:'var(--text-muted)', fontSize:13 }}>No plans configured. Add plans in the Plans tab.</p>
+              ) : (
                 <>
-                  {[
-                    { key:'trial',     label:'Trial / Day Pass',   desc:'Short-term access, no commitment' },
-                    { key:'standard',  label:'Standard (Monthly)', desc:'Regular monthly membership' },
-                    { key:'premium',   label:'Premium (Monthly)',  desc:'Premium with unlimited trainer access' },
-                    { key:'quarterly', label:'Quarterly Plan',     desc:'3-month commitment with discount' },
-                    { key:'annual',    label:'Annual Plan',        desc:'12-month membership, best value' },
-                    { key:'dayPass',   label:'Day Pass',           desc:'Single-day access' },
-                  ].map(plan => (
-                    <div key={plan.key} style={{ display:'flex', alignItems:'center', gap:16, padding:'14px 0', borderBottom:'1px solid var(--border)' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+                    <p style={{ fontSize:12, color:'var(--text-muted)' }}>{plans.length} plan{plans.length !== 1 ? 's' : ''} configured</p>
+                  </div>
+                  {plans.sort((a, b) => (a.order || 99) - (b.order || 99)).map(plan => (
+                    <div key={plan.id} style={{
+                      display:'flex', alignItems:'center', gap:14,
+                      padding:'14px 16px', borderBottom:'1px solid var(--border)',
+                      opacity: plan.active === false ? 0.55 : 1,
+                    }}>
                       <div style={{ flex:1 }}>
-                        <p style={{ fontSize:14, fontWeight:600 }}>{plan.label}</p>
-                        <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:2 }}>{plan.desc}</p>
+                        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                          <span style={{ fontWeight:600, fontSize:14 }}>{plan.name}</span>
+                          {plan.active === false && <span className="badge badge-red" style={{ fontSize:10 }}>Inactive</span>}
+                        </div>
+                        <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:2 }}>{plan.duration} · {plan.description}</p>
                       </div>
-                      <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
-                        <span style={{ fontSize:18, color:'var(--text-muted)' }}>₹</span>
-                        <input className="form-input" type="number" value={prices[plan.key]}
-                          onChange={e => setPrice(plan.key, Number(e.target.value))}
-                          style={{ width:100, textAlign:'center', fontWeight:700, fontSize:15 }} />
-                        <span style={{ fontSize:12, color:'var(--text-muted)' }}>
-                          {plan.key === 'annual' ? '/year' : plan.key === 'quarterly' ? '/3mo' : plan.key === 'dayPass' ? '/day' : '/month'}
-                        </span>
+                      <div style={{ textAlign:'right', flexShrink:0 }}>
+                        <div style={{ fontSize:18, fontWeight:700 }}>₹{plan.price?.toLocaleString?.('en-IN') || plan.price}</div>
+                        <div style={{ fontSize:11, color:'var(--text-muted)' }}>{plan.duration}</div>
                       </div>
                     </div>
                   ))}
-                  <SaveBar onSave={savePrices} saved={priceSaved} error={priceError} />
                 </>
               )}
             </SectionCard>

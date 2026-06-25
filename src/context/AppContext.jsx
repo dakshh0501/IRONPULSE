@@ -35,23 +35,27 @@ import {
   addWorkoutPlan as addWorkoutPlanToFirestore,
   updateWorkoutPlan as updateWorkoutPlanInFirestore,
   deleteWorkoutPlan as deleteWorkoutPlanFromFirestore,
+  subscribeToGyms,
+  subscribeToSubscriptions,
+  addGym as addGymToFirestore,
+  updateGym as updateGymInFirestore,
+  deleteGym as deleteGymFromFirestore,
 } from '../services/firestoreService'
 import {
   subscribeAttendance,
   subscribeMyAttendance,
   addAttendance as addAttendanceToFirestore,
 } from '../services/attendanceService'
-import { getPendingUsers } from '../services/authService'
+import { getPendingUsers, getGymOwnerPending, approveGymOwner, rejectGymOwner } from '../services/authService'
 
 const AppContext = createContext()
 
 export function AppProvider({ children }) {
 
   // ── Auth ───────────────────────────────────────────────
-  const { currentUser, authLoading, userProfile } = useAuth()
+  const { currentUser, authLoading, userProfile, userGymId } = useAuth()
 
   // ── Theme ──────────────────────────────────────────────
-  // FIX: read from localStorage on startup so dark mode persists across refreshes
   const [darkMode, setDarkMode] = useState(() => {
     const stored = localStorage.getItem('ironpulse-darkMode')
     return stored === null ? true : stored === 'true'
@@ -65,10 +69,92 @@ export function AppProvider({ children }) {
   const [checkinLog,    setCheckinLog]    = useState([])
   const [attendance,    setAttendance]    = useState([])
   const [pendingCount,  setPendingCount]  = useState(0)
+  const [gymOwnersPending, setGymOwnersPending] = useState([])
   const [gymSettings,   setGymSettings]   = useState({ name: 'IronForge Gym' })
   const [progressLogs,  setProgressLogs]  = useState([])
   const [dietPlans,     setDietPlans]     = useState([])
   const [workoutPlans,  setWorkoutPlans]  = useState([])
+  const [gyms,          setGyms]          = useState([])
+  const [currentGym,    setCurrentGym]    = useState(null)
+  const [subscriptions, setSubscriptions] = useState([])
+
+  // ── Gym context (derived from userGymId) ───────────────
+  const gymId = userGymId || null
+
+  // ── Pending gym owner approvals listener ───────────────
+  useEffect(() => {
+    if (authLoading || !currentUser) return
+    if (userProfile?.role !== 'admin') return
+    const unsubscribe = subscribeToGyms((data) => {
+      const pendingOwners = data.filter(g => g.approvalStatus === 'pending')
+      setGymOwnersPending(pendingOwners)
+    })
+    return unsubscribe
+  }, [currentUser, authLoading, userProfile])
+
+  // ── Admins: approve gym owner ───────────────────────────
+  const approveGymOwner = async (gymId, newSubscription = 'Trial') => {
+    try {
+      await updateGym(gymId, { approvalStatus: 'approved' })
+      await addSubscription({
+        gymId,
+        plan: newSubscription,
+        status: 'active',
+        paymentStatus: 'Paid',
+        paymentMethod: 'Not Set',
+        autoRenew: false,
+      })
+    } catch (err) {
+      console.error('Failed to approve gym owner:', err)
+      throw err
+    }
+  }
+
+  // ── Admins: reject gym owner ───────────────────────────
+  const rejectGymOwner = async (gymId) => {
+    try {
+      await updateGym(gymId, { approvalStatus: 'rejected' })
+    } catch (err) {
+      console.error('Failed to reject gym owner:', err)
+      throw err
+    }
+  }
+
+  // ── Gym CRUD ─────────────────────────────────────────────
+  const addGym = async (gymData) => {
+    try {
+      return await addGymToFirestore({ ...gymData, gymId: userGymId }, currentUser.uid)
+    } catch (err) {
+      console.error('Failed to create gym:', err)
+      throw err
+    }
+  }
+
+  const updateGym = async (gymId, updatedData) => {
+    try {
+      await updateGymInFirestore(gymId, updatedData)
+    } catch (err) {
+      console.error('Failed to update gym:', err)
+      throw err
+    }
+  }
+
+  const deleteGym = async (gymId) => {
+    try {
+      await deleteGymFromFirestore(gymId)
+    } catch (err) {
+      console.error('Failed to delete gym:', err)
+      throw err
+    }
+  }
+
+  // ── Subscriptions listener (global — admin only) ────────
+  useEffect(() => {
+    if (authLoading || !currentUser) return
+    if (userProfile?.role !== 'admin') return
+    const unsubscribe = subscribeToSubscriptions((data) => setSubscriptions(data))
+    return unsubscribe
+  }, [currentUser, authLoading, userProfile])
 
   // ── Members listener ───────────────────────────────────
   useEffect(() => {
@@ -84,7 +170,8 @@ export function AppProvider({ children }) {
   const unsubscribe = subscribeToMembers(
     (data) => {
       setMembers(data)
-    }
+    },
+    gymId
   )
 
   return unsubscribe
@@ -92,16 +179,17 @@ export function AppProvider({ children }) {
 }, [
   currentUser,
   authLoading,
-  userProfile
+  userProfile,
+  gymId
 ])
 
   // ── Payments listener — ADMIN ONLY ─────────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (userProfile?.role !== 'admin') return
-    const unsubscribe = subscribeToPayments((data) => setPayments(data))
+    const unsubscribe = subscribeToPayments((data) => setPayments(data), gymId)
     return unsubscribe
-  }, [currentUser, authLoading, userProfile])
+  }, [currentUser, authLoading, userProfile, gymId])
 
   // ── Trainers listener ──────────────────────────────────
   useEffect(() => {
@@ -116,14 +204,16 @@ export function AppProvider({ children }) {
 
   const unsubscribe =
     subscribeToTrainers((data) =>
-      setTrainers(data)
+      setTrainers(data),
+      gymId
     )
 
   return unsubscribe
 }, [
   currentUser,
   authLoading,
-  userProfile
+  userProfile,
+  gymId
 ])
 
   // ── Plans listener — ADMIN & TRAINER ─────────────────────
@@ -131,52 +221,52 @@ export function AppProvider({ children }) {
     if (authLoading || !currentUser) return
     if (userProfile?.role !== 'admin' && userProfile?.role !== 'trainer') return
 
-    // Only admin auto-migrates default plans
+    // Only admin auto-migrates default plans (scoped to gym)
     if (userProfile?.role === 'admin') {
-      migrateDefaultPlans().catch(err => console.error('Failed to migrate plans:', err))
+      migrateDefaultPlans(gymId).catch(err => console.error('Failed to migrate plans:', err))
     }
 
-    const unsubscribe = subscribeToPlans((data) => setPlans(data))
+    const unsubscribe = subscribeToPlans((data) => setPlans(data), gymId)
     return unsubscribe
-  }, [currentUser, authLoading, userProfile])
+  }, [currentUser, authLoading, userProfile, gymId])
 
   // ── Progress Logs listener — ADMIN & TRAINER ────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (userProfile?.role !== 'admin' && userProfile?.role !== 'trainer') return
-    const unsubscribe = subscribeToProgressLogs((data) => setProgressLogs(data))
+    const unsubscribe = subscribeToProgressLogs((data) => setProgressLogs(data), gymId)
     return unsubscribe
-  }, [currentUser, authLoading, userProfile])
+  }, [currentUser, authLoading, userProfile, gymId])
 
   // ── Diet Plans listener — ADMIN & TRAINER ──────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (userProfile?.role !== 'admin' && userProfile?.role !== 'trainer') return
-    const unsubscribe = subscribeToDietPlans((data) => setDietPlans(data))
+    const unsubscribe = subscribeToDietPlans((data) => setDietPlans(data), gymId)
     return unsubscribe
-  }, [currentUser, authLoading, userProfile])
+  }, [currentUser, authLoading, userProfile, gymId])
 
   // ── Workout Plans listener — ADMIN & TRAINER ───────────
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (userProfile?.role !== 'admin' && userProfile?.role !== 'trainer') return
-    const unsubscribe = subscribeToWorkoutPlans((data) => setWorkoutPlans(data))
+    const unsubscribe = subscribeToWorkoutPlans((data) => setWorkoutPlans(data), gymId)
     return unsubscribe
-  }, [currentUser, authLoading, userProfile])
+  }, [currentUser, authLoading, userProfile, gymId])
 
   // ── Attendance listener ────────────────────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
     const isAdminOrTrainer = userProfile?.role === 'admin' || userProfile?.role === 'trainer'
     if (isAdminOrTrainer) {
-      const unsubscribe = subscribeAttendance((data) => setAttendance(data))
+      const unsubscribe = subscribeAttendance((data) => setAttendance(data), gymId)
       return unsubscribe
     }
     if (userProfile?.role === 'member' && currentUser?.uid) {
-      const unsubscribe = subscribeMyAttendance(currentUser.uid, (data) => setAttendance(data))
+      const unsubscribe = subscribeMyAttendance(currentUser.uid, (data) => setAttendance(data), gymId)
       return unsubscribe
     }
-  }, [currentUser, authLoading, userProfile])
+  }, [currentUser, authLoading, userProfile, gymId])
 
   // ── Pending approvals count — ADMIN ONLY ───────────────
   useEffect(() => {
@@ -250,7 +340,7 @@ export function AppProvider({ children }) {
     if (userProfile?.role !== 'admin' && userProfile?.role !== 'trainer') return
     
     let mounted = true
-    getSettings('gym')
+    getSettings('gym', gymId)
       .then(data => {
         if (mounted && data) {
           setGymSettings(prev => ({ ...prev, ...data }))
@@ -259,7 +349,7 @@ export function AppProvider({ children }) {
       .catch(err => console.error('Failed to load gym settings:', err))
     
     return () => { mounted = false }
-  }, [currentUser, authLoading, userProfile])
+  }, [currentUser, authLoading, userProfile, gymId])
 
   // ── Notifications — derived from real data ─────────────
   const notifications = useMemo(() => {
@@ -352,6 +442,7 @@ export function AppProvider({ children }) {
     try {
       return await addMemberToFirestore({
         ...memberData,
+        gymId,
         trainerId:   memberData.trainerId   || '',
         trainerName: memberData.trainerName || '',
         status:      memberData.status      || 'Active',
@@ -361,6 +452,7 @@ export function AppProvider({ children }) {
       })
     } catch (error) {
       console.error('Error adding member:', error)
+      throw error
     }
   }
 
@@ -372,6 +464,7 @@ export function AppProvider({ children }) {
       })
     } catch (error) {
       console.error('Error updating member:', error)
+      throw error
     }
   }
 
@@ -400,6 +493,7 @@ export function AppProvider({ children }) {
         time,
         method:      'Manual',
         duration:    90,
+        gymId,
       })
       await updateMemberInFirestore(member.id, { checkins: (member.checkins || 0) + 1 })
     } catch (error) {
@@ -412,6 +506,7 @@ export function AppProvider({ children }) {
     try {
       return await addPaymentToFirestore({
         ...paymentData,
+        gymId,
         amount: Number(paymentData.amount) || 0,
         status: paymentData.status || 'Paid',
         plan:   paymentData.plan   || 'Monthly',
@@ -445,6 +540,7 @@ export function AppProvider({ children }) {
     try {
       return await addTrainerToFirestore({
         ...trainerData,
+        gymId,
         rating:  trainerData.rating  || 5,
         clients: trainerData.clients || 0,
       })
@@ -472,7 +568,7 @@ export function AppProvider({ children }) {
   // ── Plans CRUD ─────────────────────────────────────────
   const addPlan = async (planData) => {
     try {
-      return await addPlanToFirestore(planData)
+      return await addPlanToFirestore({ ...planData, gymId })
     } catch (error) {
       console.error('Error adding plan:', error)
     }
@@ -499,6 +595,7 @@ export function AppProvider({ children }) {
     try {
       return await addProgressLogToFirestore({
         ...logData,
+        gymId,
         memberId: logData.memberId || '',
         memberName: logData.memberName || '',
       })
@@ -510,7 +607,7 @@ export function AppProvider({ children }) {
   // ── Diet Plans CRUD ─────────────────────────────────────
   const addDietPlan = async (planData) => {
     try {
-      return await addDietPlanToFirestore(planData)
+      return await addDietPlanToFirestore({ ...planData, gymId })
     } catch (error) {
       console.error('Error adding diet plan:', error)
     }
@@ -535,7 +632,7 @@ export function AppProvider({ children }) {
   // ── Workout Plans CRUD ──────────────────────────────────
   const addWorkoutPlan = async (planData) => {
     try {
-      return await addWorkoutPlanToFirestore(planData)
+      return await addWorkoutPlanToFirestore({ ...planData, gymId })
     } catch (error) {
       console.error('Error adding workout plan:', error)
     }
@@ -575,6 +672,7 @@ export function AppProvider({ children }) {
   return (
     <AppContext.Provider value={{
       darkMode, setDarkMode,
+      gymId,
       members,  addMember,  updateMember,  deleteMember,
       trainers, addTrainer, updateTrainer, deleteTrainer,
       payments, addPayment, updatePayment, deletePayment,
@@ -587,6 +685,7 @@ export function AppProvider({ children }) {
       attendance, checkInMember,
       pendingCount,
       gymSettings,
+      gyms, currentGym, subscriptions,
     }}>
       {children}
     </AppContext.Provider>

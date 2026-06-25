@@ -186,7 +186,7 @@ function AttendanceTable({ logs, search }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function Attendance({ search = '' }) {
-  const { attendance = [], members = [] } = useApp()
+  const { attendance = [], members = [], gymId } = useApp()
   const [scanResult, setScanResult] = useState(null)
 
   const todayLogs    = useMemo(() => attendance.filter(l => l.date === todayStr), [attendance])
@@ -221,6 +221,7 @@ export default function Attendance({ search = '' }) {
         time,
         method:     'QR',
         duration:   90,
+        gymId,
       })
     } catch (err) {
       console.error('Failed to record attendance:', err)

@@ -15,6 +15,7 @@ import {
 import { db } from '../firebase'
 
 const COLLECTION = 'attendance'
+const DEFAULT_GYM_ID = 'default'
 
 /**
  * addAttendance(data)
@@ -32,6 +33,7 @@ export async function addAttendance(data) {
   try {
     const ref = await addDoc(collection(db, COLLECTION), {
       ...data,
+      gymId: data.gymId || DEFAULT_GYM_ID,
       createdAt: serverTimestamp(),
     })
     return { success: true, id: ref.id }
@@ -42,16 +44,14 @@ export async function addAttendance(data) {
 }
 
 /**
- * getAttendanceByDate(date)
+ * getAttendanceByDate(date, gymId)
  * One-time fetch of all attendance records for a given date string 'YYYY-MM-DD'.
  */
-export async function getAttendanceByDate(date) {
+export async function getAttendanceByDate(date, gymId) {
   try {
-    const q = query(
-      collection(db, COLLECTION),
-      where('date', '==', date),
-      orderBy('time', 'asc')
-    )
+    const constraints = [where('date', '==', date), orderBy('time', 'asc')]
+    if (gymId) constraints.unshift(where('gymId', '==', gymId))
+    const q = query(collection(db, COLLECTION), ...constraints)
     const snap = await getDocs(q)
     return snap.docs.map(d => ({ id: d.id, ...d.data() }))
   } catch (err) {
@@ -61,7 +61,7 @@ export async function getAttendanceByDate(date) {
 }
 
 /**
- * subscribeAttendance(callback)
+ * subscribeAttendance(callback, gymId)
  * Real-time listener for all attendance records, ordered by date desc.
  * Returns the unsubscribe function.
  *
@@ -71,12 +71,10 @@ export async function getAttendanceByDate(date) {
  *     return unsub
  *   }, [user])
  */
-export function subscribeAttendance(callback) {
-  const q = query(
-    collection(db, COLLECTION),
-    orderBy('date', 'desc'),
-    orderBy('time', 'desc')
-  )
+export function subscribeAttendance(callback, gymId) {
+  const constraints = [orderBy('date', 'desc'), orderBy('time', 'desc')]
+  if (gymId) constraints.unshift(where('gymId', '==', gymId))
+  const q = query(collection(db, COLLECTION), ...constraints)
   return onSnapshot(
     q,
     (snap) => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
@@ -85,7 +83,7 @@ export function subscribeAttendance(callback) {
 }
 
 /**
- * subscribeMyAttendance(uid, callback)
+ * subscribeMyAttendance(uid, callback, gymId)
  * Real-time listener for attendance records belonging to a specific member,
  * ordered by date desc. Used by the Member role so they only see their own data.
  *
@@ -95,13 +93,14 @@ export function subscribeAttendance(callback) {
  *     return unsub
  *   }, [currentUser.uid])
  */
-export function subscribeMyAttendance(uid, callback) {
-  const q = query(
-    collection(db, COLLECTION),
+export function subscribeMyAttendance(uid, callback, gymId) {
+  const constraints = [
     where('memberId', '==', uid),
     orderBy('date', 'desc'),
-    orderBy('time', 'desc')
-  )
+    orderBy('time', 'desc'),
+  ]
+  if (gymId) constraints.unshift(where('gymId', '==', gymId))
+  const q = query(collection(db, COLLECTION), ...constraints)
   return onSnapshot(
     q,
     (snap) => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),

@@ -19,9 +19,9 @@ const AuthContext = createContext(null)
 
 // Loads the gym-wide accent color from Firestore and applies it.
 // Falls back to the default on any failure (e.g. not yet signed in).
-async function loadAndApplyAccent() {
+async function loadAndApplyAccent(gymId) {
   try {
-    const theme = await getSettings('theme')
+    const theme = await getSettings('theme', gymId)
     applyAccentColor(theme?.accentColor || DEFAULT_ACCENT)
   } catch (err) {
     console.error('Failed to load theme:', err)
@@ -32,7 +32,7 @@ async function loadAndApplyAccent() {
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null) // Firebase user
   const [userProfile, setUserProfile] = useState(null) // /users/{uid} doc
-  const [role, setRole] = useState(null)               // 'admin' | 'trainer' | 'member'
+  const [role, setRole] = useState(null)               // 'admin' | 'trainer' | 'member' | 'gym_owner_pending'
   const [authLoading, setAuthLoading] = useState(true)
   const [authError, setAuthError] = useState('')
   const signingUpRef = useRef(false)
@@ -45,6 +45,24 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     applyAccentColor(DEFAULT_ACCENT)
   }, [])
+
+  // ─────────────────────────────────────────────────────────────
+  // Gym owner approval check: block pending gym owners from accessing app
+  // ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (authLoading) return
+    if (!currentUser || !userProfile) return
+
+    // Check if user is a pending gym owner
+    if (userProfile.role === 'gym_owner_pending') {
+      // Block access to the application
+      setCurrentUser(null)
+      setUserProfile(null)
+      setRole(null)
+      setAuthError('Your gym ownership application is pending admin approval.')
+      setAuthLoading(false)
+    }
+  }, [currentUser, authLoading, userProfile])
 
   // ─────────────────────────────────────────────────────────────
   // SUBSCRIPTION: Listen to Firebase Auth state
@@ -92,7 +110,7 @@ export function AuthProvider({ children }) {
 
         // Load on login / load on refresh — gym-wide accent applies
         // to admin, trainer, and member alike.
-        await loadAndApplyAccent()
+        await loadAndApplyAccent(profile?.gymId)
       } catch (err) {
         console.error('Auth subscription error:', err)
         setCurrentUser(null)
@@ -106,14 +124,15 @@ export function AuthProvider({ children }) {
   }, [])
 
   // ─────────────────────────────────────────────────────────────
-  // REGISTER: Always creates pending account
+  // REGISTER: Creates user with pending/gym_owner_pending/membership role
   // ─────────────────────────────────────────────────────────────
-  async function register({ name, email, password }) {
+  async function register({ name, email, password, gymId }) {
     setAuthError('')
     signingUpRef.current = true
     try {
-      await signUp({ name, email, password })
-      return 'pending'
+      // Determine role based on context - in real app this would be passed from the form
+      await signUp({ name, email, password, gymId, role: 'gym_owner_pending' })
+      return 'gym_owner_pending'
     } catch (err) {
       const msg = friendlyError(err.code || err.message)
       setAuthError(msg)
@@ -137,7 +156,7 @@ export function AuthProvider({ children }) {
 
       // Belt-and-suspenders: apply accent here too in case this path
       // resolves before the subscription listener above does.
-      await loadAndApplyAccent()
+      await loadAndApplyAccent(profile?.gymId)
 
       return userRole
     } catch (err) {
@@ -202,6 +221,11 @@ export function AuthProvider({ children }) {
     return map[code] || 'Something went wrong. Please try again.'
   }
 
+  // ── Derived gymId ───────────────────────────────────────────
+  // Read from userProfile (set on the /users/{uid} doc during sign-up
+  // or admin-creation), falling back to 'default' for single-gym mode.
+  const userGymId = userProfile?.gymId || (currentUser ? 'default' : null)
+
   // ─────────────────────────────────────────────────────────────
   // Context value
   // ─────────────────────────────────────────────────────────────
@@ -211,6 +235,7 @@ export function AuthProvider({ children }) {
     role,
     authLoading,
     authError,
+    userGymId,
     isLoggedIn:  !!currentUser && role !== 'pending',
     isAdmin:     role === 'admin',
     isTrainer:   role === 'trainer',

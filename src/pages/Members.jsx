@@ -104,7 +104,9 @@ function MemberModal({ member, trainers, onSave, onClose, plans }) {
       let memberId = member?.id
 
       if (!memberId) {
-        memberId = await onSave({ ...payload, password: formPwd })
+        const result = await onSave({ ...payload, password: formPwd })
+        memberId = result?.id || result
+        if (result?.authUid) payload.authUid = result.authUid
       } else {
         await onSave(payload)
       }
@@ -115,7 +117,7 @@ function MemberModal({ member, trainers, onSave, onClose, plans }) {
         await updateMemberService(memberId, { photoUrl: downloadUrl })
 
         // Also update the user profile document so MemberDashboard can show the photo
-        const authUid = form.authUid || member?.authUid
+        const authUid = payload.authUid || form.authUid || member?.authUid
         if (authUid) {
           await updateDoc(doc(db, 'users', authUid), { photoUrl: downloadUrl })
         }

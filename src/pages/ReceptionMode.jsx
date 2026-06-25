@@ -287,7 +287,7 @@ function ManualModal({ members, checkedInIds, onCheckIn, onClose }) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function ReceptionMode() {
-  const { attendance, members, gymSettings } = useApp()
+  const { attendance, members, gymSettings, gymId } = useApp()
   const { role } = useAuth()
   if (role !== 'admin' && role !== 'trainer') {
     return (
@@ -366,6 +366,7 @@ export default function ReceptionMode() {
         time,
         method:     method || 'QR',
         duration:   90,
+        gymId,
       })
     } catch (err) {
       console.error('Failed to record attendance:', err)

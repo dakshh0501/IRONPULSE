@@ -15,43 +15,68 @@ import {
   doc,
   setDoc,
   getDoc,
+  addDoc,
   collection,
   query,
   where,
   getDocs,
   updateDoc,
+  deleteDoc,
 } from 'firebase/firestore'
-import { auth, db } from '../firebase'
+import { auth, db, firebaseConfig } from '../firebase'
+import { initializeApp } from 'firebase/app'
+import { getAuth } from 'firebase/auth'
 
-// ─────────────────────────────────────────────────────────────
-// SIGNUP: Create Firebase Auth user + Firestore /users/{uid}
-// Role is ALWAYS 'pending' - no exceptions
-// ─────────────────────────────────────────────────────────────
-export async function signUp({ name, email, password }) {
+// Secondary auth instance for creating trainer accounts and gym owner accounts
+// so the admin stays logged in on the main auth instance
+const secondaryApp = initializeApp(firebaseConfig, 'secondary')
+const secondaryAuth = getAuth(secondaryApp)
+
+export async function signUp({ name, email, password, gymData, role }) {
+  let userUid = null
+  let authUser = null
+
   try {
-    // 1. Create Firebase Auth account
-    const result = await createUserWithEmailAndPassword(auth, email, password)
-    const user = result.user
+    // 1. Create Firebase Auth account using secondaryAuth
+    const authResult = await createUserWithEmailAndPassword(secondaryAuth, email, password)
+    authUser = authResult.user
+    userUid = authUser.uid
 
-    // 2. Create /users/{uid} document with role: 'pending'
-    await setDoc(doc(db, 'users', user.uid), {
-      uid: user.uid,
+    // 2. Create user document with role parameter
+    const userData = {
+      uid: userUid,
       email: user.email,
       name: name || '',
-      role: 'pending', // ← ALWAYS pending
+      role: role || 'pending', // default 'pending' if not specified
+      gymId: gymData?.gymId || 'default',
       createdAt: serverTimestamp(),
-      })
+    }
 
-    return { uid: user.uid, email: user.email }
+    await setDoc(doc(db, 'users', userUid), userData)
+
+    // 3. Create gym document if role is gym_owner_pending
+    if (role === 'gym_owner_pending') {
+      await addGym(gymData, userUid)
+    }
+
+    // 4. Clean up secondary auth - admin stays logged in on main instance
+    await secondaryAuth.signOut()
+
+    return { uid: userUid, email }
+
   } catch (err) {
+    // Cleanup: if auth creation succeeded but Firestore failed, delete auth user
+    if (authUser) {
+      try {
+        await authUser.delete()
+      } catch (cleanupErr) {
+        console.error('Failed to cleanup auth user:', cleanupErr)
+      }
+    }
     throw err
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// SIGNIN: Authenticate user + check role from /users/{uid}
-// Returns: { user, role }
-// ─────────────────────────────────────────────────────────────
 export async function signIn(email, password) {
   try {
     // 1. Authenticate with Firebase
@@ -66,8 +91,8 @@ export async function signIn(email, password) {
 
     const role = userDoc.data().role
 
-    // 3. If pending, immediately sign out
-    if (role === 'pending') {
+    // 3. If pending or gym_owner_pending, immediately sign out
+    if (role === 'pending' || role === 'gym_owner_pending') {
       await signOut(auth)
       throw new Error('pending')
     }
@@ -78,9 +103,6 @@ export async function signIn(email, password) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// LOGOUT: Sign out from Firebase
-// ─────────────────────────────────────────────────────────────
 export async function logOut() {
   try {
     await signOut(auth)
@@ -89,9 +111,6 @@ export async function logOut() {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// PASSWORD RESET: Send reset email
-// ─────────────────────────────────────────────────────────────
 export async function resetPassword(email) {
   try {
     await sendPasswordResetEmail(auth, email)
@@ -100,9 +119,6 @@ export async function resetPassword(email) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// GET USER PROFILE: Read /users/{uid} document
-// ─────────────────────────────────────────────────────────────
 export async function getUserProfile(uid) {
   try {
     const snap = await getDoc(doc(db, 'users', uid))
@@ -114,36 +130,44 @@ export async function getUserProfile(uid) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// SUBSCRIBE TO AUTH: Real-time auth state listener
-// ─────────────────────────────────────────────────────────────
 export function subscribeToAuthState(callback) {
   return onAuthStateChanged(auth, callback)
 }
 
-// ─────────────────────────────────────────────────────────────
-// ADMIN: Approve a pending user
-// Updates /users/{uid}.role from 'pending' to 'member'|'trainer'
-// Also creates /members/{uid} for member approvals if none exists
-// ─────────────────────────────────────────────────────────────
 export async function approveUser(uid, newRole) {
   try {
     if (!['member', 'trainer'].includes(newRole)) {
       throw new Error('Invalid role')
     }
+    const userSnap = await getDoc(doc(db, 'users', uid))
+    const userData = userSnap.exists() ? userSnap.data() : {}
+
     await updateDoc(doc(db, 'users', uid), { role: newRole })
 
     if (newRole === 'member') {
       const memberRef = doc(db, 'members', uid)
       const memberSnap = await getDoc(memberRef)
       if (!memberSnap.exists()) {
-        const userSnap = await getDoc(doc(db, 'users', uid))
-        const userData = userSnap.exists() ? userSnap.data() : {}
         await setDoc(memberRef, {
           authUid: uid,
           name: userData.name || '',
           email: userData.email || '',
           status: 'Active',
+          gymId: userData.gymId || 'default',
+          createdAt: serverTimestamp(),
+        })
+      }
+    }
+
+    if (newRole === 'trainer') {
+      const trainerRef = doc(db, 'trainers', uid)
+      const trainerSnap = await getDoc(trainerRef)
+      if (!trainerSnap.exists()) {
+        await setDoc(trainerRef, {
+          authUid: uid,
+          name: userData.name || '',
+          email: userData.email || '',
+          gymId: userData.gymId || 'default',
           createdAt: serverTimestamp(),
         })
       }
@@ -153,9 +177,6 @@ export async function approveUser(uid, newRole) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// ADMIN: Get all pending users
-// ─────────────────────────────────────────────────────────────
 export async function getPendingUsers() {
   try {
     const q = query(
@@ -167,5 +188,51 @@ export async function getPendingUsers() {
   } catch (err) {
     console.error('getPendingUsers error:', err)
     return []
+  }
+}
+
+export async function getGymOwnerPending() {
+  try {
+    const q = query(
+      collection(db, 'users'),
+      where('role', '==', 'gym_owner_pending')
+    )
+    const snap = await getDocs(q)
+    return snap.docs.map(doc => ({ uid: doc.id, ...doc.data() }))
+  } catch (err) {
+    console.error('getGymOwnerPending error:', err)
+    return []
+  }
+}
+
+export async function approveGymOwner(uid) {
+  try {
+    const userSnap = await getDoc(doc(db, 'users', uid))
+    if (!userSnap.exists()) throw new Error('Gym owner not found')
+    if (userSnap.data().role !== 'gym_owner_pending') throw new Error('Invalid role')
+
+    await updateDoc(doc(db, 'users', uid), {
+      role: 'gym_owner'
+    })
+
+    return { uid, email: userSnap.data().email }
+  } catch (err) {
+    throw err
+  }
+}
+
+export async function rejectGymOwner(uid) {
+  try {
+    const userSnap = await getDoc(doc(db, 'users', uid))
+    if (!userSnap.exists()) throw new Error('Gym owner not found')
+    if (userSnap.data().role !== 'gym_owner_pending') throw new Error('Invalid role')
+
+    await updateDoc(doc(db, 'users', uid), {
+      role: 'rejected'
+    })
+
+    return { uid, email: userSnap.data().email }
+  } catch (err) {
+    throw err
   }
 }

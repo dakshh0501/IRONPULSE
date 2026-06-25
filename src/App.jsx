@@ -1,7 +1,8 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppProvider } from './context/AppContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import LoadingScreen from './components/LoadingScreen'
 import MemberDashboard from './pages/MemberDashboard'
 import TrainerDashboard from './pages/TrainerDashboard'
 import Landing        from './pages/Landing'
@@ -99,27 +100,7 @@ function buildPageMap(setPage, search, role) {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  AUTH LOADING SCREEN
-// ─────────────────────────────────────────────────────────────
-function AuthLoadingScreen() {
-  return (
-    <div style={{
-      minHeight:'100vh', background:'#0d0d0d',
-      display:'flex', alignItems:'center', justifyContent:'center',
-    }}>
-      <div style={{
-        color:'#ff6b00', fontSize:28,
-        fontFamily:'Bebas Neue, sans-serif',
-        letterSpacing:4, opacity:0.85,
-      }}>
-        IRONPULSE...
-      </div>
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────
-//  APP SHELL  ← was missing from your file
+//  APP SHELL
 // ─────────────────────────────────────────────────────────────
 function AppShell() {
   const { role } = useAuth()
@@ -185,16 +166,42 @@ const pageContent =
 // ─────────────────────────────────────────────────────────────
 function ProtectedRoute({ children, allowedRoles }) {
   const { isLoggedIn, role, authLoading } = useAuth()
-  if (authLoading) return <AuthLoadingScreen />
-  if (!isLoggedIn) return <Navigate to="/" replace />
-  if (allowedRoles && !allowedRoles.includes(role)) return <Navigate to="/dashboard" replace />
-  return children
+  const [exiting, setExiting] = useState(false)
+  const exitTimer = useRef(null)
+
+  useEffect(() => {
+    if (!authLoading && !exiting) {
+      exitTimer.current = setTimeout(() => setExiting(true), 450)
+    }
+    return () => { if (exitTimer.current) clearTimeout(exitTimer.current) }
+  }, [authLoading, exiting])
+
+  if (!authLoading && exiting) {
+    if (!isLoggedIn) return <Navigate to="/" replace />
+    if (allowedRoles && !allowedRoles.includes(role)) return <Navigate to="/dashboard" replace />
+    return children
+  }
+
+  return <LoadingScreen done={!authLoading} />
 }
 
 function PublicRoute({ children }) {
   const { isLoggedIn, authLoading } = useAuth()
-  if (authLoading) return <AuthLoadingScreen />
-  return isLoggedIn ? <Navigate to="/dashboard" replace /> : children
+  const [exiting, setExiting] = useState(false)
+  const exitTimer = useRef(null)
+
+  useEffect(() => {
+    if (!authLoading && !exiting) {
+      exitTimer.current = setTimeout(() => setExiting(true), 450)
+    }
+    return () => { if (exitTimer.current) clearTimeout(exitTimer.current) }
+  }, [authLoading, exiting])
+
+  if (!authLoading && exiting) {
+    return isLoggedIn ? <Navigate to="/dashboard" replace /> : children
+  }
+
+  return <LoadingScreen done={!authLoading} />
 }
 
 // ─────────────────────────────────────────────────────────────

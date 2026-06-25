@@ -14,7 +14,8 @@ import {
   where
 } from 'firebase/firestore'
 import {
-  createUserWithEmailAndPassword
+  createUserWithEmailAndPassword,
+  signOut
 } from 'firebase/auth'
 import {
   setDoc
@@ -31,6 +32,9 @@ import { db } from '../firebase'
 // so the admin stays logged in on the main auth instance
 const secondaryApp = initializeApp(firebaseConfig, 'secondary')
 const secondaryAuth = getAuth(secondaryApp)
+
+// Default gym ID for single-gym mode (pre-multi-tenant migration)
+export const DEFAULT_GYM_ID = 'default'
 
 // ─────────────────────────────────────────────
 // MEMBERS
@@ -61,6 +65,7 @@ export async function addMember(memberData) {
           email: user.email,
           name: cleanData.name || '',
           role: 'member',
+          gymId: cleanData.gymId || DEFAULT_GYM_ID,
           createdAt: serverTimestamp(),
         }
       )
@@ -70,6 +75,7 @@ export async function addMember(memberData) {
       collection(db, 'members'),
       {
         ...cleanData,
+        gymId: cleanData.gymId || DEFAULT_GYM_ID,
         authUid: user?.uid || cleanData.authUid || null,
         status: cleanData.status || 'Active',
         plan: cleanData.plan || 'Monthly',
@@ -79,7 +85,7 @@ export async function addMember(memberData) {
       }
     )
 
-    return docRef.id
+    return { id: docRef.id, authUid: user?.uid || null }
   } catch (error) {
     if (user) {
       try { await user.delete() } catch (cleanupErr) {
@@ -91,10 +97,13 @@ export async function addMember(memberData) {
 }
 
 // Realtime members listener
-export function subscribeToMembers(callback) {
+export function subscribeToMembers(callback, gymId) {
+  const ref = gymId
+    ? query(collection(db, 'members'), where('gymId', '==', gymId))
+    : collection(db, 'members')
 
   return onSnapshot(
-    collection(db, 'members'),
+    ref,
 
     (snapshot) => {
 
@@ -118,16 +127,20 @@ export async function updateMember(
   const memberRef =
     doc(db, 'members', memberId)
 
-  await updateDoc(memberRef, {
-    ...updatedData,
+  const updateFields = { ...updatedData }
 
-    // Keep numeric values safe
-    amountPaid:
-      Number(updatedData.amountPaid) || 0,
+  // Keep numeric values safe — only include when provided
+  if (updatedData.amountPaid !== undefined) {
+    updateFields.amountPaid =
+      Number(updatedData.amountPaid) || 0
+  }
 
-    checkins:
-      Number(updatedData.checkins) || 0,
-  })
+  if (updatedData.checkins !== undefined) {
+    updateFields.checkins =
+      Number(updatedData.checkins) || 0
+  }
+
+  await updateDoc(memberRef, updateFields)
 }
 
 // Delete member
@@ -170,6 +183,7 @@ export async function addPayment(paymentData) {
     collection(db, 'payments'),
     {
       ...paymentData,
+      gymId: paymentData.gymId || DEFAULT_GYM_ID,
 
       amount:
         Number(paymentData.amount) || 0,
@@ -189,10 +203,13 @@ export async function addPayment(paymentData) {
 }
 
 // Realtime payments listener
-export function subscribeToPayments(callback) {
+export function subscribeToPayments(callback, gymId) {
+  const ref = gymId
+    ? query(collection(db, 'payments'), where('gymId', '==', gymId))
+    : collection(db, 'payments')
 
   return onSnapshot(
-    collection(db, 'payments'),
+    ref,
 
     (snapshot) => {
 
@@ -259,6 +276,7 @@ export async function addTrainer(trainerData) {
         name: trainerData.name,
         email: trainerData.email,
         role: 'trainer',
+        gymId: trainerData.gymId || DEFAULT_GYM_ID,
         createdAt: serverTimestamp(),
       }
     )
@@ -267,6 +285,7 @@ export async function addTrainer(trainerData) {
       collection(db, 'trainers'),
       {
         ...trainerData,
+        gymId: trainerData.gymId || DEFAULT_GYM_ID,
         authUid: user.uid,
         createdAt: serverTimestamp(),
       }
@@ -287,10 +306,13 @@ export async function addTrainer(trainerData) {
 }
 
 // Subscribe realtime trainers
-export function subscribeToTrainers(callback) {
+export function subscribeToTrainers(callback, gymId) {
+  const ref = gymId
+    ? query(collection(db, 'trainers'), where('gymId', '==', gymId))
+    : collection(db, 'trainers')
 
   return onSnapshot(
-    collection(db, 'trainers'),
+    ref,
     (snapshot) => {
 
       const trainers =
@@ -364,11 +386,23 @@ export async function addSupportTicket(ticketData) {
     collection(db, 'supportTickets'),
     {
       ...ticketData,
+      gymId: ticketData.gymId || DEFAULT_GYM_ID,
       status: ticketData.status || 'Open',
       createdAt: serverTimestamp(),
     }
   )
   return docRef.id
+}
+
+export function subscribeToSupportTickets(callback, gymId) {
+  const ref = gymId
+    ? query(collection(db, 'supportTickets'), where('gymId', '==', gymId))
+    : collection(db, 'supportTickets')
+
+  return onSnapshot(ref, (snapshot) => {
+    const tickets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    callback(tickets)
+  })
 }
 
 // ─────────────────────────────────────────────
@@ -380,6 +414,7 @@ export async function addFeatureRequest(requestData) {
     collection(db, 'featureRequests'),
     {
       ...requestData,
+      gymId: requestData.gymId || DEFAULT_GYM_ID,
       status: requestData.status || 'Under Review',
       createdAt: serverTimestamp(),
     }
@@ -387,24 +422,43 @@ export async function addFeatureRequest(requestData) {
   return docRef.id
 }
 
+export function subscribeToFeatureRequests(callback, gymId) {
+  const ref = gymId
+    ? query(collection(db, 'featureRequests'), where('gymId', '==', gymId))
+    : collection(db, 'featureRequests')
+
+  return onSnapshot(ref, (snapshot) => {
+    const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    callback(requests)
+  })
+}
+
 // Read settings document from /settings/{docId}
-export async function getSettings(docId = 'gym') {
-  const snap = await getDoc(doc(db, 'settings', docId))
+// In multi-tenant mode, settings scoped to gymId use docId = `${gymId}:${docId}`
+export async function getSettings(docId = 'gym', gymId) {
+  const settingsDocId = gymId ? `${gymId}:${docId}` : docId
+  const snap = await getDoc(doc(db, 'settings', settingsDocId))
   return snap.exists() ? snap.data() : null
 }
 
 // Write (merge) settings document to /settings/{docId}
-export async function saveSettings(docId = 'gym', data) {
-  await setDoc(doc(db, 'settings', docId), data, { merge: true })
+// In multi-tenant mode, settings scoped to gymId use docId = `${gymId}:${docId}`
+export async function saveSettings(docId = 'gym', data, gymId) {
+  const settingsDocId = gymId ? `${gymId}:${docId}` : docId
+  await setDoc(doc(db, 'settings', settingsDocId), { ...data, gymId: gymId || DEFAULT_GYM_ID }, { merge: true })
 }
 
 // ─────────────────────────────────────────────
 // PROGRESS LOGS
 // ─────────────────────────────────────────────
 
-export function subscribeToProgressLogs(callback) {
+export function subscribeToProgressLogs(callback, gymId) {
+  const ref = gymId
+    ? query(collection(db, 'progressLogs'), where('gymId', '==', gymId))
+    : collection(db, 'progressLogs')
+
   return onSnapshot(
-    collection(db, 'progressLogs'),
+    ref,
     (snapshot) => {
       const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
       callback(logs)
@@ -417,6 +471,7 @@ export async function addProgressLog(logData) {
     collection(db, 'progressLogs'),
     {
       ...logData,
+      gymId: logData.gymId || DEFAULT_GYM_ID,
       weight: Number(logData.weight) || 0,
       bodyFat: Number(logData.bodyFat) || 0,
       bmi: Number(logData.bmi) || 0,
@@ -434,10 +489,14 @@ export async function addProgressLog(logData) {
 // PLANS
 // ─────────────────────────────────────────────
 
-// Realtime plans listener
-export function subscribeToPlans(callback) {
+// Realtime plans listener (global — shared across gyms)
+export function subscribeToPlans(callback, gymId) {
+  const ref = gymId
+    ? query(collection(db, 'plans'), where('gymId', '==', gymId))
+    : collection(db, 'plans')
+
   return onSnapshot(
-    collection(db, 'plans'),
+    ref,
     (snapshot) => {
       const plans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
       callback(plans)
@@ -451,6 +510,7 @@ export async function addPlan(planData) {
     collection(db, 'plans'),
     {
       ...planData,
+      gymId: planData.gymId || DEFAULT_GYM_ID,
       active: planData.active !== undefined ? planData.active : true,
       createdAt: serverTimestamp(),
     }
@@ -468,9 +528,11 @@ export async function deletePlan(planId) {
   await deleteDoc(doc(db, 'plans', planId))
 }
 
-// Migrate default plans if collection is empty
-export async function migrateDefaultPlans() {
-  const snapshot = await getDocs(collection(db, 'plans'))
+// Migrate default plans if collection is empty (per gym)
+export async function migrateDefaultPlans(gymId) {
+  const targetGymId = gymId || DEFAULT_GYM_ID
+  const q = query(collection(db, 'plans'), where('gymId', '==', targetGymId))
+  const snapshot = await getDocs(q)
   if (!snapshot.empty) return false
 
   const defaults = [
@@ -483,7 +545,7 @@ export async function migrateDefaultPlans() {
   ]
 
   for (const plan of defaults) {
-    await addDoc(collection(db, 'plans'), { ...plan, createdAt: serverTimestamp() })
+    await addDoc(collection(db, 'plans'), { ...plan, gymId: targetGymId, createdAt: serverTimestamp() })
   }
   return true
 }
@@ -492,9 +554,13 @@ export async function migrateDefaultPlans() {
 // DIET PLANS
 // ─────────────────────────────────────────────
 
-export function subscribeToDietPlans(callback) {
+export function subscribeToDietPlans(callback, gymId) {
+  const ref = gymId
+    ? query(collection(db, 'dietPlans'), where('gymId', '==', gymId))
+    : collection(db, 'dietPlans')
+
   return onSnapshot(
-    collection(db, 'dietPlans'),
+    ref,
     (snapshot) => {
       const plans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
       callback(plans)
@@ -505,7 +571,7 @@ export function subscribeToDietPlans(callback) {
 export async function addDietPlan(planData) {
   const docRef = await addDoc(
     collection(db, 'dietPlans'),
-    { ...planData, createdAt: serverTimestamp() }
+    { ...planData, gymId: planData.gymId || DEFAULT_GYM_ID, createdAt: serverTimestamp() }
   )
   return docRef.id
 }
@@ -522,9 +588,13 @@ export async function deleteDietPlan(planId) {
 // WORKOUT PLANS
 // ─────────────────────────────────────────────
 
-export function subscribeToWorkoutPlans(callback) {
+export function subscribeToWorkoutPlans(callback, gymId) {
+  const ref = gymId
+    ? query(collection(db, 'workoutPlans'), where('gymId', '==', gymId))
+    : collection(db, 'workoutPlans')
+
   return onSnapshot(
-    collection(db, 'workoutPlans'),
+    ref,
     (snapshot) => {
       const plans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
       callback(plans)
@@ -535,7 +605,7 @@ export function subscribeToWorkoutPlans(callback) {
 export async function addWorkoutPlan(planData) {
   const docRef = await addDoc(
     collection(db, 'workoutPlans'),
-    { ...planData, createdAt: serverTimestamp() }
+    { ...planData, gymId: planData.gymId || DEFAULT_GYM_ID, createdAt: serverTimestamp() }
   )
   return docRef.id
 }
@@ -601,4 +671,207 @@ export async function backfillOwnershipFields() {
   }
 
   return results
+}
+
+// ─────────────────────────────────────────────
+// GYMS (global collection — one doc per gym)
+// ─────────────────────────────────────────────
+
+export function subscribeToGyms(callback) {
+  return onSnapshot(
+    collection(db, 'gyms'),
+    (snapshot) => {
+      const gyms = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      callback(gyms)
+    }
+  )
+}
+
+export async function addGym(gymData, ownerUid) {
+  const docRef = await addDoc(
+    collection(db, 'gyms'),
+    {
+      ...gymData,
+      ownerUid,
+      approvalStatus: 'pending',
+      createdAt: serverTimestamp(),
+    }
+  )
+  return docRef.id
+}
+
+export async function updateGym(gymId, updatedData) {
+  await updateDoc(doc(db, 'gyms', gymId), updatedData)
+}
+
+export async function deleteGym(gymId) {
+  await deleteDoc(doc(db, 'gyms', gymId))
+}
+
+// ─────────────────────────────────────────────
+// SUBSCRIPTIONS (global collection — billing per gym)
+// ─────────────────────────────────────────────
+
+export function subscribeToSubscriptions(callback) {
+  return onSnapshot(
+    collection(db, 'subscriptions'),
+    (snapshot) => {
+      const subs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      callback(subs)
+    }
+  )
+}
+
+// Calculate subscription dates based on plan
+function calculateSubscriptionDates(plan) {
+  const now = new Date()
+  let startDate, expiryDate, graceEndDate, isLifetime = false
+
+  switch (plan) {
+    case 'Trial':
+      startDate = now
+      expiryDate = new Date(now.setDate(now.getDate() + 7))
+      graceEndDate = new Date(now.setDate(now.getDate() + 3))
+      break
+    case 'Standard':
+      startDate = now
+      expiryDate = new Date(now.setDate(now.getDate() + 30))
+      graceEndDate = new Date(now.setDate(now.getDate() + 5))
+      break
+    case 'Premium':
+      startDate = now
+      expiryDate = new Date(now.setDate(now.getDate() + 30))
+      graceEndDate = new Date(now.setDate(now.getDate() + 5))
+      break
+    case 'Quarterly':
+      startDate = now
+      expiryDate = new Date(now.setDate(now.getDate() + 90))
+      graceEndDate = new Date(now.setDate(now.getDate() + 7))
+      break
+    case 'Annual':
+      startDate = now
+      expiryDate = new Date(now.setDate(now.getDate() + 365))
+      graceEndDate = new Date(now.setDate(now.getDate() + 10))
+      break
+    case 'Lifetime':
+      startDate = now
+      expiryDate = new Date(now.setDate(now.getDate() + 9999))
+      graceEndDate = new Date(now.setDate(now.getDate() + 0))
+      isLifetime = true
+      break
+    case 'Day Pass':
+      startDate = now
+      expiryDate = new Date(now.setDate(now.getDate() + 1))
+      graceEndDate = new Date(now.setDate(now.getDate() + 1))
+      break
+    default:
+      startDate = now
+      expiryDate = new Date(now.setDate(now.getDate() + 30))
+      graceEndDate = new Date(now.setDate(now.getDate() + 5))
+  }
+
+  const daysRemaining = isLifetime ? 9999 : Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24))
+
+  return {
+    startDate: startDate.toISOString().split('T')[0],
+    expiryDate: expiryDate.toISOString().split('T')[0],
+    graceEndDate: graceEndDate.toISOString().split('T')[0],
+    daysRemaining,
+    isLifetime,
+  }
+}
+
+export async function addSubscription(subData) {
+  const docRef = await addDoc(
+    collection(db, 'subscriptions'),
+    {
+      ...subData,
+      gymId: subData.gymId || 'default',
+      planType: subData.plan || 'Standard',
+      status: subData.status || 'trial',
+      paymentStatus: subData.paymentStatus || 'Pending',
+      paymentMethod: subData.paymentMethod || 'Not Set',
+      autoRenew: subData.autoRenew !== undefined ? subData.autoRenew : true,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      ...calculateSubscriptionDates(subData.plan || 'Standard'),
+    }
+  )
+  return docRef.id
+}
+
+export async function updateSubscription(subId, updatedData) {
+  const updateFields = { ...updatedData, updatedAt: serverTimestamp() }
+  
+  // If plan is being updated, recalculate dates
+  if (updatedData.plan) {
+    const plan = updatedData.plan
+    const now = new Date()
+    const dates = calculateSubscriptionDates(plan)
+    Object.assign(updateFields, dates)
+    
+    // Update status based on plan and existing status
+    if (updateFields.status === 'trial') {
+      updateFields.status = 'active'
+    }
+  }
+  
+  await updateDoc(doc(db, 'subscriptions', subId), updateFields)
+}
+
+export async function deleteSubscription(subId) {
+  await deleteDoc(doc(db, 'subscriptions', subId))
+}
+
+// Migration: Backfill missing fields on existing subscription documents
+export async function migrateSubscriptions() {
+  const snapshot = await getDocs(collection(db, 'subscriptions'))
+  const updates = []
+
+  snapshot.forEach(doc => {
+    const data = doc.data()
+    const needsUpdate = {}
+
+    // Ensure all required fields exist
+    if (!data.gymId) needsUpdate.gymId = 'default'
+    if (!data.planType) needsUpdate.planType = data.plan || 'Standard'
+    if (!data.status) needsUpdate.status = 'active'
+    if (!data.startDate) {
+      needsUpdate.startDate = new Date().toISOString().split('T')[0]
+    }
+    if (!data.expiryDate) {
+      const expiry = new Date()
+      expiry.setDate(expiry.getDate() + 30)
+      needsUpdate.expiryDate = expiry.toISOString().split('T')[0]
+    }
+    if (!data.graceEndDate) {
+      const graceEnd = new Date()
+      graceEnd.setDate(graceEnd.getDate() + 5)
+      needsUpdate.graceEndDate = graceEnd.toISOString().split('T')[0]
+    }
+    if (data.daysRemaining === undefined) {
+      const expiry = new Date(data.expiryDate || new Date())
+      const today = new Date()
+      needsUpdate.daysRemaining = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24))
+    }
+    if (data.isLifetime === undefined) needsUpdate.isLifetime = false
+    if (!data.paymentStatus) needsUpdate.paymentStatus = data.status === 'active' ? 'Paid' : 'Pending'
+    if (!data.paymentMethod) needsUpdate.paymentMethod = 'Not Set'
+    if (data.autoRenew === undefined) needsUpdate.autoRenew = true
+    if (!data.createdAt) needsUpdate.createdAt = serverTimestamp()
+    needsUpdate.updatedAt = serverTimestamp()
+
+    if (Object.keys(needsUpdate).length > 0) {
+      updates.push(updateDoc(doc(db, 'subscriptions', doc.id), needsUpdate))
+    }
+  })
+
+  if (updates.length > 0) {
+    await Promise.allSettled(updates)
+    console.log(`Migrated ${updates.length} subscription documents`)
+    return { migrated: updates.length, total: snapshot.size }
+  }
+
+  console.log('No subscription documents needed migration')
+  return { migrated: 0, total: snapshot.size }
 }
