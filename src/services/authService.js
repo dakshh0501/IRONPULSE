@@ -205,34 +205,14 @@ export async function getGymOwnerPending() {
   }
 }
 
+// DEPRECATED: Use AppContext.approveGymOwner(gymId) instead.
+// This function is kept for backward compatibility only and will throw if called.
 export async function approveGymOwner(uid) {
-  try {
-    const userSnap = await getDoc(doc(db, 'users', uid))
-    if (!userSnap.exists()) throw new Error('Gym owner not found')
-    if (userSnap.data().role !== 'gym_owner_pending') throw new Error('Invalid role')
-
-    await updateDoc(doc(db, 'users', uid), {
-      role: 'gym_owner'
-    })
-
-    return { uid, email: userSnap.data().email }
-  } catch (err) {
-    throw err
-  }
+  throw new Error('authService.approveGymOwner is deprecated. Use AppContext.approveGymOwner(gymId) instead — it handles gym, user, and subscription updates atomically.')
 }
 
+// DEPRECATED: Use AppContext.rejectGymOwner(gymId) instead.
+// This function is kept for backward compatibility only and will throw if called.
 export async function rejectGymOwner(uid) {
-  try {
-    const userSnap = await getDoc(doc(db, 'users', uid))
-    if (!userSnap.exists()) throw new Error('Gym owner not found')
-    if (userSnap.data().role !== 'gym_owner_pending') throw new Error('Invalid role')
-
-    await updateDoc(doc(db, 'users', uid), {
-      role: 'rejected'
-    })
-
-    return { uid, email: userSnap.data().email }
-  } catch (err) {
-    throw err
-  }
+  throw new Error('authService.rejectGymOwner is deprecated. Use AppContext.rejectGymOwner(gymId) instead — it handles gym and user updates atomically.')
 }

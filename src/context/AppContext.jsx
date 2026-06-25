@@ -40,13 +40,17 @@ import {
   addGym as addGymToFirestore,
   updateGym as updateGymInFirestore,
   deleteGym as deleteGymFromFirestore,
+  getSubscriptionByGymId,
+  addSubscription,
 } from '../services/firestoreService'
 import {
   subscribeAttendance,
   subscribeMyAttendance,
   addAttendance as addAttendanceToFirestore,
 } from '../services/attendanceService'
-import { getPendingUsers, getGymOwnerPending, approveGymOwner, rejectGymOwner } from '../services/authService'
+import { getPendingUsers } from '../services/authService'
+import { doc, getDoc, updateDoc, query, where, getDocs, collection } from 'firebase/firestore'
+import { db } from '../firebase'
 
 const AppContext = createContext()
 
@@ -92,28 +96,63 @@ export function AppProvider({ children }) {
     return unsubscribe
   }, [currentUser, authLoading, userProfile])
 
-  // ── Admins: approve gym owner ───────────────────────────
+  // ── Admins: approve gym owner (single source of truth) ──
   const approveGymOwner = async (gymId, newSubscription = 'Trial') => {
     try {
+      // 1. Read gym doc to get ownerUid
+      const gymSnap = await getDoc(doc(db, 'gyms', gymId))
+      if (!gymSnap.exists()) throw new Error('Gym not found')
+      const gymData = gymSnap.data()
+      const ownerUid = gymData.ownerUid
+
+      // 2. Update gym approvalStatus
       await updateGym(gymId, { approvalStatus: 'approved' })
-      await addSubscription({
-        gymId,
-        plan: newSubscription,
-        status: 'active',
-        paymentStatus: 'paid',
-        paymentMethod: 'Not Set',
-        autoRenew: false,
-      })
+
+      // 3. Update user role (if ownerUid exists and role is still pending)
+      if (ownerUid) {
+        const userSnap = await getDoc(doc(db, 'users', ownerUid))
+        if (userSnap.exists() && userSnap.data().role === 'gym_owner_pending') {
+          await updateDoc(doc(db, 'users', ownerUid), { role: 'gym_owner' })
+        }
+      }
+
+      // 4. Defensive: only create subscription if one doesn't already exist
+      const existingSub = await getSubscriptionByGymId(gymId)
+      if (!existingSub) {
+        await addSubscription({
+          gymId,
+          plan: newSubscription,
+          status: 'active',
+          paymentStatus: 'paid',
+          paymentMethod: 'Not Set',
+          autoRenew: false,
+        })
+      }
     } catch (err) {
       console.error('Failed to approve gym owner:', err)
       throw err
     }
   }
 
-  // ── Admins: reject gym owner ───────────────────────────
+  // ── Admins: reject gym owner (single source of truth) ──
   const rejectGymOwner = async (gymId) => {
     try {
+      // 1. Read gym doc to get ownerUid
+      const gymSnap = await getDoc(doc(db, 'gyms', gymId))
+      if (!gymSnap.exists()) throw new Error('Gym not found')
+      const gymData = gymSnap.data()
+      const ownerUid = gymData.ownerUid
+
+      // 2. Update gym approvalStatus
       await updateGym(gymId, { approvalStatus: 'rejected' })
+
+      // 3. Update user role (if ownerUid exists and role is still pending)
+      if (ownerUid) {
+        const userSnap = await getDoc(doc(db, 'users', ownerUid))
+        if (userSnap.exists() && userSnap.data().role === 'gym_owner_pending') {
+          await updateDoc(doc(db, 'users', ownerUid), { role: 'rejected' })
+        }
+      }
     } catch (err) {
       console.error('Failed to reject gym owner:', err)
       throw err

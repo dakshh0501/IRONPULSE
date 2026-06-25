@@ -22,7 +22,7 @@ import Progress       from './pages/Progress'
 import Notifications  from './pages/Notifications'
 import Reports        from './pages/Reports'
 import Settings       from './pages/Settings'
-import PendingApprovals from './pages/PendingApprovals'
+import ApprovalCenter from './pages/ApprovalCenter'
 import WhatsAppReminders from './pages/WhatsAppReminders'
 import GymOwners     from './pages/GymOwners'
 import Subscriptions  from './pages/Subscriptions'
@@ -37,7 +37,7 @@ function buildPageMap(setPage, search, role) {
       dashboard:     <AdminDashboard setPage={setPage} />,
       gymOwners:      <GymOwners      search={search} setPage={setPage} />,
       subscriptions:  <Subscriptions  search={search} setPage={setPage} />,
-      pending:        <PendingApprovals />,
+      pending:        <ApprovalCenter search={search} setPage={setPage} />,
       support:        <Support        search={search} setPage={setPage} />,
       notifications: <Notifications  search={search} setPage={setPage} />,
       members:       <Members        search={search} setPage={setPage} />,

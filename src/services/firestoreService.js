@@ -722,6 +722,13 @@ export function subscribeToSubscriptions(callback) {
   )
 }
 
+// Check if a subscription already exists for a given gymId
+export async function getSubscriptionByGymId(gymId) {
+  const q = query(collection(db, 'subscriptions'), where('gymId', '==', gymId))
+  const snap = await getDocs(q)
+  return snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() }
+}
+
 // Calculate subscription dates based on plan
 function calculateSubscriptionDates(plan) {
   const now = new Date();
