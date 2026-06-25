@@ -1,9 +1,13 @@
+// src/components/Header.jsx
 import { useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 
 const PAGE_TITLES = {
   dashboard:     'Dashboard',
+  gymOwners:     'Gym Owners',
+  subscriptions: 'Subscriptions',
+  support:       'Support',
   members:       'Member Management',
   trainers:      'Trainer Management',
   workouts:      'Workout Plans',
@@ -29,10 +33,10 @@ export default function Header({ currentPage, setPage, search, setSearch, setMob
     <>
       <header className="header">
         {/* Mobile menu button */}
-<button
-  className="mobile-menu-btn"
-  onClick={() => setMobileOpen(p => !p)}
->          ☰
+        <button
+          className="mobile-menu-btn"
+          onClick={() => setMobileOpen(p => !p)}
+        >          ☰
         </button>
 
         <div className="header-title">{gymName} · {PAGE_TITLES[currentPage] || 'Dashboard'}</div>
@@ -59,7 +63,7 @@ export default function Header({ currentPage, setPage, search, setSearch, setMob
 
           {/* Notifications */}
           <button className="icon-btn" onClick={() => setNotifOpen(p => !p)}>
-            🔔
+            <Bell size={20} />
             {unreadCount > 0 && <span className="notif-dot" />}
           </button>
 

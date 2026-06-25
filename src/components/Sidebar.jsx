@@ -1,3 +1,4 @@
+// src/components/Sidebar.jsx
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
@@ -5,9 +6,13 @@ import { useApp } from '../context/AppContext'
 const ADMIN_NAV = [
   { section:'Main' },
   { key:'dashboard',     label:'Dashboard',       icon:'📊' },
+  { key:'gymOwners',      label:'Gym Owners',       icon:'🏢' },
+  { key:'subscriptions',  label:'Subscriptions',   icon:'📋' },
+  { key:'support',        label:'Support',          icon:'🆘' },
+  { key:'pending',       label:'Approval Requests', icon:'⏳', badge:'pending' },
+  { section:'Members' },
   { key:'members',       label:'Members',          icon:'👥' },
   { key:'trainers',      label:'Trainers',          icon:'🏋️' },
-  { key:'pending',       label:'Pending Approvals', icon:'⏳', badge:'pending' },
   { section:'Programs' },
   { key:'workouts',      label:'Workout Plans',    icon:'💪' },
   { key:'diet',          label:'Diet Plans',       icon:'🥗' },
@@ -15,13 +20,12 @@ const ADMIN_NAV = [
   { section:'Business' },
   { key:'payments',      label:'Payments',         icon:'💳', badge:'payments' },
   { key:'attendance',    label:'QR Check-in',      icon:'📱' },
-  { key:'notifications', label:'Notifications',    icon:'🔔', badge:'notifs' },
-  { key:'reports',       label:'Reports',          icon:'📋' },
   { section:'Engagement' },
+  { key:'notifications', label:'Notifications',    icon:'🔔', badge:'notifs' },
+  { key:'reports',       label:'Reports',          icon:'📊' },
   { key:'whatsapp',      label:'WhatsApp Reminders', icon:'💬', badge:'pending' },
   { section:'System' },
   { key:'settings',      label:'Settings',         icon:'⚙️' },
-  { icon: '🖥',label: 'Reception', key: 'reception', }
 ]
 
 const TRAINER_NAV = [
@@ -35,7 +39,6 @@ const TRAINER_NAV = [
   { section:'Other' },
   { key:'attendance',    label:'Attendance',     icon:'📱' },
   { key:'notifications', label:'Notifications',    icon:'🔔', badge:'notifs' },
-  { icon: '🖥',label: 'Reception', key: 'reception', }
 ]
 
 const MEMBER_NAV = [
@@ -54,14 +57,13 @@ const NAV_MAP = { admin: ADMIN_NAV, trainer: TRAINER_NAV, member: MEMBER_NAV }
 
 export default function Sidebar({ currentPage, setPage, mobileOpen, setMobileOpen }) {
   const { currentUser, logout, userProfile } = useAuth()
-  const { unreadCount, pendingCount, gymSettings, payments, members } = useApp()
+  const { unreadCount, pendingCount, gymSettings, payments } = useApp()
   const navigate = useNavigate()
 
   const role = userProfile?.role
   const gymName = gymSettings?.name || 'IronForge Gym'
 
-const nav =
-  NAV_MAP[role] || []
+  const nav = NAV_MAP[role] || []
 
   const overdueCount = payments.filter(p => p.status === 'Overdue' || p.status === 'Pending').length
 

@@ -1,3 +1,4 @@
+// src/App.jsx
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppProvider } from './context/AppContext'
@@ -23,34 +24,9 @@ import Reports        from './pages/Reports'
 import Settings       from './pages/Settings'
 import PendingApprovals from './pages/PendingApprovals'
 import WhatsAppReminders from './pages/WhatsAppReminders'
-
-// ─────────────────────────────────────────────────────────────
-//  PLACEHOLDER
-// ─────────────────────────────────────────────────────────────
-function ComingSoon({ page }) {
-  return (
-    <div style={{
-      display:'flex', flexDirection:'column',
-      alignItems:'center', justifyContent:'center',
-      height:'100%', gap:16, padding:40, textAlign:'center',
-    }}>
-      <div style={{ fontSize:52 }}>🚧</div>
-      <h2 style={{ fontSize:22, fontWeight:700, color:'var(--text)' }}>
-        {page} — Coming Soon
-      </h2>
-      <p style={{ fontSize:14, color:'var(--text-muted)', maxWidth:340 }}>
-        This module is under construction. Add the page file to{' '}
-        <code style={{ color:'var(--teal)', background:'var(--bg3)', padding:'2px 6px', borderRadius:4 }}>
-          src/pages/{page}.jsx
-        </code>{' '}
-        and import it in{' '}
-        <code style={{ color:'var(--teal)', background:'var(--bg3)', padding:'2px 6px', borderRadius:4 }}>
-          App.jsx
-        </code>.
-      </p>
-    </div>
-  )
-}
+import GymOwners     from './pages/GymOwners'
+import Subscriptions  from './pages/Subscriptions'
+import Support        from './pages/Support'
 
 // ─────────────────────────────────────────────────────────────
 //  PAGE MAP — role-based
@@ -59,16 +35,19 @@ function buildPageMap(setPage, search, role) {
   if (role === 'admin') {
     return {
       dashboard:     <AdminDashboard setPage={setPage} />,
+      gymOwners:      <GymOwners      search={search} setPage={setPage} />,
+      subscriptions:  <Subscriptions  search={search} setPage={setPage} />,
+      pending:        <PendingApprovals />,
+      support:        <Support        search={search} setPage={setPage} />,
+      notifications: <Notifications  search={search} setPage={setPage} />,
       members:       <Members        search={search} setPage={setPage} />,
       trainers:      <Trainers       search={search} setPage={setPage} />,
-      pending:       <PendingApprovals />,
       workouts:      <Workouts       search={search} setPage={setPage} />,
       diet:          <Diet           search={search} setPage={setPage} />,
       payments:      <Payments       search={search} setPage={setPage} />,
       progress:      <Progress       search={search} setPage={setPage} />,
       attendance:    <Attendance     search={search} setPage={setPage} />,
       reception:     <ReceptionMode  />,
-      notifications: <Notifications  search={search} setPage={setPage} />,
       reports:       <Reports        search={search} setPage={setPage} />,
       settings:      <Settings       search={search} setPage={setPage} />,
       whatsapp:      <WhatsAppReminders search={search} />,
