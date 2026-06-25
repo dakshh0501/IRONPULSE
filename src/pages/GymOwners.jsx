@@ -1,7 +1,7 @@
 // src/pages/GymOwners.jsx
 import { useState, useEffect, useMemo } from 'react'
 import { useApp } from '../context/AppContext'
-import { subscribeToGyms, updateGym, addSubscription } from '../services/firestoreService'
+import { subscribeToGyms, updateGym } from '../services/firestoreService'
 import { useNavigate } from 'react-router-dom'
 
 export default function GymOwners() {
@@ -10,6 +10,7 @@ export default function GymOwners() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+  const { approveGymOwner, rejectGymOwner } = useApp()
 
   // Fetch gyms data from Firestore
   useEffect(() => {
@@ -58,8 +59,7 @@ export default function GymOwners() {
   const handleApprove = async (gymId) => {
     if (window.confirm('Approve this gym owner?')) {
       try {
-        await updateGym(gymId, { approvalStatus: 'approved' })
-        await addSubscription({ gymId, plan: 'Trial', status: 'Active' })
+        await approveGymOwner(gymId)
       } catch (error) {
         console.error('Error approving gym:', error)
       }
@@ -70,7 +70,7 @@ export default function GymOwners() {
   const handleReject = async (gymId) => {
     if (window.confirm('Reject this gym owner? This action cannot be undone.')) {
       try {
-        await updateGym(gymId, { approvalStatus: 'rejected' })
+        await rejectGymOwner(gymId)
       } catch (error) {
         console.error('Error rejecting gym:', error)
       }

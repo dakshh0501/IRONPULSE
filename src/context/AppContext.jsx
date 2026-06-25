@@ -100,7 +100,7 @@ export function AppProvider({ children }) {
         gymId,
         plan: newSubscription,
         status: 'active',
-        paymentStatus: 'Paid',
+        paymentStatus: 'paid',
         paymentMethod: 'Not Set',
         autoRenew: false,
       })
@@ -686,6 +686,7 @@ export function AppProvider({ children }) {
       pendingCount,
       gymSettings,
       gyms, currentGym, subscriptions,
+      approveGymOwner, rejectGymOwner,
     }}>
       {children}
     </AppContext.Provider>

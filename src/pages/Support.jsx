@@ -38,7 +38,7 @@ export default function Support() {
         <div className="stat-card" style={{ 
           backgroundColor: 'white',
           borderRadius: '8px',
-n          border: '1px solid var(--border)',
+          border: '1px solid var(--border)',
           padding: '16px'
         }}>
           <div className="stat-title" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>Awaiting Response</div>

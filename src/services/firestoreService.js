@@ -724,53 +724,53 @@ export function subscribeToSubscriptions(callback) {
 
 // Calculate subscription dates based on plan
 function calculateSubscriptionDates(plan) {
-  const now = new Date()
-  let startDate, expiryDate, graceEndDate, isLifetime = false
+  const now = new Date();
+  let startDate, expiryDate, graceEndDate, isLifetime = false;
 
   switch (plan) {
     case 'Trial':
-      startDate = now
-      expiryDate = new Date(now.setDate(now.getDate() + 7))
-      graceEndDate = new Date(now.setDate(now.getDate() + 3))
-      break
+      startDate = now;
+      expiryDate = new Date(now.setDate(now.getDate() + 7));
+      graceEndDate = new Date(now.setDate(now.getDate() + 3));
+      break;
     case 'Standard':
-      startDate = now
-      expiryDate = new Date(now.setDate(now.getDate() + 30))
-      graceEndDate = new Date(now.setDate(now.getDate() + 5))
-      break
+      startDate = now;
+      expiryDate = new Date(now.setDate(now.getDate() + 30));
+      graceEndDate = new Date(now.setDate(now.getDate() + 5));
+      break;
     case 'Premium':
-      startDate = now
-      expiryDate = new Date(now.setDate(now.getDate() + 30))
-      graceEndDate = new Date(now.setDate(now.getDate() + 5))
-      break
+      startDate = now;
+      expiryDate = new Date(now.setDate(now.getDate() + 30));
+      graceEndDate = new Date(now.setDate(now.getDate() + 5));
+      break;
     case 'Quarterly':
-      startDate = now
-      expiryDate = new Date(now.setDate(now.getDate() + 90))
-      graceEndDate = new Date(now.setDate(now.getDate() + 7))
-      break
+      startDate = now;
+      expiryDate = new Date(now.setDate(now.getDate() + 90));
+      graceEndDate = new Date(now.setDate(now.getDate() + 7));
+      break;
     case 'Annual':
-      startDate = now
-      expiryDate = new Date(now.setDate(now.getDate() + 365))
-      graceEndDate = new Date(now.setDate(now.getDate() + 10))
-      break
+      startDate = now;
+      expiryDate = new Date(now.setDate(now.getDate() + 365));
+      graceEndDate = new Date(now.setDate(now.getDate() + 10));
+      break;
     case 'Lifetime':
-      startDate = now
-      expiryDate = new Date(now.setDate(now.getDate() + 9999))
-      graceEndDate = new Date(now.setDate(now.getDate() + 0))
-      isLifetime = true
-      break
+      startDate = now;
+      expiryDate = new Date(now.setDate(now.getDate() + 9999));
+      graceEndDate = new Date(now.setDate(now.getDate() + 0));
+      isLifetime = true;
+      break;
     case 'Day Pass':
-      startDate = now
-      expiryDate = new Date(now.setDate(now.getDate() + 1))
-      graceEndDate = new Date(now.setDate(now.getDate() + 1))
-      break
+      startDate = now;
+      expiryDate = new Date(now.setDate(now.getDate() + 1));
+      graceEndDate = new Date(now.setDate(now.getDate() + 1));
+      break;
     default:
-      startDate = now
-      expiryDate = new Date(now.setDate(now.getDate() + 30))
-      graceEndDate = new Date(now.setDate(now.getDate() + 5))
+      startDate = now;
+      expiryDate = new Date(now.setDate(now.getDate() + 30));
+      graceEndDate = new Date(now.setDate(now.getDate() + 5));
   }
 
-  const daysRemaining = isLifetime ? 9999 : Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24))
+  const daysRemaining = isLifetime ? 9999 : Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
 
   return {
     startDate: startDate.toISOString().split('T')[0],
@@ -778,10 +778,26 @@ function calculateSubscriptionDates(plan) {
     graceEndDate: graceEndDate.toISOString().split('T')[0],
     daysRemaining,
     isLifetime,
-  }
+  };
+}
+
+// Calculate subscription amount based on plan
+function calculateSubscriptionAmount(plan) {
+  const planPrices = {
+    'Trial': 0,
+    'Standard': 9999, // ₹99.99 in paise
+    'Premium': 19999, // ₹199.99 in paise
+    'Quarterly': 29999, // ₹299.99 in paise
+    'Annual': 99999, // ₹999.99 in paise
+    'Lifetime': 499999, // ₹4999.99 in paise
+    'Day Pass': 99, // ₹0.99 in paise
+  };
+
+  return planPrices[plan] || planPrices['Standard'];
 }
 
 export async function addSubscription(subData) {
+  const today = new Date();
   const docRef = await addDoc(
     collection(db, 'subscriptions'),
     {
@@ -789,8 +805,13 @@ export async function addSubscription(subData) {
       gymId: subData.gymId || 'default',
       planType: subData.plan || 'Standard',
       status: subData.status || 'trial',
-      paymentStatus: subData.paymentStatus || 'Pending',
+      paymentStatus: subData.paymentStatus || 'pending',
       paymentMethod: subData.paymentMethod || 'Not Set',
+      paymentCurrency: subData.paymentCurrency || 'INR',
+      currency: subData.currency || subData.paymentCurrency || 'INR',
+      transactionId: subData.transactionId || null,
+      amount: subData.amount || calculateSubscriptionAmount(subData.plan || 'Standard'),
+      paidAt: subData.paidAt || (subData.paymentStatus === 'paid' || subData.status === 'active' ? serverTimestamp() : null),
       autoRenew: subData.autoRenew !== undefined ? subData.autoRenew : true,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -803,20 +824,32 @@ export async function addSubscription(subData) {
 export async function updateSubscription(subId, updatedData) {
   const updateFields = { ...updatedData, updatedAt: serverTimestamp() }
   
-  // If plan is being updated, recalculate dates
+  // If plan is being updated, recalculate dates and amount
   if (updatedData.plan) {
-    const plan = updatedData.plan
-    const now = new Date()
-    const dates = calculateSubscriptionDates(plan)
-    Object.assign(updateFields, dates)
+    const plan = updatedData.plan;
+    const now = new Date();
+    const dates = calculateSubscriptionDates(plan);
+    Object.assign(updateFields, dates);
+    
+    // Update amount based on new plan
+    if (!updateFields.amount || updatedData.plan) {
+      updateFields.amount = calculateSubscriptionAmount(plan);
+    }
     
     // Update status based on plan and existing status
     if (updateFields.status === 'trial') {
-      updateFields.status = 'active'
+      updateFields.status = 'active';
+      updateFields.paymentStatus = 'paid';
+      updateFields.paidAt = serverTimestamp();
     }
   }
   
-  await updateDoc(doc(db, 'subscriptions', subId), updateFields)
+  // If payment status is being updated to 'paid', set paidAt if not already set
+  if (updatedData.paymentStatus === 'paid' && !updateFields.paidAt) {
+    updateFields.paidAt = serverTimestamp();
+  }
+  
+  await updateDoc(doc(db, 'subscriptions', subId), updateFields);
 }
 
 export async function deleteSubscription(subId) {
@@ -855,8 +888,13 @@ export async function migrateSubscriptions() {
       needsUpdate.daysRemaining = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24))
     }
     if (data.isLifetime === undefined) needsUpdate.isLifetime = false
-    if (!data.paymentStatus) needsUpdate.paymentStatus = data.status === 'active' ? 'Paid' : 'Pending'
+    if (!data.paymentStatus) needsUpdate.paymentStatus = data.status === 'active' ? 'paid' : 'pending'
     if (!data.paymentMethod) needsUpdate.paymentMethod = 'Not Set'
+    if (!data.paymentCurrency) needsUpdate.paymentCurrency = 'INR'
+    if (!data.currency) needsUpdate.currency = data.paymentCurrency || 'INR'
+    if (data.transactionId === undefined) needsUpdate.transactionId = null
+    if (!data.amount) needsUpdate.amount = calculateSubscriptionAmount(data.planType || data.plan || 'Standard')
+    if (!data.paidAt && (data.paymentStatus === 'paid' || data.status === 'active')) needsUpdate.paidAt = serverTimestamp()
     if (data.autoRenew === undefined) needsUpdate.autoRenew = true
     if (!data.createdAt) needsUpdate.createdAt = serverTimestamp()
     needsUpdate.updatedAt = serverTimestamp()
