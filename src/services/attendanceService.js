@@ -9,7 +9,6 @@ import {
   query,
   where,
   getDocs,
-  orderBy,
   onSnapshot,
 } from 'firebase/firestore'
 import { db } from '../firebase'
@@ -49,11 +48,14 @@ export async function addAttendance(data) {
  */
 export async function getAttendanceByDate(date, gymId) {
   try {
-    const constraints = [where('date', '==', date), orderBy('time', 'asc')]
-    if (gymId) constraints.unshift(where('gymId', '==', gymId))
-    const q = query(collection(db, COLLECTION), ...constraints)
+    // Use only equality filters — sort client-side
+    const q = gymId
+      ? query(collection(db, COLLECTION), where('gymId', '==', gymId), where('date', '==', date))
+      : query(collection(db, COLLECTION), where('date', '==', date))
     const snap = await getDocs(q)
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    const records = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    records.sort((a, b) => (a.time || '').localeCompare(b.time || ''))
+    return records
   } catch (err) {
     console.error('[attendanceService] getAttendanceByDate error:', err)
     return []
@@ -72,12 +74,22 @@ export async function getAttendanceByDate(date, gymId) {
  *   }, [user])
  */
 export function subscribeAttendance(callback, gymId) {
-  const constraints = [orderBy('date', 'desc'), orderBy('time', 'desc')]
-  if (gymId) constraints.unshift(where('gymId', '==', gymId))
-  const q = query(collection(db, COLLECTION), ...constraints)
+  // Use only equality filters to avoid requiring composite indexes — sort client-side
+  const q = gymId
+    ? query(collection(db, COLLECTION), where('gymId', '==', gymId))
+    : query(collection(db, COLLECTION))
   return onSnapshot(
     q,
-    (snap) => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    (snap) => {
+      const records = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      // Sort by date desc, time desc (client-side to avoid index requirement)
+      records.sort((a, b) => {
+        const dateCmp = (b.date || '').localeCompare(a.date || '')
+        if (dateCmp !== 0) return dateCmp
+        return (b.time || '').localeCompare(a.time || '')
+      })
+      callback(records)
+    },
     (err)  => console.error('[attendanceService] subscribeAttendance error:', err)
   )
 }
@@ -94,16 +106,22 @@ export function subscribeAttendance(callback, gymId) {
  *   }, [currentUser.uid])
  */
 export function subscribeMyAttendance(uid, callback, gymId) {
-  const constraints = [
-    where('memberId', '==', uid),
-    orderBy('date', 'desc'),
-    orderBy('time', 'desc'),
-  ]
-  if (gymId) constraints.unshift(where('gymId', '==', gymId))
-  const q = query(collection(db, COLLECTION), ...constraints)
+  // Use only equality filters to avoid requiring composite indexes — sort client-side
+  const q = gymId
+    ? query(collection(db, COLLECTION), where('gymId', '==', gymId), where('memberId', '==', uid))
+    : query(collection(db, COLLECTION), where('memberId', '==', uid))
   return onSnapshot(
     q,
-    (snap) => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    (snap) => {
+      const records = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      // Sort by date desc, time desc (client-side)
+      records.sort((a, b) => {
+        const dateCmp = (b.date || '').localeCompare(a.date || '')
+        if (dateCmp !== 0) return dateCmp
+        return (b.time || '').localeCompare(a.time || '')
+      })
+      callback(records)
+    },
     (err)  => console.error('[attendanceService] subscribeMyAttendance error:', err)
   )
 }

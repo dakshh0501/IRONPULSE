@@ -27,6 +27,7 @@ import WhatsAppReminders from './pages/WhatsAppReminders'
 import GymOwners     from './pages/GymOwners'
 import Subscriptions  from './pages/Subscriptions'
 import Support        from './pages/Support'
+import PaymentStatus  from './pages/PaymentStatus'
 
 // ─────────────────────────────────────────────────────────────
 //  PAGE MAP — role-based
@@ -72,6 +73,7 @@ function buildPageMap(setPage, search, role) {
       workouts:      <Workouts       search={search} setPage={setPage} />,
       diet:          <Diet           search={search} setPage={setPage} />,
       attendance:    <Attendance     search={search} setPage={setPage} />,
+      payments:      <Payments       search={search} setPage={setPage} />,
       notifications: <Notifications  search={search} setPage={setPage} />,
     }
   }
@@ -193,6 +195,7 @@ function RouterTree() {
       <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><AppShell /></ProtectedRoute>} />
       <Route path="/reception" element={<ProtectedRoute allowedRoles={['admin','trainer']}><ReceptionMode /></ProtectedRoute>} />
+      <Route path="/payment-status" element={<ProtectedRoute><PaymentStatus /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

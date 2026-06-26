@@ -2,14 +2,12 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useApp } from '../context/AppContext'
 import { subscribeToGyms, updateGym } from '../services/firestoreService'
-import { useNavigate } from 'react-router-dom'
 
-export default function GymOwners() {
+export default function GymOwners({ setPage }) {
   const [gyms, setGyms] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [loading, setLoading] = useState(true)
-  const navigate = useNavigate()
   const { approveGymOwner, rejectGymOwner } = useApp()
 
   // Fetch gyms data from Firestore
@@ -264,7 +262,7 @@ export default function GymOwners() {
               <div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button
-                    onClick={() => navigate(`/dashboard/gym-owners/${gym.id}`)}
+                    onClick={() => setPage('gymOwners')}
                     className="btn btn-sm btn-primary"
                     title="View Details"
                   >

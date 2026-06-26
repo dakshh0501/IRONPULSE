@@ -448,6 +448,34 @@ export async function saveSettings(docId = 'gym', data, gymId) {
   await setDoc(doc(db, 'settings', settingsDocId), { ...data, gymId: gymId || DEFAULT_GYM_ID }, { merge: true })
 }
 
+// ── Global Billing ────────────────────────────────────────────
+// Single global billing document at /settings/billing (no gymId prefix)
+export async function getGlobalBilling() {
+  return getSettings('billing')
+}
+
+// Apply discount to an original amount
+// Returns { originalAmount, discountType, discountValue, finalAmount }
+function applyDiscount(originalAmount, discountType, discountValue) {
+  const orig = Number(originalAmount) || 0
+  const type = discountType || 'none'
+  const val = Number(discountValue) || 0
+  let final = orig
+
+  if (type === 'percentage' && val > 0 && val <= 100) {
+    final = Math.round(orig - (orig * val / 100))
+  } else if (type === 'fixed' && val > 0) {
+    final = Math.max(0, orig - val)
+  }
+
+  return {
+    originalAmount: orig,
+    discountType: type,
+    discountValue: val,
+    finalAmount: final,
+  }
+}
+
 // ─────────────────────────────────────────────
 // PROGRESS LOGS
 // ─────────────────────────────────────────────
@@ -730,35 +758,38 @@ export async function getSubscriptionByGymId(gymId) {
 }
 
 // Calculate subscription dates based on plan
-function calculateSubscriptionDates(plan) {
+function calculateSubscriptionDates(plan, billingSettings) {
   const now = new Date();
   let startDate, expiryDate, graceEndDate, isLifetime = false;
+
+  const trialDays = billingSettings?.trialDays || 7;
+  const gracePeriod = billingSettings?.gracePeriod || 5;
 
   switch (plan) {
     case 'Trial':
       startDate = now;
-      expiryDate = new Date(now.setDate(now.getDate() + 7));
-      graceEndDate = new Date(now.setDate(now.getDate() + 3));
+      expiryDate = new Date(now.setDate(now.getDate() + trialDays));
+      graceEndDate = new Date(now.setDate(now.getDate() + gracePeriod));
       break;
     case 'Standard':
       startDate = now;
       expiryDate = new Date(now.setDate(now.getDate() + 30));
-      graceEndDate = new Date(now.setDate(now.getDate() + 5));
+      graceEndDate = new Date(now.setDate(now.getDate() + gracePeriod));
       break;
     case 'Premium':
       startDate = now;
       expiryDate = new Date(now.setDate(now.getDate() + 30));
-      graceEndDate = new Date(now.setDate(now.getDate() + 5));
+      graceEndDate = new Date(now.setDate(now.getDate() + gracePeriod));
       break;
     case 'Quarterly':
       startDate = now;
       expiryDate = new Date(now.setDate(now.getDate() + 90));
-      graceEndDate = new Date(now.setDate(now.getDate() + 7));
+      graceEndDate = new Date(now.setDate(now.getDate() + gracePeriod));
       break;
     case 'Annual':
       startDate = now;
       expiryDate = new Date(now.setDate(now.getDate() + 365));
-      graceEndDate = new Date(now.setDate(now.getDate() + 10));
+      graceEndDate = new Date(now.setDate(now.getDate() + gracePeriod));
       break;
     case 'Lifetime':
       startDate = now;
@@ -774,7 +805,7 @@ function calculateSubscriptionDates(plan) {
     default:
       startDate = now;
       expiryDate = new Date(now.setDate(now.getDate() + 30));
-      graceEndDate = new Date(now.setDate(now.getDate() + 5));
+      graceEndDate = new Date(now.setDate(now.getDate() + gracePeriod));
   }
 
   const daysRemaining = isLifetime ? 9999 : Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
@@ -789,22 +820,41 @@ function calculateSubscriptionDates(plan) {
 }
 
 // Calculate subscription amount based on plan
-function calculateSubscriptionAmount(plan) {
+// When billingSettings provided, returns { originalAmount, finalAmount }
+// When no billingSettings, returns raw paise value (backward compat)
+function calculateSubscriptionAmount(plan, billingSettings) {
+  if (billingSettings) {
+    const planAmounts = {
+      'Trial':     0,
+      'Standard':  billingSettings.monthlyPrice || 9999,
+      'Premium':   billingSettings.yearlyPrice || 19999,
+      'Quarterly': billingSettings.halfYearlyPrice || 29999,
+      'Annual':    billingSettings.yearlyPrice || 99999,
+      'Lifetime':  billingSettings.lifetimePrice || 499999,
+      'Day Pass':  99,
+    };
+    return planAmounts[plan] || planAmounts['Standard'];
+  }
+
   const planPrices = {
     'Trial': 0,
-    'Standard': 9999, // ₹99.99 in paise
-    'Premium': 19999, // ₹199.99 in paise
-    'Quarterly': 29999, // ₹299.99 in paise
-    'Annual': 99999, // ₹999.99 in paise
-    'Lifetime': 499999, // ₹4999.99 in paise
-    'Day Pass': 99, // ₹0.99 in paise
+    'Standard': 9999,
+    'Premium': 19999,
+    'Quarterly': 29999,
+    'Annual': 99999,
+    'Lifetime': 499999,
+    'Day Pass': 99,
   };
 
   return planPrices[plan] || planPrices['Standard'];
 }
 
-export async function addSubscription(subData) {
-  const today = new Date();
+export async function addSubscription(subData, billingSettings) {
+  // Read global billing if not passed explicitly
+  const billing = billingSettings || await getGlobalBilling()
+  const baseAmount = calculateSubscriptionAmount(subData.plan || 'Standard', billing)
+  const discount = applyDiscount(baseAmount, subData.discountType, subData.discountValue)
+
   const docRef = await addDoc(
     collection(db, 'subscriptions'),
     {
@@ -814,34 +864,42 @@ export async function addSubscription(subData) {
       status: subData.status || 'trial',
       paymentStatus: subData.paymentStatus || 'pending',
       paymentMethod: subData.paymentMethod || 'Not Set',
-      paymentCurrency: subData.paymentCurrency || 'INR',
-      currency: subData.currency || subData.paymentCurrency || 'INR',
+      paymentCurrency: subData.paymentCurrency || (billing?.currency || 'INR'),
+      currency: subData.currency || subData.paymentCurrency || (billing?.currency || 'INR'),
       transactionId: subData.transactionId || null,
-      amount: subData.amount || calculateSubscriptionAmount(subData.plan || 'Standard'),
+      amount: subData.amount || discount.finalAmount,
+      originalAmount: discount.originalAmount,
+      discountType: discount.discountType,
+      discountValue: discount.discountValue,
+      finalAmount: discount.finalAmount,
       paidAt: subData.paidAt || (subData.paymentStatus === 'paid' || subData.status === 'active' ? serverTimestamp() : null),
       autoRenew: subData.autoRenew !== undefined ? subData.autoRenew : true,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      ...calculateSubscriptionDates(subData.plan || 'Standard'),
+      ...calculateSubscriptionDates(subData.plan || 'Standard', billing),
     }
   )
   return docRef.id
 }
 
-export async function updateSubscription(subId, updatedData) {
+export async function updateSubscription(subId, updatedData, billingSettings) {
   const updateFields = { ...updatedData, updatedAt: serverTimestamp() }
   
-  // If plan is being updated, recalculate dates and amount
+  // If plan is being updated, recalculate dates and amount from global billing
   if (updatedData.plan) {
+    const billing = billingSettings || await getGlobalBilling()
     const plan = updatedData.plan;
-    const now = new Date();
-    const dates = calculateSubscriptionDates(plan);
+    const dates = calculateSubscriptionDates(plan, billing);
     Object.assign(updateFields, dates);
     
-    // Update amount based on new plan
-    if (!updateFields.amount || updatedData.plan) {
-      updateFields.amount = calculateSubscriptionAmount(plan);
-    }
+    // Recalculate amount with discount
+    const baseAmount = calculateSubscriptionAmount(plan, billing)
+    const discount = applyDiscount(baseAmount, updatedData.discountType, updatedData.discountValue)
+    updateFields.amount = updatedData.amount || discount.finalAmount
+    updateFields.originalAmount = discount.originalAmount
+    updateFields.discountType = discount.discountType
+    updateFields.discountValue = discount.discountValue
+    updateFields.finalAmount = discount.finalAmount
     
     // Update status based on plan and existing status
     if (updateFields.status === 'trial') {

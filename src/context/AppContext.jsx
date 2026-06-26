@@ -49,6 +49,13 @@ import {
   addAttendance as addAttendanceToFirestore,
 } from '../services/attendanceService'
 import { getPendingUsers } from '../services/authService'
+import {
+  subscribeToPaymentAttempts,
+  savePaymentAttempt,
+  updatePaymentAttempt,
+  initiatePayment as initiatePaymentService,
+  refreshPaymentStatus as refreshPaymentStatusService,
+} from '../services/paymentService'
 import { doc, getDoc, updateDoc, query, where, getDocs, collection } from 'firebase/firestore'
 import { db } from '../firebase'
 
@@ -81,6 +88,7 @@ export function AppProvider({ children }) {
   const [gyms,          setGyms]          = useState([])
   const [currentGym,    setCurrentGym]    = useState(null)
   const [subscriptions, setSubscriptions] = useState([])
+  const [paymentAttempts, setPaymentAttempts] = useState([])
 
   // ── Gym context (derived from userGymId) ───────────────
   const gymId = userGymId || null
@@ -183,7 +191,43 @@ export function AppProvider({ children }) {
       await deleteGymFromFirestore(gymId)
     } catch (err) {
       console.error('Failed to delete gym:', err)
-      throw err
+    }
+  }
+
+  // ── Payment Attempts CRUD ──────────────────────────────
+  const addPaymentAttempt = async (paymentRequest) => {
+    try {
+      return await savePaymentAttempt(paymentRequest)
+    } catch (error) {
+      console.error('Error saving payment attempt:', error)
+      throw error
+    }
+  }
+
+  const updatePaymentAttemptStatus = async (docId, updates) => {
+    try {
+      await updatePaymentAttempt(docId, updates)
+    } catch (error) {
+      console.error('Error updating payment attempt:', error)
+      throw error
+    }
+  }
+
+  const initiatePayment = async (params) => {
+    try {
+      return await initiatePaymentService({ ...params, gymId })
+    } catch (error) {
+      console.error('Error initiating payment:', error)
+      return { attemptId: null, redirectUrl: null, error: error.message }
+    }
+  }
+
+  const refreshPaymentStatus = async (attemptId) => {
+    try {
+      return await refreshPaymentStatusService(attemptId)
+    } catch (error) {
+      console.error('Error refreshing payment status:', error)
+      return { status: null, error: error.message }
     }
   }
 
@@ -194,6 +238,14 @@ export function AppProvider({ children }) {
     const unsubscribe = subscribeToSubscriptions((data) => setSubscriptions(data))
     return unsubscribe
   }, [currentUser, authLoading, userProfile])
+
+  // ── Payment Attempts listener — ADMIN ONLY ──────────────
+  useEffect(() => {
+    if (authLoading || !currentUser) return
+    if (userProfile?.role !== 'admin') return
+    const unsubscribe = subscribeToPaymentAttempts((data) => setPaymentAttempts(data), gymId)
+    return unsubscribe
+  }, [currentUser, authLoading, userProfile, gymId])
 
   // ── Members listener ───────────────────────────────────
   useEffect(() => {
@@ -725,6 +777,8 @@ export function AppProvider({ children }) {
       pendingCount,
       gymSettings,
       gyms, currentGym, subscriptions,
+      paymentAttempts, addPaymentAttempt, updatePaymentAttemptStatus,
+      initiatePayment, refreshPaymentStatus,
       approveGymOwner, rejectGymOwner,
     }}>
       {children}

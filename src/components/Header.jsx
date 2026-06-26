@@ -1,5 +1,6 @@
 // src/components/Header.jsx
 import { useState } from 'react'
+import { Bell } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 

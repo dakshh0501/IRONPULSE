@@ -261,13 +261,13 @@ export default function AdminDashboard({ setPage }) {
     if (!isAdmin) return;
     switch (action) {
       case 'approvals':
-        setPage('members');
+        setPage('pending');
         break;
       case 'gymOwners':
-        setPage('trainers');
+        setPage('gymOwners');
         break;
       case 'subscriptions':
-        setPage('settings');
+        setPage('subscriptions');
         break;
       case 'reports':
         setPage('reports');

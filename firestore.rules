@@ -92,8 +92,7 @@ service cloud.firestore {
       allow update: if isAdmin() || (
         isTrainer() &&
         request.resource.data.amountPaid == resource.data.amountPaid &&
-        request.resource.data.planPrice == resource.data.planPrice &&
-        request.resource.data.checkins == resource.data.checkins
+        request.resource.data.planPrice == resource.data.planPrice
       );
 
       allow delete: if isAdmin();
@@ -233,7 +232,7 @@ service cloud.firestore {
 
       allow read: if isAdmin() || (
         isApproved() &&
-        docId == 'gym'
+        (docId == 'gym' || docId.matches('.*:gym$'))
       );
 
       allow create: if isAdmin();
@@ -264,23 +263,14 @@ service cloud.firestore {
      }
 
      // ════════════════════════════════════════════════════════
-     //  GYM USERS (users/{uid} with role gym_owner or gym_owner_pending)
-     //  Like admin/trainer/members but with additional roles for gym ownership
+     //  PAYMENT ATTEMPTS (PhonePe integration)
+     //  Tracks payment lifecycle: pending → success/failed/cancelled
      // ════════════════════════════════════════════════════════
-     match /users/{uid} {
+     match /paymentAttempts/{attemptId} {
 
-       allow read: if isAuthed() && (
-         request.auth.uid == uid || isAdmin()
-       );
-
-       allow create: if (isAuthed() && request.auth.uid == uid) || isAdmin();
-
-       allow update: if isAuthed() && (
-         (request.auth.uid == uid &&
-           request.resource.data.role == resource.data.role)
-         || isAdmin()
-       );
-
+       allow read: if isAdmin();
+       allow create: if isAdmin();
+       allow update: if isAdmin();
        allow delete: if isAdmin();
      }
 

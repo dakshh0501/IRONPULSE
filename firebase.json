@@ -1,7 +1,22 @@
 {
   "firestore": {
-    "rules": "firestore.rules"
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
   },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": []
+    }
+  ],
   "hosting": {
     "public": "dist",
     "ignore": [
@@ -10,6 +25,18 @@
       "**/node_modules/**"
     ],
     "rewrites": [
+      {
+        "source": "/api/phonepe/callback",
+        "function": "phonePeCallback"
+      },
+      {
+        "source": "/api/createPayment",
+        "function": "createPayment"
+      },
+      {
+        "source": "/api/verifyPayment",
+        "function": "verifyPayment"
+      },
       {
         "source": "**",
         "destination": "/index.html"

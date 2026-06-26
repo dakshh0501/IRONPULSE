@@ -191,7 +191,7 @@ if (status === 'pending' || status === 'overdue')
 
   const exportCSV = () => {
     const headers = 'Month,Revenue (₹),Pending (₹)'
-    const rows = revenueChartData.map(r => `${r.month},${r.revenue},${r.pending}`)
+    const rows = revenueChartData.map(r => `${r.month},${(r.revenue / 100).toFixed(2)},${(r.pending / 100).toFixed(2)}`)
     const csv = [headers, ...rows].join('\n')
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
@@ -201,9 +201,9 @@ if (status === 'pending' || status === 'overdue')
     URL.revokeObjectURL(link.href)
   }
   const formatMoney = value =>
-    value < 10000
-      ? `₹${value.toLocaleString('en-IN')}`
-      : `₹${(value/1000).toFixed(1)}K`
+    value < 1000000
+      ? `₹${(value / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : `₹${(value / 100000).toFixed(1)}L`
 
   return (
     <div>
@@ -241,7 +241,7 @@ if (status === 'pending' || status === 'overdue')
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
               <XAxis dataKey="month" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
-              <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false} tickFormatter={v=>`₹${v/1000}K`}/>
+              <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false} tickFormatter={v=>`₹${(v/100/1000).toFixed(1)}K`}/>
               <Tooltip content={<ChartTooltip />}/>
               <Legend wrapperStyle={{ fontSize:11, color:'var(--text-muted)' }}/> 
               <Area type="monotone" dataKey="revenue"  name="Revenue"  stroke="#e8420a" fill="url(#rGrad)" strokeWidth={2}/>
@@ -256,7 +256,7 @@ if (status === 'pending' || status === 'overdue')
             <BarChart data={revenueChartData} margin={{ top:5, right:10, bottom:0, left:-15 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false}/>
               <XAxis dataKey="month" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
-              <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false} tickFormatter={v=>`₹${v/1000}K`}/>
+              <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false} tickFormatter={v=>`₹${(v/100/1000).toFixed(1)}K`}/>
               <Tooltip content={<ChartTooltip />}/>
               <Bar dataKey="revenue" name="Revenue" fill="#22c55e" radius={[4,4,0,0]} opacity={0.85}/>
             </BarChart>
@@ -287,13 +287,13 @@ if (status === 'pending' || status === 'overdue')
                 {monthlyTable.map((r,i) => (
                   <tr key={r.key} style={{ borderBottom:'1px solid var(--border)' }}>
                     <td style={{ padding:'12px 16px', fontWeight:700 }}>{r.month}</td>
-                    <td style={{ padding:'12px 16px', fontWeight:700, color:'var(--text)' }}>₹{r.revenue.toLocaleString('en-IN')}</td>
-                    <td style={{ padding:'12px 16px', color:'var(--green)', fontWeight:600 }}>₹{r.paid.toLocaleString('en-IN')}</td>
-                    <td style={{ padding:'12px 16px', color:'var(--amber)' }}>₹{r.pending.toLocaleString('en-IN')}</td>
+                    <td style={{ padding:'12px 16px', fontWeight:700, color:'var(--text)' }}>₹{(r.revenue / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td style={{ padding:'12px 16px', color:'var(--green)', fontWeight:600 }}>₹{(r.paid / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td style={{ padding:'12px 16px', color:'var(--amber)' }}>₹{(r.pending / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td style={{ padding:'12px 16px' }}>
                       {i > 0
                         ? <span style={{ color: r.revenue >= monthlyTable[i-1].revenue ? 'var(--green)' : 'var(--red)', fontWeight:600 }}>
-                            {r.revenue >= monthlyTable[i-1].revenue ? '↑' : '↓'} ₹{Math.abs(r.revenue - monthlyTable[i-1].revenue).toLocaleString('en-IN')}
+                            {r.revenue >= monthlyTable[i-1].revenue ? '↑' : '↓'} ₹{(Math.abs(r.revenue - monthlyTable[i-1].revenue) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         : <span style={{ color:'var(--text-muted)' }}>—</span>
                       }
@@ -809,8 +809,10 @@ export default function Reports() {
     title('Revenue')
     const paid = payments.filter(p => (p.status || '').toLowerCase() === 'paid')
     const pending = payments.filter(p => ['pending', 'overdue'].includes((p.status || '').toLowerCase()))
-    stat('Total Collected', `₹${paid.reduce((s, p) => s + Number(p.paid || 0), 0).toLocaleString('en-IN')}`)
-    stat('Pending / Overdue', `₹${pending.reduce((s, p) => s + Number(p.amount || 0), 0).toLocaleString('en-IN')}`)
+    const totalCollected = paid.reduce((s, p) => s + Number(p.paid || 0), 0)
+    const totalPending = pending.reduce((s, p) => s + Number(p.amount || 0), 0)
+    stat('Total Collected', `₹${(totalCollected / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+    stat('Pending / Overdue', `₹${(totalPending / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
     stat('Total Invoices', payments.length)
     hr()
 

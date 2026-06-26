@@ -285,7 +285,7 @@ function MemberModal({ member, trainers, onSave, onClose, plans }) {
               const p = activePlans.find(pl => pl.name === e.target.value)
               if (p) set('planPrice', p.price)
             }}>
-              {activePlans.length > 0 ? activePlans.map(p => <option key={p.id || p.name} value={p.name}>{p.name} (₹{p.price})</option>)
+              {activePlans.length > 0 ? activePlans.map(p => <option key={p.id || p.name} value={p.name}>{p.name} (₹{(p.price / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</option>)
               : <option>No plans configured</option>}
             </select>
           </div>
@@ -581,7 +581,7 @@ export default function Members({ search }) {
                 ['Height',         `${viewMember.height} cm`],
                 ['Goal',            viewMember.goal],
                 ['Plan',            viewMember.plan],
-                ['Plan Price',     `₹${viewMember.planPrice}/mo`],
+                ['Plan Price',     `₹${(Number(viewMember.planPrice) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo`],
                 ['Trainer',         viewMember.trainerName || 'Unassigned'],
                 ['Status',          viewMember.status],
                 ['Joined',          viewMember.join],

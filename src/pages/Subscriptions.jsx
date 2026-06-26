@@ -1,7 +1,8 @@
 // src/pages/Subscriptions.jsx
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useApp } from '../context/AppContext'
 import { updateSubscription } from '../services/firestoreService'
+import { getPendingAttemptsForSubscription } from '../services/paymentService'
 
 const PLAN_OPTIONS = ['Trial', 'Standard', 'Premium', 'Quarterly', 'Annual', 'Lifetime', 'Day Pass']
 const PLAN_ORDER = { 'Trial': 0, 'Day Pass': 1, 'Standard': 2, 'Premium': 3, 'Quarterly': 4, 'Annual': 5, 'Lifetime': 6 }
@@ -52,7 +53,7 @@ function GraceBadge({ sub }) {
 }
 
 // ── Subscription Detail Modal ──────────────────────────────────
-function SubscriptionDetailModal({ sub, gymName, ownerName, onClose, onAction }) {
+function SubscriptionDetailModal({ sub, gymName, ownerName, onClose, onAction, onPayNow, paying }) {
   const [actionType, setActionType] = useState(null)
   const [selectedPlan, setSelectedPlan] = useState(sub.plan)
   const [loading, setLoading] = useState(false)
@@ -170,6 +171,16 @@ function SubscriptionDetailModal({ sub, gymName, ownerName, onClose, onAction })
 
         {!actionType && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+            {sub.paymentStatus === 'pending' && (
+              <button
+                className="btn btn-sm btn-primary"
+                onClick={() => onPayNow && onPayNow(sub)}
+                disabled={paying}
+                style={{ fontSize: 12, padding: '6px 14px' }}
+              >
+                {paying ? 'Processing...' : 'Pay Now'}
+              </button>
+            )}
             {sub.status !== 'expired' && sub.status !== 'suspended' && (
               <button className="btn btn-sm btn-primary" onClick={() => setActionType('renew')}>Renew</button>
             )}
@@ -197,11 +208,13 @@ function SubscriptionDetailModal({ sub, gymName, ownerName, onClose, onAction })
 
 // ── Main Component ─────────────────────────────────────────────
 export default function Subscriptions({ search }) {
-  const { subscriptions, gyms } = useApp()
+  const { subscriptions, gyms, initiatePayment, paymentAttempts } = useApp()
   const [searchTerm, setSearchTerm] = useState(search || '')
   const [statusFilter, setStatusFilter] = useState('all')
   const [paymentFilter, setPaymentFilter] = useState('all')
   const [detailSub, setDetailSub] = useState(null)
+  const [paying, setPaying] = useState(false)
+  const [pendingPaymentType, setPendingPaymentType] = useState(null)
 
   // Build gym lookup map
   const gymMap = useMemo(() => {
@@ -254,16 +267,46 @@ export default function Subscriptions({ search }) {
       const plan = sub?.plan || 'Standard'
       const durations = { Trial: 7, Standard: 30, Premium: 30, Quarterly: 90, Annual: 365, Lifetime: 9999, 'Day Pass': 1 }
       expiryDate.setDate(expiryDate.getDate() + (durations[plan] || 30))
+      // Mark as pending payment — Cloud Function will finalize on success
       await updateSubscription(subId, {
         status: 'active',
         paymentStatus: 'pending',
+        paymentMethod: 'PhonePe',
         startDate: now.toISOString().split('T')[0],
         expiryDate: expiryDate.toISOString().split('T')[0],
         daysRemaining: durations[plan] || 30,
         paidAt: null,
       })
+      setPendingPaymentType('renewal')
     } else if (type === 'changePlan') {
-      await updateSubscription(subId, { plan: data.plan })
+      const sub = subscriptions.find(s => s.id === subId)
+      const now = new Date()
+      const newPlan = data.plan
+      const durations = { Trial: 7, Standard: 30, Premium: 30, Quarterly: 90, Annual: 365, Lifetime: 9999, 'Day Pass': 1 }
+      const amounts = { Trial: 0, Standard: 9999, Premium: 19999, Quarterly: 29999, Annual: 99999, Lifetime: 499999, 'Day Pass': 99 }
+      const duration = durations[newPlan] || 30
+      const expiryDate = new Date(now)
+      expiryDate.setDate(expiryDate.getDate() + duration)
+      const graceEnd = new Date(expiryDate)
+      graceEnd.setDate(graceEnd.getDate() + 5)
+      // Mark as pending payment with new plan — Cloud Function will finalize on success
+      await updateSubscription(subId, {
+        status: 'active',
+        paymentStatus: 'pending',
+        paymentMethod: 'PhonePe',
+        plan: newPlan,
+        planType: newPlan,
+        startDate: now.toISOString().split('T')[0],
+        expiryDate: expiryDate.toISOString().split('T')[0],
+        graceEndDate: graceEnd.toISOString().split('T')[0],
+        daysRemaining: duration,
+        isLifetime: newPlan === 'Lifetime',
+        amount: amounts[newPlan] || 0,
+        originalAmount: amounts[newPlan] || 0,
+        finalAmount: amounts[newPlan] || 0,
+        paidAt: null,
+      })
+      setPendingPaymentType('upgrade')
     } else if (type === 'suspend') {
       await updateSubscription(subId, { status: 'suspended' })
     } else if (type === 'activate') {
@@ -277,6 +320,58 @@ export default function Subscriptions({ search }) {
   }
 
   const today = new Date()
+
+  // Handle Pay Now — initiate PhonePe payment for a subscription
+  const handlePayNow = useCallback(async (sub) => {
+    if (paying) return
+
+    // Prevent duplicate payment attempts
+    const pendingAttempts = await getPendingAttemptsForSubscription(sub.id)
+    if (pendingAttempts.length > 0) {
+      alert('A payment is already in progress for this subscription. Please complete or wait for it to expire.')
+      return
+    }
+
+    // Determine payment type: use pending type if set, otherwise fallback to 'new'
+    const paymentType = pendingPaymentType || 'new'
+
+    setPaying(true)
+    try {
+      const amount = sub.finalAmount || sub.amount || PLAN_AMOUNTS[sub.plan] || 0
+      const callbackUrl = `${window.location.origin}/api/phonepe/callback`
+      const result = await initiatePayment({
+        type: paymentType,
+        gymId: sub.gymId,
+        subscriptionId: sub.id,
+        plan: sub.plan,
+        originalAmount: sub.originalAmount || amount,
+        discountAmount: (sub.originalAmount || amount) - amount,
+        finalAmount: amount,
+        currency: sub.currency || 'INR',
+        paymentMethod: 'PhonePe',
+        name: sub.gymName || '',
+        email: '',
+        phone: '',
+        redirectUrl: `${window.location.origin}/payment-status`,
+        callbackUrl,
+      })
+
+      if (result.error) {
+        alert(`Payment failed: ${result.error}`)
+        setPaying(false)
+        return
+      }
+
+      setPendingPaymentType(null)
+
+      if (result.redirectUrl) {
+        window.location.href = result.redirectUrl
+      }
+    } catch (err) {
+      alert(`Payment error: ${err.message}`)
+      setPaying(false)
+    }
+  }, [paying, initiatePayment, pendingPaymentType])
 
   return (
     <div className="page-container" style={{ padding: 32 }}>
@@ -473,6 +568,8 @@ export default function Subscriptions({ search }) {
           ownerName={(gymMap[detailSub.gymId] || {}).ownerName || 'N/A'}
           onClose={() => setDetailSub(null)}
           onAction={handleAction}
+          onPayNow={handlePayNow}
+          paying={paying}
         />
       )}
     </div>

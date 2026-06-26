@@ -97,6 +97,7 @@ const ACCENT_COLORS = [
 const TABS = [
   { key:'gym',      label:'Gym',           icon:'🏋️' },
   { key:'plans',    label:'Plans',         icon:'📋' },
+  { key:'billing',  label:'Billing',       icon:'💳' },
   { key:'pricing',  label:'Pricing',       icon:'💰' },
   { key:'theme',    label:'Theme',         icon:'🎨' },
   { key:'profile',  label:'Profile',       icon:'👤' },
@@ -116,6 +117,20 @@ const DEFAULT_GYM = {
   closeTime: '22:00',
   timezone:  'Asia/Kolkata',
   currency:  'INR',
+}
+
+const DEFAULT_BILLING = {
+  trialDays:        7,
+  monthlyPrice:     9999,
+  halfYearlyPrice:  49999,
+  yearlyPrice:      99999,
+  lifetimePrice:    499999,
+  gracePeriod:      5,
+  currency:         'INR',
+  gstPercent:       18,
+  companyName:      'IRONPULSE',
+  companyAddress:   '',
+  invoicePrefix:    'INV',
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -207,6 +222,45 @@ export default function Settings() {
     } catch (err) {
       setGymError('Save failed. Check your connection.')
       setTimeout(() => setGymError(''), 3000)
+    }
+  }
+
+  // ── Billing Settings ────────────────────────────────────────
+  const [billingForm,   setBillingForm]   = useState(DEFAULT_BILLING)
+  const [billingSaved,  setBillingSaved]  = useState(false)
+  const [billingError,  setBillingError]  = useState('')
+  const [billingLoading, setBillingLoading] = useState(true)
+  const setBilling = (k, v) => setBillingForm(p => ({ ...p, [k]: v }))
+
+  useEffect(() => {
+    getSettings('billing')
+      .then(data => { if (data) setBillingForm(prev => ({ ...prev, ...data })) })
+      .catch(err => console.error('Failed to load billing settings:', err))
+      .finally(() => setBillingLoading(false))
+  }, [])
+
+  const saveBilling = async () => {
+    setBillingError('')
+    try {
+      const data = {
+        trialDays:        Number(billingForm.trialDays) || 7,
+        monthlyPrice:     Number(billingForm.monthlyPrice) || 0,
+        halfYearlyPrice:  Number(billingForm.halfYearlyPrice) || 0,
+        yearlyPrice:      Number(billingForm.yearlyPrice) || 0,
+        lifetimePrice:    Number(billingForm.lifetimePrice) || 0,
+        gracePeriod:      Number(billingForm.gracePeriod) || 5,
+        currency:         billingForm.currency || 'INR',
+        gstPercent:       Number(billingForm.gstPercent) || 0,
+        companyName:      billingForm.companyName.trim() || 'IRONPULSE',
+        companyAddress:   billingForm.companyAddress.trim(),
+        invoicePrefix:    billingForm.invoicePrefix.trim() || 'INV',
+      }
+      await saveSettings('billing', data)
+      setBillingSaved(true)
+      setTimeout(() => setBillingSaved(false), 2500)
+    } catch (err) {
+      setBillingError('Save failed. Check your connection.')
+      setTimeout(() => setBillingError(''), 3000)
     }
   }
 
@@ -708,6 +762,87 @@ export default function Settings() {
             </div>
           )}
 
+          {/* BILLING */}
+          {activeTab === 'billing' && (
+            <>
+              <SectionCard icon="💳" title="Subscription Billing" subtitle="Configure SaaS subscription pricing, grace periods, and payment gateway settings">
+                {billingLoading ? <p style={{ color:'var(--text-muted)', fontSize:13 }}>Loading…</p> : (
+                  <>
+                    <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
+                      <span style={{ fontSize:13, color:'var(--text-muted)' }}>All prices in paise (₹1 = 100 paise). Trial is free by default.</span>
+                    </div>
+
+                    {/* Subscription Prices */}
+                    <div className="form-row" style={{ marginBottom:14 }}>
+                      <InputField label="Trial Days" k="trialDays" type="number" state={billingForm} setState={setBilling} placeholder="7" />
+                      <InputField label="Grace Period (days)" k="gracePeriod" type="number" state={billingForm} setState={setBilling} placeholder="5" />
+                    </div>
+                    <div className="form-row" style={{ marginBottom:14 }}>
+                      <InputField label="Monthly Price (paise)" k="monthlyPrice" type="number" state={billingForm} setState={setBilling} placeholder="9999" />
+                      <InputField label="Half-Yearly Price (paise)" k="halfYearlyPrice" type="number" state={billingForm} setState={setBilling} placeholder="49999" />
+                    </div>
+                    <div className="form-row" style={{ marginBottom:14 }}>
+                      <InputField label="Yearly Price (paise)" k="yearlyPrice" type="number" state={billingForm} setState={setBilling} placeholder="99999" />
+                      <InputField label="Lifetime Price (paise)" k="lifetimePrice" type="number" state={billingForm} setState={setBilling} placeholder="499999" />
+                    </div>
+                    <div className="form-row" style={{ marginBottom:14 }}>
+                      <div className="form-group" style={{ margin:0 }}>
+                        <label className="form-label">Currency</label>
+                        <select className="form-select" value={billingForm.currency} onChange={e => setBilling('currency', e.target.value)}>
+                          <option value="INR">INR (₹)</option>
+                          <option value="USD">USD ($)</option>
+                          <option value="EUR">EUR (€)</option>
+                          <option value="GBP">GBP (£)</option>
+                        </select>
+                      </div>
+                      <InputField label="GST Percentage (%)" k="gstPercent" type="number" state={billingForm} setState={setBilling} placeholder="18" />
+                    </div>
+
+                    <SaveBar onSave={saveBilling} saved={billingSaved} error={billingError} />
+                  </>
+                )}
+              </SectionCard>
+
+              <SectionCard icon="🏢" title="Company & Invoice Details" subtitle="Used for invoice generation and receipts">
+                {billingLoading ? null : (
+                  <>
+                    <div className="form-row" style={{ marginBottom:14 }}>
+                      <InputField label="Company Name" k="companyName" state={billingForm} setState={setBilling} placeholder="IRONPULSE" />
+                      <InputField label="Invoice Prefix" k="invoicePrefix" state={billingForm} setState={setBilling} placeholder="INV" />
+                    </div>
+                    <div className="form-group" style={{ marginBottom:14 }}>
+                      <label className="form-label">Company Address</label>
+                      <textarea className="form-input" rows={2} value={billingForm.companyAddress}
+                        onChange={e => setBilling('companyAddress', e.target.value)} placeholder="Full company address for invoices…" />
+                    </div>
+
+                    <SaveBar onSave={saveBilling} saved={billingSaved} error={billingError} />
+                  </>
+                )}
+              </SectionCard>
+
+              <SectionCard icon="📱" title="PhonePe Gateway" subtitle="PhonePe credentials are managed securely via Firebase Functions Secrets (CLI)">
+                {billingLoading ? null : (
+                  <>
+                    <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
+                      <span className="badge badge-green" style={{ fontSize:10 }}>ACTIVE</span>
+                      <span style={{ fontSize:12, color:'var(--text-muted)' }}>PhonePe payments are processed securely via Cloud Functions.</span>
+                    </div>
+                    <div style={{ background:'var(--bg3)', borderRadius:8, padding:'16px', marginBottom:16, fontSize:13, lineHeight:1.6, color:'var(--text-muted)' }}>
+                      <strong>Credentials are no longer stored in Firestore.</strong><br/>
+                      Manage PhonePe secrets via Firebase CLI:
+                      <pre style={{ marginTop:12, padding:12, background:'#111', borderRadius:6, overflow:'auto', fontSize:12 }}>
+{`firebase functions:secrets:set PHONEPE_MERCHANT_ID
+firebase functions:secrets:set PHONEPE_SALT_KEY
+firebase functions:secrets:set PHONEPE_SALT_INDEX`}
+                      </pre>
+                    </div>
+                  </>
+                )}
+              </SectionCard>
+            </>
+          )}
+
           {/* PRICING — reads directly from plans collection (single source of truth) */}
           {activeTab === 'pricing' && (
             <SectionCard icon="💰" title="Membership Pricing" subtitle="Managed in Plans tab — add, edit, or deactivate plans there">
@@ -732,7 +867,7 @@ export default function Settings() {
                         <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:2 }}>{plan.duration} · {plan.description}</p>
                       </div>
                       <div style={{ textAlign:'right', flexShrink:0 }}>
-                        <div style={{ fontSize:18, fontWeight:700 }}>₹{plan.price?.toLocaleString?.('en-IN') || plan.price}</div>
+                        <div style={{ fontSize:18, fontWeight:700 }}>₹{(plan.price / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         <div style={{ fontSize:11, color:'var(--text-muted)' }}>{plan.duration}</div>
                       </div>
                     </div>

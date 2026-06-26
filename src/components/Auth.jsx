@@ -44,7 +44,7 @@ export default function Auth() {
         try {
           const result = await register({ name: form.name, email: form.email, password: form.password })
           // result === 'pending'
-          if (result === 'pending') {
+          if (result && result.includes('pending')) {
             setPendingName(form.name)
             setMode('pending')
             setAuthError('')
