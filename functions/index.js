@@ -6,6 +6,7 @@
 const { onCall, onRequest } = require('firebase-functions/v2/https')
 const { initializeApp } = require('firebase-admin/app')
 const { getFirestore } = require('firebase-admin/firestore')
+const { getAuth } = require('firebase-admin/auth')
 const { defineSecret } = require('firebase-functions/params')
 const crypto = require('crypto')
 
@@ -765,3 +766,137 @@ exports.phonePeCallback = onRequest({
       res.status(200).json({ success: true })
     }
   })
+
+// ─────────────────────────────────────────────
+// USER PROFILE BACKFILL
+// ─────────────────────────────────────────────
+
+/**
+ * Backfill missing users/{uid} Firestore documents for orphaned Auth users.
+ *
+ * This is a safe, one-time migration.  It iterates every Firebase Auth user
+ * and, for any whose `users/{uid}` Firestore document is missing, attempts
+ * to recover the profile from the `members` or `trainers` collection.
+ *
+ * Only admin users can invoke this function.
+ *
+ * Response: { backfilled: number, skipped: number, errors: number }
+ */
+exports.backfillMissingProfiles = onCall({
+  timeoutSeconds: 300,
+  memory: '256MiB',
+}, async (request) => {
+  // Only admins can trigger a backfill
+  if (!request.auth) {
+    return { error: 'Authentication required', backfilled: 0, skipped: 0, errors: 0 }
+  }
+  const callerRef = await db.collection('users').doc(request.auth.uid).get()
+  if (!callerRef.exists || callerRef.data().role !== 'admin') {
+    return { error: 'Admin role required', backfilled: 0, skipped: 0, errors: 0 }
+  }
+
+  let backfilled = 0
+  let skipped = 0
+  let errors = 0
+
+  try {
+    // Paginate through all Auth users (1000 per page is the max)
+    let nextPageToken
+    do {
+      const listResult = await getAuth().listUsers(1000, nextPageToken)
+      nextPageToken = listResult.pageToken
+
+      for (const authUser of listResult.users) {
+        try {
+          const uid = authUser.uid
+          const email = authUser.email || ''
+
+          // Check if users/{uid} already exists
+          const userSnap = await db.collection('users').doc(uid).get()
+          if (userSnap.exists) {
+            skipped++
+            continue
+          }
+
+          // Try to recover from members collection
+          const membersSnap = await db.collection('members')
+            .where('authUid', '==', uid)
+            .limit(1)
+            .get()
+
+          if (!membersSnap.empty) {
+            const m = membersSnap.docs[0].data()
+            await db.collection('users').doc(uid).set({
+              uid,
+              email: email || m.email || '',
+              name: m.name || '',
+              role: 'member',
+              gymId: m.gymId || 'default',
+              createdAt: new Date().toISOString(),
+            })
+            backfilled++
+            continue
+          }
+
+          // Try to recover from trainers collection
+          const trainersSnap = await db.collection('trainers')
+            .where('authUid', '==', uid)
+            .limit(1)
+            .get()
+
+          if (!trainersSnap.empty) {
+            const t = trainersSnap.docs[0].data()
+            await db.collection('users').doc(uid).set({
+              uid,
+              email: email || t.email || '',
+              name: t.name || '',
+              role: 'trainer',
+              gymId: t.gymId || 'default',
+              createdAt: new Date().toISOString(),
+            })
+            backfilled++
+            continue
+          }
+
+          // Try to recover from gyms collection (gym owners)
+          const gymsSnap = await db.collection('gyms')
+            .where('ownerUid', '==', uid)
+            .limit(1)
+            .get()
+
+          if (!gymsSnap.empty) {
+            const g = gymsSnap.docs[0].data()
+            const status = g.approvalStatus || 'pending'
+            const role = status === 'approved'  ? 'gym_owner'
+                       : status === 'suspended' ? 'gym_owner'  // suspension is at gym level
+                       : status === 'rejected'  ? 'rejected'
+                       : status === 'pending'   ? 'gym_owner_pending'
+                                                : 'gym_owner_pending'
+            await db.collection('users').doc(uid).set({
+              uid,
+              email: email || g.email || '',
+              name: g.ownerName || g.name || '',
+              role,
+              gymId: g.gymId || uid || 'default',
+              createdAt: new Date().toISOString(),
+            })
+            backfilled++
+            continue
+          }
+
+          // Auth user has no matching member/trainer/gym owner record.
+          // Admins have no companion collection — they are never auto-recovered.
+          skipped++
+        } catch (userErr) {
+          console.error('backfillMissingProfiles: error processing user', authUser.uid, userErr)
+          errors++
+        }
+      }
+    } while (nextPageToken)
+
+    return { backfilled, skipped, errors, error: null }
+  } catch (err) {
+    console.error('backfillMissingProfiles error:', err)
+    return { error: err.message, backfilled, skipped, errors }
+  }
+})

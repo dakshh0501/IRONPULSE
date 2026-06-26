@@ -6,7 +6,11 @@
     "start": "vite",
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cap:sync": "npx cap sync",
+    "cap:open": "npx cap open android",
+    "cap:build": "npm run build && npx cap sync",
+    "cap:apk:debug": "npm run build && npx cap sync && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
     "firebase": "^12.13.0",
@@ -21,6 +25,9 @@
     "recharts": "^2.12.0"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
     "@vitejs/plugin-react": "^4.2.0",
     "vite": "^5.1.0"
   }

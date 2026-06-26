@@ -978,3 +978,31 @@ export async function migrateSubscriptions() {
   console.log('No subscription documents needed migration')
   return { migrated: 0, total: snapshot.size }
 }
+
+// ───────────────────────────────────────────────────────────
+// SUPER ADMIN CRUD — single source of truth remains /users/{uid}
+// superAdmins/{uid} is a lightweight flag doc; no profile fields
+// are duplicated from the users collection.
+// ───────────────────────────────────────────────────────────
+
+export async function getSuperAdmin(uid) {
+  const snap = await getDoc(doc(db, 'superAdmins', uid))
+  return snap.exists() ? { uid: snap.id, ...snap.data() } : null
+}
+
+export async function grantSuperAdmin({ uid, email, name, createdBy }) {
+  const data = {
+    uid,
+    email,
+    name,
+    createdAt: serverTimestamp(),
+  }
+  if (createdBy) data.createdBy = createdBy
+
+  await setDoc(doc(db, 'superAdmins', uid), data)
+  return data
+}
+
+export async function revokeSuperAdmin(uid) {
+  await deleteDoc(doc(db, 'superAdmins', uid))
+}

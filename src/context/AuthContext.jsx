@@ -12,7 +12,7 @@ import {
   resetPassword,
   getUserProfile,
 } from '../services/authService'
-import { getSettings } from '../services/firestoreService'
+import { getSettings, getSuperAdmin } from '../services/firestoreService'
 import { applyAccentColor, DEFAULT_ACCENT } from '../utils/theme'
 
 const AuthContext = createContext(null)
@@ -35,6 +35,7 @@ export function AuthProvider({ children }) {
   const [role, setRole] = useState(null)               // 'admin' | 'trainer' | 'member' | 'gym_owner_pending'
   const [authLoading, setAuthLoading] = useState(true)
   const [authError, setAuthError] = useState('')
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const signingUpRef = useRef(false)
 
   // ─────────────────────────────────────────────────────────────
@@ -53,12 +54,13 @@ export function AuthProvider({ children }) {
     if (authLoading) return
     if (!currentUser || !userProfile) return
 
-    // Check if user is a pending gym owner
+      // Check if user is a pending gym owner
     if (userProfile.role === 'gym_owner_pending') {
       // Block access to the application
       setCurrentUser(null)
       setUserProfile(null)
       setRole(null)
+      setIsSuperAdmin(false)
       setAuthError('Your gym ownership application is pending admin approval.')
       setAuthLoading(false)
     }
@@ -74,18 +76,23 @@ export function AuthProvider({ children }) {
           setCurrentUser(null)
           setUserProfile(null)
           setRole(null)
+          setIsSuperAdmin(false)
           setAuthLoading(false)
           return
         }
 
+        console.log('[AUDIT] AuthContext listener fired for UID:', firebaseUser.uid)
         const profile = await getUserProfile(firebaseUser.uid)
+        console.log('[AUDIT] AuthContext profile result:', profile ? 'found' : 'null', 'role:', profile?.role)
 
         if (!profile) {
+          console.log('[AUDIT] AuthContext: no profile, signing up ref:', signingUpRef.current)
           if (!signingUpRef.current) {
             await logOut()
             setCurrentUser(null)
             setUserProfile(null)
             setRole(null)
+            setIsSuperAdmin(false)
             setAuthError('Account profile not found.')
             setAuthLoading(false)
           }
@@ -97,6 +104,7 @@ export function AuthProvider({ children }) {
           setCurrentUser(null)
           setUserProfile(null)
           setRole(null)
+          setIsSuperAdmin(false)
           setAuthError('Your account is awaiting admin approval.')
           setAuthLoading(false)
           return
@@ -108,6 +116,15 @@ export function AuthProvider({ children }) {
         setRole(profile.role)
         setAuthError('')
 
+        // Super admin check: only admins can be super admins.
+        // Reads superAdmins/{uid} — lightweight flag doc, no profile duplication.
+        if (profile.role === 'admin') {
+          const sa = await getSuperAdmin(firebaseUser.uid)
+          setIsSuperAdmin(!!sa)
+        } else {
+          setIsSuperAdmin(false)
+        }
+
         // Load on login / load on refresh — gym-wide accent applies
         // to admin, trainer, and member alike.
         await loadAndApplyAccent(profile?.gymId)
@@ -116,6 +133,7 @@ export function AuthProvider({ children }) {
         setCurrentUser(null)
         setUserProfile(null)
         setRole(null)
+        setIsSuperAdmin(false)
       }
       setAuthLoading(false)
     })
@@ -154,6 +172,15 @@ export function AuthProvider({ children }) {
       setUserProfile(profile)
       setRole(userRole)
 
+      // Super admin check in the login path (belt-and-suspenders with
+      // the auth subscription listener above).
+      if (userRole === 'admin') {
+        const sa = await getSuperAdmin(user.uid)
+        setIsSuperAdmin(!!sa)
+      } else {
+        setIsSuperAdmin(false)
+      }
+
       // Belt-and-suspenders: apply accent here too in case this path
       // resolves before the subscription listener above does.
       await loadAndApplyAccent(profile?.gymId)
@@ -178,6 +205,7 @@ export function AuthProvider({ children }) {
       setCurrentUser(null)
       setUserProfile(null)
       setRole(null)
+      setIsSuperAdmin(false)
       setAuthError('')
       applyAccentColor(DEFAULT_ACCENT) // reset to default on sign-out
     }
@@ -236,10 +264,11 @@ export function AuthProvider({ children }) {
     authLoading,
     authError,
     userGymId,
-    isLoggedIn:  !!currentUser && role !== 'pending',
-    isAdmin:     role === 'admin',
-    isTrainer:   role === 'trainer',
-    isMember:    role === 'member',
+    isLoggedIn:     !!currentUser && role !== 'pending',
+    isAdmin:        role === 'admin',
+    isSuperAdmin,
+    isTrainer:      role === 'trainer',
+    isMember:       role === 'member',
     login,
     register,
     logout,

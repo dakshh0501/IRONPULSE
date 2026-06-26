@@ -44,6 +44,11 @@ service cloud.firestore {
       );
     }
 
+    function isSuperAdmin() {
+      return isAuthed() &&
+        exists(/databases/$(database)/documents/superAdmins/$(request.auth.uid));
+    }
+
     function isOwnAttendance(resourceMemberId) {
       return isMember() && resourceMemberId == request.auth.uid;
     }
@@ -266,13 +271,26 @@ service cloud.firestore {
      //  PAYMENT ATTEMPTS (PhonePe integration)
      //  Tracks payment lifecycle: pending → success/failed/cancelled
      // ════════════════════════════════════════════════════════
-     match /paymentAttempts/{attemptId} {
+      match /paymentAttempts/{attemptId} {
 
-       allow read: if isAdmin();
-       allow create: if isAdmin();
-       allow update: if isAdmin();
-       allow delete: if isAdmin();
-     }
+        allow read: if isAdmin();
+        allow create: if isAdmin();
+        allow update: if isAdmin();
+        allow delete: if isAdmin();
+      }
 
-  } // end match /databases/{database}/documents
-} // end service cloud.firestore
+      // ════════════════════════════════════════════════════════
+      //  SUPER ADMINS — elevated system administrators
+      //  Bootstrapping: first entry must be created manually in
+      //  Firebase Console or via a one-time setup script.
+      // ════════════════════════════════════════════════════════
+      match /superAdmins/{uid} {
+
+        allow read: if isAuthed();
+        allow create: if isSuperAdmin();
+        allow update: if isSuperAdmin();
+        allow delete: if isSuperAdmin();
+      }
+
+   } // end match /databases/{database}/documents
+ } // end service cloud.firestore

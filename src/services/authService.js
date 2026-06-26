@@ -83,13 +83,36 @@ export async function signIn(email, password) {
     const result = await signInWithEmailAndPassword(auth, email, password)
     const user = result.user
 
+    console.log('[AUDIT] signIn authenticated UID:', user.uid)
+    console.log('[AUDIT] signIn auth.providerId:', user.providerData?.[0]?.providerId)
+    console.log('[AUDIT] signIn db._firestoreClient?', !!db?._firestoreClient)
+    console.log('[AUDIT] signIn Firestore projectId:', db?._databaseId?.projectId || db?.app?.options?.projectId)
+    console.log('[AUDIT] signIn Firestore database:', db?._databaseId?.database)
+
     // 2. Get role from /users/{uid}
-    const userDoc = await getDoc(doc(db, 'users', user.uid))
+    const userRef = doc(db, 'users', user.uid)
+    console.log('[AUDIT] signIn reading doc path:', userRef.path)
+
+    let userDoc = await getDoc(userRef)
+    console.log('[AUDIT] signIn getDoc.exists():', userDoc.exists())
     if (!userDoc.exists()) {
+      console.log('[AUDIT] signIn first getDoc returned !exists() — attempting recovery')
+      const recovered = await recoverUserProfile(user.uid, user.email)
+      console.log('[AUDIT] signIn recoverUserProfile returned:', recovered ? 'recovered' : 'null')
+      if (recovered) {
+        userDoc = await getDoc(doc(db, 'users', user.uid))
+        console.log('[AUDIT] signIn second getDoc.exists():', userDoc.exists())
+      }
+    }
+
+    if (!userDoc || !userDoc.exists()) {
+      console.log('[AUDIT] signIn: throwing "User profile not found" after all recovery attempts')
+      await signOut(auth)
       throw new Error('User profile not found')
     }
 
     const role = userDoc.data().role
+    console.log('[AUDIT] signIn role:', role)
 
     // 3. If pending or gym_owner_pending, immediately sign out
     if (role === 'pending' || role === 'gym_owner_pending') {
@@ -99,6 +122,7 @@ export async function signIn(email, password) {
 
     return { user, role }
   } catch (err) {
+    console.log('[AUDIT] signIn error:', err.code || err.name, err.message)
     throw err
   }
 }
@@ -119,13 +143,112 @@ export async function resetPassword(email) {
   }
 }
 
+/**
+ * Recover a missing users/{uid} document by searching companion collections.
+ *
+ * Strategy (in order):
+ *   1. Query `members` for authUid == uid  → role: 'member'
+ *   2. Query `trainers` for authUid == uid  → role: 'trainer'
+ *   3. Query `gyms`    for ownerUid == uid  → role: derived from approvalStatus
+ *
+ * Unrecoverable roles (no companion collection exists):
+ *   - admin    → deliberate; admin accounts are never auto-recovered
+ *   - pending  → login is blocked anyway by the role check
+ *
+ * This handles both document-ID strategies used by the app:
+ *   - addMember() / addTrainer() → auto-generated doc ID + authUid field
+ *   - approveUser()              → Auth UID as doc ID + authUid field
+ * The same query covers both because both store authUid.
+ */
+export async function recoverUserProfile(uid, email) {
+  try {
+    // ── 1. Try members (most common for this app) ──
+    const membersSnap = await getDocs(query(
+      collection(db, 'members'),
+      where('authUid', '==', uid)
+    ))
+    if (!membersSnap.empty) {
+      const m = membersSnap.docs[0].data()
+      const userData = {
+        uid,
+        email: email || m.email || '',
+        name: m.name || '',
+        role: 'member',
+        gymId: m.gymId || 'default',
+        createdAt: serverTimestamp(),
+      }
+      await setDoc(doc(db, 'users', uid), userData)
+      return userData
+    }
+
+    // ── 2. Try trainers ──
+    const trainersSnap = await getDocs(query(
+      collection(db, 'trainers'),
+      where('authUid', '==', uid)
+    ))
+    if (!trainersSnap.empty) {
+      const t = trainersSnap.docs[0].data()
+      const userData = {
+        uid,
+        email: email || t.email || '',
+        name: t.name || '',
+        role: 'trainer',
+        gymId: t.gymId || 'default',
+        createdAt: serverTimestamp(),
+      }
+      await setDoc(doc(db, 'users', uid), userData)
+      return userData
+    }
+
+    // ── 3. Try gym owners (gyms collection stores ownerUid) ──
+    const gymsSnap = await getDocs(query(
+      collection(db, 'gyms'),
+      where('ownerUid', '==', uid)
+    ))
+    if (!gymsSnap.empty) {
+      const g = gymsSnap.docs[0].data()
+      const status = g.approvalStatus || 'pending'
+      // Map approvalStatus back to the user's role
+      const role = status === 'approved'  ? 'gym_owner'
+                 : status === 'suspended' ? 'gym_owner'  // suspension is at gym level, not user level
+                 : status === 'rejected'  ? 'rejected'
+                 : status === 'pending'   ? 'gym_owner_pending'
+                                          : 'gym_owner_pending'
+      const userData = {
+        uid,
+        email: email || g.email || '',
+        name: g.ownerName || g.name || '',
+        role,
+        gymId: g.gymId || g.id || 'default',
+        createdAt: serverTimestamp(),
+      }
+      await setDoc(doc(db, 'users', uid), userData)
+      return userData
+    }
+
+    // Not found in any companion collection — cannot recover.
+    // Roles without a recoverable source: admin, pending
+    return null
+  } catch (err) {
+    console.error('recoverUserProfile error:', err)
+    return null
+  }
+}
+
 export async function getUserProfile(uid) {
   try {
-    const snap = await getDoc(doc(db, 'users', uid))
-    if (!snap.exists()) return null
-    return snap.data()
+    const ref = doc(db, 'users', uid)
+    console.log('[AUDIT] getUserProfile path:', ref.path)
+    const snap = await getDoc(ref)
+    console.log('[AUDIT] getUserProfile exists():', snap.exists())
+    if (snap.exists()) return snap.data()
+
+    console.log('[AUDIT] getUserProfile: doc not found, attempting recovery')
+    const recovered = await recoverUserProfile(uid, null)
+    console.log('[AUDIT] getUserProfile recovery result:', recovered ? 'recovered' : 'null')
+    return recovered
   } catch (err) {
-    console.error('getUserProfile error:', err)
+    console.error('[AUDIT] getUserProfile error:', err.code || err.name, err.message, err.stack)
     return null
   }
 }
@@ -174,6 +297,21 @@ export async function approveUser(uid, newRole) {
     }
   } catch (err) {
     throw err
+  }
+}
+
+/**
+ * Check if a given uid has a super admin document.
+ * Returns `true` if superAdmins/{uid} exists, false otherwise.
+ * This is a lightweight read — no profile fields are duplicated.
+ */
+export async function isSuperAdmin(uid) {
+  try {
+    const snap = await getDoc(doc(db, 'superAdmins', uid))
+    return snap.exists()
+  } catch (err) {
+    console.error('isSuperAdmin error:', err)
+    return false
   }
 }
 
