@@ -15,11 +15,11 @@ const TYPE_ORDER = ['expired', '1day', '3day', '7day']
 
 export default function WhatsAppReminders({ search = '' }) {
   const { members, gymSettings } = useApp()
-  const { role } = useAuth()
-  const isAdmin = role === 'admin'
+  const { effectiveRole } = useAuth()
+  const canAccess = effectiveRole === 'super_admin' || effectiveRole === 'gym_admin'
   const gymName = gymSettings?.name || 'IronForge Gym'
 
-  if (!isAdmin) {
+  if (!canAccess) {
   return (
     <div className="card">
       <h3>Access Denied</h3>

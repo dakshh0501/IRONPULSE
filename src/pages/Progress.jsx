@@ -83,10 +83,11 @@ function ProgressRow({ label, value, max, color, unit }) {
 // ─────────────────────────────────────────────────────────────
 //  LOG ENTRY MODAL
 // ─────────────────────────────────────────────────────────────
-function LogModal({ onSave, onClose, members, currentUser, userProfile }) {
-  const isAdmin = userProfile?.role === 'admin'
-  const isTrainer = userProfile?.role === 'trainer'
-  const isMember = userProfile?.role === 'member'
+function LogModal({ onSave, onClose, members, currentUser }) {
+  const { effectiveRole } = useAuth()
+  const isAdmin = effectiveRole === 'super_admin' || effectiveRole === 'gym_admin'
+  const isTrainer = effectiveRole === 'trainer'
+  const isMember = effectiveRole === 'member'
 
   // Get active members for dropdown
   const activeMembers = useMemo(() => 
@@ -209,10 +210,10 @@ function LogModal({ onSave, onClose, members, currentUser, userProfile }) {
 // ─────────────────────────────────────────────────────────────
 export default function Progress({ search = '' }) {
   const { currentUser, members, progressLogs, addProgressLog } = useApp()
-  const { userProfile } = useAuth()
-  const isAdmin = userProfile?.role === 'admin'
-  const isTrainer = userProfile?.role === 'trainer'
-  const isMember = userProfile?.role === 'member'
+  const { effectiveRole, userProfile } = useAuth()
+  const isAdmin = effectiveRole === 'super_admin' || effectiveRole === 'gym_admin'
+  const isTrainer = effectiveRole === 'trainer'
+  const isMember = effectiveRole === 'member'
   const canSelectMember = isAdmin || isTrainer
 
   // Active members for dropdown
@@ -468,7 +469,6 @@ export default function Progress({ search = '' }) {
     onClose={() => setLogOpen(false)} 
     members={members}
     currentUser={currentUser}
-    userProfile={userProfile}
   />}
     </div>
   )

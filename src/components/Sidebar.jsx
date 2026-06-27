@@ -1,69 +1,17 @@
-// src/components/Sidebar.jsx
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-
-const ADMIN_NAV = [
-  { section:'Main' },
-  { key:'dashboard',     label:'Dashboard',       icon:'📊' },
-  { key:'gymOwners',      label:'Gym Owners',       icon:'🏢' },
-  { key:'subscriptions',  label:'Subscriptions',   icon:'📋' },
-  { key:'support',        label:'Support',          icon:'🆘' },
-  { key:'pending',       label:'Approval Requests', icon:'⏳', badge:'pending' },
-  { section:'Members' },
-  { key:'members',       label:'Members',          icon:'👥' },
-  { key:'trainers',      label:'Trainers',          icon:'🏋️' },
-  { section:'Programs' },
-  { key:'workouts',      label:'Workout Plans',    icon:'💪' },
-  { key:'diet',          label:'Diet Plans',       icon:'🥗' },
-  { key:'progress',      label:'Progress Tracking',icon:'📈' },
-  { section:'Business' },
-  { key:'payments',      label:'Payments',         icon:'💳', badge:'payments' },
-  { key:'attendance',    label:'QR Check-in',      icon:'📱' },
-  { section:'Engagement' },
-  { key:'notifications', label:'Notifications',    icon:'🔔', badge:'notifs' },
-  { key:'reports',       label:'Reports',          icon:'📊' },
-  { key:'whatsapp',      label:'WhatsApp Reminders', icon:'💬', badge:'pending' },
-  { section:'System' },
-  { key:'settings',      label:'Settings',         icon:'⚙️' },
-]
-
-const TRAINER_NAV = [
-  { section:'Main' },
-  { key:'dashboard',     label:'Dashboard',        icon:'📊' },
-  { key:'members',       label:'My Clients',       icon:'👥' },
-  { section:'Programs' },
-  { key:'workouts',      label:'Workout Plans',    icon:'💪' },
-  { key:'diet',          label:'Diet Plans',       icon:'🥗' },
-  { key:'progress',      label:'Progress Tracking',icon:'📈' },
-  { section:'Other' },
-  { key:'attendance',    label:'Attendance',     icon:'📱' },
-  { key:'notifications', label:'Notifications',    icon:'🔔', badge:'notifs' },
-]
-
-const MEMBER_NAV = [
-  { section:'My Gym' },
-  { key:'dashboard',     label:'My Dashboard',     icon:'📊' },
-  { key:'progress',      label:'My Progress',      icon:'📈' },
-  { key:'workouts',      label:'My Workouts',      icon:'💪' },
-  { key:'diet',          label:'My Diet Plan',     icon:'🥗' },
-  { section:'Account' },
-  { key:'payments',      label:'My Payments',      icon:'💳' },
-  { key:'attendance',    label:'Check In',         icon:'📱' },
-  { key:'notifications', label:'Notifications',    icon:'🔔', badge:'notifs' },
-]
-
-const NAV_MAP = { admin: ADMIN_NAV, trainer: TRAINER_NAV, member: MEMBER_NAV }
+import { NAVIGATION } from '../utils/rbac'
 
 export default function Sidebar({ currentPage, setPage, mobileOpen, setMobileOpen }) {
-  const { currentUser, logout, userProfile } = useAuth()
+  const { currentUser, logout, userProfile, effectiveRole } = useAuth()
   const { unreadCount, pendingCount, gymSettings, payments } = useApp()
   const navigate = useNavigate()
 
-  const role = userProfile?.role
-  const gymName = gymSettings?.name || 'IronForge Gym'
+  const role = effectiveRole || userProfile?.role
+  const gymName = (role === 'super_admin') ? 'IRONPULSE' : (gymSettings?.name || 'IronForge Gym')
 
-  const nav = NAV_MAP[role] || []
+  const nav = NAVIGATION[role] || []
 
   const overdueCount = payments.filter(p => p.status === 'Overdue' || p.status === 'Pending').length
 
@@ -82,18 +30,15 @@ export default function Sidebar({ currentPage, setPage, mobileOpen, setMobileOpe
 
   const avatarColors = ['av-orange','av-teal','av-green','av-purple','av-amber']
   const charIndex = userProfile?.name ? userProfile.name.charCodeAt(0) : 0
-
   const avColor = avatarColors[charIndex % avatarColors.length] || 'av-orange'
 
   return (
     <aside className={`sidebar ${mobileOpen ? 'open' : ''}`}>
-      {/* Logo */}
       <div className="sidebar-logo">
         <h1>{gymName}</h1>
-        <p>Gym Management</p>
+        <p>{role === 'super_admin' ? 'SaaS Platform' : 'Gym Management'}</p>
       </div>
 
-      {/* Navigation */}
       <nav style={{ flex:1, padding:'8px 0' }}>
         {nav.map((item, i) => {
           if (item.section) return (
@@ -116,7 +61,6 @@ export default function Sidebar({ currentPage, setPage, mobileOpen, setMobileOpe
         })}
       </nav>
 
-      {/* User footer */}
       <div className="sidebar-footer">
         <div className="sidebar-user" onClick={() => handleNav('settings')}>
           <div
@@ -128,8 +72,8 @@ export default function Sidebar({ currentPage, setPage, mobileOpen, setMobileOpe
           <div className="sidebar-user-info">
             <div className="sidebar-user-name">{userProfile?.name || 'User'}</div>
             <div className="sidebar-user-role">
-  {role || 'User'}
-</div>
+              {role === 'super_admin' ? 'Super Admin' : (role || 'User')}
+            </div>
           </div>
           <span style={{ fontSize:14, color:'var(--text-muted)' }}>⚙</span>
         </div>

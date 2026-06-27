@@ -138,9 +138,9 @@ const DEFAULT_BILLING = {
 // ─────────────────────────────────────────────────────────────
 export default function Settings() {
   const { darkMode, setDarkMode, gymId } = useApp()
-  const { currentUser, logout, updateUserProfile, role } = useAuth()
+  const { currentUser, logout, updateUserProfile, effectiveRole } = useAuth()
 
-  if (role !== 'admin') {
+  if (effectiveRole !== 'super_admin' && effectiveRole !== 'gym_admin') {
     return (
       <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
@@ -567,7 +567,7 @@ export default function Settings() {
           {/* GYM */}
           {activeTab === 'gym' && (
             <SectionCard icon="🏋️" title="Gym Information" subtitle="Saved to Firestore — persists across refreshes">
-              {gymLoading ? <p style={{ color:'var(--text-muted)', fontSize:13 }}>Loading…</p> : (
+              {gymLoading ? null : (
                 <>
                   <div className="form-row" style={{ marginBottom:14 }}>
                     <InputField label="Gym Name"  k="name"    state={gymForm} setState={setGym} placeholder="IronForge Gym" />
@@ -666,17 +666,14 @@ export default function Settings() {
           {/* PLANS */}
           {activeTab === 'plans' && (
             <SectionCard icon="📋" title="Membership Plans" subtitle="Managed in Firestore — used by Members, Payments, and Renewals">
-              {plans.length === 0 ? (
-                <p style={{ color:'var(--text-muted)', fontSize:13 }}>Loading plans…</p>
-              ) : (
-                <>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
-                    <p style={{ fontSize:12, color:'var(--text-muted)' }}>{plans.length} plan{plans.length !== 1 ? 's' : ''} configured</p>
-                    <button className="btn btn-primary btn-sm" onClick={() => openPlanModal(null)}>+ Add Plan</button>
-                  </div>
-                  <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                    {plans.sort((a, b) => (a.order || 99) - (b.order || 99)).map(plan => (
-                      <div key={plan.id} style={{
+              <>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+                  <p style={{ fontSize:12, color:'var(--text-muted)' }}>{plans.length} plan{plans.length !== 1 ? 's' : ''} configured</p>
+                  <button className="btn btn-primary btn-sm" onClick={() => openPlanModal(null)}>+ Add Plan</button>
+                </div>
+                <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                  {plans.sort((a, b) => (a.order || 99) - (b.order || 99)).map(plan => (
+                    <div key={plan.id} style={{
                         display:'flex', alignItems:'center', gap:14,
                         padding:'12px 16px', background:'var(--bg3)', borderRadius:'var(--radius-sm)',
                         border:'1px solid var(--border)', opacity: plan.active === false ? 0.55 : 1,
@@ -700,7 +697,6 @@ export default function Settings() {
                     ))}
                   </div>
                 </>
-              )}
             </SectionCard>
           )}
 
@@ -766,7 +762,7 @@ export default function Settings() {
           {activeTab === 'billing' && (
             <>
               <SectionCard icon="💳" title="Subscription Billing" subtitle="Configure SaaS subscription pricing, grace periods, and payment gateway settings">
-                {billingLoading ? <p style={{ color:'var(--text-muted)', fontSize:13 }}>Loading…</p> : (
+                {billingLoading ? null : (
                   <>
                     <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
                       <span style={{ fontSize:13, color:'var(--text-muted)' }}>All prices in paise (₹1 = 100 paise). Trial is free by default.</span>
@@ -880,7 +876,7 @@ firebase functions:secrets:set PHONEPE_SALT_INDEX`}
           {/* THEME */}
           {activeTab === 'theme' && (
             <SectionCard icon="🎨" title="Theme & Appearance" subtitle="Dark mode persists via localStorage; accent color saved to Firestore">
-              {themeLoading ? <p style={{ color:'var(--text-muted)', fontSize:13 }}>Loading…</p> : (
+              {themeLoading ? null : (
                 <>
                   <SettingRow label="Dark Mode" desc="Toggle between dark and light interface">
                     <Toggle on={darkMode} onChange={setDarkMode} />
@@ -925,7 +921,7 @@ firebase functions:secrets:set PHONEPE_SALT_INDEX`}
           {activeTab === 'profile' && (
             <>
               <SectionCard icon="👤" title="Profile Settings" subtitle="Saved to Firestore — updates Sidebar and Header immediately">
-                {profileLoading ? <p style={{ color:'var(--text-muted)', fontSize:13 }}>Loading…</p> : (
+                {profileLoading ? null : (
                   <>
                     <div style={{ display:'flex', alignItems:'center', gap:16, marginBottom:20 }}>
                       <div className="avatar av-orange" style={{ width:64, height:64, fontSize:22 }}>
@@ -999,7 +995,7 @@ firebase functions:secrets:set PHONEPE_SALT_INDEX`}
           {/* NOTIFICATIONS */}
           {activeTab === 'notifs' && (
             <SectionCard icon="🔔" title="Notification Settings" subtitle="Saved to Firestore — persists across refreshes">
-              {notifLoading ? <p style={{ color:'var(--text-muted)', fontSize:13 }}>Loading…</p> : (
+              {notifLoading ? null : (
                 <>
                   {[
                     { key:'emailAlerts',      label:'Email Notifications',      desc:'Receive alerts and reports via email' },

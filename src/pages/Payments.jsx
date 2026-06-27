@@ -567,19 +567,7 @@ export default function Payments({ search = '' }) {
   const [filterStatus, setFilterStatus] = useState('All')
   const [localSearch,  setLocalSearch]  = useState('')
   const [sortBy,       setSortBy]       = useState('due')
-  const [loading,      setLoading]      = useState(true)
-
   const searchTerm = (search || localSearch).toLowerCase()
-
-  useEffect(() => {
-    if (invoices && invoices.length > 0) setLoading(false)
-  }, [invoices])
-
-  // Fallback: stop loading after 3s even if no payments exist
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 3000)
-    return () => clearTimeout(timer)
-  }, [])
 
   const filtered = useMemo(() => {
     let list = invoices.filter(inv => {
@@ -765,9 +753,7 @@ export default function Payments({ search = '' }) {
               </tr>
             </thead>
             <tbody>
-              {loading ? (
-                <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading invoices...</td></tr>
-              ) : filtered.length === 0 ? (
+              {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={8} style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
                     <div style={{ fontSize: 36, marginBottom: 10 }}>💳</div>

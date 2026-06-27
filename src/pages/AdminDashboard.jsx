@@ -6,13 +6,13 @@ import { useMemo } from 'react'
 export default function AdminDashboard({ setPage }) {
 
   const { members, trainers, payments, attendance, gymSettings, gyms, subscriptions } = useApp()
-  const { role } = useAuth()
+  const { effectiveRole } = useAuth()
 
-  const isAdmin = role === 'admin'
-  const isTrainer = role === 'trainer'
-  const isMember = role === 'member'
+  const isAdmin = effectiveRole === 'super_admin' || effectiveRole === 'gym_admin'
+  const isTrainer = effectiveRole === 'trainer'
+  const isMember = effectiveRole === 'member'
 
-  const greetingName = isAdmin ? 'Admin' : isTrainer ? 'Trainer' : 'Member'
+  const greetingName = isAdmin ? (effectiveRole === 'super_admin' ? 'Super Admin' : 'Admin') : isTrainer ? 'Trainer' : 'Member'
   const gymName = gymSettings?.name || 'IronForge Gym'
 
   const todayDate = new Date()
@@ -200,7 +200,7 @@ export default function AdminDashboard({ setPage }) {
       .filter(g => g.createdAt && new Date(g.createdAt.seconds * 1000).toISOString().split('T')[0] === today)
       .map(g => ({
         id: g.id,
-        text: `Gym "${g.name}" registered`,
+        text: `Gym "${g.gymName || g.name}" registered`,
         time: g.createdAt ? new Date(g.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A',
       }));
   }, [gyms, isAdmin]);
@@ -212,7 +212,7 @@ export default function AdminDashboard({ setPage }) {
       .filter(g => g.approvalStatus === 'approved' && g.updatedAt && new Date(g.updatedAt.seconds * 1000).toISOString().split('T')[0] === today)
       .map(g => ({
         id: g.id,
-        text: `Gym "${g.name}" approved`,
+        text: `Gym "${g.gymName || g.name}" approved`,
         time: g.updatedAt ? new Date(g.updatedAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A',
       }));
   }, [gyms, isAdmin]);
@@ -232,7 +232,7 @@ export default function AdminDashboard({ setPage }) {
       })
       .map(g => ({
         id: g.id,
-        text: `Subscription renewal due for "${g.name}"`,
+        text: `Subscription renewal due for "${g.gymName || g.name}"`,
         time: subscriptions.find(s => s.gymId === g.id && s.status === 'active' && (() => {
           const expiry = new Date(s.expiryDate);
           const diffDays = Math.ceil((expiry - new Date(today)) / (1000 * 60 * 60 * 24));
@@ -251,7 +251,7 @@ export default function AdminDashboard({ setPage }) {
       })
       .map(g => ({
         id: g.id,
-        text: `Subscription expired for "${g.name}"`,
+        text: `Subscription expired for "${g.gymName || g.name}"`,
         time: subscriptions.find(s => s.gymId === g.id)?.expiryDate || 'N/A',
       }));
   }, [gyms, subscriptions, isAdmin]);

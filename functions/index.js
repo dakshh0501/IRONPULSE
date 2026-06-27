@@ -144,7 +144,7 @@ async function createPaymentRecordInTransaction(transaction, attempt, phonePeTra
   if (attempt.gymId) {
     const gymSnap = await db.collection('gyms').doc(attempt.gymId).get()
     if (gymSnap.exists) {
-      gymName = gymSnap.data().name || ''
+      gymName = gymSnap.data().gymName || gymSnap.data().name || ''
     }
   }
 
@@ -499,7 +499,7 @@ exports.createPayment = onCall({
         status: 'failed',
         errorMessage: data.message || `HTTP ${response.status}`,
         rawResponse: data,
-      }).catch(() => {})
+      }).catch(err => console.error('createPayment: failed to update attempt with error state:', err))
 
       return {
         attemptId,
@@ -518,7 +518,7 @@ exports.createPayment = onCall({
       redirectUrl: payRedirectUrl,
       phonePeState: 'PENDING',
       rawResponse: data,
-    }).catch(() => {})
+    }).catch(err => console.error('createPayment: failed to update attempt with success state:', err))
 
     return {
       attemptId,
@@ -530,7 +530,7 @@ exports.createPayment = onCall({
       status: 'failed',
       errorMessage: fetchError.message || 'Network request failed',
       rawResponse: null,
-    }).catch(() => {})
+    }).catch(err => console.error('createPayment: failed to update attempt on fetch error:', err))
 
     return {
       attemptId,
@@ -614,7 +614,7 @@ exports.verifyPayment = onCall({
         status: newStatus,
         phonePeState: state,
         phonePeTransactionId,
-      }).catch(() => {})
+      }).catch(err => console.error('verifyPayment: failed to update attempt status:', err))
 
       // Fulfill subscription on successful payment
       if (newStatus === 'success') {
@@ -875,7 +875,7 @@ exports.backfillMissingProfiles = onCall({
             await db.collection('users').doc(uid).set({
               uid,
               email: email || g.email || '',
-              name: g.ownerName || g.name || '',
+              name: g.ownerName || g.gymName || '',
               role,
               gymId: g.gymId || uid || 'default',
               createdAt: new Date().toISOString(),
@@ -898,5 +898,46 @@ exports.backfillMissingProfiles = onCall({
   } catch (err) {
     console.error('backfillMissingProfiles error:', err)
     return { error: err.message, backfilled, skipped, errors }
+  }
+})
+
+// ─────────────────────────────────────────────
+// AUTH USER CLEANUP (Admin SDK)
+// ─────────────────────────────────────────────
+
+/**
+ * deleteAuthUser — Callable Cloud Function.
+ *
+ * Deletes a Firebase Auth user by UID via Admin SDK.
+ * Only admins can invoke. Solves orphan Auth user problem:
+ * client-side SDK cannot delete other users.
+ */
+exports.deleteAuthUser = onCall({
+  timeoutSeconds: 30,
+  memory: '256MiB',
+}, async (request) => {
+  if (!request.auth) {
+    return { success: false, error: 'Authentication required' }
+  }
+
+  const callerRef = await db.collection('users').doc(request.auth.uid).get()
+  if (!callerRef.exists || callerRef.data().role !== 'admin') {
+    return { success: false, error: 'Admin role required' }
+  }
+
+  const { uid } = request.data
+  if (!uid) {
+    return { success: false, error: 'uid is required' }
+  }
+
+  try {
+    await getAuth().deleteUser(uid)
+    return { success: true, error: null }
+  } catch (err) {
+    console.error('deleteAuthUser: failed', uid, err.code || err.name, err.message)
+    if (err.code === 'auth/user-not-found') {
+      return { success: true, error: null }
+    }
+    return { success: false, error: err.message }
   }
 })

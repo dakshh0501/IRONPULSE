@@ -58,13 +58,22 @@ import {
 } from '../services/paymentService'
 import { doc, getDoc, updateDoc, query, where, getDocs, collection } from 'firebase/firestore'
 import { db } from '../firebase'
+import {
+  subscribeToNotifications,
+  addNotification as addNotifToFirestore,
+  markNotifAsRead,
+  markAllNotifsAsRead,
+  deleteNotification,
+} from '../services/notificationService'
+import { buildNotification } from '../utils/notificationTypes'
+import { canSubscribe } from '../utils/rbac'
 
 const AppContext = createContext()
 
 export function AppProvider({ children }) {
 
   // ── Auth ───────────────────────────────────────────────
-  const { currentUser, authLoading, userProfile, userGymId } = useAuth()
+  const { currentUser, authLoading, userProfile, userGymId, effectiveRole } = useAuth()
 
   // ── Theme ──────────────────────────────────────────────
   const [darkMode, setDarkMode] = useState(() => {
@@ -79,8 +88,9 @@ export function AppProvider({ children }) {
   const [plans,         setPlans]         = useState([])
   const [checkinLog,    setCheckinLog]    = useState([])
   const [attendance,    setAttendance]    = useState([])
-  const [pendingCount,  setPendingCount]  = useState(0)
+  const [oldPendingCount, setOldPendingCount] = useState(0)
   const [gymOwnersPending, setGymOwnersPending] = useState([])
+  const pendingCount = useMemo(() => oldPendingCount + gymOwnersPending.length, [oldPendingCount, gymOwnersPending])
   const [gymSettings,   setGymSettings]   = useState({ name: 'IronForge Gym' })
   const [progressLogs,  setProgressLogs]  = useState([])
   const [dietPlans,     setDietPlans]     = useState([])
@@ -89,20 +99,29 @@ export function AppProvider({ children }) {
   const [currentGym,    setCurrentGym]    = useState(null)
   const [subscriptions, setSubscriptions] = useState([])
   const [paymentAttempts, setPaymentAttempts] = useState([])
+  const [notifications, setNotifications] = useState([])
+  const [notifLoading, setNotifLoading] = useState(true)
 
   // ── Gym context (derived from userGymId) ───────────────
   const gymId = userGymId || null
 
+  // ── Data isolation ──────────────────────────────────────
+  // super_admin sees ALL data (no gymId filter).
+  // All other roles scoped to their own gymId.
+  const isSuperAdmin = effectiveRole === 'super_admin'
+  const queryGymId = isSuperAdmin ? null : gymId
+
   // ── Pending gym owner approvals listener ───────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
-    if (userProfile?.role !== 'admin') return
+    if (effectiveRole !== 'super_admin') return
     const unsubscribe = subscribeToGyms((data) => {
+      setGyms(data)
       const pendingOwners = data.filter(g => g.approvalStatus === 'pending')
       setGymOwnersPending(pendingOwners)
     })
     return unsubscribe
-  }, [currentUser, authLoading, userProfile])
+  }, [currentUser, authLoading, effectiveRole])
 
   // ── Admins: approve gym owner (single source of truth) ──
   const approveGymOwner = async (gymId, newSubscription = 'Trial') => {
@@ -136,6 +155,17 @@ export function AppProvider({ children }) {
           autoRenew: false,
         })
       }
+
+      // 5. Notify the gym owner
+      if (ownerUid) {
+        fireNotif('gym_approved', {
+          userId: ownerUid,
+          title: 'Gym Approved',
+          message: `Your gym "${gymData.gymName || gymData.name}" has been approved by the admin.`,
+          relatedDocumentId: gymId,
+          actionUrl: '/dashboard',
+        }).catch(() => {})
+      }
     } catch (err) {
       console.error('Failed to approve gym owner:', err)
       throw err
@@ -160,6 +190,13 @@ export function AppProvider({ children }) {
         if (userSnap.exists() && userSnap.data().role === 'gym_owner_pending') {
           await updateDoc(doc(db, 'users', ownerUid), { role: 'rejected' })
         }
+
+        fireNotif('gym_rejected', {
+          userId: ownerUid,
+          title: 'Gym Registration Rejected',
+          message: `Your gym "${gymData.gymName || gymData.name}" registration has been rejected.`,
+          relatedDocumentId: gymId,
+        }).catch(() => {})
       }
     } catch (err) {
       console.error('Failed to reject gym owner:', err)
@@ -191,6 +228,7 @@ export function AppProvider({ children }) {
       await deleteGymFromFirestore(gymId)
     } catch (err) {
       console.error('Failed to delete gym:', err)
+      throw err
     }
   }
 
@@ -231,143 +269,143 @@ export function AppProvider({ children }) {
     }
   }
 
-  // ── Subscriptions listener (global — admin only) ────────
+  // ── Subscriptions listener (platform — super_admin only) ─
   useEffect(() => {
     if (authLoading || !currentUser) return
-    if (userProfile?.role !== 'admin') return
+    if (effectiveRole !== 'super_admin') return
     const unsubscribe = subscribeToSubscriptions((data) => setSubscriptions(data))
     return unsubscribe
-  }, [currentUser, authLoading, userProfile])
+  }, [currentUser, authLoading, effectiveRole])
 
-  // ── Payment Attempts listener — ADMIN ONLY ──────────────
+  // ── Payment Attempts listener — SUPER_ADMIN ONLY ──────
   useEffect(() => {
     if (authLoading || !currentUser) return
-    if (userProfile?.role !== 'admin') return
-    const unsubscribe = subscribeToPaymentAttempts((data) => setPaymentAttempts(data), gymId)
+    if (effectiveRole !== 'super_admin') return
+    const unsubscribe = subscribeToPaymentAttempts((data) => setPaymentAttempts(data), null)
     return unsubscribe
-  }, [currentUser, authLoading, userProfile, gymId])
+  }, [currentUser, authLoading, effectiveRole])
+
+  // ── Notifications listener ─────────────────────────────
+  useEffect(() => {
+    if (authLoading || !currentUser?.uid) return
+    setNotifLoading(true)
+    const unsubscribe = subscribeToNotifications(currentUser.uid, (data) => {
+      setNotifications(data)
+      setNotifLoading(false)
+    })
+    return () => {
+      unsubscribe()
+      setNotifLoading(false)
+    }
+  }, [currentUser, authLoading])
+
+  // ── Notification helpers ───────────────────────────────
+  const fireNotif = async (notifKey, data) => {
+    try {
+      const notif = buildNotification(notifKey, {
+        userId: currentUser?.uid || '',
+        gymId: gymId || 'default',
+        role: userProfile?.role || '',
+        ...data,
+      })
+      if (!notif) return
+      return await addNotifToFirestore(notif)
+    } catch (err) {
+      console.error('fireNotif error:', err)
+    }
+  }
 
   // ── Members listener ───────────────────────────────────
   useEffect(() => {
-  if (authLoading || !currentUser) return
+    if (authLoading || !currentUser) return
+    if (!canSubscribe(effectiveRole, 'members')) return
 
-  if (
-    userProfile?.role !== 'admin' &&
-    userProfile?.role !== 'trainer'
-  ) {
-    return
-  }
+    const unsubscribe = subscribeToMembers(
+      (data) => { setMembers(data) },
+      queryGymId
+    )
+    return unsubscribe
+  }, [currentUser, authLoading, effectiveRole, queryGymId])
 
-  const unsubscribe = subscribeToMembers(
-    (data) => {
-      setMembers(data)
-    },
-    gymId
-  )
-
-  return unsubscribe
-
-}, [
-  currentUser,
-  authLoading,
-  userProfile,
-  gymId
-])
-
-  // ── Payments listener — ADMIN ONLY ─────────────────────
+  // ── Payments listener ──────────────────────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
-    if (userProfile?.role !== 'admin') return
-    const unsubscribe = subscribeToPayments((data) => setPayments(data), gymId)
+    if (!canSubscribe(effectiveRole, 'payments')) return
+    const unsubscribe = subscribeToPayments((data) => setPayments(data), queryGymId)
     return unsubscribe
-  }, [currentUser, authLoading, userProfile, gymId])
+  }, [currentUser, authLoading, effectiveRole, queryGymId])
 
   // ── Trainers listener ──────────────────────────────────
   useEffect(() => {
-  if (authLoading || !currentUser) return
-
-  if (
-    userProfile?.role !== 'admin' &&
-    userProfile?.role !== 'trainer'
-  ) {
-    return
-  }
-
-  const unsubscribe =
-    subscribeToTrainers((data) =>
-      setTrainers(data),
-      gymId
+    if (authLoading || !currentUser) return
+    if (!canSubscribe(effectiveRole, 'trainers')) return
+    const unsubscribe = subscribeToTrainers(
+      (data) => setTrainers(data),
+      queryGymId
     )
+    return unsubscribe
+  }, [currentUser, authLoading, effectiveRole, queryGymId])
 
-  return unsubscribe
-}, [
-  currentUser,
-  authLoading,
-  userProfile,
-  gymId
-])
-
-  // ── Plans listener — ADMIN & TRAINER ─────────────────────
+  // ── Plans listener ─────────────────────────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
-    if (userProfile?.role !== 'admin' && userProfile?.role !== 'trainer') return
+    if (!canSubscribe(effectiveRole, 'plans')) return
 
-    // Only admin auto-migrates default plans (scoped to gym)
-    if (userProfile?.role === 'admin') {
-      migrateDefaultPlans(gymId).catch(err => console.error('Failed to migrate plans:', err))
+    // gym_admin auto-migrates default plans (scoped to gym)
+    if (effectiveRole === 'gym_admin') {
+      migrateDefaultPlans(queryGymId).catch(err => console.error('Failed to migrate plans:', err))
     }
 
-    const unsubscribe = subscribeToPlans((data) => setPlans(data), gymId)
+    const unsubscribe = subscribeToPlans((data) => setPlans(data), queryGymId)
     return unsubscribe
-  }, [currentUser, authLoading, userProfile, gymId])
+  }, [currentUser, authLoading, effectiveRole, queryGymId])
 
-  // ── Progress Logs listener — ADMIN & TRAINER ────────────
+  // ── Progress Logs listener ─────────────────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
-    if (userProfile?.role !== 'admin' && userProfile?.role !== 'trainer') return
-    const unsubscribe = subscribeToProgressLogs((data) => setProgressLogs(data), gymId)
+    if (!canSubscribe(effectiveRole, 'progressLogs')) return
+    const unsubscribe = subscribeToProgressLogs((data) => setProgressLogs(data), queryGymId)
     return unsubscribe
-  }, [currentUser, authLoading, userProfile, gymId])
+  }, [currentUser, authLoading, effectiveRole, queryGymId])
 
-  // ── Diet Plans listener — ADMIN & TRAINER ──────────────
+  // ── Diet Plans listener ────────────────────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
-    if (userProfile?.role !== 'admin' && userProfile?.role !== 'trainer') return
-    const unsubscribe = subscribeToDietPlans((data) => setDietPlans(data), gymId)
+    if (!canSubscribe(effectiveRole, 'dietPlans')) return
+    const unsubscribe = subscribeToDietPlans((data) => setDietPlans(data), queryGymId)
     return unsubscribe
-  }, [currentUser, authLoading, userProfile, gymId])
+  }, [currentUser, authLoading, effectiveRole, queryGymId])
 
-  // ── Workout Plans listener — ADMIN & TRAINER ───────────
+  // ── Workout Plans listener ─────────────────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
-    if (userProfile?.role !== 'admin' && userProfile?.role !== 'trainer') return
-    const unsubscribe = subscribeToWorkoutPlans((data) => setWorkoutPlans(data), gymId)
+    if (!canSubscribe(effectiveRole, 'workoutPlans')) return
+    const unsubscribe = subscribeToWorkoutPlans((data) => setWorkoutPlans(data), queryGymId)
     return unsubscribe
-  }, [currentUser, authLoading, userProfile, gymId])
+  }, [currentUser, authLoading, effectiveRole, queryGymId])
 
   // ── Attendance listener ────────────────────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
-    const isAdminOrTrainer = userProfile?.role === 'admin' || userProfile?.role === 'trainer'
-    if (isAdminOrTrainer) {
-      const unsubscribe = subscribeAttendance((data) => setAttendance(data), gymId)
+    if (canSubscribe(effectiveRole, 'attendance')) {
+      const unsubscribe = subscribeAttendance((data) => setAttendance(data), queryGymId)
       return unsubscribe
     }
-    if (userProfile?.role === 'member' && currentUser?.uid) {
-      const unsubscribe = subscribeMyAttendance(currentUser.uid, (data) => setAttendance(data), gymId)
+    if (effectiveRole === 'member' && currentUser?.uid) {
+      const unsubscribe = subscribeMyAttendance(currentUser.uid, (data) => setAttendance(data), queryGymId)
       return unsubscribe
     }
-  }, [currentUser, authLoading, userProfile, gymId])
+  }, [currentUser, authLoading, effectiveRole, queryGymId])
 
-  // ── Pending approvals count — ADMIN ONLY ───────────────
+  // ── Pending approvals count — SUPER_ADMIN ONLY ──────────
   useEffect(() => {
     if (authLoading || !currentUser) return
-    if (userProfile?.role !== 'admin') return
+    if (effectiveRole !== 'super_admin') return
     let mounted = true
     async function loadPendingCount() {
       try {
         const pending = await getPendingUsers()
-        if (mounted) setPendingCount(pending.length)
+        if (mounted) setOldPendingCount(pending.length)
       } catch (e) {
         console.error('Failed to load pending count:', e)
       }
@@ -378,12 +416,12 @@ export function AppProvider({ children }) {
       mounted = false
       clearInterval(interval)
     }
-  }, [currentUser, authLoading, userProfile])
+  }, [currentUser, authLoading, effectiveRole])
 
   // ── Auto-sync member payment fields ───────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
-    if (userProfile?.role !== 'admin') return
+    if (effectiveRole !== 'gym_admin' && effectiveRole !== 'super_admin') return
     if (members.length === 0 || payments.length === 0) return
 
     const updates = []
@@ -428,10 +466,10 @@ export function AppProvider({ children }) {
   // ── Load Gym Settings ──────────────────────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
-    if (userProfile?.role !== 'admin' && userProfile?.role !== 'trainer') return
+    if (!canSubscribe(effectiveRole, 'settings')) return
     
     let mounted = true
-    getSettings('gym', gymId)
+    getSettings('gym', queryGymId)
       .then(data => {
         if (mounted && data) {
           setGymSettings(prev => ({ ...prev, ...data }))
@@ -440,98 +478,45 @@ export function AppProvider({ children }) {
       .catch(err => console.error('Failed to load gym settings:', err))
     
     return () => { mounted = false }
-  }, [currentUser, authLoading, userProfile, gymId])
+  }, [currentUser, authLoading, effectiveRole, queryGymId])
 
-  // ── Notifications — derived from real data ─────────────
-  const notifications = useMemo(() => {
-    const list     = []
-    const today    = new Date()
-    const todayStr = today.toISOString().split('T')[0]
+  // ── Notifications — Firestore-backed ───────────────────
+  const unreadCount = useMemo(() => {
+    return notifications.filter(n => !n.read).length
+  }, [notifications])
 
-    members.forEach(m => {
-      if (!m.expiry || m.status === 'Expired') return
-      const diffDays = Math.ceil((new Date(m.expiry) - today) / (1000 * 60 * 60 * 24))
-      if (diffDays >= 0 && diffDays <= 7) {
-        list.push({
-          id:    `expiry-soon-${m.id}`,
-          type:  'expiry',
-          title: 'Membership Expiring Soon',
-          msg:   `${m.name}'s ${m.plan} plan expires in ${diffDays} day${diffDays !== 1 ? 's' : ''} (${m.expiry}).`,
-          time:  `${diffDays}d left`,
-          read:  false,
-        })
-      }
-    })
-
-    members.forEach(m => {
-      if (!m.expiry) return
-      const diffDays = Math.ceil((new Date(m.expiry) - today) / (1000 * 60 * 60 * 24))
-      if (diffDays < 0) {
-        list.push({
-          id:    `expiry-expired-${m.id}`,
-          type:  'expiry',
-          title: 'Membership Expired',
-          msg:   `${m.name}'s membership expired on ${m.expiry}. Plan: ${m.plan}.`,
-          time:  `${Math.abs(diffDays)}d ago`,
-          read:  true,
-        })
-      }
-    })
-
-    members.forEach(m => {
-      if (!m.join) return
-      const diffDays = Math.ceil((today - new Date(m.join)) / (1000 * 60 * 60 * 24))
-      if (diffDays >= 0 && diffDays <= 7) {
-        list.push({
-          id:    `new-member-${m.id}`,
-          type:  'new',
-          title: 'New Member Joined',
-          msg:   `${m.name} joined on ${m.join} with a ${m.plan} plan.`,
-          time:  diffDays === 0 ? 'Today' : `${diffDays}d ago`,
-          read:  diffDays > 1,
-        })
-      }
-    })
-
-    attendance
-      .filter(a => a.date === todayStr)
-      .forEach(a => {
-        list.push({
-          id:    `checkin-${a.id || a.memberId + '-' + a.time}`,
-          type:  'checkin',
-          title: 'Member Checked In',
-          msg:   `${a.memberName} checked in at ${a.time || 'today'}.`,
-          time:  a.time || 'Today',
-          read:  true,
-        })
-      })
-
-    return list.sort((a, b) => (a.read === b.read ? 0 : a.read ? 1 : -1))
-  }, [members, attendance])
-
-  const markAllRead = () => {
-    setReadIds(prev => {
-      const next = new Set(prev)
-      notifications.forEach(n => next.add(n.id))
-      return next
-    })
+  const markNotifRead = async (notifId) => {
+    try {
+      await markNotifAsRead(notifId)
+      setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, read: true } : n))
+    } catch (err) {
+      console.error('markNotifRead error:', err)
+    }
   }
-  const markRead = (id) => {
-    setReadIds(prev => new Set(prev).add(id))
+
+  const markAllNotifsRead = async () => {
+    if (!currentUser?.uid) return
+    try {
+      await markAllNotifsAsRead(currentUser.uid)
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    } catch (err) {
+      console.error('markAllNotifsRead error:', err)
+    }
   }
-  const [readIds, setReadIds] = useState(() => new Set())
-  const notificationsWithRead = useMemo(() => {
-    return notifications.map(n => ({
-      ...n,
-      read: n.read || readIds.has(n.id),
-    }))
-  }, [notifications, readIds])
-  const unreadCount = notificationsWithRead.filter(n => !n.read).length
+
+  const deleteNotif = async (notifId) => {
+    try {
+      await deleteNotification(notifId)
+      setNotifications(prev => prev.filter(n => n.id !== notifId))
+    } catch (err) {
+      console.error('deleteNotif error:', err)
+    }
+  }
 
   // ── Member CRUD ────────────────────────────────────────
   const addMember = async (memberData) => {
     try {
-      return await addMemberToFirestore({
+      const memberId = await addMemberToFirestore({
         ...memberData,
         gymId,
         trainerId:   memberData.trainerId   || '',
@@ -541,6 +526,15 @@ export function AppProvider({ children }) {
         amountPaid:  Number(memberData.amountPaid) || 0,
         checkins:    Number(memberData.checkins)   || 0,
       })
+      if (currentUser?.uid) {
+        fireNotif('member_added', {
+          userId: currentUser.uid,
+          title: 'New Member Added',
+          message: `${memberData.name || 'Member'} has been added with ${memberData.plan || 'Monthly'} plan.`,
+          relatedDocumentId: memberId || '',
+        }).catch(() => {})
+      }
+      return memberId
     } catch (error) {
       console.error('Error adding member:', error)
       throw error
@@ -561,9 +555,19 @@ export function AppProvider({ children }) {
 
   const deleteMember = async (id) => {
     try {
+      const member = members.find(m => m.id === id)
       await deleteMemberFromFirestore(id)
+      if (currentUser?.uid && member?.name) {
+        fireNotif('member_deleted', {
+          userId: currentUser.uid,
+          title: 'Member Deleted',
+          message: `${member.name} has been removed from the system.`,
+          relatedDocumentId: id,
+        }).catch(() => {})
+      }
     } catch (error) {
       console.error('Error deleting member:', error)
+      throw error
     }
   }
 
@@ -587,23 +591,50 @@ export function AppProvider({ children }) {
         gymId,
       })
       await updateMemberInFirestore(member.id, { checkins: (member.checkins || 0) + 1 })
+      if (member.authUid || member.uid) {
+        fireNotif('qr_success', {
+          userId: member.authUid || member.uid,
+          title: 'Check-in Successful',
+          message: `You checked in at ${time}. Have a great workout!`,
+        }).catch(() => {})
+      }
     } catch (error) {
       console.error('Error checking in:', error)
+      throw error
     }
   }
 
   // ── Payment CRUD ───────────────────────────────────────
   const addPayment = async (paymentData) => {
     try {
-      return await addPaymentToFirestore({
+      const paymentId = await addPaymentToFirestore({
         ...paymentData,
         gymId,
         amount: Number(paymentData.amount) || 0,
         status: paymentData.status || 'Paid',
         plan:   paymentData.plan   || 'Monthly',
       })
+      if (currentUser?.uid) {
+        fireNotif('payment_received', {
+          userId: currentUser.uid,
+          title: 'Payment Received',
+          message: `₹${(Number(paymentData.amount) / 100).toFixed(2)} received from ${paymentData.memberName || 'member'} for ${paymentData.plan || 'plan'}.`,
+          relatedDocumentId: paymentId || '',
+          actionUrl: '/payments',
+        }).catch(() => {})
+        if (paymentData.memberId) {
+          fireNotif('payment_received', {
+            userId: paymentData.memberId,
+            title: 'Payment Confirmed',
+            message: `Your payment of ₹${(Number(paymentData.amount) / 100).toFixed(2)} has been received.`,
+            relatedDocumentId: paymentId || '',
+          }).catch(() => {})
+        }
+      }
+      return paymentId
     } catch (error) {
       console.error('Error adding payment:', error)
+      throw error
     }
   }
 
@@ -615,6 +646,7 @@ export function AppProvider({ children }) {
       await updatePaymentInFirestore(id, payload)
     } catch (error) {
       console.error('Error updating payment:', error)
+      throw error
     }
   }
 
@@ -623,20 +655,31 @@ export function AppProvider({ children }) {
       await deletePaymentFromFirestore(id)
     } catch (error) {
       console.error('Error deleting payment:', error)
+      throw error
     }
   }
 
   // ── Trainer CRUD ───────────────────────────────────────
   const addTrainer = async (trainerData) => {
     try {
-      return await addTrainerToFirestore({
+      const trainerId = await addTrainerToFirestore({
         ...trainerData,
         gymId,
         rating:  trainerData.rating  || 5,
         clients: trainerData.clients || 0,
       })
+      if (currentUser?.uid) {
+        fireNotif('trainer_added', {
+          userId: currentUser.uid,
+          title: 'New Trainer Added',
+          message: `${trainerData.name || 'Trainer'} has been added to the team.`,
+          relatedDocumentId: trainerId || '',
+        }).catch(() => {})
+      }
+      return trainerId
     } catch (error) {
       console.error('Error adding trainer:', error)
+      throw error
     }
   }
 
@@ -645,14 +688,25 @@ export function AppProvider({ children }) {
       await updateTrainerInFirestore(id, data)
     } catch (error) {
       console.error('Error updating trainer:', error)
+      throw error
     }
   }
 
   const deleteTrainer = async (id) => {
     try {
+      const trainer = trainers.find(t => t.id === id)
       await deleteTrainerFromFirestore(id)
+      if (currentUser?.uid && trainer?.name) {
+        fireNotif('trainer_removed', {
+          userId: currentUser.uid,
+          title: 'Trainer Removed',
+          message: `${trainer.name} has been removed from the system.`,
+          relatedDocumentId: id,
+        }).catch(() => {})
+      }
     } catch (error) {
       console.error('Error deleting trainer:', error)
+      throw error
     }
   }
 
@@ -662,6 +716,7 @@ export function AppProvider({ children }) {
       return await addPlanToFirestore({ ...planData, gymId })
     } catch (error) {
       console.error('Error adding plan:', error)
+      throw error
     }
   }
 
@@ -670,6 +725,7 @@ export function AppProvider({ children }) {
       await updatePlanInFirestore(id, data)
     } catch (error) {
       console.error('Error updating plan:', error)
+      throw error
     }
   }
 
@@ -678,29 +734,52 @@ export function AppProvider({ children }) {
       await deletePlanFromFirestore(id)
     } catch (error) {
       console.error('Error deleting plan:', error)
+      throw error
     }
   }
 
   // ── Progress Logs CRUD ──────────────────────────────────
   const addProgressLog = async (logData) => {
     try {
-      return await addProgressLogToFirestore({
+      const logId = await addProgressLogToFirestore({
         ...logData,
         gymId,
         memberId: logData.memberId || '',
         memberName: logData.memberName || '',
       })
+      if (logData.authUid) {
+        fireNotif('progress_updated', {
+          userId: logData.authUid,
+          title: 'Progress Updated',
+          message: `Your progress has been updated. Check your latest metrics.`,
+          relatedDocumentId: logId || '',
+          actionUrl: '/progress',
+        }).catch(() => {})
+      }
+      return logId
     } catch (error) {
       console.error('Error adding progress log:', error)
+      throw error
     }
   }
 
   // ── Diet Plans CRUD ─────────────────────────────────────
   const addDietPlan = async (planData) => {
     try {
-      return await addDietPlanToFirestore({ ...planData, gymId })
+      const planId = await addDietPlanToFirestore({ ...planData, gymId })
+      if (planData.authUid) {
+        fireNotif('diet_assigned', {
+          userId: planData.authUid,
+          title: 'Diet Plan Assigned',
+          message: `A new diet plan "${planData.name || 'Diet Plan'}" has been assigned to you.`,
+          relatedDocumentId: planId || '',
+          actionUrl: '/diet',
+        }).catch(() => {})
+      }
+      return planId
     } catch (error) {
       console.error('Error adding diet plan:', error)
+      throw error
     }
   }
 
@@ -709,6 +788,7 @@ export function AppProvider({ children }) {
       await updateDietPlanInFirestore(id, data)
     } catch (error) {
       console.error('Error updating diet plan:', error)
+      throw error
     }
   }
 
@@ -717,15 +797,27 @@ export function AppProvider({ children }) {
       await deleteDietPlanFromFirestore(id)
     } catch (error) {
       console.error('Error deleting diet plan:', error)
+      throw error
     }
   }
 
   // ── Workout Plans CRUD ──────────────────────────────────
   const addWorkoutPlan = async (planData) => {
     try {
-      return await addWorkoutPlanToFirestore({ ...planData, gymId })
+      const planId = await addWorkoutPlanToFirestore({ ...planData, gymId })
+      if (planData.authUid) {
+        fireNotif('workout_assigned', {
+          userId: planData.authUid,
+          title: 'Workout Plan Assigned',
+          message: `A new workout plan "${planData.name || 'Workout Plan'}" has been assigned to you.`,
+          relatedDocumentId: planId || '',
+          actionUrl: '/workouts',
+        }).catch(() => {})
+      }
+      return planId
     } catch (error) {
       console.error('Error adding workout plan:', error)
+      throw error
     }
   }
 
@@ -734,6 +826,7 @@ export function AppProvider({ children }) {
       await updateWorkoutPlanInFirestore(id, data)
     } catch (error) {
       console.error('Error updating workout plan:', error)
+      throw error
     }
   }
 
@@ -742,6 +835,7 @@ export function AppProvider({ children }) {
       await deleteWorkoutPlanFromFirestore(id)
     } catch (error) {
       console.error('Error deleting workout plan:', error)
+      throw error
     }
   }
 
@@ -771,7 +865,7 @@ export function AppProvider({ children }) {
       progressLogs, addProgressLog,
       dietPlans, addDietPlan, updateDietPlan, deleteDietPlan,
       workoutPlans, addWorkoutPlan, updateWorkoutPlan, deleteWorkoutPlan,
-      notifications: notificationsWithRead, markAllRead, markRead, unreadCount,
+      notifications, markAllNotifsRead, markNotifRead, deleteNotif, unreadCount, notifLoading, fireNotif,
       checkinLog, checkIn,
       attendance, checkInMember,
       pendingCount,

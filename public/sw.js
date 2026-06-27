@@ -1,8 +1,17 @@
 const CACHE = 'ironpulse-v1'
+const ASSETS = ['/']
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(['/']))
+    caches.open(CACHE)
+      .then((c) => c.addAll(ASSETS))
+      .then(() => {
+        // Best-effort cache of video assets — don't block install on failure
+        caches.open(CACHE).then((c) => {
+          c.add('/videos/Startup.mp4').catch(() => {})
+          c.add('/videos/Loading.gif').catch(() => {})
+        })
+      })
   )
   self.skipWaiting()
 })

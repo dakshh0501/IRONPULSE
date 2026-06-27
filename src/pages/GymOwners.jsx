@@ -32,9 +32,9 @@ export default function GymOwners({ setPage }) {
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase()
         return (
-          gym.name.toLowerCase().includes(searchLower) ||
-          gym.ownerName.toLowerCase().includes(searchLower) ||
-          gym.email.toLowerCase().includes(searchLower)
+          (gym.gymName || gym.name || '').toLowerCase().includes(searchLower) ||
+          (gym.ownerName || '').toLowerCase().includes(searchLower) ||
+          (gym.email || '').toLowerCase().includes(searchLower)
         )
       }
 
@@ -171,9 +171,7 @@ export default function GymOwners({ setPage }) {
       </div>
 
       {/* Gyms Table */}
-      {loading ? (
-        <div className="loading-state">Loading gym owners...</div>
-      ) : filteredGyms.length === 0 ? (
+      {filteredGyms.length === 0 ? (
         <div className="empty-state">
           <div style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏢</div>
@@ -226,7 +224,7 @@ export default function GymOwners({ setPage }) {
               }}
             >
               <div>
-                <div style={{ fontWeight: '600' }}>{gym.name}</div>
+                <div style={{ fontWeight: '600' }}>{gym.gymName || gym.name}</div>
                 <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>{gym.email}</div>
               </div>
               <div>{gym.ownerName}</div>
@@ -295,7 +293,7 @@ export default function GymOwners({ setPage }) {
                       ⚠️
                     </button>
                   )}
-                  {gym.approvalStatus === 'suspended' || gym.approvalStatus === 'rejected' && (
+                  {(gym.approvalStatus === 'suspended' || gym.approvalStatus === 'rejected') && (
                     <button
                       onClick={() => handleActivate(gym.id)}
                       className="btn btn-sm btn-success"

@@ -10,6 +10,7 @@ import {
   updateDoc,
   serverTimestamp
 } from 'firebase/firestore'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 import { db } from '../firebase'
 
 const ROLE_OPTIONS = ['member', 'trainer']
@@ -108,7 +109,18 @@ export default function PendingApprovals() {
     if (!window.confirm(`Reject and delete ${user.name}'s account? This cannot be undone.`)) return
     setBusy(b => ({ ...b, [user.uid]: true }))
     try {
+      // Delete Firestore user doc
       await deleteDoc(doc(db, 'users', user.uid))
+
+      // Delete Firebase Auth user via Cloud Function (Admin SDK required)
+      try {
+        const functions = getFunctions()
+        const deleteUserFn = httpsCallable(functions, 'deleteAuthUser')
+        await deleteUserFn({ uid: user.uid })
+      } catch (cfErr) {
+        console.error('handleReject: failed to delete Auth user (non-blocking):', cfErr)
+      }
+
       showToast(`🗑 ${user.name}'s request rejected`)
     } catch (e) {
       console.error(e)
@@ -143,13 +155,6 @@ export default function PendingApprovals() {
           maxWidth: 320,
         }}>
           {toast.msg}
-        </div>
-      )}
-
-      {/* Loading */}
-      {loading && (
-        <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-muted)' }}>
-          Loading pending requests…
         </div>
       )}
 

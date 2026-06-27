@@ -20,14 +20,27 @@ const PAGE_TITLES = {
   reports:       'Reports & Analytics',
   settings:      'Settings',
   whatsapp:      'WhatsApp Reminders',
+  pending:       'Approval Requests',
+  analytics:     'Usage Analytics',
+  revenue:       'Platform Revenue',
+  security:      'Security',
+  license:       'License Keys',
 }
 
 export default function Header({ currentPage, setPage, search, setSearch, setMobileOpen }) {
-  const { darkMode, setDarkMode, unreadCount, notifications, markAllRead, gymSettings } = useApp()
+  const { darkMode, setDarkMode, unreadCount, notifications, markAllNotifsRead, gymSettings } = useApp()
   const { userProfile } = useAuth()
   const [notifOpen, setNotifOpen] = useState(false)
 
-  const typeIcon = { expiry:'⏰', payment:'💳', checkin:'✅', new:'🎉', system:'⚙️', workout:'💪' }
+  const getTimeAgo = (createdAt) => {
+    if (!createdAt) return ''
+    const ts = createdAt?.seconds ? new Date(createdAt.seconds * 1000) : new Date(createdAt)
+    const diff = Math.floor((Date.now() - ts.getTime()) / 1000)
+    if (diff < 60) return 'Just now'
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+    return `${Math.floor(diff / 86400)}d ago`
+  }
   const gymName = gymSettings?.name || 'IronForge Gym'
 
   return (
@@ -92,7 +105,7 @@ export default function Header({ currentPage, setPage, search, setSearch, setMob
               <h3>Notifications</h3>
               <div style={{ display:'flex', gap:8, alignItems:'center' }}>
                 {unreadCount > 0 && (
-                  <button className="btn btn-sm btn-ghost" onClick={markAllRead}>
+                  <button className="btn btn-sm btn-ghost" onClick={markAllNotifsRead}>
                     Mark all read
                   </button>
                 )}
@@ -100,20 +113,23 @@ export default function Header({ currentPage, setPage, search, setSearch, setMob
               </div>
             </div>
             <div style={{ flex:1, overflowY:'auto' }}>
-              {notifications.map(n => (
+              {notifications.slice(0, 50).map(n => (
                 <div key={n.id} className={`notif-item ${!n.read ? 'unread' : ''}`}>
                   {!n.read && <div className="notif-dot-sm" />}
                   {n.read  && <div style={{ width:8 }} />}
                   <div style={{ flex:1 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                      <span>{typeIcon[n.type] || '📢'}</span>
+                      <span>{n.icon || '📢'}</span>
                       <span className="notif-title">{n.title}</span>
                     </div>
-                    <p className="notif-msg">{n.msg}</p>
-                    <p className="notif-time">{n.time}</p>
+                    <p className="notif-msg">{n.message}</p>
+                    <p className="notif-time">{getTimeAgo(n.createdAt)}</p>
                   </div>
                 </div>
               ))}
+              {notifications.length === 0 && (
+                <p style={{ textAlign:'center', padding:32, color:'var(--text-muted)', fontSize:13 }}>No notifications yet</p>
+              )}
             </div>
           </div>
         </>

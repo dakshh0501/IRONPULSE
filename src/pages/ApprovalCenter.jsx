@@ -64,7 +64,7 @@ function DetailModal({ gym, onClose, onApprove, onReject }) {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 24px', marginBottom: 24 }}>
-          <DetailField label="Gym Name" value={gym.name} />
+          <DetailField label="Gym Name" value={gym.gymName} />
           <DetailField label="Owner" value={gym.ownerName} />
           <DetailField label="Email" value={gym.email} />
           <DetailField label="Phone" value={gym.phone || 'N/A'} />
@@ -138,7 +138,7 @@ export default function ApprovalCenter({ search }) {
       if (searchTerm) {
         const q = searchTerm.toLowerCase()
         return (
-          (gym.name || '').toLowerCase().includes(q) ||
+          (gym.gymName || '').toLowerCase().includes(q) ||
           (gym.ownerName || '').toLowerCase().includes(q) ||
           (gym.email || '').toLowerCase().includes(q)
         )
@@ -247,11 +247,6 @@ export default function ApprovalCenter({ search }) {
         </div>
       </div>
 
-      {/* Loading */}
-      {!gyms && (
-        <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-muted)' }}>Loading registrations…</div>
-      )}
-
       {/* Empty State */}
       {gyms && gyms.length === 0 && (
         <div className="card" style={{ textAlign: 'center', padding: '60px 24px' }}>
@@ -275,7 +270,7 @@ export default function ApprovalCenter({ search }) {
       {/* Table */}
       {filtered.length > 0 && (
         <div style={{
-          backgroundColor: 'white', borderRadius: 10, border: '1px solid var(--border)',
+          backgroundColor: 'var(--bg)', borderRadius: 10, border: '1px solid var(--border)',
           overflow: 'hidden',
         }}>
           {/* Table Header */}
@@ -308,14 +303,14 @@ export default function ApprovalCenter({ search }) {
                   gridTemplateColumns: '1.6fr 1fr 1.2fr 0.8fr 1fr 0.7fr 0.8fr 1.2fr',
                   padding: '14px 20px',
                   borderBottom: idx < filtered.length - 1 ? '1px solid var(--border)' : 'none',
-                  backgroundColor: idx % 2 === 0 ? 'white' : 'rgba(0,0,0,0.01)',
+                  backgroundColor: idx % 2 === 0 ? 'var(--bg)' : 'var(--bg2)',
                   alignItems: 'center', fontSize: 13,
                   transition: 'background 0.15s',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg2)'}
-                onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? 'white' : 'rgba(0,0,0,0.01)'}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg3)'}
+                onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? 'var(--bg)' : 'var(--bg2)'}
               >
-                <div style={{ fontWeight: 600, color: 'var(--text)' }}>{gym.name}</div>
+                <div style={{ fontWeight: 600, color: 'var(--text)' }}>{gym.gymName}</div>
                 <div style={{ color: 'var(--text-secondary)' }}>{gym.ownerName}</div>
                 <div style={{ color: 'var(--text-secondary)', fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis' }}>{gym.email}</div>
                 <div style={{ color: 'var(--text-secondary)' }}>{gym.phone || 'N/A'}</div>

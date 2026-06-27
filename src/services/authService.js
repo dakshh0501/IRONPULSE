@@ -23,58 +23,94 @@ import {
   updateDoc,
   deleteDoc,
 } from 'firebase/firestore'
-import { auth, db, firebaseConfig } from '../firebase'
-import { initializeApp } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
-
-// Secondary auth instance for creating trainer accounts and gym owner accounts
-// so the admin stays logged in on the main auth instance
-const secondaryApp = initializeApp(firebaseConfig, 'secondary')
-const secondaryAuth = getAuth(secondaryApp)
+import { auth, db } from '../firebase'
+import { addGym } from './firestoreService'
 
 export async function signUp({ name, email, password, gymData, role }) {
-  let userUid = null
   let authUser = null
 
+  // ───── Step 1: createUserWithEmailAndPassword (Auth API, not Firestore) ─────
   try {
-    // 1. Create Firebase Auth account using secondaryAuth
-    const authResult = await createUserWithEmailAndPassword(secondaryAuth, email, password)
+    const authResult = await createUserWithEmailAndPassword(auth, email, password)
     authUser = authResult.user
-    userUid = authUser.uid
-
-    // 2. Create user document with role parameter
-    const userData = {
-      uid: userUid,
-      email: user.email,
-      name: name || '',
-      role: role || 'pending', // default 'pending' if not specified
-      gymId: gymData?.gymId || 'default',
-      createdAt: serverTimestamp(),
-    }
-
-    await setDoc(doc(db, 'users', userUid), userData)
-
-    // 3. Create gym document if role is gym_owner_pending
-    if (role === 'gym_owner_pending') {
-      await addGym(gymData, userUid)
-    }
-
-    // 4. Clean up secondary auth - admin stays logged in on main instance
-    await secondaryAuth.signOut()
-
-    return { uid: userUid, email }
-
-  } catch (err) {
-    // Cleanup: if auth creation succeeded but Firestore failed, delete auth user
-    if (authUser) {
-      try {
-        await authUser.delete()
-      } catch (cleanupErr) {
-        console.error('Failed to cleanup auth user:', cleanupErr)
-      }
-    }
-    throw err
+  } catch (e) {
+    console.error('[SIGNUP AUTH] createUserWithEmailAndPassword', '', e.code, e.message, e)
+    throw e
   }
+
+  console.log('[SIGNUP] Auth user created UID:', authUser.uid)
+  console.log('[SIGNUP] auth.currentUser?.uid:', auth.currentUser?.uid)
+  console.log('[SIGNUP] auth.currentUser?.email:', auth.currentUser?.email)
+
+  // ───── Step 2: setDoc(users/{uid}) ─────
+  const userData = {
+    uid: authUser.uid,
+    email: authUser.email,
+    name: name || '',
+    role: role || 'pending',
+    gymId: gymData?.gymId || 'default',
+    createdAt: serverTimestamp(),
+  }
+
+  const usersPath = 'users/' + authUser.uid
+  console.log('[SIGNUP FIRESTORE] about to call setDoc', {
+    operation: 'setDoc',
+    collection: 'users',
+    path: usersPath,
+    data: { ...userData, createdAt: '<serverTimestamp>' },
+    authUid: auth.currentUser?.uid,
+  })
+
+  try {
+    await setDoc(doc(db, 'users', authUser.uid), userData)
+    console.log('[SIGNUP FIRESTORE] setDoc(users) SUCCEEDED')
+  } catch (e) {
+    console.error('[SIGNUP FIRESTORE] setDoc(users) FAILED', {
+      operation: 'setDoc',
+      collection: 'users',
+      path: usersPath,
+      code: e.code,
+      message: e.message,
+      error: e,
+    })
+    throw e
+  }
+
+  // ───── Step 3: addDoc(gyms) via addGym() ─────
+  if (role === 'gym_owner_pending') {
+    console.log('[SIGNUP FIRESTORE] about to call addGym', {
+      operation: 'addDoc',
+      collection: 'gyms',
+      data: { ...gymData, ownerUid: authUser.uid, approvalStatus: 'pending', createdAt: '<serverTimestamp>' },
+      authUid: auth.currentUser?.uid,
+    })
+
+    try {
+      await addGym(gymData, authUser.uid)
+      console.log('[SIGNUP FIRESTORE] addGym SUCCEEDED')
+    } catch (e) {
+      console.error('[SIGNUP FIRESTORE] addGym FAILED', {
+        operation: 'addDoc',
+        collection: 'gyms',
+        code: e.code,
+        message: e.message,
+        error: e,
+      })
+      throw e
+    }
+  }
+
+  // ───── Step 4: signOut (Auth API, not Firestore) ─────
+  console.log('[SIGNUP] about to signOut, auth.currentUser:', auth.currentUser?.uid)
+  try {
+    await signOut(auth)
+    console.log('[SIGNUP] signOut SUCCEEDED')
+  } catch (e) {
+    console.error('[SIGNUP AUTH] signOut FAILED', e.code, e.message, e)
+    throw e
+  }
+
+  return { uid: authUser.uid, email }
 }
 
 export async function signIn(email, password) {
@@ -241,15 +277,20 @@ export async function getUserProfile(uid) {
     console.log('[AUDIT] getUserProfile path:', ref.path)
     const snap = await getDoc(ref)
     console.log('[AUDIT] getUserProfile exists():', snap.exists())
-    if (snap.exists()) return snap.data()
+    if (snap.exists()) {
+      console.log('[AUDIT] getUserProfile SUCCESS — role:', snap.data().role)
+      return snap.data()
+    }
 
     console.log('[AUDIT] getUserProfile: doc not found, attempting recovery')
     const recovered = await recoverUserProfile(uid, null)
     console.log('[AUDIT] getUserProfile recovery result:', recovered ? 'recovered' : 'null')
     return recovered
   } catch (err) {
-    console.error('[AUDIT] getUserProfile error:', err.code || err.name, err.message, err.stack)
-    return null
+    // Firestore error (network unavailable, permission denied, etc.)
+    // This is NOT "profile not found" — re-throw so caller can retry.
+    console.error('[AUDIT] getUserProfile FIRESTORE ERROR:', err.code || err.name, err.message)
+    throw err
   }
 }
 
@@ -300,21 +341,6 @@ export async function approveUser(uid, newRole) {
   }
 }
 
-/**
- * Check if a given uid has a super admin document.
- * Returns `true` if superAdmins/{uid} exists, false otherwise.
- * This is a lightweight read — no profile fields are duplicated.
- */
-export async function isSuperAdmin(uid) {
-  try {
-    const snap = await getDoc(doc(db, 'superAdmins', uid))
-    return snap.exists()
-  } catch (err) {
-    console.error('isSuperAdmin error:', err)
-    return false
-  }
-}
-
 export async function getPendingUsers() {
   try {
     const q = query(
@@ -340,6 +366,38 @@ export async function getGymOwnerPending() {
   } catch (err) {
     console.error('getGymOwnerPending error:', err)
     return []
+  }
+}
+
+/**
+ * Check if an email already has a pending gym owner registration.
+ * Queries both users and gyms collections. Returns true if a pending
+ * registration exists, false otherwise.
+ */
+export async function checkPendingGymOwnerRegistration(email) {
+  try {
+    // Check users collection for gym_owner_pending with this email
+    const usersSnap = await getDocs(query(
+      collection(db, 'users'),
+      where('role', '==', 'gym_owner_pending'),
+      where('email', '==', email)
+    ))
+    if (!usersSnap.empty) return true
+
+    // Check gyms collection for pending approval with this email
+    const gymsSnap = await getDocs(query(
+      collection(db, 'gyms'),
+      where('approvalStatus', '==', 'pending'),
+      where('email', '==', email)
+    ))
+    if (!gymsSnap.empty) return true
+
+    return false
+  } catch (err) {
+    console.error('checkPendingGymOwnerRegistration error:', err)
+    // Fail open — if the query fails (e.g. missing index), allow the
+    // registration to proceed rather than blocking legitimate signups.
+    return false
   }
 }
 

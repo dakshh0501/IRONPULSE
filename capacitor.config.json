@@ -19,14 +19,14 @@
   },
   "plugins": {
     "SplashScreen": {
-      "launchShowDuration": 2000,
-      "backgroundColor": "#0a0d14",
+      "launchShowDuration": 0,
+      "backgroundColor": "#000000",
       "androidScaleType": "CENTER_CROP",
       "showSpinner": false
     },
     "StatusBar": {
       "style": "DARK",
-      "backgroundColor": "#0a0d14",
+      "backgroundColor": "#000000",
       "overlaysWebView": true
     },
     "CapacitorHttp": {

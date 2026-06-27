@@ -6,10 +6,10 @@
 
 import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { AppProvider } from '../context/AppContext'
-import { AuthProvider, useAuth } from '../context/AuthContext'
 import { useApp } from '../context/AppContext'
+import { useAuth } from '../context/AuthContext'
 import { getPaymentAttempt } from '../services/paymentService'
+import LoadingVideo from '../components/LoadingVideo'
 import { updateSubscription } from '../services/firestoreService'
 
 const STATUS_CONFIG = {
@@ -152,24 +152,7 @@ function PaymentStatusContent() {
         boxShadow: 'var(--shadow)',
       }}>
         {/* Loading State */}
-        {status === 'loading' && (
-          <>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>
-              <div style={{
-                width: 48, height: 48,
-                border: '4px solid var(--border)',
-                borderTopColor: 'var(--orange)',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-                margin: '0 auto',
-              }} />
-            </div>
-            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Verifying Payment</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
-              Please wait while we confirm your payment with PhonePe...
-            </p>
-          </>
-        )}
+        {status === 'loading' && <LoadingVideo />}
 
         {/* Error State (no attemptId) */}
         {status === 'error' && (

@@ -19,7 +19,7 @@ export default function LoadingScreen({ done }) {
     <div
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,
-        background: '#0d0d0d',
+        background: '#000000',
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
         gap: 28, padding: 24,

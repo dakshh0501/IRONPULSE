@@ -2,7 +2,8 @@ rules_version = '2';
 
 // ══════════════════════════════════════════════════════════
 //  IRONPULSE — Firestore Security Rules
-//  Roles: admin | trainer | member | pending
+//  Roles: super_admin | gym_admin | trainer | member | pending | gym_owner_pending
+//  Legacy aliases: admin + isSuperAdmin → super_admin, gym_owner → gym_admin
 // ══════════════════════════════════════════════════════════
 
 service cloud.firestore {
@@ -10,7 +11,6 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ── HELPERS ───────────────────────────────────────────
-    // Defined inside match scope so $(database) resolves.
 
     function getRole() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
@@ -20,8 +20,23 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isAdmin() {
-      return isAuthed() && getRole() == 'admin';
+    // Super admin: admin role with isSuperAdmin flag on user doc
+    function isSuperAdmin() {
+      return isAuthed() && (
+        getRole() == 'super_admin' ||
+        (getRole() == 'admin' &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isSuperAdmin == true)
+      );
+    }
+
+    // Gym-level admin: gym_admin role OR gym_owner role OR legacy admin (non-super)
+    function isGymAdmin() {
+      return isAuthed() && (
+        getRole() == 'gym_admin' ||
+        getRole() == 'gym_owner' ||
+        (getRole() == 'admin' &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isSuperAdmin != true)
+      );
     }
 
     function isTrainer() {
@@ -32,21 +47,26 @@ service cloud.firestore {
       return isAuthed() && getRole() == 'member';
     }
 
-    function isStaff() {
-      return isAdmin() || isTrainer();
+    // Platform staff: super admin or gym admin
+    function isAdminOrOwner() {
+      return isSuperAdmin() || isGymAdmin();
     }
 
+    // Staff: anyone managing the gym (super admin, gym admin, trainer)
+    function isStaff() {
+      return isSuperAdmin() || isGymAdmin() || isTrainer();
+    }
+
+    // Approved users who can read plans etc.
     function isApproved() {
       return isAuthed() && (
-        getRole() == 'admin' ||
+        getRole() == 'super_admin' ||
+        getRole() == 'gym_admin' ||
+        getRole() == 'gym_owner' ||
         getRole() == 'trainer' ||
-        getRole() == 'member'
+        getRole() == 'member' ||
+        (getRole() == 'admin')
       );
-    }
-
-    function isSuperAdmin() {
-      return isAuthed() &&
-        exists(/databases/$(database)/documents/superAdmins/$(request.auth.uid));
     }
 
     function isOwnAttendance(resourceMemberId) {
@@ -62,28 +82,26 @@ service cloud.firestore {
 
     // ════════════════════════════════════════════════════════
     //  USERS
-    //  Doc ID = Firebase Auth UID. Role stored here.
     // ════════════════════════════════════════════════════════
     match /users/{uid} {
 
       allow read: if isAuthed() && (
-        request.auth.uid == uid || isAdmin()
+        request.auth.uid == uid || isStaff()
       );
 
-      allow create: if (isAuthed() && request.auth.uid == uid) || isAdmin();
+      allow create: if (isAuthed() && request.auth.uid == uid) || isStaff();
 
       allow update: if isAuthed() && (
         (request.auth.uid == uid &&
           request.resource.data.role == resource.data.role)
-        || isAdmin()
+        || isStaff()
       );
 
-      allow delete: if isAdmin();
+      allow delete: if isSuperAdmin();
     }
 
     // ════════════════════════════════════════════════════════
     //  MEMBERS
-    //  authUid = Firebase Auth UID. trainerId = Firestore doc ID.
     // ════════════════════════════════════════════════════════
     match /members/{memberId} {
 
@@ -92,57 +110,49 @@ service cloud.firestore {
         resource.data.authUid == request.auth.uid
       );
 
-      allow create: if isAdmin();
-
-      allow update: if isAdmin() || (
+      allow create: if isAdminOrOwner();
+      allow update: if isAdminOrOwner() || (
         isTrainer() &&
         request.resource.data.amountPaid == resource.data.amountPaid &&
         request.resource.data.planPrice == resource.data.planPrice
       );
-
-      allow delete: if isAdmin();
+      allow delete: if isAdminOrOwner();
     }
 
     // ════════════════════════════════════════════════════════
     //  TRAINERS
-    //  authUid = Firebase Auth UID.
     // ════════════════════════════════════════════════════════
     match /trainers/{trainerId} {
 
       allow read: if isStaff();
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow create: if isAdminOrOwner();
+      allow update: if isAdminOrOwner();
+      allow delete: if isAdminOrOwner();
     }
 
     // ════════════════════════════════════════════════════════
     //  PAYMENTS
-    //  memberId = Firestore doc ID of the member.
     // ════════════════════════════════════════════════════════
     match /payments/{paymentId} {
 
-      allow read: if isAdmin() || isOwnMemberDoc(resource.data.memberId);
-
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow read: if isAdminOrOwner() || isOwnMemberDoc(resource.data.memberId);
+      allow create: if isAdminOrOwner();
+      allow update: if isAdminOrOwner();
+      allow delete: if isAdminOrOwner();
     }
 
     // ════════════════════════════════════════════════════════
     //  ATTENDANCE
-    //  memberId = Firebase Auth UID.
     // ════════════════════════════════════════════════════════
     match /attendance/{attendanceId} {
 
       allow read: if isStaff() || isOwnAttendance(resource.data.memberId);
-
       allow create: if isStaff() || (
         isMember() &&
         request.resource.data.memberId == request.auth.uid
       );
-
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow update: if isAdminOrOwner();
+      allow delete: if isAdminOrOwner();
     }
 
     // ════════════════════════════════════════════════════════
@@ -151,9 +161,9 @@ service cloud.firestore {
     match /plans/{planId} {
 
       allow read: if isApproved();
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow create: if isSuperAdmin() || isGymAdmin();
+      allow update: if isSuperAdmin() || isGymAdmin();
+      allow delete: if isSuperAdmin() || isGymAdmin();
     }
 
     // ════════════════════════════════════════════════════════
@@ -166,10 +176,9 @@ service cloud.firestore {
         (resource.data.memberId == request.auth.uid ||
          resource.data.authUid == request.auth.uid)
       );
-
       allow create: if isStaff();
       allow update: if isStaff();
-      allow delete: if isAdmin();
+      allow delete: if isAdminOrOwner();
     }
 
     // ════════════════════════════════════════════════════════
@@ -182,115 +191,119 @@ service cloud.firestore {
         (resource.data.memberId == request.auth.uid ||
          resource.data.authUid == request.auth.uid)
       );
-
       allow create: if isStaff();
       allow update: if isStaff();
-      allow delete: if isAdmin();
+      allow delete: if isAdminOrOwner();
     }
 
     // ════════════════════════════════════════════════════════
     //  PROGRESS LOGS
-    //  memberId = Firestore doc ID of the member.
     // ════════════════════════════════════════════════════════
     match /progressLogs/{logId} {
 
       allow read: if isStaff() || isOwnMemberDoc(resource.data.memberId);
-
       allow create: if isStaff() || (
         isMember() &&
         isOwnMemberDoc(request.resource.data.memberId)
       );
-
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow update: if isAdminOrOwner();
+      allow delete: if isAdminOrOwner();
     }
 
     // ════════════════════════════════════════════════════════
     //  SUPPORT TICKETS
-    //  No owner field in current app schema — admin-only read.
     // ════════════════════════════════════════════════════════
     match /supportTickets/{ticketId} {
 
-      allow read: if isAdmin();
+      allow read: if isAdminOrOwner();
       allow create: if isAuthed();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow update: if isAdminOrOwner();
+      allow delete: if isAdminOrOwner();
     }
 
     // ════════════════════════════════════════════════════════
     //  FEATURE REQUESTS
-    //  Same access as supportTickets.
     // ════════════════════════════════════════════════════════
     match /featureRequests/{requestId} {
 
-      allow read: if isAdmin();
+      allow read: if isAdminOrOwner();
       allow create: if isAuthed();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow update: if isAdminOrOwner();
+      allow delete: if isAdminOrOwner();
     }
 
     // ════════════════════════════════════════════════════════
     //  SETTINGS
-    //  docId = 'gym' | 'pricing' | 'theme' | 'notifications' | ...
     // ════════════════════════════════════════════════════════
     match /settings/{docId} {
 
-      allow read: if isAdmin() || (
+      allow read: if isAdminOrOwner() || (
         isApproved() &&
         (docId == 'gym' || docId.matches('.*:gym$'))
       );
-
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow create: if isAdminOrOwner();
+      allow update: if isAdminOrOwner();
+      allow delete: if isAdminOrOwner();
     }
 
-// ════════════════════════════════════════════════════════
-     //  GYMS (global — multi-tenant registry)
-     // ════════════════════════════════════════════════════════
-     match /gyms/{gymId} {
+    // ════════════════════════════════════════════════════════
+    //  GYMS (global — multi-tenant registry)
+    // ════════════════════════════════════════════════════════
+    match /gyms/{gymId} {
 
-       allow read: if isAdmin() || isTrainer();
-       allow create: if isAdmin();
-       allow update: if isAdmin();
-       allow delete: if isAdmin();
-     }
+      allow read: if isStaff();
+      allow create: if isSuperAdmin() || (
+        isAuthed() &&
+        request.resource.data.ownerUid == request.auth.uid
+      );
+      allow update: if isAdminOrOwner();
+      allow delete: if isSuperAdmin();
+    }
 
-     // ════════════════════════════════════════════════════════
-     //  SUBSCRIPTIONS (global — billing per gym)
-     // ════════════════════════════════════════════════════════
-     match /subscriptions/{subId} {
+    // ════════════════════════════════════════════════════════
+    //  SUBSCRIPTIONS (global — billing per gym)
+    // ════════════════════════════════════════════════════════
+    match /subscriptions/{subId} {
 
-       allow read: if isAdmin();
-       allow create: if isAdmin();
-       allow update: if isAdmin();
-       allow delete: if isAdmin();
-     }
+      allow read: if isAdminOrOwner();
+      allow create: if isAdminOrOwner();
+      allow update: if isAdminOrOwner();
+      allow delete: if isSuperAdmin();
+    }
 
-     // ════════════════════════════════════════════════════════
-     //  PAYMENT ATTEMPTS (PhonePe integration)
-     //  Tracks payment lifecycle: pending → success/failed/cancelled
-     // ════════════════════════════════════════════════════════
-      match /paymentAttempts/{attemptId} {
+    // ════════════════════════════════════════════════════════
+    //  PAYMENT ATTEMPTS (PhonePe integration)
+    // ════════════════════════════════════════════════════════
+    match /paymentAttempts/{attemptId} {
 
-        allow read: if isAdmin();
-        allow create: if isAdmin();
-        allow update: if isAdmin();
-        allow delete: if isAdmin();
-      }
+      allow read: if isAdminOrOwner();
+      allow create: if isAdminOrOwner();
+      allow update: if isAdminOrOwner();
+      allow delete: if isSuperAdmin();
+    }
 
-      // ════════════════════════════════════════════════════════
-      //  SUPER ADMINS — elevated system administrators
-      //  Bootstrapping: first entry must be created manually in
-      //  Firebase Console or via a one-time setup script.
-      // ════════════════════════════════════════════════════════
-      match /superAdmins/{uid} {
+    // ════════════════════════════════════════════════════════
+    //  NOTIFICATIONS
+    // ════════════════════════════════════════════════════════
+    match /notifications/{notifId} {
 
-        allow read: if isAuthed();
-        allow create: if isSuperAdmin();
-        allow update: if isSuperAdmin();
-        allow delete: if isSuperAdmin();
-      }
+      allow read: if isSuperAdmin() || (
+        isAuthed() &&
+        resource.data.userId == request.auth.uid
+      );
 
-   } // end match /databases/{database}/documents
- } // end service cloud.firestore
+      allow create: if isAuthed();
+
+      allow update: if isSuperAdmin() || (
+        isAuthed() &&
+        resource.data.userId == request.auth.uid
+      );
+
+      allow delete: if isSuperAdmin() || (
+        isAuthed() &&
+        resource.data.userId == request.auth.uid
+      );
+    }
+
+  } // end match /databases/{database}/documents
+} // end service cloud.firestore

@@ -4,7 +4,7 @@
 
 import { initializeApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
-import { getAuth } from 'firebase/auth'
+import { getAuth, browserLocalPersistence, setPersistence } from 'firebase/auth'
 import { getStorage } from 'firebase/storage'
 import { getFunctions } from 'firebase/functions'
 
@@ -23,5 +23,18 @@ const app = initializeApp(firebaseConfig)
 // Export instances
 export const db = getFirestore(app)
 export const auth = getAuth(app)
+
+// Explicitly set persistence to local (IndexedDB) — required for Capacitor
+// WebView on Android where IndexedDB must persist across app restarts.
+// Set synchronously on init to ensure persistence is configured before any
+// auth operation. Catch and log any failure to avoid unhandled rejection.
+;(async () => {
+  try {
+    await setPersistence(auth, browserLocalPersistence)
+  } catch (err) {
+    console.error('[AUDIT] setPersistence failed:', err?.code || err?.name, err?.message)
+  }
+})()
+
 export const storage = getStorage(app)
 export const functions = getFunctions(app)

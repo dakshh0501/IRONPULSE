@@ -27,6 +27,7 @@ import {
   auth
 } from '../firebase'
 import { db } from '../firebase'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 
 // Secondary auth instance for creating trainer accounts
 // so the admin stays logged in on the main auth instance
@@ -170,6 +171,15 @@ export async function deleteMember(memberId) {
       doc(db, 'users', authUid)
 
     await deleteDoc(userRef)
+
+    // Delete Firebase Auth user via Cloud Function (Admin SDK required)
+    try {
+      const functions = getFunctions()
+      const deleteUserFn = httpsCallable(functions, 'deleteAuthUser')
+      await deleteUserFn({ uid: authUid })
+    } catch (cfErr) {
+      console.error('deleteMember: failed to delete Auth user (non-blocking):', cfErr)
+    }
   }
 }
 // ─────────────────────────────────────────────
@@ -370,6 +380,15 @@ export async function deleteTrainer(
       doc(db, 'users', authUid)
 
     await deleteDoc(userRef)
+
+    // Delete Firebase Auth user via Cloud Function (Admin SDK required)
+    try {
+      const functions = getFunctions()
+      const deleteUserFn = httpsCallable(functions, 'deleteAuthUser')
+      await deleteUserFn({ uid: authUid })
+    } catch (cfErr) {
+      console.error('deleteTrainer: failed to delete Auth user (non-blocking):', cfErr)
+    }
   }
 }
 
@@ -716,16 +735,32 @@ export function subscribeToGyms(callback) {
 }
 
 export async function addGym(gymData, ownerUid) {
-  const docRef = await addDoc(
-    collection(db, 'gyms'),
-    {
-      ...gymData,
-      ownerUid,
-      approvalStatus: 'pending',
-      createdAt: serverTimestamp(),
-    }
-  )
-  return docRef.id
+  const data = {
+    ...gymData,
+    ownerUid,
+    approvalStatus: 'pending',
+    createdAt: serverTimestamp(),
+  }
+  console.log('[ADDGYM FIRESTORE] about to call addDoc', {
+    operation: 'addDoc',
+    collection: 'gyms',
+    data: { ...data, createdAt: '<serverTimestamp>' },
+  })
+  try {
+    const docRef = await addDoc(collection(db, 'gyms'), data)
+    console.log('[ADDGYM FIRESTORE] addDoc SUCCEEDED id:', docRef.id)
+    return docRef.id
+  } catch (e) {
+    console.error('[ADDGYM FIRESTORE] addDoc FAILED', {
+      operation: 'addDoc',
+      collection: 'gyms',
+      data: { ...data, createdAt: '<serverTimestamp>' },
+      code: e.code,
+      message: e.message,
+      error: e,
+    })
+    throw e
+  }
 }
 
 export async function updateGym(gymId, updatedData) {
@@ -979,30 +1014,7 @@ export async function migrateSubscriptions() {
   return { migrated: 0, total: snapshot.size }
 }
 
+// ── superAdmins collection removed ──────────────────────────
+// isSuperAdmin is now a boolean field on the user document.
+// See AuthContext.jsx and rbac.js for the new approach.
 // ───────────────────────────────────────────────────────────
-// SUPER ADMIN CRUD — single source of truth remains /users/{uid}
-// superAdmins/{uid} is a lightweight flag doc; no profile fields
-// are duplicated from the users collection.
-// ───────────────────────────────────────────────────────────
-
-export async function getSuperAdmin(uid) {
-  const snap = await getDoc(doc(db, 'superAdmins', uid))
-  return snap.exists() ? { uid: snap.id, ...snap.data() } : null
-}
-
-export async function grantSuperAdmin({ uid, email, name, createdBy }) {
-  const data = {
-    uid,
-    email,
-    name,
-    createdAt: serverTimestamp(),
-  }
-  if (createdBy) data.createdBy = createdBy
-
-  await setDoc(doc(db, 'superAdmins', uid), data)
-  return data
-}
-
-export async function revokeSuperAdmin(uid) {
-  await deleteDoc(doc(db, 'superAdmins', uid))
-}

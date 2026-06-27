@@ -29,6 +29,7 @@
     "@capacitor/cli": "^8.4.1",
     "@capacitor/core": "^8.4.1",
     "@vitejs/plugin-react": "^4.2.0",
+    "jimp": "^1.6.1",
     "vite": "^5.1.0"
   }
 }

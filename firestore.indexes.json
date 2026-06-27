@@ -62,13 +62,6 @@
       ]
     },
     {
-      "collectionGroup": "paymentAttempts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "merchantTransactionId", "order": "ASCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "subscriptions",
       "queryScope": "COLLECTION",
       "fields": [
@@ -82,6 +75,14 @@
       "fields": [
         { "fieldPath": "gymId", "order": "ASCENDING" },
         { "fieldPath": "paymentStatus", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }
   ],

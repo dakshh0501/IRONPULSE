@@ -127,10 +127,21 @@ function MemberModal({ member, trainers, onSave, onClose, plans }) {
 
       onClose()
     } catch (err) {
+      console.error('Member save error:', err?.code || err?.name, err?.message)
       if (err?.code === 'auth/email-already-in-use') {
         setErrors({ email: 'This email already has an account. Edit the member instead.' })
+      } else if (err?.code === 'auth/network-request-failed') {
+        setErrors({ email: 'Network error. Check your connection and try again.' })
+      } else if (err?.code === 'auth/weak-password') {
+        setErrors({ password: 'Password must be at least 6 characters.' })
+      } else if (err?.code === 'auth/invalid-email') {
+        setErrors({ email: 'Please enter a valid email address.' })
+      } else if (err?.code === 'auth/operation-not-allowed') {
+        setErrors({ email: 'Email/Password sign-in is not enabled. Contact support.' })
+      } else if (err?.code === 'auth/too-many-requests') {
+        setErrors({ email: 'Too many attempts. Please wait a moment.' })
       } else {
-        setErrors({ email: err?.message || 'Something went wrong. Try again.' })
+        setErrors({ email: err?.message || `Failed to save member. Please try again.` })
       }
     } finally {
       setLoading(false)
@@ -388,9 +399,9 @@ const STATUS_BADGE = {
 // ─────────────────────────────────────────────────────────────
 export default function Members({ search }) {
   const { members, trainers, plans, addMember, updateMember, deleteMember, checkInMember, attendance } = useApp()
-  const { role, currentUser } = useAuth()
-  const isAdmin   = role === 'admin'
-  const isTrainer = role === 'trainer'
+  const { effectiveRole, currentUser } = useAuth()
+  const isAdmin   = effectiveRole === 'super_admin' || effectiveRole === 'gym_admin'
+  const isTrainer = effectiveRole === 'trainer'
 
   const [filter,     setFilter]     = useState('All')
   const [modalOpen,  setModalOpen]  = useState(false)
@@ -412,7 +423,7 @@ export default function Members({ search }) {
   t => t.authUid === currentUser?.uid
 )
     const matchTrainer =
-  role === 'trainer'
+  effectiveRole === 'trainer'
     ? m.trainerId === currentTrainer?.id
     : true
     const matchFilter  = filter === 'All' || m.status === filter

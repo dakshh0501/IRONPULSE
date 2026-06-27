@@ -21,6 +21,8 @@ export default function Auth() {
     name: '',
     email: '',
     password: '',
+    gymName: '',
+    phone: '',
   })
 
   function handleChange(e) {
@@ -42,13 +44,13 @@ export default function Auth() {
         }
       } else if (mode === 'signup') {
         try {
-          const result = await register({ name: form.name, email: form.email, password: form.password })
+          const result = await register({ name: form.name, email: form.email, password: form.password, gymName: form.gymName, phone: form.phone })
           // result === 'pending'
           if (result && result.includes('pending')) {
             setPendingName(form.name)
             setMode('pending')
             setAuthError('')
-            setForm({ name: '', email: '', password: '' })
+            setForm({ name: '', email: '', password: '', gymName: '', phone: '' })
           }
         } catch (err) {
           // Error is already in authError from AuthContext
@@ -214,6 +216,29 @@ export default function Auth() {
                     name="name"
                     placeholder="Full Name"
                     value={form.name}
+                    onChange={handleChange}
+                    required
+                    style={inp}
+                  />
+                )}
+
+                {mode === 'signup' && (
+                  <input
+                    name="gymName"
+                    placeholder="Gym Name"
+                    value={form.gymName}
+                    onChange={handleChange}
+                    required
+                    style={inp}
+                  />
+                )}
+
+                {mode === 'signup' && (
+                  <input
+                    name="phone"
+                    type="tel"
+                    placeholder="Phone Number"
+                    value={form.phone}
                     onChange={handleChange}
                     required
                     style={inp}

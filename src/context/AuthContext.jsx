@@ -11,9 +11,11 @@ import {
   logOut,
   resetPassword,
   getUserProfile,
+  checkPendingGymOwnerRegistration,
 } from '../services/authService'
-import { getSettings, getSuperAdmin } from '../services/firestoreService'
+import { getSettings } from '../services/firestoreService'
 import { applyAccentColor, DEFAULT_ACCENT } from '../utils/theme'
+import { getEffectiveRole } from '../utils/rbac'
 
 const AuthContext = createContext(null)
 
@@ -73,6 +75,7 @@ export function AuthProvider({ children }) {
     const unsubscribe = subscribeToAuthState(async (firebaseUser) => {
       try {
         if (!firebaseUser) {
+          console.log('[AUDIT] onAuthStateChanged: null user (signed out or cold start)')
           setCurrentUser(null)
           setUserProfile(null)
           setRole(null)
@@ -81,25 +84,69 @@ export function AuthProvider({ children }) {
           return
         }
 
-        console.log('[AUDIT] AuthContext listener fired for UID:', firebaseUser.uid)
-        const profile = await getUserProfile(firebaseUser.uid)
-        console.log('[AUDIT] AuthContext profile result:', profile ? 'found' : 'null', 'role:', profile?.role)
+        console.log('[AUDIT] onAuthStateChanged: user present UID:', firebaseUser.uid)
+        console.log('[AUDIT] onAuthStateChanged: currentUser before profile:', firebaseUser.email)
 
-        if (!profile) {
-          console.log('[AUDIT] AuthContext: no profile, signing up ref:', signingUpRef.current)
-          if (!signingUpRef.current) {
-            await logOut()
-            setCurrentUser(null)
-            setUserProfile(null)
-            setRole(null)
-            setIsSuperAdmin(false)
-            setAuthError('Account profile not found.')
-            setAuthLoading(false)
-          }
+        // ── SIGNUP GUARD ──────────────────────────────────────────
+        // If register() is in progress, the users/{uid} doc hasn't been
+        // written yet.  Skip the profile check — signUp() will write the
+        // doc and sign out, letting this handler clean up normally.
+        if (signingUpRef.current) {
+          console.log('[AUDIT] onAuthStateChanged: signup in progress, deferring profile check')
           return
         }
 
+        // Retry profile fetch up to 3 times with 1s delay for transient Firestore errors
+        // (e.g. app resume from Recents on Android where Firestore reconnects slowly)
+        let profile = null
+        let profileError = null
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            console.log(`[AUDIT] getUserProfile attempt ${attempt}/3 for UID:`, firebaseUser.uid)
+            profile = await getUserProfile(firebaseUser.uid)
+            profileError = null
+            console.log(`[AUDIT] getUserProfile attempt ${attempt}/3 result:`, profile ? 'found' : 'null')
+            break
+          } catch (err) {
+            profileError = err
+            console.log(`[AUDIT] getUserProfile attempt ${attempt}/3 FAILED:`, err.code || err.name, err.message)
+            if (attempt < 3) {
+              console.log('[AUDIT] waiting 1s before retry...')
+              await new Promise(r => setTimeout(r, 1000))
+            }
+          }
+        }
+
+        if (profileError && !profile) {
+          // All retries exhausted — Firestore is unavailable.
+          // Keep the user logged in, show error, set authLoading=false so app renders.
+          // The user will see auth-related UI and can retry manually.
+          console.error('[AUDIT] All getUserProfile retries exhausted. Keeping user signed in.')
+          setCurrentUser(firebaseUser)
+          setUserProfile(null)
+          setRole(null)
+          setIsSuperAdmin(false)
+          setAuthError('Unable to load profile. Check your network connection.')
+          setAuthLoading(false)
+          return
+        }
+
+        if (!profile) {
+          console.log('[AUDIT] AuthContext: no profile document found for UID:', firebaseUser.uid)
+          await logOut()
+          setCurrentUser(null)
+          setUserProfile(null)
+          setRole(null)
+          setIsSuperAdmin(false)
+          setAuthError('Account profile not found.')
+          setAuthLoading(false)
+          return
+        }
+
+        console.log('[AUDIT] AuthContext profile found — role:', profile.role)
+
         if (profile.role === 'pending') {
+          console.log('[AUDIT] AuthContext: role is pending — signing out')
           await logOut()
           setCurrentUser(null)
           setUserProfile(null)
@@ -111,29 +158,22 @@ export function AuthProvider({ children }) {
         }
 
         // Approved — set state
+        console.log('[AUDIT] AuthContext: setting approved state — role:', profile.role)
         setCurrentUser(firebaseUser)
         setUserProfile(profile)
         setRole(profile.role)
         setAuthError('')
 
-        // Super admin check: only admins can be super admins.
-        // Reads superAdmins/{uid} — lightweight flag doc, no profile duplication.
-        if (profile.role === 'admin') {
-          const sa = await getSuperAdmin(firebaseUser.uid)
-          setIsSuperAdmin(!!sa)
-        } else {
-          setIsSuperAdmin(false)
-        }
+        // Super admin check: stored directly on the user doc as isSuperAdmin.
+        setIsSuperAdmin(profile.role === 'admin' && profile.isSuperAdmin === true)
 
         // Load on login / load on refresh — gym-wide accent applies
         // to admin, trainer, and member alike.
         await loadAndApplyAccent(profile?.gymId)
       } catch (err) {
-        console.error('Auth subscription error:', err)
-        setCurrentUser(null)
-        setUserProfile(null)
-        setRole(null)
-        setIsSuperAdmin(false)
+        // Catch-all: unexpected error in the handler itself (not Firestore).
+        // Do NOT sign out — keep state and log.
+        console.error('[AUDIT] Auth subscription UNEXPECTED error:', err)
       }
       setAuthLoading(false)
     })
@@ -144,12 +184,22 @@ export function AuthProvider({ children }) {
   // ─────────────────────────────────────────────────────────────
   // REGISTER: Creates user with pending/gym_owner_pending/membership role
   // ─────────────────────────────────────────────────────────────
-  async function register({ name, email, password, gymId }) {
+  async function register({ name, email, password, gymName, phone }) {
     setAuthError('')
+
+    // Duplicate pending registration check
+    if (gymName) {
+      const exists = await checkPendingGymOwnerRegistration(email)
+      if (exists) {
+        setAuthError('This email already has a pending approval request.')
+        throw new Error('This email already has a pending approval request.')
+      }
+    }
+
     signingUpRef.current = true
     try {
-      // Determine role based on context - in real app this would be passed from the form
-      await signUp({ name, email, password, gymId, role: 'gym_owner_pending' })
+      const gymData = { gymName, ownerName: name, email, phone }
+      await signUp({ name, email, password, gymData, role: 'gym_owner_pending' })
       return 'gym_owner_pending'
     } catch (err) {
       const msg = friendlyError(err.code || err.message)
@@ -174,12 +224,7 @@ export function AuthProvider({ children }) {
 
       // Super admin check in the login path (belt-and-suspenders with
       // the auth subscription listener above).
-      if (userRole === 'admin') {
-        const sa = await getSuperAdmin(user.uid)
-        setIsSuperAdmin(!!sa)
-      } else {
-        setIsSuperAdmin(false)
-      }
+      setIsSuperAdmin(userRole === 'admin' && profile.isSuperAdmin === true)
 
       // Belt-and-suspenders: apply accent here too in case this path
       // resolves before the subscription listener above does.
@@ -199,6 +244,8 @@ export function AuthProvider({ children }) {
   // LOGOUT
   // ─────────────────────────────────────────────────────────────
   async function logout() {
+    console.log('[AUDIT] logout() called')
+    console.trace('[AUDIT] logout() stack trace:')
     try {
       await logOut()
     } finally {
@@ -237,22 +284,81 @@ export function AuthProvider({ children }) {
   // ─────────────────────────────────────────────────────────────
   function friendlyError(code) {
     const map = {
-      'auth/user-not-found':          'No account found with this email.',
-      'auth/wrong-password':          'Incorrect password.',
-      'auth/invalid-credential':      'Incorrect email or password.',
-      'auth/email-already-in-use':    'This email is already registered.',
-      'auth/weak-password':           'Password must be at least 6 characters.',
-      'auth/invalid-email':           'Please enter a valid email.',
-      'auth/too-many-requests':       'Too many attempts. Please wait.',
-      'auth/network-request-failed':  'Network error. Check your connection.',
+      'auth/user-not-found':                    'No account found with this email.',
+      'auth/wrong-password':                    'Incorrect password.',
+      'auth/invalid-credential':                'Incorrect email or password.',
+      'auth/email-already-in-use':              'This email is already registered.',
+      'auth/weak-password':                     'Password must be at least 6 characters.',
+      'auth/invalid-email':                     'Please enter a valid email.',
+      'auth/too-many-requests':                 'Too many attempts. Please wait.',
+      'auth/network-request-failed':            'Network error. Check your connection.',
+      'auth/operation-not-allowed':             'This sign-in method is not enabled. Contact support.',
+      'auth/user-disabled':                     'This account has been disabled. Contact support.',
+      'auth/internal-error':                    'Authentication service error. Please try again.',
+      'auth/account-exists-with-different-credential': 'An account already exists with a different sign-in method.',
+      'auth/requires-recent-login':             'Please log out and log in again before making this change.',
+      'auth/invalid-verification-code':         'Invalid verification code. Please try again.',
+      'auth/invalid-verification-id':           'Invalid verification ID. Please request a new code.',
+      'auth/missing-phone-number':              'Please enter a phone number.',
+      'auth/invalid-phone-number':              'Please enter a valid phone number.',
+      'auth/quota-exceeded':                    'SMS quota exceeded. Please try again later.',
+      'auth/app-not-authorized':                'This app is not authorized. Contact support.',
+      'auth/credential-already-in-use':         'This credential is already linked to another account.',
+      'auth/expired-action-code':               'This action link has expired. Please try again.',
+      'auth/invalid-action-code':               'This action link is invalid. Please try again.',
+      'auth/missing-email':                     'Please enter an email address.',
+      'auth/provider-already-linked':           'This account is already linked to this provider.',
+      'auth/timeout':                           'Request timed out. Please try again.',
+      'auth/invalid-persistence-type':          'Session persistence error. Please restart the app.',
+      'auth/web-context-cancelled':             'Sign-in was cancelled.',
+      'auth/web-storage-unsupported':           'Session storage is not supported. Please update your browser.',
+      'auth/claims-too-large':                  'Account data is too large. Contact support.',
+      'auth/id-token-expired':                  'Your session has expired. Please log in again.',
+      'auth/id-token-revoked':                  'Your session has been revoked. Please log in again.',
+      'auth/invalid-continue-uri':              'Invalid continue URL. Contact support.',
+      'auth/unauthorized-continue-uri':         'Unauthorized continue URL. Contact support.',
+      'auth/invalid-tenant-id':                 'Invalid tenant. Contact support.',
+      'auth/tenant-id-mismatch':                'Tenant mismatch. Contact support.',
+      'auth/user-token-expired':                'Your session has expired. Please log in again.',
+      'auth/user-mismatch':                     'User does not match the requested account.',
+      'auth/no-such-provider':                  'No such sign-in provider. Contact support.',
+      'auth/admin-restricted-operation':        'This operation is restricted to admins only.',
+      'auth/cancelled-popup-request':           'Sign-in popup was cancelled.',
+      'auth/popup-blocked':                     'Sign-in popup was blocked by your browser.',
+      'auth/popup-closed-by-user':              'Sign-in popup was closed before completing.',
+      'auth/unauthorized-domain':               'This domain is not authorized. Contact support.',
+      'auth/unsupported-first-factor':          'This sign-in method is not supported.',
+      'auth/email-change-needs-verification':   'Please verify your new email address.',
     }
-    return map[code] || 'Something went wrong. Please try again.'
+    return map[code] || `Something went wrong. Please try again. (${code || 'unknown'})`
   }
 
   // ── Derived gymId ───────────────────────────────────────────
   // Read from userProfile (set on the /users/{uid} doc during sign-up
   // or admin-creation), falling back to 'default' for single-gym mode.
   const userGymId = userProfile?.gymId || (currentUser ? 'default' : null)
+
+  // ── Normalized RBAC role ─────────────────────────────────────
+  // Reads isSuperAdmin from the user doc (no extra Firestore query).
+  //   admin + isSuperAdmin → super_admin
+  //   admin + !isSuperAdmin → gym_admin
+  //   gym_owner → gym_admin
+  const effectiveRole = getEffectiveRole({ ...userProfile, isSuperAdmin })
+
+  // ── Super Admin consistency guard ───────────────────────────
+  // Defensive programming: if effectiveRole and raw isSuperAdmin
+  // ever disagree (data corruption, logic bug), demote safely to
+  // gym_admin instead of granting incorrect elevated access.
+  useEffect(() => {
+    if (effectiveRole === 'super_admin' && isSuperAdmin !== true) {
+      console.error('[CRITICAL] super_admin effectiveRole without isSuperAdmin=true — demoting to gym_admin')
+      setIsSuperAdmin(false)
+    }
+    if (isSuperAdmin === true && role !== 'admin') {
+      console.error('[CRITICAL] isSuperAdmin=true on non-admin role — reverting')
+      setIsSuperAdmin(false)
+    }
+  }, [effectiveRole, isSuperAdmin, role])
 
   // ─────────────────────────────────────────────────────────────
   // Context value
@@ -261,12 +367,14 @@ export function AuthProvider({ children }) {
     currentUser,
     userProfile,
     role,
+    effectiveRole,
     authLoading,
     authError,
     userGymId,
     isLoggedIn:     !!currentUser && role !== 'pending',
     isAdmin:        role === 'admin',
     isSuperAdmin,
+    isGymAdmin:     effectiveRole === 'gym_admin',
     isTrainer:      role === 'trainer',
     isMember:       role === 'member',
     login,

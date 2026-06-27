@@ -288,8 +288,8 @@ function ManualModal({ members, checkedInIds, onCheckIn, onClose }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function ReceptionMode() {
   const { attendance, members, gymSettings, gymId } = useApp()
-  const { role } = useAuth()
-  if (role !== 'admin' && role !== 'trainer') {
+  const { effectiveRole } = useAuth()
+  if (effectiveRole !== 'super_admin' && effectiveRole !== 'gym_admin' && effectiveRole !== 'trainer') {
     return (
       <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
