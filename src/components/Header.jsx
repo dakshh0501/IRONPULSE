@@ -25,6 +25,7 @@ const PAGE_TITLES = {
   revenue:       'Platform Revenue',
   security:      'Security',
   license:       'License Keys',
+  devices:       'Registered Devices',
 }
 
 export default function Header({ currentPage, setPage, search, setSearch, setMobileOpen }) {

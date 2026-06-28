@@ -24,6 +24,7 @@ import {
   deleteDoc,
 } from 'firebase/firestore'
 import { auth, db } from '../firebase'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 import { addGym } from './firestoreService'
 
 export async function signUp({ name, email, password, gymData, role }) {
@@ -306,7 +307,10 @@ export async function approveUser(uid, newRole) {
     const userSnap = await getDoc(doc(db, 'users', uid))
     const userData = userSnap.exists() ? userSnap.data() : {}
 
-    await updateDoc(doc(db, 'users', uid), { role: newRole })
+    await updateDoc(doc(db, 'users', uid), {
+      role: newRole,
+      approvedAt: serverTimestamp(),
+    })
 
     if (newRole === 'member') {
       const memberRef = doc(db, 'members', uid)
@@ -341,12 +345,25 @@ export async function approveUser(uid, newRole) {
   }
 }
 
-export async function getPendingUsers() {
+export async function rejectUser(uid) {
   try {
-    const q = query(
-      collection(db, 'users'),
-      where('role', '==', 'pending')
-    )
+    await deleteDoc(doc(db, 'users', uid))
+    const functions = getFunctions()
+    const deleteUserFn = httpsCallable(functions, 'deleteAuthUser')
+    await deleteUserFn({ uid })
+  } catch (err) {
+    console.error('rejectUser error:', err)
+    throw err
+  }
+}
+
+export async function getPendingUsers(gymId) {
+  try {
+    const constraints = [where('role', '==', 'pending')]
+    if (gymId) {
+      constraints.push(where('gymId', '==', gymId))
+    }
+    const q = query(collection(db, 'users'), ...constraints)
     const snap = await getDocs(q)
     return snap.docs.map(doc => ({ uid: doc.id, ...doc.data() }))
   } catch (err) {

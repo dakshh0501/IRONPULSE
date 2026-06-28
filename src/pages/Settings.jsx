@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useApp } from '../context/AppContext'
 import { applyAccentColor, DEFAULT_ACCENT } from '../utils/theme'
 import { useAuth } from '../context/AuthContext'
-import { getSettings, saveSettings, addSupportTicket, addFeatureRequest } from '../services/firestoreService'
+import { getSettings, saveSettings } from '../services/firestoreService'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 import { uploadGymLogo } from '../services/storageService'
@@ -137,10 +137,10 @@ const DEFAULT_BILLING = {
 //  MAIN EXPORT
 // ─────────────────────────────────────────────────────────────
 export default function Settings() {
-  const { darkMode, setDarkMode, gymId } = useApp()
+  const { darkMode, setDarkMode, gymId, addSupportTicket, addFeatureRequest } = useApp()
   const { currentUser, logout, updateUserProfile, effectiveRole } = useAuth()
 
-  if (effectiveRole !== 'super_admin' && effectiveRole !== 'gym_admin') {
+  if (!['super_admin', 'gym_admin'].includes(effectiveRole)) {
     return (
       <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
@@ -149,7 +149,10 @@ export default function Settings() {
       </div>
     )
   }
-  const [activeTab, setActiveTab] = useState('gym')
+  const isSuperAdmin = effectiveRole === 'super_admin'
+  // Gym owners see only gym-level tabs; platform tabs are super_admin only
+  const allowedTabs = TABS.filter(t => isSuperAdmin || !['billing', 'pricing', 'security'].includes(t.key))
+  const [activeTab, setActiveTab] = useState(allowedTabs[0]?.key || 'gym')
 
   // ── Gym Settings ──────────────────────────────────────────
   const [gymForm,    setGymForm]    = useState(DEFAULT_GYM)
@@ -532,7 +535,7 @@ export default function Settings() {
           background:'var(--card)', border:'1px solid var(--card-border)',
           borderRadius:'var(--radius)', padding:'8px 0', position:'sticky', top:80,
         }}>
-          {TABS.map(t => (
+          {allowedTabs.map(t => (
             <button
               key={t.key}
               onClick={() => setActiveTab(t.key)}
@@ -863,7 +866,7 @@ firebase functions:secrets:set PHONEPE_SALT_INDEX`}
                         <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:2 }}>{plan.duration} · {plan.description}</p>
                       </div>
                       <div style={{ textAlign:'right', flexShrink:0 }}>
-                        <div style={{ fontSize:18, fontWeight:700 }}>₹{(plan.price / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <div style={{ fontSize:18, fontWeight:700 }}>₹{plan.price.toLocaleString('en-IN')}</div>
                         <div style={{ fontSize:11, color:'var(--text-muted)' }}>{plan.duration}</div>
                       </div>
                     </div>

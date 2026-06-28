@@ -83,7 +83,7 @@ function ProgressRow({ label, value, max, color, unit }) {
 // ─────────────────────────────────────────────────────────────
 //  LOG ENTRY MODAL
 // ─────────────────────────────────────────────────────────────
-function LogModal({ onSave, onClose, members, currentUser }) {
+function LogModal({ onSave, onClose, members, currentUser, initialData }) {
   const { effectiveRole } = useAuth()
   const isAdmin = effectiveRole === 'super_admin' || effectiveRole === 'gym_admin'
   const isTrainer = effectiveRole === 'trainer'
@@ -101,12 +101,12 @@ function LogModal({ onSave, onClose, members, currentUser }) {
     return activeMembers[0]
   }, [activeMembers, currentUser, isMember])
 
-  const [form, setForm] = useState(() => ({
+  const [form, setForm] = useState(() => initialData ? { ...EMPTY_LOG, ...initialData } : {
     ...EMPTY_LOG,
     date: new Date().toISOString().split('T')[0],
     memberId: defaultMember?.id || '',
     memberName: defaultMember?.name || '',
-  }))
+  })
   const [errors, setErrors] = useState({})
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
@@ -117,7 +117,7 @@ function LogModal({ onSave, onClose, members, currentUser }) {
     if (isAdmin || isTrainer) {
       if (!form.memberId) { setErrors({ memberId: 'Member is required' }); return }
     }
-    onSave({ ...form, id: Date.now() })
+    onSave({ ...form, id: initialData?.id || Date.now() })
     onClose()
   }
 
@@ -137,7 +137,7 @@ function LogModal({ onSave, onClose, members, currentUser }) {
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
-          <div><h3>Log Progress Entry</h3><p>Record today's measurements</p></div>
+          <div><h3>{initialData ? 'Edit Progress Entry' : 'Log Progress Entry'}</h3><p>{initialData ? 'Update measurements' : "Record today's measurements"}</p></div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
@@ -209,8 +209,8 @@ function LogModal({ onSave, onClose, members, currentUser }) {
 //  MAIN EXPORT
 // ─────────────────────────────────────────────────────────────
 export default function Progress({ search = '' }) {
-  const { currentUser, members, progressLogs, addProgressLog } = useApp()
-  const { effectiveRole, userProfile } = useAuth()
+  const { members, progressLogs, addProgressLog, updateProgressLog, deleteProgressLog } = useApp()
+  const { currentUser, effectiveRole, userProfile } = useAuth()
   const isAdmin = effectiveRole === 'super_admin' || effectiveRole === 'gym_admin'
   const isTrainer = effectiveRole === 'trainer'
   const isMember = effectiveRole === 'member'
@@ -224,14 +224,39 @@ export default function Progress({ search = '' }) {
   const defaultMember = activeMembers[0]?.name || ''
 
   const [logOpen,     setLogOpen]     = useState(false)
+  const [editEntry,   setEditEntry]   = useState(null)
   const [chartTab,    setChartTab]    = useState('body')
   const [selectedMember, setSelectedMember] = useState(defaultMember)
 
   const addEntry = async (entry) => {
     try {
-      await addProgressLog(entry)
+      const member = activeMembers.find(m => m.id === entry.memberId)
+      await addProgressLog({
+        ...entry,
+        authUid: member?.authUid || '',
+        trainerId: currentUser?.uid || '',
+        trainerName: userProfile?.name || '',
+      })
     } catch (e) {
       console.error('Failed to save progress entry:', e)
+    }
+  }
+
+  const handleEdit = async (entry) => {
+    try {
+      await updateProgressLog(entry.id, entry)
+      setEditEntry(null)
+    } catch (e) {
+      console.error('Failed to update progress entry:', e)
+    }
+  }
+
+  const handleDelete = async (logId) => {
+    if (!window.confirm('Delete this progress entry? This cannot be undone.')) return
+    try {
+      await deleteProgressLog(logId)
+    } catch (e) {
+      console.error('Failed to delete progress entry:', e)
     }
   }
 
@@ -430,9 +455,9 @@ export default function Progress({ search = '' }) {
             <thead>
               <tr>
                 {[
-                  ...(canSelectMember ? ['Member'] : []),
-                  'Date','Weight','Body Fat','BMI','Muscle','Bench','Squat','Deadlift','Cardio'
-                ].map(h => (
+                    ...(canSelectMember ? ['Member'] : []),
+                    'Date','Weight','Body Fat','BMI','Muscle','Bench','Squat','Deadlift','Cardio',''
+                  ].map(h => (
                   <th key={h} style={{ padding:'9px 14px', textAlign:'left', fontSize:10, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--text-muted)', borderBottom:'1px solid var(--border)', fontWeight:600, whiteSpace:'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -457,6 +482,12 @@ export default function Progress({ search = '' }) {
                   <td style={{ padding:'10px 14px', color:'var(--teal)', fontWeight:700 }}>{e.squat} kg</td>
                   <td style={{ padding:'10px 14px', color:'var(--purple)', fontWeight:700 }}>{e.deadlift} kg</td>
                   <td style={{ padding:'10px 14px', color:'var(--text-muted)' }}>{e.cardio}</td>
+                  {(isAdmin || isTrainer) && (
+                    <td style={{ padding:'10px 14px', whiteSpace:'nowrap' }}>
+                      <button className="btn btn-sm btn-ghost" style={{ marginRight:4 }} onClick={() => setEditEntry(e)}>✎</button>
+                      <button className="btn btn-sm btn-ghost" style={{ color:'var(--red)' }} onClick={() => handleDelete(e.id)}>✕</button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -469,6 +500,13 @@ export default function Progress({ search = '' }) {
     onClose={() => setLogOpen(false)} 
     members={members}
     currentUser={currentUser}
+  />}
+      {editEntry && <LogModal 
+    onSave={handleEdit} 
+    onClose={() => setEditEntry(null)} 
+    members={members}
+    currentUser={currentUser}
+    initialData={editEntry}
   />}
     </div>
   )

@@ -208,7 +208,7 @@ function SubscriptionDetailModal({ sub, gymName, ownerName, onClose, onAction, o
 
 // ── Main Component ─────────────────────────────────────────────
 export default function Subscriptions({ search }) {
-  const { subscriptions, gyms, initiatePayment, paymentAttempts } = useApp()
+  const { subscriptions, gyms, initiatePayment, paymentAttempts, gymId } = useApp()
   const [searchTerm, setSearchTerm] = useState(search || '')
   const [statusFilter, setStatusFilter] = useState('all')
   const [paymentFilter, setPaymentFilter] = useState('all')
@@ -326,7 +326,7 @@ export default function Subscriptions({ search }) {
     if (paying) return
 
     // Prevent duplicate payment attempts
-    const pendingAttempts = await getPendingAttemptsForSubscription(sub.id)
+    const pendingAttempts = await getPendingAttemptsForSubscription(sub.id, gymId)
     if (pendingAttempts.length > 0) {
       alert('A payment is already in progress for this subscription. Please complete or wait for it to expire.')
       return

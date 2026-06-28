@@ -1,9 +1,40 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { getSettings, saveSettings } from '../../services/firestoreService'
 
 const TABS = ['Branding', 'Payment Gateway', 'GST', 'Subscription Plans', 'Email', 'SMS', 'WhatsApp', 'General']
 
 export default function PlatformSettings() {
   const [activeTab, setActiveTab] = useState('Branding')
+  const [form, setForm] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    setLoading(true)
+    getSettings('platform').then(data => {
+      if (data) setForm(data)
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [])
+
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
+
+  const handleSave = async () => {
+    setSaving(true)
+    setError('')
+    try {
+      await saveSettings('platform', form)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } catch (e) {
+      setError('Save failed. Check your connection.')
+      console.error('PlatformSettings save error:', e)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const renderTab = () => {
     switch (activeTab) {
@@ -12,42 +43,35 @@ export default function PlatformSettings() {
           <div>
             <div className="form-group">
               <label className="form-label">Platform Name</label>
-              <input className="input" defaultValue="IRONPULSE" />
+              <input className="form-input" value={form.platformName || ''} onChange={e => set('platformName', e.target.value)} placeholder="IRONPULSE" />
             </div>
             <div className="form-group">
               <label className="form-label">Logo URL</label>
-              <input className="input" placeholder="https://..." />
+              <input className="form-input" value={form.logoUrl || ''} onChange={e => set('logoUrl', e.target.value)} placeholder="https://..." />
             </div>
             <div className="form-group">
               <label className="form-label">Accent Color</label>
-              <input className="input" type="color" defaultValue="#f97316" style={{ width:60, height:40, padding:2 }} />
+              <input className="form-input" type="color" value={form.accentColor || '#e8420a'} onChange={e => set('accentColor', e.target.value)} style={{ width:60, height:40, padding:2 }} />
             </div>
-            <button className="btn btn-primary" style={{ marginTop:12 }}>Save Branding</button>
           </div>
         )
       case 'Payment Gateway':
         return (
           <div>
+            <p style={{ fontSize:13, color:'var(--text-muted)', marginBottom:12 }}>
+              Payment gateway credentials are managed via Firebase CLI secrets for security. Enter the Firestore config here.
+            </p>
             <div className="form-group">
               <label className="form-label">PhonePe Merchant ID</label>
-              <input className="input" placeholder="Enter merchant ID" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Salt Key</label>
-              <input className="input" type="password" placeholder="Enter salt key" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Salt Index</label>
-              <input className="input" placeholder="Enter salt index" />
+              <input className="form-input" value={form.merchantId || ''} onChange={e => set('merchantId', e.target.value)} placeholder="Enter merchant ID" />
             </div>
             <div className="form-group">
               <label className="form-label">Environment</label>
-              <select className="input">
+              <select className="form-select" value={form.environment || 'Sandbox'} onChange={e => set('environment', e.target.value)}>
                 <option>Sandbox</option>
                 <option>Production</option>
               </select>
             </div>
-            <button className="btn btn-primary" style={{ marginTop:12 }}>Save Gateway</button>
           </div>
         )
       case 'GST':
@@ -55,13 +79,12 @@ export default function PlatformSettings() {
           <div>
             <div className="form-group">
               <label className="form-label">GST Rate (%)</label>
-              <input className="input" type="number" defaultValue={18} />
+              <input className="form-input" type="number" value={form.gstRate || 18} onChange={e => set('gstRate', Number(e.target.value))} />
             </div>
             <div className="form-group">
               <label className="form-label">GST Number</label>
-              <input className="input" placeholder="Enter GST number" />
+              <input className="form-input" value={form.gstNumber || ''} onChange={e => set('gstNumber', e.target.value)} placeholder="Enter GST number" />
             </div>
-            <button className="btn btn-primary" style={{ marginTop:12 }}>Save GST</button>
           </div>
         )
       case 'Subscription Plans':
@@ -72,17 +95,16 @@ export default function PlatformSettings() {
             </p>
             <div className="form-group">
               <label className="form-label">Trial Period (days)</label>
-              <input className="input" type="number" defaultValue={14} />
+              <input className="form-input" type="number" value={form.trialDays || 14} onChange={e => set('trialDays', Number(e.target.value))} />
             </div>
             <div className="form-group">
               <label className="form-label">Monthly Price</label>
-              <input className="input" type="number" defaultValue={999} />
+              <input className="form-input" type="number" value={form.monthlyPrice || 999} onChange={e => set('monthlyPrice', Number(e.target.value))} />
             </div>
             <div className="form-group">
               <label className="form-label">Yearly Price</label>
-              <input className="input" type="number" defaultValue={9999} />
+              <input className="form-input" type="number" value={form.yearlyPrice || 9999} onChange={e => set('yearlyPrice', Number(e.target.value))} />
             </div>
-            <button className="btn btn-primary" style={{ marginTop:12 }}>Save Plans</button>
           </div>
         )
       default:
@@ -92,6 +114,14 @@ export default function PlatformSettings() {
           </div>
         )
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="page-container">
+        <p style={{ textAlign:'center', padding:40, color:'var(--text-muted)' }}>Loading platform settings...</p>
+      </div>
+    )
   }
 
   return (
@@ -104,11 +134,7 @@ export default function PlatformSettings() {
       <div className="settings-layout">
         <div className="settings-sidebar">
           {TABS.map(t => (
-            <div
-              key={t}
-              className={`settings-tab ${activeTab === t ? 'active' : ''}`}
-              onClick={() => setActiveTab(t)}
-            >
+            <div key={t} className={`settings-tab ${activeTab === t ? 'active' : ''}`} onClick={() => setActiveTab(t)}>
               {t}
             </div>
           ))}
@@ -117,6 +143,13 @@ export default function PlatformSettings() {
           <div className="card">
             <h3 style={{ fontSize:16, fontWeight:700, marginBottom:16 }}>{activeTab}</h3>
             {renderTab()}
+            <div style={{ marginTop:16, display:'flex', alignItems:'center', gap:12 }}>
+              <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+              {saved && <span style={{ fontSize:13, color:'var(--green)' }}>✓ Saved</span>}
+              {error && <span style={{ fontSize:13, color:'var(--red)' }}>⚠ {error}</span>}
+            </div>
           </div>
         </div>
       </div>

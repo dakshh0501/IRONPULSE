@@ -27,6 +27,12 @@ import {
   migrateDefaultPlans,
   subscribeToProgressLogs,
   addProgressLog as addProgressLogToFirestore,
+  updateProgressLog as updateProgressLogInFirestore,
+  deleteProgressLog as deleteProgressLogFromFirestore,
+  subscribeToSupportTickets,
+  addSupportTicket as addSupportTicketToFirestore,
+  subscribeToFeatureRequests,
+  addFeatureRequest as addFeatureRequestToFirestore,
   subscribeToDietPlans,
   addDietPlan as addDietPlanToFirestore,
   updateDietPlan as updateDietPlanInFirestore,
@@ -67,6 +73,20 @@ import {
 } from '../services/notificationService'
 import { buildNotification } from '../utils/notificationTypes'
 import { canSubscribe } from '../utils/rbac'
+import {
+  subscribeToGymSubscription,
+  subscribeToSubscriptionHistory,
+  activateSubscription as activateSubService,
+  suspendSubscription as suspendSubService,
+  expireSubscription as expireSubService,
+  renewSubscription as renewSubService,
+  upgradePlan as upgradeSubService,
+  downgradePlan as downgradeSubService,
+  assignTrial as assignTrialService,
+  extendExpiry as extendExpiryService,
+  changePlan as changePlanService,
+  checkAutoExpiry,
+} from '../services/subscriptionService'
 
 const AppContext = createContext()
 
@@ -97,7 +117,11 @@ export function AppProvider({ children }) {
   const [workoutPlans,  setWorkoutPlans]  = useState([])
   const [gyms,          setGyms]          = useState([])
   const [currentGym,    setCurrentGym]    = useState(null)
+  const [supportTickets, setSupportTickets] = useState([])
+  const [featureRequests, setFeatureRequests] = useState([])
   const [subscriptions, setSubscriptions] = useState([])
+  const [currentSubscription, setCurrentSubscription] = useState(null)
+  const [subscriptionHistory, setSubscriptionHistory] = useState([])
   const [paymentAttempts, setPaymentAttempts] = useState([])
   const [notifications, setNotifications] = useState([])
   const [notifLoading, setNotifLoading] = useState(true)
@@ -277,13 +301,40 @@ export function AppProvider({ children }) {
     return unsubscribe
   }, [currentUser, authLoading, effectiveRole])
 
+  // ── Gym Subscription listener (gym_admin/gym_owner) ───
+  useEffect(() => {
+    if (authLoading || !currentUser || !gymId) return
+    if (effectiveRole !== 'gym_admin' && effectiveRole !== 'gym_owner') return
+    const unsub = subscribeToGymSubscription(gymId, (sub) => {
+      if (sub) {
+        const checked = checkAutoExpiry(sub)
+        if (checked.status !== sub.status) {
+          updateGymInFirestore(gymId, { subscription: checked }).catch(() => {})
+        }
+        setCurrentSubscription(checked)
+      } else {
+        setCurrentSubscription(null)
+      }
+    })
+    return unsub
+  }, [currentUser, authLoading, effectiveRole, gymId])
+
+  // ── Subscription History listener (gym_admin) ──────────
+  useEffect(() => {
+    if (authLoading || !currentUser || !gymId) return
+    if (effectiveRole !== 'gym_admin' && effectiveRole !== 'gym_owner' && effectiveRole !== 'super_admin') return
+    const subGymId = effectiveRole === 'super_admin' ? null : gymId
+    const unsub = subscribeToSubscriptionHistory(subGymId, setSubscriptionHistory)
+    return unsub
+  }, [currentUser, authLoading, effectiveRole, gymId])
+
   // ── Payment Attempts listener — SUPER_ADMIN ONLY ──────
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (effectiveRole !== 'super_admin') return
-    const unsubscribe = subscribeToPaymentAttempts((data) => setPaymentAttempts(data), null)
+    const unsubscribe = subscribeToPaymentAttempts((data) => setPaymentAttempts(data), queryGymId)
     return unsubscribe
-  }, [currentUser, authLoading, effectiveRole])
+  }, [currentUser, authLoading, effectiveRole, queryGymId])
 
   // ── Notifications listener ─────────────────────────────
   useEffect(() => {
@@ -292,12 +343,12 @@ export function AppProvider({ children }) {
     const unsubscribe = subscribeToNotifications(currentUser.uid, (data) => {
       setNotifications(data)
       setNotifLoading(false)
-    })
+    }, gymId)
     return () => {
       unsubscribe()
       setNotifLoading(false)
     }
-  }, [currentUser, authLoading])
+  }, [currentUser, authLoading, gymId])
 
   // ── Notification helpers ───────────────────────────────
   const fireNotif = async (notifKey, data) => {
@@ -381,6 +432,22 @@ export function AppProvider({ children }) {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'workoutPlans')) return
     const unsubscribe = subscribeToWorkoutPlans((data) => setWorkoutPlans(data), queryGymId)
+    return unsubscribe
+  }, [currentUser, authLoading, effectiveRole, queryGymId])
+
+  // ── Support Tickets listener ──────────────────────────
+  useEffect(() => {
+    if (authLoading || !currentUser) return
+    if (!canSubscribe(effectiveRole, 'supportTickets')) return
+    const unsubscribe = subscribeToSupportTickets((data) => setSupportTickets(data), queryGymId)
+    return unsubscribe
+  }, [currentUser, authLoading, effectiveRole, queryGymId])
+
+  // ── Feature Requests listener ──────────────────────────
+  useEffect(() => {
+    if (authLoading || !currentUser) return
+    if (!canSubscribe(effectiveRole, 'featureRequests')) return
+    const unsubscribe = subscribeToFeatureRequests((data) => setFeatureRequests(data), queryGymId)
     return unsubscribe
   }, [currentUser, authLoading, effectiveRole, queryGymId])
 
@@ -618,7 +685,7 @@ export function AppProvider({ children }) {
         fireNotif('payment_received', {
           userId: currentUser.uid,
           title: 'Payment Received',
-          message: `₹${(Number(paymentData.amount) / 100).toFixed(2)} received from ${paymentData.memberName || 'member'} for ${paymentData.plan || 'plan'}.`,
+          message: `₹${Number(paymentData.amount).toLocaleString('en-IN')} received from ${paymentData.memberName || 'member'} for ${paymentData.plan || 'plan'}.`,
           relatedDocumentId: paymentId || '',
           actionUrl: '/payments',
         }).catch(() => {})
@@ -626,7 +693,7 @@ export function AppProvider({ children }) {
           fireNotif('payment_received', {
             userId: paymentData.memberId,
             title: 'Payment Confirmed',
-            message: `Your payment of ₹${(Number(paymentData.amount) / 100).toFixed(2)} has been received.`,
+            message: `Your payment of ₹${Number(paymentData.amount).toLocaleString('en-IN')} has been received.`,
             relatedDocumentId: paymentId || '',
           }).catch(() => {})
         }
@@ -746,6 +813,9 @@ export function AppProvider({ children }) {
         gymId,
         memberId: logData.memberId || '',
         memberName: logData.memberName || '',
+        trainerId: logData.trainerId || userProfile?.trainerId || userProfile?.uid || '',
+        trainerName: logData.trainerName || userProfile?.name || '',
+        authUid: logData.authUid || '',
       })
       if (logData.authUid) {
         fireNotif('progress_updated', {
@@ -759,6 +829,59 @@ export function AppProvider({ children }) {
       return logId
     } catch (error) {
       console.error('Error adding progress log:', error)
+      throw error
+    }
+  }
+
+  const updateProgressLog = async (logId, updatedData) => {
+    try {
+      await updateProgressLogInFirestore(logId, updatedData)
+    } catch (error) {
+      console.error('Error updating progress log:', error)
+      throw error
+    }
+  }
+
+  const deleteProgressLog = async (logId) => {
+    try {
+      await deleteProgressLogFromFirestore(logId)
+    } catch (error) {
+      console.error('Error deleting progress log:', error)
+      throw error
+    }
+  }
+
+  // ── Support Tickets CRUD ─────────────────────────────────
+  const addSupportTicket = async (ticketData) => {
+    try {
+      const ticketId = await addSupportTicketToFirestore({ ...ticketData, gymId })
+      fireNotif('ticket_opened', {
+        userId: currentUser?.uid || '',
+        title: 'Support Ticket Created',
+        message: `Ticket #${ticketId?.slice(-6)} has been submitted.`,
+        relatedDocumentId: ticketId || '',
+        actionUrl: '/support',
+      }).catch(() => {})
+      return ticketId
+    } catch (error) {
+      console.error('Error adding support ticket:', error)
+      throw error
+    }
+  }
+
+  // ── Feature Requests CRUD ────────────────────────────────
+  const addFeatureRequest = async (requestData) => {
+    try {
+      const requestId = await addFeatureRequestToFirestore({ ...requestData, gymId })
+      fireNotif('system_login', {
+        userId: currentUser?.uid || '',
+        title: 'Feature Request Submitted',
+        message: 'Your feature request has been submitted for review.',
+        relatedDocumentId: requestId || '',
+      }).catch(() => {})
+      return requestId
+    } catch (error) {
+      console.error('Error adding feature request:', error)
       throw error
     }
   }
@@ -854,6 +977,92 @@ export function AppProvider({ children }) {
     }
   }
 
+  // ── Subscription Lifecycle ──────────────────────────────
+  const activateSubscription = async (planName, planType, amount) => {
+    await activateSubService(gymId, planName, planType, amount, currentUser?.uid)
+    fireNotif('sub_activated', {
+      userId: currentUser?.uid,
+      title: 'Subscription Activated',
+      message: `Your ${planName} subscription has been activated.`,
+      relatedDocumentId: gymId,
+      actionUrl: '/subscription',
+    }).catch(() => {})
+  }
+
+  const suspendSubscription = async () => {
+    await suspendSubService(gymId, currentUser?.uid)
+    fireNotif('gym_suspended', {
+      userId: currentUser?.uid,
+      title: 'Subscription Suspended',
+      message: 'The gym subscription has been suspended.',
+      relatedDocumentId: gymId,
+      actionUrl: '/subscription',
+    }).catch(() => {})
+  }
+
+  const expireSubscription = async () => {
+    await expireSubService(gymId, currentUser?.uid)
+    fireNotif('sub_expired', {
+      userId: currentUser?.uid,
+      title: 'Subscription Expired',
+      message: 'The gym subscription has expired.',
+      relatedDocumentId: gymId,
+      actionUrl: '/subscription',
+    }).catch(() => {})
+  }
+
+  const renewSubscription = async (planName, planType, amount) => {
+    await renewSubService(gymId, planName, planType, amount, currentUser?.uid)
+    fireNotif('sub_renewed', {
+      userId: currentUser?.uid,
+      title: 'Subscription Renewed',
+      message: `Your ${planName} subscription has been renewed.`,
+      relatedDocumentId: gymId,
+      actionUrl: '/subscription',
+    }).catch(() => {})
+  }
+
+  const upgradeSubscription = async (planName, planType, amount) => {
+    await upgradeSubService(gymId, planName, planType, amount, currentUser?.uid)
+    fireNotif('sub_upgraded', {
+      userId: currentUser?.uid,
+      title: 'Plan Upgraded',
+      message: `Upgraded to ${planName}.`,
+      relatedDocumentId: gymId,
+      actionUrl: '/subscription',
+    }).catch(() => {})
+  }
+
+  const downgradeSubscription = async (planName, planType, amount) => {
+    await downgradeSubService(gymId, planName, planType, amount, currentUser?.uid)
+    fireNotif('sub_downgraded', {
+      userId: currentUser?.uid,
+      title: 'Plan Downgraded',
+      message: `Downgraded to ${planName}.`,
+      relatedDocumentId: gymId,
+      actionUrl: '/subscription',
+    }).catch(() => {})
+  }
+
+  const assignTrialToGym = async (trialDays) => {
+    await assignTrialService(gymId, trialDays, currentUser?.uid)
+    fireNotif('sub_trial_started', {
+      userId: currentUser?.uid,
+      title: 'Trial Started',
+      message: `Your ${trialDays}-day trial has started.`,
+      relatedDocumentId: gymId,
+      actionUrl: '/subscription',
+    }).catch(() => {})
+  }
+
+  const extendSubscription = async (newExpiryDate) => {
+    await extendExpiryService(gymId, newExpiryDate, currentUser?.uid)
+  }
+
+  const changeSubscriptionPlan = async (planName, planType, amount) => {
+    await changePlanService(gymId, planName, planType, amount, currentUser?.uid)
+  }
+
   return (
     <AppContext.Provider value={{
       darkMode, setDarkMode,
@@ -862,7 +1071,7 @@ export function AppProvider({ children }) {
       trainers, addTrainer, updateTrainer, deleteTrainer,
       payments, addPayment, updatePayment, deletePayment,
       plans,    addPlan,    updatePlan,    deletePlan,
-      progressLogs, addProgressLog,
+      progressLogs, addProgressLog, updateProgressLog, deleteProgressLog,
       dietPlans, addDietPlan, updateDietPlan, deleteDietPlan,
       workoutPlans, addWorkoutPlan, updateWorkoutPlan, deleteWorkoutPlan,
       notifications, markAllNotifsRead, markNotifRead, deleteNotif, unreadCount, notifLoading, fireNotif,
@@ -871,9 +1080,15 @@ export function AppProvider({ children }) {
       pendingCount,
       gymSettings,
       gyms, currentGym, subscriptions,
+      currentSubscription, subscriptionHistory,
+      activateSubscription, suspendSubscription, expireSubscription,
+      renewSubscription, upgradeSubscription, downgradeSubscription,
+      assignTrialToGym, extendSubscription, changeSubscriptionPlan,
       paymentAttempts, addPaymentAttempt, updatePaymentAttemptStatus,
       initiatePayment, refreshPaymentStatus,
       approveGymOwner, rejectGymOwner,
+      supportTickets, addSupportTicket,
+      featureRequests, addFeatureRequest,
     }}>
       {children}
     </AppContext.Provider>

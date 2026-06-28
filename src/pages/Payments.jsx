@@ -21,7 +21,7 @@ const STATUS_CFG = {
 
 const METHOD_ICON = { UPI: '??', 'Credit Card': '??', 'Debit Card': '??', Cash: '??', 'Bank Transfer': '??', 'Net Banking': '??' }
 
-const fmt     = (n) => n ? `₹${(Number(n) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹0.00'
+const fmt     = (n) => n ? `₹${Number(n).toLocaleString('en-IN')}` : '₹0'
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
 function avatarColor(initials = 'XX') {

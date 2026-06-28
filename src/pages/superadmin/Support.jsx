@@ -1,20 +1,5 @@
 import { useState } from 'react'
-
-const TICKETS = [
-  { id:1, gym:'IronForge Gym', subject:'Payment not reflecting', status:'open', priority:'high', date:'2026-06-25' },
-  { id:2, gym:'Alpha Fitness', subject:'Member check-in issue', status:'in_progress', priority:'medium', date:'2026-06-24' },
-  { id:3, gym:'Beta Gym', subject:'Billing discrepancy', status:'resolved', priority:'low', date:'2026-06-23' },
-]
-
-const FEATURES = [
-  { id:1, gym:'IronForge Gym', title:'Dark mode toggle', votes:12, status:'under_review' },
-  { id:2, gym:'Alpha Fitness', title:'WhatsApp integration', votes:8, status:'planned' },
-]
-
-const BUGS = [
-  { id:1, gym:'IronForge Gym', title:'QR scanner crashes on Android 12', severity:'critical', status:'open' },
-  { id:2, gym:'Beta Gym', title:'Progress chart not loading', severity:'minor', status:'fixed' },
-]
+import { useApp } from '../../context/AppContext'
 
 function SectionHeader({ title, count }) {
   return (
@@ -27,7 +12,12 @@ function SectionHeader({ title, count }) {
 
 export default function SuperAdminSupport() {
   const [tab, setTab] = useState('tickets')
-  const [ratings] = useState({ avg: 4.2, total: 24 })
+  const { supportTickets, featureRequests, gyms } = useApp()
+
+  const ticketsWithGym = supportTickets.map(t => {
+    const gym = gyms.find(g => g.id === t.gymId || g.gymId === t.gymId)
+    return { ...t, gymName: gym?.gymName || t.gymId || '—' }
+  }).reverse()
 
   return (
     <div className="page-container">
@@ -37,7 +27,7 @@ export default function SuperAdminSupport() {
       </p>
 
       <div style={{ display:'flex', gap:8, marginBottom:20, flexWrap:'wrap' }}>
-        {['tickets','bugs','features','ratings'].map(t => (
+        {['tickets','features'].map(t => (
           <button key={t} className={`btn btn-sm ${tab === t ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setTab(t)}>
             {t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
@@ -46,71 +36,55 @@ export default function SuperAdminSupport() {
 
       {tab === 'tickets' && (
         <div className="card">
-          <SectionHeader title="Support Tickets" count={TICKETS.length} />
-          <table className="data-table">
-            <thead>
-              <tr><th>Gym</th><th>Subject</th><th>Priority</th><th>Status</th><th>Date</th><th>Actions</th></tr>
-            </thead>
-            <tbody>
-              {TICKETS.map(t => (
-                <tr key={t.id}>
-                  <td>{t.gym}</td><td>{t.subject}</td>
-                  <td><span style={{ color: t.priority === 'high' ? 'var(--red)' : t.priority === 'medium' ? 'var(--amber)' : 'var(--text-muted)', fontWeight:600 }}>{t.priority}</span></td>
-                  <td>{t.status}</td><td style={{ fontSize:12 }}>{t.date}</td>
-                  <td><button className="btn btn-sm btn-ghost">View</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {tab === 'bugs' && (
-        <div className="card">
-          <SectionHeader title="Bug Reports" count={BUGS.length} />
-          <table className="data-table">
-            <thead>
-              <tr><th>Gym</th><th>Bug</th><th>Severity</th><th>Status</th><th>Actions</th></tr>
-            </thead>
-            <tbody>
-              {BUGS.map(b => (
-                <tr key={b.id}>
-                  <td>{b.gym}</td><td>{b.title}</td>
-                  <td><span style={{ color: b.severity === 'critical' ? 'var(--red)' : 'var(--amber)', fontWeight:600 }}>{b.severity}</span></td>
-                  <td>{b.status}</td>
-                  <td><button className="btn btn-sm btn-ghost">View</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <SectionHeader title="Support Tickets" count={supportTickets.length} />
+          {supportTickets.length === 0 ? (
+            <p style={{ textAlign:'center', padding:32, color:'var(--text-muted)', fontSize:13 }}>No tickets yet.</p>
+          ) : (
+            <table className="data-table">
+              <thead>
+                <tr><th>Gym</th><th>Subject</th><th>Category</th><th>Status</th><th>Date</th></tr>
+              </thead>
+              <tbody>
+                {ticketsWithGym.map(t => (
+                  <tr key={t.id}>
+                    <td>{t.gymName}</td>
+                    <td style={{ fontWeight:600 }}>{t.subject || '—'}</td>
+                    <td style={{ color:'var(--text-muted)' }}>{t.category || '—'}</td>
+                    <td><span className={`badge ${t.status === 'Open' ? 'badge-orange' : 'badge-green'}`}>{t.status || 'Open'}</span></td>
+                    <td style={{ fontSize:12 }}>{t.createdAt?.seconds ? new Date(t.createdAt.seconds * 1000).toLocaleDateString() : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
 
       {tab === 'features' && (
         <div className="card">
-          <SectionHeader title="Feature Requests" count={FEATURES.length} />
-          <table className="data-table">
-            <thead>
-              <tr><th>Gym</th><th>Request</th><th>Votes</th><th>Status</th><th>Actions</th></tr>
-            </thead>
-            <tbody>
-              {FEATURES.map(f => (
-                <tr key={f.id}>
-                  <td>{f.gym}</td><td>{f.title}</td>
-                  <td>{f.votes}</td><td>{f.status}</td>
-                  <td><button className="btn btn-sm btn-ghost">View</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {tab === 'ratings' && (
-        <div className="card" style={{ textAlign:'center', padding:32 }}>
-          <p style={{ fontSize:36, fontWeight:800, color:'var(--amber)' }}>{ratings.avg} ⭐</p>
-          <p style={{ color:'var(--text-muted)', fontSize:13 }}>Based on {ratings.total} ratings</p>
-          <p style={{ fontSize:13, color:'var(--text-muted)', marginTop:12 }}>Average response time: &lt; 4 hours</p>
+          <SectionHeader title="Feature Requests" count={featureRequests.length} />
+          {featureRequests.length === 0 ? (
+            <p style={{ textAlign:'center', padding:32, color:'var(--text-muted)', fontSize:13 }}>No feature requests yet.</p>
+          ) : (
+            <table className="data-table">
+              <thead>
+                <tr><th>Gym</th><th>Request</th><th>Status</th><th>Date</th></tr>
+              </thead>
+              <tbody>
+                {[...featureRequests].reverse().map(f => {
+                  const gym = gyms.find(g => g.id === f.gymId || g.gymId === f.gymId)
+                  return (
+                    <tr key={f.id}>
+                      <td>{gym?.gymName || f.gymId || '—'}</td>
+                      <td style={{ fontWeight:600 }}>{f.title || '—'}</td>
+                      <td><span className="badge badge-teal">{f.status || 'Under Review'}</span></td>
+                      <td style={{ fontSize:12 }}>{f.createdAt?.seconds ? new Date(f.createdAt.seconds * 1000).toLocaleDateString() : '—'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
     </div>

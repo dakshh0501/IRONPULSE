@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
-import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 import { addPayment, updateMember as updateMemberService } from '../services/firestoreService'
 import { uploadMemberPhoto } from '../services/storageService'
@@ -296,7 +296,7 @@ function MemberModal({ member, trainers, onSave, onClose, plans }) {
               const p = activePlans.find(pl => pl.name === e.target.value)
               if (p) set('planPrice', p.price)
             }}>
-              {activePlans.length > 0 ? activePlans.map(p => <option key={p.id || p.name} value={p.name}>{p.name} (₹{(p.price / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</option>)
+              {activePlans.length > 0 ? activePlans.map(p => <option key={p.id || p.name} value={p.name}>{p.name} (₹{p.price.toLocaleString('en-IN')})</option>)
               : <option>No plans configured</option>}
             </select>
           </div>
@@ -592,7 +592,7 @@ export default function Members({ search }) {
                 ['Height',         `${viewMember.height} cm`],
                 ['Goal',            viewMember.goal],
                 ['Plan',            viewMember.plan],
-                ['Plan Price',     `₹${(Number(viewMember.planPrice) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo`],
+                ['Plan Price',     `₹${Number(viewMember.planPrice).toLocaleString('en-IN')}/mo`],
                 ['Trainer',         viewMember.trainerName || 'Unassigned'],
                 ['Status',          viewMember.status],
                 ['Joined',          viewMember.join],

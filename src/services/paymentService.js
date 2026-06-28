@@ -313,12 +313,15 @@ export function subscribeToPaymentAttempts(callback, gymId) {
  * Find pending payment attempts for a subscription.
  * Useful for checking if a payment is already in progress.
  */
-export async function getPendingAttemptsForSubscription(subscriptionId) {
-  const q = query(
-    collection(db, COLLECTION),
+export async function getPendingAttemptsForSubscription(subscriptionId, gymId) {
+  const constraints = [
     where('subscriptionId', '==', subscriptionId),
-    where('status', '==', 'pending')
-  )
+    where('status', '==', 'pending'),
+  ]
+  if (gymId) {
+    constraints.push(where('gymId', '==', gymId))
+  }
+  const q = query(collection(db, COLLECTION), ...constraints)
   const snap = await getDocs(q)
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }

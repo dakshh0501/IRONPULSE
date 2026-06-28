@@ -90,7 +90,7 @@ function RevenueTab({ subscriptions, payments }) {
     subscriptions.forEach(s => {
       if (s.paymentStatus !== 'paid' || !s.paidAt) return
       const d = s.paidAt?.seconds ? new Date(s.paidAt.seconds * 1000) : new Date(s.paidAt)
-      byMonth[MONTHS[d.getMonth()]] += Number(s.amount) || 0
+      byMonth[MONTHS[d.getMonth()]] += (Number(s.amount) || 0) / 100
     })
     return MONTHS.map(m => ({ month: m, revenue: byMonth[m] }))
   }, [subscriptions])
@@ -290,7 +290,7 @@ function SubscriptionsTab({ subscriptions }) {
 
   const exportCSV = () => downloadCSV('subscription-report.csv',
     ['Gym ID','Plan','Status','Payment','Amount (₹)','Start','Expiry','Days Left'],
-    subscriptions.map(s => [s.gymId||'', s.plan||'', s.status||'', s.paymentStatus||'', s.amount||0, s.startDate||'', s.expiryDate||'', s.daysRemaining??''])
+    subscriptions.map(s => [s.gymId||'', s.plan||'', s.status||'', s.paymentStatus||'', (s.amount/100)||0, s.startDate||'', s.expiryDate||'', s.daysRemaining??''])
   )
 
   return (

@@ -114,6 +114,53 @@ async function fulfillSubscriptionPayment(attempt, phonePeTransactionId) {
     // ── Sync to payments collection (financial records) ──
     await createPaymentRecordInTransaction(transaction, attempt, phonePeTransactionId)
 
+    // ── Sync gym subscription field ─────────────────────
+    if (attempt.gymId) {
+      const gymRef = db.collection('gyms').doc(attempt.gymId)
+      const gymSnap = await transaction.get(gymRef)
+      if (gymSnap.exists) {
+        const gymData = gymSnap.data()
+        const existingSub = gymData.subscription || {}
+        const newExpiry = updateFields.expiryDate || existingSub.expiryDate
+        transaction.update(gymRef, {
+          subscription: {
+            ...existingSub,
+            planId: updateFields.planType || existingSub.planType,
+            planName: updateFields.plan || existingSub.planName,
+            planType: updateFields.planType || existingSub.planType,
+            status: updateFields.status || 'active',
+            paymentStatus: 'paid',
+            startDate: updateFields.startDate || existingSub.startDate || now.toISOString().split('T')[0],
+            expiryDate: newExpiry || existingSub.expiryDate,
+            amount: (attempt.finalAmount || 0) / 100,
+            currency: 'INR',
+            renewalCount: (existingSub.renewalCount || 0) + (attempt.type === 'renewal' ? 1 : 0),
+            lastPaymentId: attempt.paymentId || '',
+            lastTransactionId: phonePeTransactionId || attempt.phonePeTransactionId || '',
+            updatedAt: now.toISOString(),
+          },
+        })
+
+        // ── Create subscription history record ────────
+        const historyRef = db.collection('subscriptionHistory').doc()
+        transaction.set(historyRef, {
+          gymId: attempt.gymId,
+          planId: updateFields.planType || existingSub.planType || '',
+          planName: updateFields.plan || existingSub.planName || '',
+          amount: (attempt.finalAmount || 0) / 100,
+          currency: 'INR',
+          status: updateFields.status || 'active',
+          paymentId: attempt.paymentId || '',
+          transactionId: phonePeTransactionId || attempt.phonePeTransactionId || '',
+          startDate: updateFields.startDate || existingSub.startDate || '',
+          expiryDate: newExpiry || existingSub.expiryDate || '',
+          createdAt: now.toISOString(),
+          createdBy: 'system',
+          action: attempt.type === 'renewal' ? 'renewed' : attempt.type === 'upgrade' ? 'upgraded' : 'activated',
+        })
+      }
+    }
+
     console.log('Subscription fulfilled:', attempt.subscriptionId, attempt.type, updateFields.status)
   }).catch(err => {
     console.error('fulfillSubscriptionPayment: transaction failed', attempt.subscriptionId, err)
@@ -152,14 +199,17 @@ async function createPaymentRecordInTransaction(transaction, attempt, phonePeTra
   const dateStr = now.toISOString().split('T')[0]
   const initials = gymName ? gymName.substring(0, 2).toUpperCase() : 'IP'
 
+  // Convert paise to rupees for consistent payment collection storage
+  const finalAmountRupees = Math.round(Number(attempt.finalAmount) / 100) || 0
+
   const paymentRecord = {
     gymId: attempt.gymId || 'default',
     memberId: attempt.subscriptionId || '',
     member: gymName || 'Subscription',
     memberName: gymName || 'Subscription',
     plan: attempt.plan || 'Standard',
-    amount: Number(attempt.finalAmount) || 0,
-    paid: Number(attempt.finalAmount) || 0,
+    amount: finalAmountRupees,
+    paid: finalAmountRupees,
     status: 'Paid',
     method: 'PhonePe',
     due: dateStr,
@@ -556,6 +606,13 @@ exports.verifyPayment = onCall({
     return { status: null, error: 'Authentication required' }
   }
 
+  // Verify caller has sufficient role
+  const callerDoc = await db.collection('users').doc(request.auth.uid).get()
+  const callerRole = callerDoc.exists ? callerDoc.data().role : null
+  if (!['super_admin', 'gym_admin', 'gym_owner', 'admin', 'trainer'].includes(callerRole)) {
+    return { status: null, error: 'Insufficient permissions' }
+  }
+
   const { attemptId } = request.data
   if (!attemptId) {
     return { status: null, error: 'attemptId is required' }
@@ -564,6 +621,11 @@ exports.verifyPayment = onCall({
   const attempt = await getPaymentAttempt(attemptId)
   if (!attempt) return { status: null, error: 'Payment attempt not found' }
   if (attempt.status !== 'pending') return { status: attempt.status, error: null }
+
+  // Verify caller belongs to the same gym as the payment attempt
+  if (callerRole !== 'super_admin' && callerDoc.data().gymId && attempt.gymId && callerDoc.data().gymId !== attempt.gymId) {
+    return { status: null, error: 'Cross-gym payment verification denied' }
+  }
 
   const config = await loadPhonePeConfig()
   if (!config || !config.merchantId || !config.saltKey || !config.saltIndex) {

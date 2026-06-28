@@ -425,8 +425,8 @@ export default function AdminDashboard({ setPage }) {
               <LineChart width={300} height={200} data={monthlyRevenueTrend} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
+                <YAxis tickFormatter={v=>`₹${(v/100000).toFixed(1)}K`} />
+                <Tooltip formatter={(v) => [`₹${(v/100).toFixed(2)}`, 'Revenue']} />
                 <Line type="monotone" dataKey="revenue" stroke="#82ca9d" strokeWidth={2} />
               </LineChart>
             ) : (

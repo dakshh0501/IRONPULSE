@@ -69,6 +69,10 @@ service cloud.firestore {
       );
     }
 
+    function getCallerGymId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.gymId;
+    }
+
     function isOwnAttendance(resourceMemberId) {
       return isMember() && resourceMemberId == request.auth.uid;
     }
@@ -78,6 +82,16 @@ service cloud.firestore {
       return isMember() &&
         exists(memberPath) &&
         get(memberPath).data.authUid == request.auth.uid;
+    }
+
+    // Helper: check if the resource belongs to the caller's gym (super_admin bypasses)
+    function inCallersGym() {
+      return isSuperAdmin() || resource.data.gymId == getCallerGymId();
+    }
+
+    // Helper: check if the incoming data belongs to the caller's gym (for create)
+    function inCallersGymCreate() {
+      return isSuperAdmin() || request.resource.data.gymId == getCallerGymId();
     }
 
     // ════════════════════════════════════════════════════════
@@ -101,149 +115,149 @@ service cloud.firestore {
     }
 
     // ════════════════════════════════════════════════════════
-    //  MEMBERS
+    //  MEMBERS (gym-scoped)
     // ════════════════════════════════════════════════════════
     match /members/{memberId} {
 
-      allow read: if isStaff() || (
+      allow read: if (isStaff() && inCallersGym()) || (
         isMember() &&
         resource.data.authUid == request.auth.uid
       );
 
-      allow create: if isAdminOrOwner();
-      allow update: if isAdminOrOwner() || (
-        isTrainer() &&
+      allow create: if isAdminOrOwner() && inCallersGymCreate();
+      allow update: if (isAdminOrOwner() && inCallersGym()) || (
+        isTrainer() && inCallersGym() &&
         request.resource.data.amountPaid == resource.data.amountPaid &&
         request.resource.data.planPrice == resource.data.planPrice
       );
-      allow delete: if isAdminOrOwner();
+      allow delete: if isAdminOrOwner() && inCallersGym();
     }
 
     // ════════════════════════════════════════════════════════
-    //  TRAINERS
+    //  TRAINERS (gym-scoped)
     // ════════════════════════════════════════════════════════
     match /trainers/{trainerId} {
 
-      allow read: if isStaff();
-      allow create: if isAdminOrOwner();
-      allow update: if isAdminOrOwner();
-      allow delete: if isAdminOrOwner();
+      allow read: if isStaff() && inCallersGym();
+      allow create: if isAdminOrOwner() && inCallersGymCreate();
+      allow update: if isAdminOrOwner() && inCallersGym();
+      allow delete: if isAdminOrOwner() && inCallersGym();
     }
 
     // ════════════════════════════════════════════════════════
-    //  PAYMENTS
+    //  PAYMENTS (gym-scoped)
     // ════════════════════════════════════════════════════════
     match /payments/{paymentId} {
 
-      allow read: if isAdminOrOwner() || isOwnMemberDoc(resource.data.memberId);
-      allow create: if isAdminOrOwner();
-      allow update: if isAdminOrOwner();
-      allow delete: if isAdminOrOwner();
+      allow read: if (isAdminOrOwner() && inCallersGym()) || isOwnMemberDoc(resource.data.memberId);
+      allow create: if isAdminOrOwner() && inCallersGymCreate();
+      allow update: if isAdminOrOwner() && inCallersGym();
+      allow delete: if isAdminOrOwner() && inCallersGym();
     }
 
     // ════════════════════════════════════════════════════════
-    //  ATTENDANCE
+    //  ATTENDANCE (gym-scoped)
     // ════════════════════════════════════════════════════════
     match /attendance/{attendanceId} {
 
-      allow read: if isStaff() || isOwnAttendance(resource.data.memberId);
-      allow create: if isStaff() || (
+      allow read: if (isStaff() && inCallersGym()) || isOwnAttendance(resource.data.memberId);
+      allow create: if (isStaff() && inCallersGymCreate()) || (
         isMember() &&
         request.resource.data.memberId == request.auth.uid
       );
-      allow update: if isAdminOrOwner();
-      allow delete: if isAdminOrOwner();
+      allow update: if isAdminOrOwner() && inCallersGym();
+      allow delete: if isAdminOrOwner() && inCallersGym();
     }
 
     // ════════════════════════════════════════════════════════
-    //  PLANS (membership pricing)
+    //  PLANS (gym-scoped — membership pricing)
     // ════════════════════════════════════════════════════════
     match /plans/{planId} {
 
-      allow read: if isApproved();
-      allow create: if isSuperAdmin() || isGymAdmin();
-      allow update: if isSuperAdmin() || isGymAdmin();
-      allow delete: if isSuperAdmin() || isGymAdmin();
+      allow read: if isApproved() && inCallersGym();
+      allow create: if (isSuperAdmin() || isGymAdmin()) && inCallersGymCreate();
+      allow update: if (isSuperAdmin() || isGymAdmin()) && inCallersGym();
+      allow delete: if (isSuperAdmin() || isGymAdmin()) && inCallersGym();
     }
 
     // ════════════════════════════════════════════════════════
-    //  DIET PLANS
+    //  DIET PLANS (gym-scoped)
     // ════════════════════════════════════════════════════════
     match /dietPlans/{planId} {
 
-      allow read: if isStaff() || (
+      allow read: if (isStaff() && inCallersGym()) || (
         isMember() &&
         (resource.data.memberId == request.auth.uid ||
          resource.data.authUid == request.auth.uid)
       );
-      allow create: if isStaff();
-      allow update: if isStaff();
-      allow delete: if isAdminOrOwner();
+      allow create: if isStaff() && inCallersGymCreate();
+      allow update: if isStaff() && inCallersGym();
+      allow delete: if isAdminOrOwner() && inCallersGym();
     }
 
     // ════════════════════════════════════════════════════════
-    //  WORKOUT PLANS
+    //  WORKOUT PLANS (gym-scoped)
     // ════════════════════════════════════════════════════════
     match /workoutPlans/{planId} {
 
-      allow read: if isStaff() || (
+      allow read: if (isStaff() && inCallersGym()) || (
         isMember() &&
         (resource.data.memberId == request.auth.uid ||
          resource.data.authUid == request.auth.uid)
       );
-      allow create: if isStaff();
-      allow update: if isStaff();
-      allow delete: if isAdminOrOwner();
+      allow create: if isStaff() && inCallersGymCreate();
+      allow update: if isStaff() && inCallersGym();
+      allow delete: if isAdminOrOwner() && inCallersGym();
     }
 
     // ════════════════════════════════════════════════════════
-    //  PROGRESS LOGS
+    //  PROGRESS LOGS (gym-scoped)
     // ════════════════════════════════════════════════════════
     match /progressLogs/{logId} {
 
-      allow read: if isStaff() || isOwnMemberDoc(resource.data.memberId);
-      allow create: if isStaff() || (
+      allow read: if (isStaff() && inCallersGym()) || isOwnMemberDoc(resource.data.memberId);
+      allow create: if (isStaff() && inCallersGymCreate()) || (
         isMember() &&
         isOwnMemberDoc(request.resource.data.memberId)
       );
-      allow update: if isAdminOrOwner();
-      allow delete: if isAdminOrOwner();
+      allow update: if isAdminOrOwner() && inCallersGym();
+      allow delete: if isAdminOrOwner() && inCallersGym();
     }
 
     // ════════════════════════════════════════════════════════
-    //  SUPPORT TICKETS
+    //  SUPPORT TICKETS (gym-scoped)
     // ════════════════════════════════════════════════════════
     match /supportTickets/{ticketId} {
 
-      allow read: if isAdminOrOwner();
-      allow create: if isAuthed();
-      allow update: if isAdminOrOwner();
-      allow delete: if isAdminOrOwner();
+      allow read: if isAdminOrOwner() && inCallersGym();
+      allow create: if isAuthed() && inCallersGymCreate();
+      allow update: if isAdminOrOwner() && inCallersGym();
+      allow delete: if isAdminOrOwner() && inCallersGym();
     }
 
     // ════════════════════════════════════════════════════════
-    //  FEATURE REQUESTS
+    //  FEATURE REQUESTS (gym-scoped)
     // ════════════════════════════════════════════════════════
     match /featureRequests/{requestId} {
 
-      allow read: if isAdminOrOwner();
-      allow create: if isAuthed();
-      allow update: if isAdminOrOwner();
-      allow delete: if isAdminOrOwner();
+      allow read: if isAdminOrOwner() && inCallersGym();
+      allow create: if isAuthed() && inCallersGymCreate();
+      allow update: if isAdminOrOwner() && inCallersGym();
+      allow delete: if isAdminOrOwner() && inCallersGym();
     }
 
     // ════════════════════════════════════════════════════════
-    //  SETTINGS
+    //  SETTINGS (gym-scoped via composite key pattern)
     // ════════════════════════════════════════════════════════
     match /settings/{docId} {
 
-      allow read: if isAdminOrOwner() || (
+      allow read: if (isAdminOrOwner() && inCallersGym()) || (
         isApproved() &&
         (docId == 'gym' || docId.matches('.*:gym$'))
       );
-      allow create: if isAdminOrOwner();
-      allow update: if isAdminOrOwner();
-      allow delete: if isAdminOrOwner();
+      allow create: if isAdminOrOwner() && inCallersGymCreate();
+      allow update: if isAdminOrOwner() && inCallersGym();
+      allow delete: if isAdminOrOwner() && inCallersGym();
     }
 
     // ════════════════════════════════════════════════════════
@@ -265,43 +279,96 @@ service cloud.firestore {
     // ════════════════════════════════════════════════════════
     match /subscriptions/{subId} {
 
-      allow read: if isAdminOrOwner();
+      allow read: if isAdminOrOwner() && inCallersGym();
       allow create: if isAdminOrOwner();
-      allow update: if isAdminOrOwner();
+      allow update: if isAdminOrOwner() && inCallersGym();
       allow delete: if isSuperAdmin();
     }
 
     // ════════════════════════════════════════════════════════
-    //  PAYMENT ATTEMPTS (PhonePe integration)
+    //  SUBSCRIPTION HISTORY (gym-scoped)
+    // ════════════════════════════════════════════════════════
+    match /subscriptionHistory/{historyId} {
+
+      allow read: if isAdminOrOwner() && inCallersGym();
+      allow create: if isAuthed();
+      allow delete: if isSuperAdmin();
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  PAYMENT ATTEMPTS (PhonePe integration, gym-scoped)
     // ════════════════════════════════════════════════════════
     match /paymentAttempts/{attemptId} {
 
-      allow read: if isAdminOrOwner();
-      allow create: if isAdminOrOwner();
-      allow update: if isAdminOrOwner();
+      allow read: if isAdminOrOwner() && inCallersGym();
+      allow create: if isAdminOrOwner() && inCallersGymCreate();
+      allow update: if isAdminOrOwner() && inCallersGym();
       allow delete: if isSuperAdmin();
     }
 
     // ════════════════════════════════════════════════════════
-    //  NOTIFICATIONS
+    //  LICENSED DEVICES (gym-scoped — device registry)
+    // ════════════════════════════════════════════════════════
+    match /licensedDevices/{deviceId} {
+
+      allow read: if isSuperAdmin() || (
+        isGymAdmin() && resource.data.gymId == getCallerGymId()
+      );
+
+      allow create: if isAuthed() && (
+        isSuperAdmin() || request.resource.data.gymId == getCallerGymId()
+      );
+
+      allow update: if isSuperAdmin() || (
+        isGymAdmin() && resource.data.gymId == getCallerGymId()
+      );
+
+      allow delete: if isSuperAdmin() || (
+        isGymAdmin() && resource.data.gymId == getCallerGymId()
+      );
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  LICENSE HISTORY (gym-scoped — audit log)
+    // ════════════════════════════════════════════════════════
+    match /licenseHistory/{historyId} {
+
+      allow read: if isSuperAdmin() || (
+        isGymAdmin() && resource.data.gymId == getCallerGymId()
+      );
+
+      allow create: if isAuthed();
+
+      allow update: if isSuperAdmin();
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  NOTIFICATIONS (user-scoped with gymId field)
     // ════════════════════════════════════════════════════════
     match /notifications/{notifId} {
 
       allow read: if isSuperAdmin() || (
         isAuthed() &&
-        resource.data.userId == request.auth.uid
+        resource.data.userId == request.auth.uid &&
+        (isSuperAdmin() || resource.data.gymId == getCallerGymId())
       );
 
-      allow create: if isAuthed();
+      allow create: if isAuthed() && (
+        isSuperAdmin() || request.resource.data.gymId == getCallerGymId()
+      );
 
       allow update: if isSuperAdmin() || (
         isAuthed() &&
-        resource.data.userId == request.auth.uid
+        resource.data.userId == request.auth.uid &&
+        resource.data.gymId == getCallerGymId()
       );
 
       allow delete: if isSuperAdmin() || (
         isAuthed() &&
-        resource.data.userId == request.auth.uid
+        resource.data.userId == request.auth.uid &&
+        resource.data.gymId == getCallerGymId()
       );
     }
 

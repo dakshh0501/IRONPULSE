@@ -22,6 +22,8 @@ export const PERMISSIONS = {
   VIEW_ANALYTICS:      ['super_admin'],
   MANAGE_PLATFORM_SETTINGS: ['super_admin'],
   MANAGE_LICENSES:     ['super_admin'],
+  VIEW_DEVICES:        ['super_admin'],
+  MANAGE_DEVICES:      ['super_admin'],
   VIEW_SECURITY:       ['super_admin'],
 
   VIEW_MEMBERS:        ['super_admin','gym_admin','trainer'],
@@ -51,6 +53,7 @@ export const NAVIGATION = {
     { section:'System' },
     { key:'settings',      label:'Settings',         icon:'⚙️' },
     { key:'security',      label:'Security',         icon:'🚫' },
+    { key:'devices',       label:'Devices',          icon:'📱' },
     { key:'reports',       label:'Reports',          icon:'📊' },
     { key:'license',       label:'License Keys',     icon:'🔑' },
   ],
@@ -71,6 +74,11 @@ export const NAVIGATION = {
     { key:'notifications', label:'Notifications',   icon:'🔔', badge:'notifs' },
     { key:'reports',       label:'Reports',         icon:'📊' },
     { key:'whatsapp',      label:'WhatsApp Reminders',icon:'💬' },
+    { section:'Subscription' },
+    { key:'subscription',  label:'My Subscription', icon:'📋' },
+    { key:'devices',       label:'Registered Devices',icon:'📱' },
+    { section:'Engagement' },
+    { key:'support',       label:'Support & Tickets',icon:'🆘' },
     { section:'System' },
     { key:'settings',      label:'Settings',        icon:'⚙️' },
   ],
@@ -104,12 +112,12 @@ export const PAGE_ROUTES = {
   super_admin: [
     'dashboard','gymOwners','subscriptions','pending',
     'analytics','revenue','support','notifications',
-    'settings','security','reports','license',
+    'settings','security','devices','reports','license',
   ],
   gym_admin: [
     'dashboard','members','trainers','payments',
     'attendance','reception','workouts','diet',
-    'progress','reports','notifications','whatsapp','settings',
+    'progress','reports','notifications','whatsapp','settings','support','subscription','devices',
   ],
   trainer: [
     'dashboard','members','workouts','diet',
@@ -129,7 +137,7 @@ export function canSubscribe(role, collection) {
     trainers:    ['super_admin','gym_admin'],
     payments:    ['super_admin','gym_admin'],
     plans:       ['super_admin','gym_admin','trainer'],
-    progressLogs:['super_admin','gym_admin','trainer'],
+    progressLogs:['super_admin','gym_admin','trainer','member'],
     dietPlans:   ['super_admin','gym_admin','trainer'],
     workoutPlans:['super_admin','gym_admin','trainer'],
     attendance:  ['super_admin','gym_admin','trainer'],
@@ -138,6 +146,8 @@ export function canSubscribe(role, collection) {
     paymentAttempts:  ['super_admin'],
     gyms:             ['super_admin'],
     notifications:    ['super_admin','gym_admin','trainer','member'],
+    supportTickets:   ['super_admin','gym_admin'],
+    featureRequests:  ['super_admin','gym_admin'],
   }
   return gate[collection]?.includes(role) ?? false
 }

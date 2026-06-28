@@ -532,6 +532,24 @@ export async function addProgressLog(logData) {
   return docRef.id
 }
 
+export async function updateProgressLog(logId, updatedData) {
+  await updateDoc(doc(db, 'progressLogs', logId), {
+    ...updatedData,
+    weight: Number(updatedData.weight) || 0,
+    bodyFat: Number(updatedData.bodyFat) || 0,
+    bmi: Number(updatedData.bmi) || 0,
+    muscle: Number(updatedData.muscle) || 0,
+    bench: Number(updatedData.bench) || 0,
+    squat: Number(updatedData.squat) || 0,
+    deadlift: Number(updatedData.deadlift) || 0,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export async function deleteProgressLog(logId) {
+  await deleteDoc(doc(db, 'progressLogs', logId))
+}
+
 // ─────────────────────────────────────────────
 // PLANS
 // ─────────────────────────────────────────────

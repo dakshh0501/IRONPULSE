@@ -3,15 +3,8 @@
 // Uses authService.getPendingUsers() and authService.approveUser()
 
 import { useState, useEffect } from 'react'
-import { getPendingUsers, approveUser } from '../services/authService'
-import {
-  deleteDoc,
-  doc,
-  updateDoc,
-  serverTimestamp
-} from 'firebase/firestore'
-import { getFunctions, httpsCallable } from 'firebase/functions'
-import { db } from '../firebase'
+import { getPendingUsers, approveUser, rejectUser } from '../services/authService'
+import { useAuth } from '../context/AuthContext'
 
 const ROLE_OPTIONS = ['member', 'trainer']
 
@@ -41,6 +34,7 @@ const AV_COLORS = ['#ff6b00','#00c8b4','#22c55e','#a855f7','#f59e0b','#3b82f6']
 const avColor   = (name = '') => AV_COLORS[name.charCodeAt(0) % AV_COLORS.length]
 
 export default function PendingApprovals() {
+  const { userProfile, userGymId, effectiveRole } = useAuth()
   const [pending,   setPending]   = useState([])
   const [loading,   setLoading]   = useState(true)
   const [roles,     setRoles]     = useState({})    // { [uid]: selectedRole }
@@ -53,7 +47,9 @@ export default function PendingApprovals() {
     async function loadPending() {
       setLoading(true)
       try {
-        const data = await getPendingUsers()
+        // Super admin sees all pending users; gym-scoped admins see only their gym's
+        const queryGymId = effectiveRole === 'super_admin' ? null : (userGymId || 'default')
+        const data = await getPendingUsers(queryGymId)
         if (mounted) {
           setPending(data)
         }
@@ -70,7 +66,7 @@ export default function PendingApprovals() {
       mounted = false
       clearInterval(interval)
     }
-  }, [])
+  }, [effectiveRole, userGymId])
 
   function showToast(msg, type = 'success') {
     setToast({ msg, type })
@@ -86,13 +82,6 @@ export default function PendingApprovals() {
     setBusy(b => ({ ...b, [user.uid]: true }))
     try {
       await approveUser(user.uid, role)
-      // Add approvedAt timestamp
-      await updateDoc(
-  doc(db, 'users', user.uid),
-  {
-    approvedAt: serverTimestamp()
-  }
-)
       showToast(`✅ ${user.name} approved as ${role}`)
     } catch (e) {
       console.error(e)
@@ -109,18 +98,7 @@ export default function PendingApprovals() {
     if (!window.confirm(`Reject and delete ${user.name}'s account? This cannot be undone.`)) return
     setBusy(b => ({ ...b, [user.uid]: true }))
     try {
-      // Delete Firestore user doc
-      await deleteDoc(doc(db, 'users', user.uid))
-
-      // Delete Firebase Auth user via Cloud Function (Admin SDK required)
-      try {
-        const functions = getFunctions()
-        const deleteUserFn = httpsCallable(functions, 'deleteAuthUser')
-        await deleteUserFn({ uid: user.uid })
-      } catch (cfErr) {
-        console.error('handleReject: failed to delete Auth user (non-blocking):', cfErr)
-      }
-
+      await rejectUser(user.uid)
       showToast(`🗑 ${user.name}'s request rejected`)
     } catch (e) {
       console.error(e)

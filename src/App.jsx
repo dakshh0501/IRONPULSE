@@ -1,7 +1,7 @@
 // src/App.jsx
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { AppProvider } from './context/AppContext'
+import { AppProvider, useApp } from './context/AppContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { PAGE_ROUTES } from './utils/rbac'
 import StartupVideo from './components/StartupVideo'
@@ -38,6 +38,11 @@ import Security            from './pages/superadmin/Security'
 import PlatformSettings    from './pages/superadmin/PlatformSettings'
 import LicenseKeys         from './pages/superadmin/LicenseKeys'
 import SuperAdminReports   from './pages/superadmin/Reports'
+import SuperAdminDevices   from './pages/superadmin/DeviceManagement'
+import GymReports          from './pages/Reports'
+import GymSubscription     from './pages/GymSubscription'
+import GymDevices          from './pages/DeviceManagement'
+import LicenseGuard        from './components/LicenseGuard'
 
 // ── Shared component map (all pages that exist) ──────────────
 const PAGE_COMPONENTS = {
@@ -55,13 +60,15 @@ const PAGE_COMPONENTS = {
   progress:      (p) => <Progress        search={p.search} setPage={p.setPage} />,
   attendance:    (p) => <Attendance      search={p.search} setPage={p.setPage} />,
   reception:     (p) => <ReceptionMode   />,
-  reports:       (p) => <SuperAdminReports search={p.search} setPage={p.setPage} />,
+  reports:       (p) => <GymReports search={p.search} setPage={p.setPage} />,
+  subscription:  (p) => <GymSubscription />,
   settings:      (p) => <Settings        search={p.search} setPage={p.setPage} />,
   whatsapp:      (p) => <WhatsAppReminders search={p.search} />,
   analytics:     (p) => <UsageAnalytics  />,
   revenue:       (p) => <PlatformRevenue  />,
   security:      (p) => <Security        />,
   license:       (p) => <LicenseKeys     />,
+  devices:       (p) => <GymDevices      />,
 }
 
 // ── PAGE MAP — generated from RBAC roles ────────────────────
@@ -86,6 +93,20 @@ function buildPageMap(setPage, search, role) {
     map.dashboard     = <PlatformDashboard   setPage={setPage} />
     map.settings      = <PlatformSettings    search={search} setPage={setPage} />
     map.notifications = <SuperAdminNotifications search={search} setPage={setPage} />
+    map.reports       = <SuperAdminReports   search={search} setPage={setPage} />
+    map.devices       = <SuperAdminDevices   />
+  }
+  // Wrap gym_admin pages in LicenseGuard (premium pages)
+  if (role === 'gym_admin' || role === 'gym_owner') {
+    const guardedKeys = ['dashboard','members','trainers','payments','attendance',
+      'reception','workouts','diet','progress','reports','notifications',
+      'whatsapp','settings','support','devices']
+    guardedKeys.forEach(key => {
+      if (map[key]) {
+        const original = map[key]
+        map[key] = <LicenseGuard>{original}</LicenseGuard>
+      }
+    })
   }
   return map
 }
@@ -94,7 +115,8 @@ function buildPageMap(setPage, search, role) {
 //  APP SHELL
 // ─────────────────────────────────────────────────────────────
 function AppShell() {
-  const { role, effectiveRole } = useAuth()
+  const { role, effectiveRole, logout } = useAuth()
+  const { currentSubscription } = useApp()
   const navRole = effectiveRole || role
   const [page,       setPage]       = useState(() => sessionStorage.getItem('ironpulse-page') || 'dashboard')
   const [search,     setSearch]     = useState('')
@@ -103,6 +125,9 @@ function AppShell() {
   const [navKey, setNavKey] = useState(0)
   const prevPage = useRef(page)
   const swipeState = useRef({ startX: 0, startY: 0, swiping: false })
+
+  const isExpired = currentSubscription?.status === 'expired'
+  const isGymAdmin = effectiveRole === 'gym_admin' || effectiveRole === 'gym_owner'
 
   useEffect(() => {
     sessionStorage.setItem('ironpulse-page', page)
@@ -138,13 +163,36 @@ function AppShell() {
   [navRole, search, page]
 ) || {}
 
-const safePage =
+const safePageRaw =
   pageMap[page]
     ? page
     : Object.keys(pageMap)[0]
 
+// Enforce subscription lock for gym admins with expired subscription
+const isPageLocked = isExpired && isGymAdmin && safePageRaw !== 'subscription'
+
+const safePage = isPageLocked ? 'subscription' : safePageRaw
+
+// Redirect to subscription page if locked
+useEffect(() => {
+  if (isPageLocked && page !== 'subscription') {
+    setPage('subscription')
+  }
+}, [isPageLocked, page])
+
+const UnauthorizedFallback = () => (
+  <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'80vh', textAlign:'center', padding:40 }}>
+    <div style={{ fontSize:64, marginBottom:16 }}>🔒</div>
+    <h2 style={{ margin:'0 0 8px', fontSize:22, fontWeight:800 }}>Access Restricted</h2>
+    <p style={{ color:'var(--text-muted)', margin:'0 0 24px', fontSize:14, maxWidth:400 }}>
+      Your account does not have access to any pages. This may mean your role is pending approval or not yet activated.
+    </p>
+    <button className="btn btn-outline" onClick={logout}>Sign Out</button>
+  </div>
+)
+
 const pageContent =
-  pageMap[safePage] || <LoadingVideo />
+  pageMap[safePage] || <UnauthorizedFallback />
 
   const mobileOpenRef = useRef(mobileOpen)
   mobileOpenRef.current = mobileOpen

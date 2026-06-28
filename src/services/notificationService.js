@@ -15,12 +15,13 @@ import { db } from '../firebase'
 
 const COLLECTION = 'notifications'
 
-export function subscribeToNotifications(userId, callback) {
-  const q = query(
-    collection(db, COLLECTION),
-    where('userId', '==', userId),
-    orderBy('createdAt', 'desc')
-  )
+export function subscribeToNotifications(userId, callback, gymId) {
+  const constraints = [where('userId', '==', userId)]
+  if (gymId) {
+    constraints.push(where('gymId', '==', gymId))
+  }
+  constraints.push(orderBy('createdAt', 'desc'))
+  const q = query(collection(db, COLLECTION), ...constraints)
   return onSnapshot(q, (snapshot) => {
     const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
     callback(list)
@@ -32,6 +33,7 @@ export function subscribeToNotifications(userId, callback) {
 export async function addNotification(data) {
   const docRef = await addDoc(collection(db, COLLECTION), {
     ...data,
+    gymId: data.gymId || 'default',
     read: false,
     createdAt: serverTimestamp(),
   })
@@ -46,12 +48,12 @@ export async function markNotifAsUnread(notifId) {
   await updateDoc(doc(db, COLLECTION, notifId), { read: false })
 }
 
-export async function markAllNotifsAsRead(userId) {
-  const q = query(
-    collection(db, COLLECTION),
-    where('userId', '==', userId),
-    where('read', '==', false)
-  )
+export async function markAllNotifsAsRead(userId, gymId) {
+  const constraints = [where('userId', '==', userId), where('read', '==', false)]
+  if (gymId) {
+    constraints.push(where('gymId', '==', gymId))
+  }
+  const q = query(collection(db, COLLECTION), ...constraints)
   const snapshot = await getDocs(q)
   const updates = snapshot.docs.map(d => updateDoc(d.ref, { read: true }))
   await Promise.allSettled(updates)
@@ -61,11 +63,12 @@ export async function deleteNotification(notifId) {
   await deleteDoc(doc(db, COLLECTION, notifId))
 }
 
-export async function deleteAllNotifications(userId) {
-  const q = query(
-    collection(db, COLLECTION),
-    where('userId', '==', userId)
-  )
+export async function deleteAllNotifications(userId, gymId) {
+  const constraints = [where('userId', '==', userId)]
+  if (gymId) {
+    constraints.push(where('gymId', '==', gymId))
+  }
+  const q = query(collection(db, COLLECTION), ...constraints)
   const snapshot = await getDocs(q)
   const deletes = snapshot.docs.map(d => deleteDoc(d.ref))
   await Promise.allSettled(deletes)
