@@ -115,6 +115,9 @@ export function subscribeToMembers(callback, gymId) {
         }))
 
       callback(members)
+    },
+    (error) => {
+      console.error(`[Firestore] Subscription error (members):`, error.message)
     }
   )
 }
@@ -229,6 +232,9 @@ export function subscribeToPayments(callback, gymId) {
     ...doc.data(),
   }))
       callback(payments)
+    },
+    (error) => {
+      console.error(`[Firestore] Subscription error (payments):`, error.message)
     }
   )
 }
@@ -332,6 +338,9 @@ export function subscribeToTrainers(callback, gymId) {
         }))
 
       callback(trainers)
+    },
+    (error) => {
+      console.error(`[Firestore] Subscription error (trainers):`, error.message)
     }
   )
 }
@@ -421,6 +430,8 @@ export function subscribeToSupportTickets(callback, gymId) {
   return onSnapshot(ref, (snapshot) => {
     const tickets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
     callback(tickets)
+  }, (error) => {
+    console.error(`[Firestore] Subscription error (supportTickets):`, error.message)
   })
 }
 
@@ -449,6 +460,8 @@ export function subscribeToFeatureRequests(callback, gymId) {
   return onSnapshot(ref, (snapshot) => {
     const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
     callback(requests)
+  }, (error) => {
+    console.error(`[Firestore] Subscription error (featureRequests):`, error.message)
   })
 }
 
@@ -509,6 +522,9 @@ export function subscribeToProgressLogs(callback, gymId) {
     (snapshot) => {
       const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
       callback(logs)
+    },
+    (error) => {
+      console.error(`[Firestore] Subscription error (progressLogs):`, error.message)
     }
   )
 }
@@ -565,6 +581,9 @@ export function subscribeToPlans(callback, gymId) {
     (snapshot) => {
       const plans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
       callback(plans)
+    },
+    (error) => {
+      console.error(`[Firestore] Subscription error (plans):`, error.message)
     }
   )
 }
@@ -629,6 +648,9 @@ export function subscribeToDietPlans(callback, gymId) {
     (snapshot) => {
       const plans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
       callback(plans)
+    },
+    (error) => {
+      console.error(`[Firestore] Subscription error (dietPlans):`, error.message)
     }
   )
 }
@@ -663,6 +685,9 @@ export function subscribeToWorkoutPlans(callback, gymId) {
     (snapshot) => {
       const plans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
       callback(plans)
+    },
+    (error) => {
+      console.error(`[Firestore] Subscription error (workoutPlans):`, error.message)
     }
   )
 }
@@ -748,6 +773,9 @@ export function subscribeToGyms(callback) {
     (snapshot) => {
       const gyms = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
       callback(gyms)
+    },
+    (error) => {
+      console.error(`[Firestore] Subscription error (gyms):`, error.message)
     }
   )
 }
@@ -759,24 +787,11 @@ export async function addGym(gymData, ownerUid) {
     approvalStatus: 'pending',
     createdAt: serverTimestamp(),
   }
-  console.log('[ADDGYM FIRESTORE] about to call addDoc', {
-    operation: 'addDoc',
-    collection: 'gyms',
-    data: { ...data, createdAt: '<serverTimestamp>' },
-  })
   try {
     const docRef = await addDoc(collection(db, 'gyms'), data)
-    console.log('[ADDGYM FIRESTORE] addDoc SUCCEEDED id:', docRef.id)
     return docRef.id
   } catch (e) {
-    console.error('[ADDGYM FIRESTORE] addDoc FAILED', {
-      operation: 'addDoc',
-      collection: 'gyms',
-      data: { ...data, createdAt: '<serverTimestamp>' },
-      code: e.code,
-      message: e.message,
-      error: e,
-    })
+    console.error('addGym error:', e)
     throw e
   }
 }
@@ -799,6 +814,9 @@ export function subscribeToSubscriptions(callback) {
     (snapshot) => {
       const subs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
       callback(subs)
+    },
+    (error) => {
+      console.error(`[Firestore] Subscription error (subscriptions):`, error.message)
     }
   )
 }
@@ -812,53 +830,49 @@ export async function getSubscriptionByGymId(gymId) {
 
 // Calculate subscription dates based on plan
 function calculateSubscriptionDates(plan, billingSettings) {
-  const now = new Date();
-  let startDate, expiryDate, graceEndDate, isLifetime = false;
-
   const trialDays = billingSettings?.trialDays || 7;
   const gracePeriod = billingSettings?.gracePeriod || 5;
+  let isLifetime = false;
+
+  function addDays(d, n) { return new Date(d.getTime() + n * 86400000) }
+
+  const base = new Date()
+  let startDate = base
+  let expiryDate, graceEndDate
 
   switch (plan) {
     case 'Trial':
-      startDate = now;
-      expiryDate = new Date(now.setDate(now.getDate() + trialDays));
-      graceEndDate = new Date(now.setDate(now.getDate() + gracePeriod));
+      expiryDate = addDays(base, trialDays)
+      graceEndDate = addDays(base, trialDays + gracePeriod)
       break;
     case 'Standard':
-      startDate = now;
-      expiryDate = new Date(now.setDate(now.getDate() + 30));
-      graceEndDate = new Date(now.setDate(now.getDate() + gracePeriod));
+      expiryDate = addDays(base, 30)
+      graceEndDate = addDays(base, 30 + gracePeriod)
       break;
     case 'Premium':
-      startDate = now;
-      expiryDate = new Date(now.setDate(now.getDate() + 30));
-      graceEndDate = new Date(now.setDate(now.getDate() + gracePeriod));
+      expiryDate = addDays(base, 30)
+      graceEndDate = addDays(base, 30 + gracePeriod)
       break;
     case 'Quarterly':
-      startDate = now;
-      expiryDate = new Date(now.setDate(now.getDate() + 90));
-      graceEndDate = new Date(now.setDate(now.getDate() + gracePeriod));
+      expiryDate = addDays(base, 90)
+      graceEndDate = addDays(base, 90 + gracePeriod)
       break;
     case 'Annual':
-      startDate = now;
-      expiryDate = new Date(now.setDate(now.getDate() + 365));
-      graceEndDate = new Date(now.setDate(now.getDate() + gracePeriod));
+      expiryDate = addDays(base, 365)
+      graceEndDate = addDays(base, 365 + gracePeriod)
       break;
     case 'Lifetime':
-      startDate = now;
-      expiryDate = new Date(now.setDate(now.getDate() + 9999));
-      graceEndDate = new Date(now.setDate(now.getDate() + 0));
-      isLifetime = true;
+      expiryDate = addDays(base, 9999)
+      graceEndDate = base
+      isLifetime = true
       break;
     case 'Day Pass':
-      startDate = now;
-      expiryDate = new Date(now.setDate(now.getDate() + 1));
-      graceEndDate = new Date(now.setDate(now.getDate() + 1));
+      expiryDate = addDays(base, 1)
+      graceEndDate = addDays(base, 1)
       break;
     default:
-      startDate = now;
-      expiryDate = new Date(now.setDate(now.getDate() + 30));
-      graceEndDate = new Date(now.setDate(now.getDate() + gracePeriod));
+      expiryDate = addDays(base, 30)
+      graceEndDate = addDays(base, 30 + gracePeriod)
   }
 
   const daysRemaining = isLifetime ? 9999 : Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
@@ -938,27 +952,33 @@ export async function addSubscription(subData, billingSettings) {
 export async function updateSubscription(subId, updatedData, billingSettings) {
   const updateFields = { ...updatedData, updatedAt: serverTimestamp() }
   
-  // If plan is being updated, recalculate dates and amount from global billing
+  // If plan is being updated, only recalculate if plan actually changed
   if (updatedData.plan) {
-    const billing = billingSettings || await getGlobalBilling()
-    const plan = updatedData.plan;
-    const dates = calculateSubscriptionDates(plan, billing);
-    Object.assign(updateFields, dates);
+    const existingSnap = await getDoc(doc(db, 'subscriptions', subId))
+    const existingData = existingSnap.exists() ? existingSnap.data() : {}
+    const planChanged = existingData.plan !== updatedData.plan
     
-    // Recalculate amount with discount
-    const baseAmount = calculateSubscriptionAmount(plan, billing)
-    const discount = applyDiscount(baseAmount, updatedData.discountType, updatedData.discountValue)
-    updateFields.amount = updatedData.amount || discount.finalAmount
-    updateFields.originalAmount = discount.originalAmount
-    updateFields.discountType = discount.discountType
-    updateFields.discountValue = discount.discountValue
-    updateFields.finalAmount = discount.finalAmount
-    
-    // Update status based on plan and existing status
-    if (updateFields.status === 'trial') {
-      updateFields.status = 'active';
-      updateFields.paymentStatus = 'paid';
-      updateFields.paidAt = serverTimestamp();
+    if (planChanged) {
+      const billing = billingSettings || await getGlobalBilling()
+      const plan = updatedData.plan;
+      const dates = calculateSubscriptionDates(plan, billing);
+      Object.assign(updateFields, dates);
+      
+      // Recalculate amount with discount
+      const baseAmount = calculateSubscriptionAmount(plan, billing)
+      const discount = applyDiscount(baseAmount, updatedData.discountType, updatedData.discountValue)
+      updateFields.amount = updatedData.amount || discount.finalAmount
+      updateFields.originalAmount = discount.originalAmount
+      updateFields.discountType = discount.discountType
+      updateFields.discountValue = discount.discountValue
+      updateFields.finalAmount = discount.finalAmount
+      
+      // Update status based on plan and existing status
+      if (updateFields.status === 'trial') {
+        updateFields.status = 'active';
+        updateFields.paymentStatus = 'paid';
+        updateFields.paidAt = serverTimestamp();
+      }
     }
   }
   
@@ -1024,11 +1044,9 @@ export async function migrateSubscriptions() {
 
   if (updates.length > 0) {
     await Promise.allSettled(updates)
-    console.log(`Migrated ${updates.length} subscription documents`)
     return { migrated: updates.length, total: snapshot.size }
   }
 
-  console.log('No subscription documents needed migration')
   return { migrated: 0, total: snapshot.size }
 }
 

@@ -3,7 +3,9 @@ import {
   useContext,
   useState,
   useEffect,
-  useMemo
+  useMemo,
+  useCallback,
+  useRef,
 } from 'react'
 import { useAuth } from './AuthContext'
 import {
@@ -61,6 +63,7 @@ import {
   updatePaymentAttempt,
   initiatePayment as initiatePaymentService,
   refreshPaymentStatus as refreshPaymentStatusService,
+  cleanupExpiredPaymentAttempts,
 } from '../services/paymentService'
 import { doc, getDoc, updateDoc, query, where, getDocs, collection } from 'firebase/firestore'
 import { db } from '../firebase'
@@ -68,6 +71,7 @@ import {
   subscribeToNotifications,
   addNotification as addNotifToFirestore,
   markNotifAsRead,
+  markNotifAsUnread,
   markAllNotifsAsRead,
   deleteNotification,
 } from '../services/notificationService'
@@ -284,14 +288,14 @@ export function AppProvider({ children }) {
     }
   }
 
-  const refreshPaymentStatus = async (attemptId) => {
+  const refreshPaymentStatus = useCallback(async (attemptId) => {
     try {
       return await refreshPaymentStatusService(attemptId)
     } catch (error) {
       console.error('Error refreshing payment status:', error)
       return { status: null, error: error.message }
     }
-  }
+  }, [])
 
   // ── Subscriptions listener (platform — super_admin only) ─
   useEffect(() => {
@@ -336,16 +340,30 @@ export function AppProvider({ children }) {
     return unsubscribe
   }, [currentUser, authLoading, effectiveRole, queryGymId])
 
-  // ── Notifications listener ─────────────────────────────
+  // ── Cleanup expired payment attempts on mount ────────
+  useEffect(() => {
+    if (authLoading || !currentUser) return
+    cleanupExpiredPaymentAttempts().catch(() => {})
+  }, [authLoading, currentUser])
+
+  // ── Notifications listener (deferred) ─────────────────
   useEffect(() => {
     if (authLoading || !currentUser?.uid) return
     setNotifLoading(true)
-    const unsubscribe = subscribeToNotifications(currentUser.uid, (data) => {
-      setNotifications(data)
-      setNotifLoading(false)
-    }, gymId)
+    let unsub
+    const schedule = () => {
+      unsub = subscribeToNotifications(currentUser.uid, (data) => {
+        setNotifications(data)
+        setNotifLoading(false)
+      }, gymId)
+    }
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(schedule, { timeout: 300 })
+    } else {
+      setTimeout(schedule, 0)
+    }
     return () => {
-      unsubscribe()
+      if (unsub) unsub()
       setNotifLoading(false)
     }
   }, [currentUser, authLoading, gymId])
@@ -411,28 +429,46 @@ export function AppProvider({ children }) {
     return unsubscribe
   }, [currentUser, authLoading, effectiveRole, queryGymId])
 
-  // ── Progress Logs listener ─────────────────────────────
+  // ── Progress Logs listener (deferred) ──────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'progressLogs')) return
-    const unsubscribe = subscribeToProgressLogs((data) => setProgressLogs(data), queryGymId)
-    return unsubscribe
+    let unsub
+    const schedule = () => { unsub = subscribeToProgressLogs((data) => setProgressLogs(data), queryGymId) }
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(schedule, { timeout: 300 })
+    } else {
+      setTimeout(schedule, 0)
+    }
+    return () => { if (unsub) unsub() }
   }, [currentUser, authLoading, effectiveRole, queryGymId])
 
-  // ── Diet Plans listener ────────────────────────────────
+  // ── Diet Plans listener (deferred) ─────────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'dietPlans')) return
-    const unsubscribe = subscribeToDietPlans((data) => setDietPlans(data), queryGymId)
-    return unsubscribe
+    let unsub
+    const schedule = () => { unsub = subscribeToDietPlans((data) => setDietPlans(data), queryGymId) }
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(schedule, { timeout: 300 })
+    } else {
+      setTimeout(schedule, 0)
+    }
+    return () => { if (unsub) unsub() }
   }, [currentUser, authLoading, effectiveRole, queryGymId])
 
-  // ── Workout Plans listener ─────────────────────────────
+  // ── Workout Plans listener (deferred) ──────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'workoutPlans')) return
-    const unsubscribe = subscribeToWorkoutPlans((data) => setWorkoutPlans(data), queryGymId)
-    return unsubscribe
+    let unsub
+    const schedule = () => { unsub = subscribeToWorkoutPlans((data) => setWorkoutPlans(data), queryGymId) }
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(schedule, { timeout: 300 })
+    } else {
+      setTimeout(schedule, 0)
+    }
+    return () => { if (unsub) unsub() }
   }, [currentUser, authLoading, effectiveRole, queryGymId])
 
   // ── Support Tickets listener ──────────────────────────
@@ -486,14 +522,30 @@ export function AppProvider({ children }) {
   }, [currentUser, authLoading, effectiveRole])
 
   // ── Auto-sync member payment fields ───────────────────
+  // M34: Track previous payments to only update affected members (avoid O(n) writes)
+  const prevPaymentsRef = useRef([])
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (effectiveRole !== 'gym_admin' && effectiveRole !== 'super_admin') return
     if (members.length === 0 || payments.length === 0) return
 
     const updates = []
+    const prevPayments = prevPaymentsRef.current
 
-    members.forEach(member => {
+    // Detect which payments actually changed since last snapshot
+    const changedPayments = payments.filter(p => {
+      const prev = prevPayments.find(pp => pp.id === p.id)
+      return !prev || prev.paid !== p.paid || prev.status !== p.status || prev.amount !== p.amount
+    })
+    prevPaymentsRef.current = payments
+
+    // Only process members whose payments changed (M34: O(1) per change instead of O(n))
+    const affectedMemberIds = new Set(changedPayments.map(p => p.memberId).filter(Boolean))
+    const targetMembers = affectedMemberIds.size > 0
+      ? members.filter(m => affectedMemberIds.has(m.id))
+      : (prevPayments.length === 0 ? members : [])
+
+    targetMembers.forEach(member => {
       const totalPaid = payments
         .filter(p => p.memberId === member.id && p.status === 'Paid')
         .reduce((sum, p) => sum + Number(p.paid || 0), 0)
@@ -558,6 +610,15 @@ export function AppProvider({ children }) {
       setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, read: true } : n))
     } catch (err) {
       console.error('markNotifRead error:', err)
+    }
+  }
+
+  const markNotifUnread = async (notifId) => {
+    try {
+      await markNotifAsUnread(notifId)
+      setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, read: false } : n))
+    } catch (err) {
+      console.error('markNotifUnread error:', err)
     }
   }
 
@@ -643,8 +704,13 @@ export function AppProvider({ children }) {
       const now = new Date()
       const todayStr = now.toISOString().split('T')[0]
       const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
+      const memberId = member.authUid || member.uid
+      if (!memberId) {
+        console.error('checkInMember: no authUid or uid on member', member.id)
+        throw new Error('Member has no authUid — cannot record attendance')
+      }
       await addAttendanceToFirestore({
-        memberId:    member.authUid || member.uid || member.id,
+        memberId,
         memberName:  member.name,
         avatar:      member.avatar || (member.name || 'M').slice(0, 2).toUpperCase(),
         color:       member.color  || '#00c8b4',
@@ -968,7 +1034,7 @@ export function AppProvider({ children }) {
     const timeStr = now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' })
     setCheckinLog(p => [{
       id: Date.now(), name: member.name,
-      avatar: member.avatar, time: timeStr, out: '�',
+      avatar: member.avatar, time: timeStr, out: '✓',
     }, ...p])
     try {
       await updateMember(member.id, { checkins: Number(member.checkins || 0) + 1 })
@@ -991,8 +1057,10 @@ export function AppProvider({ children }) {
 
   const suspendSubscription = async () => {
     await suspendSubService(gymId, currentUser?.uid)
+    const targetGym = gyms.find(g => g.id === gymId)
+    const targetUserId = targetGym?.ownerUid || targetGym?.createdBy || currentUser?.uid
     fireNotif('gym_suspended', {
-      userId: currentUser?.uid,
+      userId: targetUserId,
       title: 'Subscription Suspended',
       message: 'The gym subscription has been suspended.',
       relatedDocumentId: gymId,
@@ -1033,12 +1101,36 @@ export function AppProvider({ children }) {
     }).catch(() => {})
   }
 
+  // delegates to changePlan (same date calc and update logic)
   const downgradeSubscription = async (planName, planType, amount) => {
     await downgradeSubService(gymId, planName, planType, amount, currentUser?.uid)
     fireNotif('sub_downgraded', {
       userId: currentUser?.uid,
       title: 'Plan Downgraded',
       message: `Downgraded to ${planName}.`,
+      relatedDocumentId: gymId,
+      actionUrl: '/subscription',
+    }).catch(() => {})
+  }
+
+  const reactivateSubscription = async () => {
+    const sub = currentSubscription
+    const now = new Date()
+    const daysMap = { trial: 14, monthly: 30, quarterly: 90, yearly: 365 }
+    const billingInterval = daysMap[sub?.planType] || 30
+    const currentExpiry = sub?.expiryDate ? new Date(sub.expiryDate) : now
+    const newExpiry = new Date(currentExpiry)
+    newExpiry.setDate(newExpiry.getDate() + billingInterval)
+    await updateDoc(doc(db, 'gyms', gymId), {
+      'subscription.status': 'active',
+      'subscription.expiryDate': newExpiry.toISOString(),
+      'subscription.cancelledAt': null,
+      'subscription.updatedAt': serverTimestamp(),
+    })
+    fireNotif('sub_reactivated', {
+      userId: currentUser?.uid,
+      title: 'Subscription Reactivated',
+      message: 'Your subscription has been reactivated.',
       relatedDocumentId: gymId,
       actionUrl: '/subscription',
     }).catch(() => {})
@@ -1074,7 +1166,7 @@ export function AppProvider({ children }) {
       progressLogs, addProgressLog, updateProgressLog, deleteProgressLog,
       dietPlans, addDietPlan, updateDietPlan, deleteDietPlan,
       workoutPlans, addWorkoutPlan, updateWorkoutPlan, deleteWorkoutPlan,
-      notifications, markAllNotifsRead, markNotifRead, deleteNotif, unreadCount, notifLoading, fireNotif,
+      notifications, markAllNotifsRead, markNotifRead, markNotifUnread, deleteNotif, unreadCount, notifLoading, fireNotif,
       checkinLog, checkIn,
       attendance, checkInMember,
       pendingCount,
@@ -1082,7 +1174,7 @@ export function AppProvider({ children }) {
       gyms, currentGym, subscriptions,
       currentSubscription, subscriptionHistory,
       activateSubscription, suspendSubscription, expireSubscription,
-      renewSubscription, upgradeSubscription, downgradeSubscription,
+      renewSubscription, upgradeSubscription, downgradeSubscription, reactivateSubscription,
       assignTrialToGym, extendSubscription, changeSubscriptionPlan,
       paymentAttempts, addPaymentAttempt, updatePaymentAttemptStatus,
       initiatePayment, refreshPaymentStatus,

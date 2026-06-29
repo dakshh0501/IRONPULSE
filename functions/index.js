@@ -161,7 +161,6 @@ async function fulfillSubscriptionPayment(attempt, phonePeTransactionId) {
       }
     }
 
-    console.log('Subscription fulfilled:', attempt.subscriptionId, attempt.type, updateFields.status)
   }).catch(err => {
     console.error('fulfillSubscriptionPayment: transaction failed', attempt.subscriptionId, err)
     throw err
@@ -182,7 +181,6 @@ async function createPaymentRecordInTransaction(transaction, attempt, phonePeTra
     .get()
 
   if (!existing.empty) {
-    console.log('Payment record already exists for', attempt.paymentId)
     return
   }
 
@@ -199,10 +197,16 @@ async function createPaymentRecordInTransaction(transaction, attempt, phonePeTra
   const dateStr = now.toISOString().split('T')[0]
   const initials = gymName ? gymName.substring(0, 2).toUpperCase() : 'IP'
 
+  // Generate a unique invoice number
+  const datePart = dateStr.replace(/-/g, '')
+  const randPart = crypto.randomBytes(2).toString('hex').toUpperCase()
+  const invoiceNo = `INV-${datePart}-${randPart}`
+
   // Convert paise to rupees for consistent payment collection storage
-  const finalAmountRupees = Math.round(Number(attempt.finalAmount) / 100) || 0
+  const finalAmountRupees = Number((Number(attempt.finalAmount) / 100).toFixed(2)) || 0
 
   const paymentRecord = {
+    invoiceNo,
     gymId: attempt.gymId || 'default',
     memberId: attempt.subscriptionId || '',
     member: gymName || 'Subscription',
@@ -225,7 +229,6 @@ async function createPaymentRecordInTransaction(transaction, attempt, phonePeTra
   const paymentRef = db.collection('payments').doc()
   transaction.set(paymentRef, paymentRecord)
 
-  console.log('Payment record created:', attempt.paymentId, attempt.plan, attempt.finalAmount)
 }
 
 // ─────────────────────────────────────────────
@@ -447,6 +450,25 @@ exports.createPayment = onCall({
     return { attemptId: null, redirectUrl: null, error: 'callbackUrl must be a valid HTTP/HTTPS URL' }
   }
 
+  // Verify caller has an authorized role
+  const callerDoc = await db.collection('users').doc(request.auth.uid).get()
+  if (!callerDoc.exists) {
+    return { attemptId: null, redirectUrl: null, error: 'Caller profile not found' }
+  }
+  const callerRole = callerDoc.data().role
+  if (!['super_admin', 'gym_admin', 'gym_owner', 'admin'].includes(callerRole)) {
+    return { attemptId: null, redirectUrl: null, error: 'Insufficient permissions: only admins and gym owners can initiate payments' }
+  }
+
+  // Verify caller has access to this gym (gym ownership validation)
+  if (callerRole !== 'super_admin') {
+    const callerGymId = callerDoc.data().gymId
+    if (!callerGymId || callerGymId !== gymId) {
+      return { attemptId: null, redirectUrl: null, error: 'Access denied: you do not own this gym' }
+    }
+  }
+  // super_admin can create payments for any gym
+
   // 1. Load and validate PhonePe config (server-side only)
   const config = await loadPhonePeConfig()
   if (!config || !config.merchantId || !config.saltKey || !config.saltIndex) {
@@ -509,7 +531,8 @@ exports.createPayment = onCall({
   // 5. Generate payment tracking ID
   const paymentId = `IP-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`
 
-  // 6. Save attempt to Firestore (status: pending)
+  // 6. Save attempt to Firestore (status: pending, with 30-minute expiry)
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString()
   const attemptId = await savePaymentAttempt({
     paymentId,
     gymId: gymId || 'default',
@@ -526,6 +549,7 @@ exports.createPayment = onCall({
     merchantTransactionId,
     transactionId: null,
     redirectUrl: null,
+    expiresAt,
   })
 
   // 7. Call PhonePe API (server-side)
@@ -621,6 +645,15 @@ exports.verifyPayment = onCall({
   const attempt = await getPaymentAttempt(attemptId)
   if (!attempt) return { status: null, error: 'Payment attempt not found' }
   if (attempt.status !== 'pending') return { status: attempt.status, error: null }
+
+  // Check if the payment attempt has expired (30-minute timeout)
+  if (attempt.expiresAt && new Date(attempt.expiresAt) < new Date()) {
+    await updatePaymentAttempt(attemptId, {
+      status: 'cancelled',
+      errorMessage: 'Payment attempt expired (30-minute timeout)',
+    }).catch(err => console.error('verifyPayment: failed to expire stale attempt:', err))
+    return { status: 'cancelled', error: 'Payment attempt expired' }
+  }
 
   // Verify caller belongs to the same gym as the payment attempt
   if (callerRole !== 'super_admin' && callerDoc.data().gymId && attempt.gymId && callerDoc.data().gymId !== attempt.gymId) {
@@ -750,7 +783,7 @@ exports.phonePeCallback = onRequest({
 
       // Build expected checksum string
       // Format: base64DecodedResponse + /pg/v1/status/ + merchantId + merchantTransactionId + saltKey
-      const responseString = decodedJson + '/pg/v1/status/' + config.merchantId + merchantTransactionId + config.saltKey
+      const responseString = decodedJson + '/pg/v1/status/' + config.merchantId + '/' + merchantTransactionId + config.saltKey
       const expectedHash = crypto.createHash('sha256').update(responseString).digest('hex')
       const expectedChecksum = `${expectedHash}###${saltIdx || config.saltIndex}`
 
@@ -781,6 +814,17 @@ exports.phonePeCallback = onRequest({
           received: amount, 
           expected: attempt.finalAmount 
         })
+        res.status(200).json({ success: true })
+        return
+      }
+
+      // Check if the payment attempt has expired (30-minute timeout)
+      if (attempt.expiresAt && new Date(attempt.expiresAt) < new Date()) {
+        await attemptDoc.ref.update({
+          status: 'cancelled',
+          errorMessage: 'Payment attempt expired',
+          updatedAt: new Date().toISOString(),
+        }).catch(err => console.error('phonePeCallback: failed to expire stale attempt:', err))
         res.status(200).json({ success: true })
         return
       }
@@ -818,8 +862,6 @@ exports.phonePeCallback = onRequest({
           console.error('phonePeCallback: failed to fulfill subscription', attempt.subscriptionId, err)
         })
       }
-
-      console.log('PhonePe callback processed:', { merchantTransactionId, state, newStatus })
 
       res.status(200).json({ success: true })
     } catch (error) {

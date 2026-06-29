@@ -274,7 +274,7 @@ export default function Progress({ search = '' }) {
   }))
 
   return (
-    <div>
+    <div className="page-container">
       {/* ── Header ── */}
       <div className="page-header">
         <div>

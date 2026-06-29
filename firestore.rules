@@ -280,7 +280,7 @@ service cloud.firestore {
     match /subscriptions/{subId} {
 
       allow read: if isAdminOrOwner() && inCallersGym();
-      allow create: if isAdminOrOwner();
+      allow create: if isAdminOrOwner() && inCallersGymCreate();
       allow update: if isAdminOrOwner() && inCallersGym();
       allow delete: if isSuperAdmin();
     }
@@ -291,7 +291,7 @@ service cloud.firestore {
     match /subscriptionHistory/{historyId} {
 
       allow read: if isAdminOrOwner() && inCallersGym();
-      allow create: if isAuthed();
+      allow create: if isAdminOrOwner() && inCallersGymCreate();
       allow delete: if isSuperAdmin();
     }
 
@@ -315,7 +315,7 @@ service cloud.firestore {
         isGymAdmin() && resource.data.gymId == getCallerGymId()
       );
 
-      allow create: if isAuthed() && (
+      allow create: if isStaff() && (
         isSuperAdmin() || request.resource.data.gymId == getCallerGymId()
       );
 

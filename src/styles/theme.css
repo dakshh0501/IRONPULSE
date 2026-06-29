@@ -1,0 +1,76 @@
+/* ══════════════════════════════════════════════════════════
+   IRONPULSE — Light & Dark Themes
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Dark Theme (default) ── */
+[data-theme="dark"] {
+  --bg:          #070a12;
+  --bg2:         #0c0f1a;
+  --bg3:         #111628;
+  --card:        #0f1424;
+  --card-border: rgba(var(--accent-rgb), 0.10);
+  --sidebar-bg:  #080b14;
+  --sidebar-text:#506080;
+  --sidebar-hover:#0d1120;
+  --text:        #e4e8f0;
+  --text-muted:  #506080;
+  --text-dim:    #384860;
+  --border:      rgba(255,255,255,0.05);
+  --border-light:rgba(255,255,255,0.03);
+  --input-bg:    #0a0d16;
+  --input-border:rgba(255,255,255,0.08);
+  --hover:       rgba(255,255,255,0.035);
+  --hover-strong:rgba(255,255,255,0.06);
+  --shadow:      0 4px 24px rgba(0,0,0,0.5);
+  --shadow-lg:   0 8px 40px rgba(0,0,0,0.6);
+  --chart-grid:  rgba(255,255,255,0.03);
+  --skeleton:    rgba(255,255,255,0.05);
+  --surface:     rgba(255,255,255,0.03);
+
+  /* Accent states */
+  --accent-dim:  rgba(var(--accent-rgb), 0.08);
+  --accent-glow: 0 0 20px rgba(var(--accent-rgb), 0.15);
+
+  /* Teal states */
+  --teal-dim:   rgba(0,200,180,0.08);
+  --teal-glow:  0 0 16px rgba(0,200,180,0.12);
+}
+
+/* ── Light Theme ── */
+[data-theme="light"] {
+  --bg:          #f0f2f6;
+  --bg2:         #ffffff;
+  --bg3:         #e8ebf0;
+  --card:        #ffffff;
+  --card-border: rgba(var(--accent-rgb), 0.06);
+  --sidebar-bg:  #ffffff;
+  --sidebar-text:#5a6a80;
+  --sidebar-hover:#f4f6fa;
+  --text:        #0a0f18;
+  --text-muted:  #6a7a90;
+  --text-dim:    #8a9ab0;
+  --border:      rgba(0,0,0,0.07);
+  --border-light:rgba(0,0,0,0.04);
+  --input-bg:    #ffffff;
+  --input-border:rgba(0,0,0,0.12);
+  --hover:       rgba(0,0,0,0.03);
+  --hover-strong:rgba(0,0,0,0.06);
+  --shadow:      0 4px 24px rgba(0,0,0,0.06);
+  --shadow-lg:   0 8px 40px rgba(0,0,0,0.10);
+  --chart-grid:  rgba(0,0,0,0.05);
+  --skeleton:    rgba(0,0,0,0.06);
+  --surface:     rgba(0,0,0,0.02);
+
+  --accent-dim:  rgba(var(--accent-rgb), 0.06);
+  --accent-glow: 0 0 20px rgba(var(--accent-rgb), 0.08);
+
+  --teal-dim:   rgba(0,200,180,0.08);
+  --teal-glow:  0 0 16px rgba(0,200,180,0.08);
+}
+
+/* ── Base layer (applied to body by AppContext) ── */
+body {
+  background: var(--bg);
+  color: var(--text);
+  transition: background var(--transition-base), color var(--transition-base);
+}

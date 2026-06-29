@@ -5,6 +5,8 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
 
+const hasStatus = (obj, status) => (obj?.status || '').toLowerCase() === status
+
 const COLORS = ['#e8420a', '#00c8b4', '#22c55e', '#a855f7', '#f59e0b', '#3b82f6']
 
 const REPORTS = [
@@ -29,12 +31,12 @@ function StatCard({ label, value, color }) {
 
 function RevenueReport({ payments, gyms, subscriptions }) {
   const totalCollected = useMemo(() =>
-    payments.filter(p => (p.status||'').toLowerCase() === 'paid').reduce((s,p) => s + Number(p.paid||0), 0), [payments])
+    payments.filter(p => hasStatus(p, 'paid')).reduce((s,p) => s + Number(p.paid||0), 0), [payments])
   const totalPending = useMemo(() =>
-    payments.filter(p => ['pending','overdue'].includes((p.status||'').toLowerCase())).reduce((s,p) => s + Number(p.amount||0), 0), [payments])
+    payments.filter(p => hasStatus(p, 'pending') || hasStatus(p, 'overdue')).reduce((s,p) => s + Number(p.amount||0), 0), [payments])
   const revenueByGym = useMemo(() => {
     const map = {}
-    payments.filter(p => (p.status||'').toLowerCase() === 'paid').forEach(p => {
+    payments.filter(p => hasStatus(p, 'paid')).forEach(p => {
       const gid = p.gymId || 'default'
       if (!map[gid]) map[gid] = 0
       map[gid] += Number(p.paid || p.amount || 0)

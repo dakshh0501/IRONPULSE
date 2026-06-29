@@ -1,13 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { useApp } from '../context/AppContext'
 import { buildWorkoutPlanWhatsAppMessage, buildWorkoutPlanWhatsAppLink } from '../utils/whatsappReminders'
 
 // ─────────────────────────────────────────────────────────────
 //  CONSTANTS
 // ─────────────────────────────────────────────────────────────
-const GOALS   = ['Weight Loss', 'Muscle Gain', 'Strength', 'Flexibility', 'Toning', 'Endurance', 'General Fitness']
-const LEVELS  = ['Beginner', 'Intermediate', 'Advanced']
-const MUSCLES = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Glutes', 'Hamstrings', 'Full Body', 'Cardio']
+const GOALS   = Object.freeze(['Weight Loss', 'Muscle Gain', 'Strength', 'Flexibility', 'Toning', 'Endurance', 'General Fitness'])
+const LEVELS  = Object.freeze(['Beginner', 'Intermediate', 'Advanced'])
+const MUSCLES = Object.freeze(['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Glutes', 'Hamstrings', 'Full Body', 'Cardio'])
 
 const GOAL_COLOR = {
   'Weight Loss':     { bg: 'rgba(239,68,68,0.12)',    text: '#ef4444' },
@@ -162,7 +162,7 @@ function ExerciseTable({ exercises, compact = false }) {
 // ─────────────────────────────────────────────────────────────
 //  WORKOUT CARD
 // ─────────────────────────────────────────────────────────────
-function WorkoutCard({ plan, members, trainers, onView, onEdit, onDelete, gymName }) {
+const WorkoutCard = memo(function WorkoutCard({ plan, members, trainers, onView, onEdit, onDelete, gymName }) {
   const member  = members.find(m => m.name === plan.member)
   const trainer = trainers.find(t => t.name === plan.trainer)
   const gc      = GOAL_COLOR[plan.goal] || { bg: 'var(--bg3)', text: 'var(--text-muted)' }
@@ -201,9 +201,9 @@ function WorkoutCard({ plan, members, trainers, onView, onEdit, onDelete, gymNam
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
-          <button className="btn btn-sm btn-ghost" onClick={handleWhatsAppShare} style={{ background: '#25D366', border: 'none', color: '#fff' }}>💬</button>
-          <button className="btn btn-sm btn-ghost" onClick={() => onEdit(plan)}>✏️</button>
-          <button className="btn btn-sm btn-red"   onClick={() => onDelete(plan)}>🗑</button>
+          <button className="btn btn-sm btn-ghost" aria-label="Share via WhatsApp" onClick={handleWhatsAppShare} style={{ background: '#25D366', border: 'none', color: '#fff' }}>💬</button>
+          <button className="btn btn-sm btn-ghost" aria-label="Edit workout plan" onClick={() => onEdit(plan)}>✏️</button>
+          <button className="btn btn-sm btn-red"   aria-label="Delete workout plan" onClick={() => onDelete(plan)}>🗑</button>
         </div>
       </div>
 
@@ -284,7 +284,7 @@ function WorkoutCard({ plan, members, trainers, onView, onEdit, onDelete, gymNam
       )}
     </div>
   )
-}
+})
 
 // ─────────────────────────────────────────────────────────────
 //  WORKOUT DETAIL MODAL
@@ -542,6 +542,12 @@ function PlanFormModal({ plan, members, trainers, onSave, onClose }) {
   })
   const [errors, setErrors] = useState({})
   const [tab,    setTab]    = useState('info')   // 'info' | 'exercises'
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose?.() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
 
   const set = (key, val) => {
     setForm(prev => ({ ...prev, [key]: val }))
@@ -812,6 +818,11 @@ function PlanFormModal({ plan, members, trainers, onSave, onClose }) {
 //  DELETE CONFIRM
 // ─────────────────────────────────────────────────────────────
 function DeleteModal({ plan, onConfirm, onClose }) {
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose?.() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal modal-sm">
@@ -878,7 +889,7 @@ export default function Workouts({ search = '' }) {
   const assigned       = workouts.filter(w => w.member).length
 
   return (
-    <div>
+    <div className="page-container">
       {/* Page header */}
       <div className="page-header">
         <div>

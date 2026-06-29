@@ -11,6 +11,7 @@ import {
 
 // ── Helpers ────────────────────────────────────────────────────
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const hasStatus = (obj, status) => (obj?.status || '').toLowerCase() === status
 
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
@@ -343,9 +344,9 @@ function SubscriptionsTab({ subscriptions }) {
 function MembersTab({ members }) {
   const stats = useMemo(() => ({
     total: members.length,
-    active: members.filter(m => (m.status || '').toLowerCase() === 'active').length,
-    expired: members.filter(m => (m.status || '').toLowerCase() === 'expired').length,
-    trial: members.filter(m => (m.status || '').toLowerCase() === 'trial').length,
+    active: members.filter(m => hasStatus(m, 'active')).length,
+    expired: members.filter(m => hasStatus(m, 'expired')).length,
+    trial: members.filter(m => hasStatus(m, 'trial')).length,
   }), [members])
 
   const growthData = useMemo(() => {
@@ -484,8 +485,8 @@ export default function SuperAdminReports() {
     // Members
     title('Members')
     stat('Total Members', members.length)
-    stat('Active', members.filter(m => (m.status||'').toLowerCase() === 'active').length)
-    stat('Expired', members.filter(m => (m.status||'').toLowerCase() === 'expired').length)
+    stat('Active', members.filter(m => hasStatus(m, 'active')).length)
+    stat('Expired', members.filter(m => hasStatus(m, 'expired')).length)
 
     doc.save('ironpulse-superadmin-report.pdf')
   }

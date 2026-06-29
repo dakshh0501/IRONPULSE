@@ -2,15 +2,19 @@
 //
 // Standalone page that handles the PhonePe redirect.
 // Reads attemptId from URL params, verifies payment status, and displays result.
+// Auto-polls every 10 seconds while payment is pending.
+// Shows countdown timer until payment attempt expiry.
 // Does NOT use AppShell — shown full-screen like ReceptionMode.
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import { getPaymentAttempt } from '../services/paymentService'
 import LoadingVideo from '../components/LoadingVideo'
 import { updateSubscription } from '../services/firestoreService'
+
+const POLL_INTERVAL = 10000
 
 const STATUS_CONFIG = {
   success: {
@@ -43,6 +47,33 @@ const STATUS_CONFIG = {
   },
 }
 
+function useCountdown(targetIso) {
+  const [remaining, setRemaining] = useState(null)
+
+  useEffect(() => {
+    if (!targetIso) return
+    setRemaining(null)
+    const target = new Date(targetIso).getTime()
+
+    function tick() {
+      const diff = target - Date.now()
+      if (diff <= 0) {
+        setRemaining(0)
+        return
+      }
+      const mins = Math.floor(diff / 60000)
+      const secs = Math.floor((diff % 60000) / 1000)
+      setRemaining(`${mins}:${String(secs).padStart(2, '0')}`)
+    }
+
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [targetIso])
+
+  return remaining
+}
+
 function PaymentStatusContent() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -54,7 +85,61 @@ function PaymentStatusContent() {
   const [attempt, setAttempt] = useState(null)
   const [error, setError] = useState(null)
   const [verifying, setVerifying] = useState(false)
+  const pollRef = useRef(null)
+  const cancelledRef = useRef(false)
 
+  const doVerify = useCallback(async () => {
+    if (!attemptId) return
+
+    try {
+      const data = await getPaymentAttempt(attemptId)
+      if (cancelledRef.current) return
+
+      if (!data) {
+        setStatus('error')
+        setError('Payment attempt not found.')
+        return
+      }
+
+      setAttempt(data)
+
+      if (data.status === 'pending') {
+        const result = await refreshPaymentStatus(attemptId)
+        if (cancelledRef.current) return
+
+        if (result.error) {
+          setStatus('pending')
+          setError(`Verification pending: ${result.error}`)
+        } else {
+          setStatus(result.status || 'pending')
+          const updated = await getPaymentAttempt(attemptId)
+          if (updated) setAttempt(updated)
+
+          if (result.status === 'success' && updated?.subscriptionId) {
+            const now = new Date()
+            await updateSubscription(updated.subscriptionId, {
+              paymentStatus: 'paid',
+              paymentMethod: updated.paymentMethod || 'PhonePe',
+              transactionId: updated.phonePeTransactionId || null,
+              paidAt: now.toISOString(),
+              status: 'active',
+            }).catch(err => {
+              console.error('PaymentStatus: failed to fulfill subscription (client fallback)', err)
+            })
+          }
+        }
+      } else {
+        setStatus(data.status)
+      }
+    } catch (err) {
+      if (!cancelledRef.current) {
+        setStatus('error')
+        setError(err.message || 'Failed to verify payment.')
+      }
+    }
+  }, [attemptId, refreshPaymentStatus])
+
+  // Initial verification + auto-poll for pending
   useEffect(() => {
     if (!attemptId) {
       setStatus('error')
@@ -62,71 +147,38 @@ function PaymentStatusContent() {
       return
     }
 
-    let cancelled = false
+    cancelledRef.current = false
+    setVerifying(true)
 
-    async function verify() {
-      setVerifying(true)
+    doVerify().finally(() => setVerifying(false))
 
-      try {
-        // 1. Read the attempt from Firestore
-        const data = await getPaymentAttempt(attemptId)
-        if (cancelled) return
+    pollRef.current = setInterval(async () => {
+      if (cancelledRef.current) return
+      const data = await getPaymentAttempt(attemptId)
+      if (cancelledRef.current) return
+      if (!data) return
 
-        if (!data) {
-          setStatus('error')
-          setError('Payment attempt not found.')
-          setVerifying(false)
-          return
-        }
-
+      if (data.status !== 'pending') {
+        setStatus(data.status)
         setAttempt(data)
-
-        // 2. If still pending, call verifyPayment Cloud Function
-        if (data.status === 'pending') {
-          const result = await refreshPaymentStatus(attemptId)
-          if (cancelled) return
-
-          if (result.error) {
-            // Verification failed — show pending with error note
-            setStatus('pending')
-            setError(`Verification pending: ${result.error}`)
-          } else {
-            setStatus(result.status || 'pending')
-            // Re-read the attempt to get updated data
-            const updated = await getPaymentAttempt(attemptId)
-            if (updated) setAttempt(updated)
-
-            // Client-side fallback: fulfill subscription on success
-            // (Cloud Function also does this server-side, but this covers race conditions)
-            if (result.status === 'success' && updated?.subscriptionId) {
-              const now = new Date()
-              await updateSubscription(updated.subscriptionId, {
-                paymentStatus: 'paid',
-                paymentMethod: updated.paymentMethod || 'PhonePe',
-                transactionId: updated.phonePeTransactionId || null,
-                paidAt: now.toISOString(),
-                status: 'active',
-              }).catch(err => {
-                console.error('PaymentStatus: failed to fulfill subscription (client fallback)', err)
-              })
-            }
-          }
-        } else {
-          // Already resolved (success/failed/cancelled)
-          setStatus(data.status)
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setStatus('error')
-          setError(err.message || 'Failed to verify payment.')
-        }
+        clearInterval(pollRef.current)
+        pollRef.current = null
+        return
       }
-      setVerifying(false)
-    }
+    }, POLL_INTERVAL)
 
-    verify()
-    return () => { cancelled = true }
-  }, [attemptId, refreshPaymentStatus])
+    return () => {
+      cancelledRef.current = true
+      if (pollRef.current) {
+        clearInterval(pollRef.current)
+        pollRef.current = null
+      }
+    }
+  }, [attemptId, doVerify])
+
+  const expiryCountdown = useCountdown(
+    status === 'pending' ? attempt?.expiresAt : null
+  )
 
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.pending
   const amount = attempt ? (attempt.finalAmount / 100).toFixed(2) : '0.00'
@@ -151,10 +203,8 @@ function PaymentStatusContent() {
         textAlign: 'center',
         boxShadow: 'var(--shadow)',
       }}>
-        {/* Loading State */}
         {status === 'loading' && <LoadingVideo />}
 
-        {/* Error State (no attemptId) */}
         {status === 'error' && (
           <>
             <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
@@ -182,7 +232,6 @@ function PaymentStatusContent() {
           </>
         )}
 
-        {/* Success / Pending / Failed / Cancelled */}
         {status !== 'loading' && status !== 'error' && (
           <>
             <div style={{ fontSize: 56, marginBottom: 16 }}>{config.icon}</div>
@@ -202,6 +251,23 @@ function PaymentStatusContent() {
               </p>
             )}
 
+            {/* Countdown timer for pending payments */}
+            {status === 'pending' && expiryCountdown !== null && (
+              <div style={{
+                background: 'rgba(245,158,11,0.06)',
+                borderRadius: 8,
+                padding: '8px 16px',
+                marginBottom: 12,
+                fontSize: 13,
+                color: expiryCountdown === 0 ? 'var(--red)' : 'var(--amber)',
+                fontWeight: 600,
+              }}>
+                {expiryCountdown === 0
+                  ? 'Payment window expired — please try again'
+                  : `Auto-cancels in ${expiryCountdown}`}
+              </div>
+            )}
+
             {error && (
               <div style={{
                 background: 'var(--bg2)',
@@ -215,7 +281,6 @@ function PaymentStatusContent() {
               </div>
             )}
 
-            {/* Payment Details Card */}
             {attempt && (
               <div style={{
                 background: 'var(--bg2)',
@@ -266,49 +331,27 @@ function PaymentStatusContent() {
               </div>
             )}
 
-            {/* Action Buttons */}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
               {status === 'pending' && (
                 <button
                   onClick={async () => {
                     setVerifying(true)
-                    const result = await refreshPaymentStatus(attemptId)
-                    if (result.error) {
-                      setError(`Verification pending: ${result.error}`)
-                    } else {
-                      setStatus(result.status || 'pending')
-                      const updated = await getPaymentAttempt(attemptId)
-                      if (updated) setAttempt(updated)
-                      setError(null)
-
-                      // Client-side fallback: fulfill subscription on success
-                      if (result.status === 'success' && updated?.subscriptionId) {
-                        const now = new Date()
-                        await updateSubscription(updated.subscriptionId, {
-                          paymentStatus: 'paid',
-                          paymentMethod: updated.paymentMethod || 'PhonePe',
-                          transactionId: updated.phonePeTransactionId || null,
-                          paidAt: now.toISOString(),
-                          status: 'active',
-                        }).catch(err => {
-                          console.error('PaymentStatus: failed to fulfill subscription (client fallback)', err)
-                        })
-                      }
-                    }
+                    await doVerify()
                     setVerifying(false)
                   }}
+                  disabled={verifying}
                   style={{
                     padding: '10px 24px',
-                    background: 'var(--amber)',
+                    background: verifying ? 'var(--text-muted)' : 'var(--amber)',
                     color: '#fff',
                     border: 'none',
                     borderRadius: 8,
                     fontSize: 14,
                     fontWeight: 600,
-                    cursor: 'pointer',
+                    cursor: verifying ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  Check Status
+                  {verifying ? 'Checking...' : 'Check Status'}
                 </button>
               )}
               <button
@@ -324,14 +367,13 @@ function PaymentStatusContent() {
                   cursor: 'pointer',
                 }}
               >
-                {status === 'success' ? 'Back to Dashboard' : 'Back to Dashboard'}
+                Back to Dashboard
               </button>
             </div>
           </>
         )}
       </div>
 
-      {/* Spin animation */}
       <style>{`
         @keyframes spin {
           to { transform: rotate(360deg); }

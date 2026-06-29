@@ -53,6 +53,9 @@ async function updateGymSubscription(gymId, updates) {
       ...updates,
       updatedAt: serverTimestamp(),
     },
+    subscriptionId: gymId,
+    subscriptionStatus: updates.status || existing.status || 'active',
+    updatedAt: serverTimestamp(),
   })
 }
 
@@ -194,6 +197,7 @@ export async function upgradePlan(gymId, newPlanName, newPlanType, newAmount, ac
   })
 }
 
+// delegates to changePlan (identical logic, different action label)
 export async function downgradePlan(gymId, newPlanName, newPlanType, newAmount, actorUid) {
   const now = new Date()
   const daysMap = { trial: 14, monthly: 30, quarterly: 90, yearly: 365 }
@@ -277,6 +281,10 @@ export async function extendExpiry(gymId, newExpiryDate, actorUid) {
   })
 }
 
+// NOTE: partial billing period proration is not handled.
+// Upgrading mid-cycle charges the full new-plan amount without crediting
+// the remaining value of the current plan. Full proration would require a
+// Cloud Function integrated with the payment gateway.
 export async function changePlan(gymId, planName, planType, amount, actorUid) {
   const now = new Date()
   const daysMap = { trial: 14, monthly: 30, quarterly: 90, yearly: 365 }

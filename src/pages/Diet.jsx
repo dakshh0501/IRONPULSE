@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, memo } from 'react'
 import { useApp } from '../context/AppContext'
 import { buildDietPlanWhatsAppMessage, buildDietPlanWhatsAppLink } from '../utils/whatsappReminders'
 // ─── Mock / seed data (mirrors mockData.js pattern) ────────────────────────
@@ -90,11 +90,11 @@ const INITIAL_PLANS = [
   },
 ]
 
-const GOALS = ['Fat Loss', 'Muscle Gain', 'Keto / Low Carb', 'Maintenance', 'Endurance', 'Vegan', 'Diabetic Friendly']
-const STATUS_OPTIONS = ['Active', 'Paused', 'Completed']
-const MEAL_TIMES = ['6:00 AM', '7:00 AM', '7:30 AM', '8:00 AM', '9:00 AM', '10:00 AM', '10:30 AM',
+const GOALS = Object.freeze(['Fat Loss', 'Muscle Gain', 'Keto / Low Carb', 'Maintenance', 'Endurance', 'Vegan', 'Diabetic Friendly'])
+const STATUS_OPTIONS = Object.freeze(['Active', 'Paused', 'Completed'])
+const MEAL_TIMES = Object.freeze(['6:00 AM', '7:00 AM', '7:30 AM', '8:00 AM', '9:00 AM', '10:00 AM', '10:30 AM',
   '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '4:30 PM',
-  '5:00 PM', '6:00 PM', '7:00 PM', '8:00 PM', '9:00 PM', '10:00 PM']
+  '5:00 PM', '6:00 PM', '7:00 PM', '8:00 PM', '9:00 PM', '10:00 PM'])
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const GOAL_COLORS = {
@@ -224,10 +224,9 @@ function MealTimeline({ meals }) {
 }
 
 // ─── Plan Card ───────────────────────────────────────────────────────────────
-function PlanCard({ plan, onView, onEdit, onDelete }) {
+const PlanCard = memo(function PlanCard({ plan, onView, onEdit, onDelete }) {
   const [hovered, setHovered] = useState(false)
   const gc = goalColor(plan.goal)
-
   return (
     <div
       onMouseEnter={() => setHovered(true)}
@@ -312,12 +311,12 @@ function PlanCard({ plan, onView, onEdit, onDelete }) {
           borderRadius: 8, color: gc.text, fontSize: 12, fontWeight: 700,
           cursor: 'pointer', letterSpacing: 0.3,
         }}>VIEW PLAN</button>
-        <button onClick={() => onEdit(plan)} style={{
+        <button onClick={() => onEdit(plan)} aria-label="Edit diet plan" style={{
           padding: '8px 14px',
           background: 'var(--hover)', border: '1px solid var(--border)',
           borderRadius: 8, color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
         }}>✏️</button>
-        <button onClick={() => onDelete(plan.id)} style={{
+        <button onClick={() => onDelete(plan.id)} aria-label="Delete diet plan" style={{
           padding: '8px 14px',
           background: 'var(--orange)11', border: '1px solid var(--orange)30',
           borderRadius: 8, color: 'var(--orange)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
@@ -325,7 +324,7 @@ function PlanCard({ plan, onView, onEdit, onDelete }) {
       </div>
     </div>
   )
-}
+})
 
 // ─── Detail Modal ────────────────────────────────────────────────────────────
 function PlanDetailModal({ plan, onClose, onEdit, gymName }) {
@@ -482,6 +481,12 @@ function PlanFormModal({ existing, onSave, onClose, members = [] }) {
   })
   const [errors, setErrors] = useState({})
   const [step, setStep] = useState(0) // 0=details, 1=meals
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose?.() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
 
   const validate = () => {
     const e = {}
@@ -725,6 +730,11 @@ function PlanFormModal({ existing, onSave, onClose, members = [] }) {
 
 // ─── Delete Confirm ──────────────────────────────────────────────────────────
 function DeleteConfirm({ plan, onConfirm, onCancel }) {
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onCancel?.() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onCancel])
   return (
     <div className="modal-overlay" style={{ zIndex: 1100 }} onClick={onCancel}>
       <div style={{ background: 'var(--bg2)', border: '1px solid var(--orange)30', borderRadius: 16, padding: 28, maxWidth: 380, width: '90%', textAlign: 'center', boxShadow: 'var(--shadow)' }}>
@@ -810,7 +820,7 @@ export default function Diet({ search = '' }) {
   })
 
   return (
-    <div style={{ padding: '24px 28px', minHeight: '100vh', fontFamily: "'Barlow', sans-serif", color: 'var(--text)' }}>
+    <div className="page-container">
 
       {/* Page header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>

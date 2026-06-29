@@ -39,10 +39,6 @@ export async function signUp({ name, email, password, gymData, role }) {
     throw e
   }
 
-  console.log('[SIGNUP] Auth user created UID:', authUser.uid)
-  console.log('[SIGNUP] auth.currentUser?.uid:', auth.currentUser?.uid)
-  console.log('[SIGNUP] auth.currentUser?.email:', auth.currentUser?.email)
-
   // ───── Step 2: setDoc(users/{uid}) ─────
   const userData = {
     uid: authUser.uid,
@@ -53,23 +49,13 @@ export async function signUp({ name, email, password, gymData, role }) {
     createdAt: serverTimestamp(),
   }
 
-  const usersPath = 'users/' + authUser.uid
-  console.log('[SIGNUP FIRESTORE] about to call setDoc', {
-    operation: 'setDoc',
-    collection: 'users',
-    path: usersPath,
-    data: { ...userData, createdAt: '<serverTimestamp>' },
-    authUid: auth.currentUser?.uid,
-  })
-
   try {
     await setDoc(doc(db, 'users', authUser.uid), userData)
-    console.log('[SIGNUP FIRESTORE] setDoc(users) SUCCEEDED')
   } catch (e) {
     console.error('[SIGNUP FIRESTORE] setDoc(users) FAILED', {
       operation: 'setDoc',
       collection: 'users',
-      path: usersPath,
+      path: `users/${authUser.uid}`,
       code: e.code,
       message: e.message,
       error: e,
@@ -79,16 +65,8 @@ export async function signUp({ name, email, password, gymData, role }) {
 
   // ───── Step 3: addDoc(gyms) via addGym() ─────
   if (role === 'gym_owner_pending') {
-    console.log('[SIGNUP FIRESTORE] about to call addGym', {
-      operation: 'addDoc',
-      collection: 'gyms',
-      data: { ...gymData, ownerUid: authUser.uid, approvalStatus: 'pending', createdAt: '<serverTimestamp>' },
-      authUid: auth.currentUser?.uid,
-    })
-
     try {
       await addGym(gymData, authUser.uid)
-      console.log('[SIGNUP FIRESTORE] addGym SUCCEEDED')
     } catch (e) {
       console.error('[SIGNUP FIRESTORE] addGym FAILED', {
         operation: 'addDoc',
@@ -102,10 +80,8 @@ export async function signUp({ name, email, password, gymData, role }) {
   }
 
   // ───── Step 4: signOut (Auth API, not Firestore) ─────
-  console.log('[SIGNUP] about to signOut, auth.currentUser:', auth.currentUser?.uid)
   try {
     await signOut(auth)
-    console.log('[SIGNUP] signOut SUCCEEDED')
   } catch (e) {
     console.error('[SIGNUP AUTH] signOut FAILED', e.code, e.message, e)
     throw e
@@ -120,36 +96,23 @@ export async function signIn(email, password) {
     const result = await signInWithEmailAndPassword(auth, email, password)
     const user = result.user
 
-    console.log('[AUDIT] signIn authenticated UID:', user.uid)
-    console.log('[AUDIT] signIn auth.providerId:', user.providerData?.[0]?.providerId)
-    console.log('[AUDIT] signIn db._firestoreClient?', !!db?._firestoreClient)
-    console.log('[AUDIT] signIn Firestore projectId:', db?._databaseId?.projectId || db?.app?.options?.projectId)
-    console.log('[AUDIT] signIn Firestore database:', db?._databaseId?.database)
-
     // 2. Get role from /users/{uid}
     const userRef = doc(db, 'users', user.uid)
-    console.log('[AUDIT] signIn reading doc path:', userRef.path)
 
     let userDoc = await getDoc(userRef)
-    console.log('[AUDIT] signIn getDoc.exists():', userDoc.exists())
     if (!userDoc.exists()) {
-      console.log('[AUDIT] signIn first getDoc returned !exists() — attempting recovery')
       const recovered = await recoverUserProfile(user.uid, user.email)
-      console.log('[AUDIT] signIn recoverUserProfile returned:', recovered ? 'recovered' : 'null')
       if (recovered) {
         userDoc = await getDoc(doc(db, 'users', user.uid))
-        console.log('[AUDIT] signIn second getDoc.exists():', userDoc.exists())
       }
     }
 
     if (!userDoc || !userDoc.exists()) {
-      console.log('[AUDIT] signIn: throwing "User profile not found" after all recovery attempts')
       await signOut(auth)
       throw new Error('User profile not found')
     }
 
     const role = userDoc.data().role
-    console.log('[AUDIT] signIn role:', role)
 
     // 3. If pending or gym_owner_pending, immediately sign out
     if (role === 'pending' || role === 'gym_owner_pending') {
@@ -159,7 +122,6 @@ export async function signIn(email, password) {
 
     return { user, role }
   } catch (err) {
-    console.log('[AUDIT] signIn error:', err.code || err.name, err.message)
     throw err
   }
 }
@@ -275,17 +237,12 @@ export async function recoverUserProfile(uid, email) {
 export async function getUserProfile(uid) {
   try {
     const ref = doc(db, 'users', uid)
-    console.log('[AUDIT] getUserProfile path:', ref.path)
     const snap = await getDoc(ref)
-    console.log('[AUDIT] getUserProfile exists():', snap.exists())
     if (snap.exists()) {
-      console.log('[AUDIT] getUserProfile SUCCESS — role:', snap.data().role)
       return snap.data()
     }
 
-    console.log('[AUDIT] getUserProfile: doc not found, attempting recovery')
     const recovered = await recoverUserProfile(uid, null)
-    console.log('[AUDIT] getUserProfile recovery result:', recovered ? 'recovered' : 'null')
     return recovered
   } catch (err) {
     // Firestore error (network unavailable, permission denied, etc.)
@@ -311,6 +268,17 @@ export async function approveUser(uid, newRole) {
       role: newRole,
       approvedAt: serverTimestamp(),
     })
+
+    try {
+      await addDoc(collection(db, 'auditLog'), {
+        action: 'role_change',
+        targetUid: uid,
+        newRole,
+        performedBy: auth.currentUser?.uid,
+        gymId: userData.gymId || null,
+        timestamp: serverTimestamp(),
+      })
+    } catch (e) { /* non-critical */ }
 
     if (newRole === 'member') {
       const memberRef = doc(db, 'members', uid)
@@ -347,7 +315,22 @@ export async function approveUser(uid, newRole) {
 
 export async function rejectUser(uid) {
   try {
+    const userSnap = await getDoc(doc(db, 'users', uid))
+    const userData = userSnap.exists() ? userSnap.data() : {}
+
     await deleteDoc(doc(db, 'users', uid))
+
+    try {
+      await addDoc(collection(db, 'auditLog'), {
+        action: 'role_change',
+        targetUid: uid,
+        newRole: 'rejected',
+        performedBy: auth.currentUser?.uid,
+        gymId: userData.gymId || null,
+        timestamp: serverTimestamp(),
+      })
+    } catch (e) { /* non-critical */ }
+
     const functions = getFunctions()
     const deleteUserFn = httpsCallable(functions, 'deleteAuthUser')
     await deleteUserFn({ uid })
@@ -412,9 +395,7 @@ export async function checkPendingGymOwnerRegistration(email) {
     return false
   } catch (err) {
     console.error('checkPendingGymOwnerRegistration error:', err)
-    // Fail open — if the query fails (e.g. missing index), allow the
-    // registration to proceed rather than blocking legitimate signups.
-    return false
+    return true
   }
 }
 

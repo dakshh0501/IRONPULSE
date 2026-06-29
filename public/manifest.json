@@ -4,10 +4,44 @@
   "description": "Gym Management Platform — Admin controls, trainer tools, and member access",
   "start_url": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
   "background_color": "#000000",
   "theme_color": "#e8420a",
   "orientation": "portrait-primary",
   "categories": ["fitness", "business", "productivity"],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Dashboard Overview"
+    },
+    {
+      "src": "/screenshots/mobile.png",
+      "sizes": "720x1280",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Mobile View"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "description": "Main dashboard"
+    },
+    {
+      "name": "Attendance",
+      "url": "/attendance",
+      "description": "Take attendance"
+    },
+    {
+      "name": "Members",
+      "url": "/members",
+      "description": "Manage members"
+    }
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.png",

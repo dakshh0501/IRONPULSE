@@ -1,48 +1,51 @@
 // src/App.jsx
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppProvider, useApp } from './context/AppContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { PAGE_ROUTES } from './utils/rbac'
 import StartupVideo from './components/StartupVideo'
 import LoadingVideo from './components/LoadingVideo'
-import MemberDashboard from './pages/MemberDashboard'
-import TrainerDashboard from './pages/TrainerDashboard'
-import Landing        from './pages/Landing'
-import Auth           from './components/Auth'
-import Payments       from './pages/Payments'
-import Diet           from './pages/Diet'
-import Attendance     from './pages/Attendance'
-import ReceptionMode  from './pages/ReceptionMode'
-import Sidebar        from './components/Sidebar'
-import Header         from './components/Header'
-import AdminDashboard from './pages/AdminDashboard'
-import Members        from './pages/Members'
-import Trainers       from './pages/Trainers'
-import Workouts       from './pages/Workouts'
-import Progress       from './pages/Progress'
-import Notifications  from './pages/Notifications'
-import Settings       from './pages/Settings'
-import WhatsAppReminders from './pages/WhatsAppReminders'
-import PaymentStatus  from './pages/PaymentStatus'
-// Super Admin dedicated pages
-import PlatformDashboard   from './pages/superadmin/Dashboard'
-import SuperAdminGymOwners from './pages/superadmin/GymOwners'
-import ApprovalRequests    from './pages/superadmin/ApprovalRequests'
-import SuperAdminSubscriptions from './pages/superadmin/Subscriptions'
-import PlatformRevenue     from './pages/superadmin/Revenue'
-import UsageAnalytics      from './pages/superadmin/UsageAnalytics'
-import SuperAdminNotifications from './pages/superadmin/Notifications'
-import SuperAdminSupport   from './pages/superadmin/Support'
-import Security            from './pages/superadmin/Security'
-import PlatformSettings    from './pages/superadmin/PlatformSettings'
-import LicenseKeys         from './pages/superadmin/LicenseKeys'
-import SuperAdminReports   from './pages/superadmin/Reports'
-import SuperAdminDevices   from './pages/superadmin/DeviceManagement'
-import GymReports          from './pages/Reports'
-import GymSubscription     from './pages/GymSubscription'
-import GymDevices          from './pages/DeviceManagement'
-import LicenseGuard        from './components/LicenseGuard'
+import Sidebar      from './components/Sidebar'
+import Header       from './components/Header'
+import LicenseGuard from './components/LicenseGuard'
+
+// ── Lazy-loaded pages (code-split at route level) ──────────
+const Landing        = lazy(() => import('./pages/Landing'))
+const Auth           = lazy(() => import('./components/Auth'))
+const MemberDashboard = lazy(() => import('./pages/MemberDashboard'))
+const TrainerDashboard = lazy(() => import('./pages/TrainerDashboard'))
+const Payments       = lazy(() => import('./pages/Payments'))
+const Diet           = lazy(() => import('./pages/Diet'))
+const Attendance     = lazy(() => import('./pages/Attendance'))
+const ReceptionMode  = lazy(() => import('./pages/ReceptionMode'))
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'))
+const Members        = lazy(() => import('./pages/Members'))
+const Trainers       = lazy(() => import('./pages/Trainers'))
+const Workouts       = lazy(() => import('./pages/Workouts'))
+const Progress       = lazy(() => import('./pages/Progress'))
+const Notifications  = lazy(() => import('./pages/Notifications'))
+const Settings       = lazy(() => import('./pages/Settings'))
+const WhatsAppReminders = lazy(() => import('./pages/WhatsAppReminders'))
+const PaymentStatus  = lazy(() => import('./pages/PaymentStatus'))
+const Checkout       = lazy(() => import('./pages/Checkout'))
+const PlatformDashboard   = lazy(() => import('./pages/superadmin/Dashboard'))
+const SuperAdminGymOwners = lazy(() => import('./pages/superadmin/GymOwners'))
+const ApprovalRequests    = lazy(() => import('./pages/superadmin/ApprovalRequests'))
+const SuperAdminSubscriptions = lazy(() => import('./pages/superadmin/Subscriptions'))
+const PlatformRevenue     = lazy(() => import('./pages/superadmin/Revenue'))
+const UsageAnalytics      = lazy(() => import('./pages/superadmin/UsageAnalytics'))
+const SuperAdminNotifications = lazy(() => import('./pages/superadmin/Notifications'))
+const SuperAdminSupport   = lazy(() => import('./pages/superadmin/Support'))
+const Security            = lazy(() => import('./pages/superadmin/Security'))
+const PlatformSettings    = lazy(() => import('./pages/superadmin/PlatformSettings'))
+const LicenseKeys         = lazy(() => import('./pages/superadmin/LicenseKeys'))
+const SuperAdminReports   = lazy(() => import('./pages/superadmin/Reports'))
+const SuperAdminDevices   = lazy(() => import('./pages/superadmin/DeviceManagement'))
+const GymReports          = lazy(() => import('./pages/Reports'))
+const GymSubscription     = lazy(() => import('./pages/GymSubscription'))
+const GymDevices          = lazy(() => import('./pages/DeviceManagement'))
+const NotFound            = lazy(() => import('./pages/NotFound'))
 
 // ── Shared component map (all pages that exist) ──────────────
 const PAGE_COMPONENTS = {
@@ -121,6 +124,9 @@ function AppShell() {
   const [page,       setPage]       = useState(() => sessionStorage.getItem('ironpulse-page') || 'dashboard')
   const [search,     setSearch]     = useState('')
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => sessionStorage.getItem('ironpulse-sidebar') === 'collapsed'
+  )
   const [loadingNav, setLoadingNav] = useState(false)
   const [navKey, setNavKey] = useState(0)
   const prevPage = useRef(page)
@@ -132,6 +138,10 @@ function AppShell() {
   useEffect(() => {
     sessionStorage.setItem('ironpulse-page', page)
   }, [page])
+
+  useEffect(() => {
+    sessionStorage.setItem('ironpulse-sidebar', sidebarCollapsed ? 'collapsed' : 'expanded')
+  }, [sidebarCollapsed])
 
   const onLoadingReady = useCallback(() => {
     setLoadingNav(false)
@@ -181,13 +191,26 @@ useEffect(() => {
 }, [isPageLocked, page])
 
 const UnauthorizedFallback = () => (
-  <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'80vh', textAlign:'center', padding:40 }}>
-    <div style={{ fontSize:64, marginBottom:16 }}>🔒</div>
-    <h2 style={{ margin:'0 0 8px', fontSize:22, fontWeight:800 }}>Access Restricted</h2>
-    <p style={{ color:'var(--text-muted)', margin:'0 0 24px', fontSize:14, maxWidth:400 }}>
+  <div style={{
+    display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+    height:'100vh', textAlign:'center', padding:40,
+    background:'#070a12', position:'relative', overflow:'hidden'
+  }}>
+    <div style={{ position:'absolute', top:'20%', left:'50%', transform:'translateX(-50%)', width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle, rgba(232,66,10,0.05), transparent 70%)', pointerEvents:'none' }} />
+    <div style={{
+      width:72, height:72, borderRadius:'50%',
+      background:'rgba(232,66,10,0.08)', border:'2px solid rgba(232,66,10,0.15)',
+      display:'flex', alignItems:'center', justifyContent:'center', marginBottom:20,
+      fontSize:32
+    }}>🔒</div>
+    <h2 style={{ margin:'0 0 8px', fontSize:24, fontWeight:800, color:'#e4e8f0', fontFamily:"'Barlow Condensed', sans-serif" }}>Access Restricted</h2>
+    <p style={{ color:'#6070a0', margin:'0 0 28px', fontSize:14, maxWidth:400, lineHeight:1.6 }}>
       Your account does not have access to any pages. This may mean your role is pending approval or not yet activated.
     </p>
-    <button className="btn btn-outline" onClick={logout}>Sign Out</button>
+    <div style={{ display:'flex', gap:12 }}>
+      <button className="btn btn-primary" onClick={() => window.location.href = '/'}>Return Home</button>
+      <button className="btn btn-outline" onClick={logout}>Sign Out</button>
+    </div>
   </div>
 )
 
@@ -211,7 +234,6 @@ const pageContent =
       s.startX = touch.clientX
       s.startY = touch.clientY
       s.swiping = touch.clientX <= 40 || mobileOpenRef.current
-      console.log('[SWIPE] touchstart x:', Math.round(touch.clientX), 'y:', Math.round(touch.clientY), 'swiping:', s.swiping, 'mobileOpen:', mobileOpenRef.current)
     }
 
     const onTouchMove = (e) => {
@@ -219,32 +241,27 @@ const pageContent =
       const touch = e.touches[0]
       const deltaX = touch.clientX - s.startX
       const deltaY = touch.clientY - s.startY
-      console.log('[SWIPE] touchmove deltaX:', Math.round(deltaX), 'deltaY:', Math.round(deltaY))
 
       // Must be more horizontal than vertical
       if (Math.abs(deltaX) < Math.abs(deltaY) * 0.6) {
-        console.log('[SWIPE] rejected — vertical dominant')
         s.swiping = false
         return
       }
 
       if (!mobileOpenRef.current && deltaX > 40) {
         // Edge-swipe right → open sidebar
-        console.log('[SWIPE] OPEN gesture accepted')
         e.preventDefault()
         setMobileOpen(true)
         s.swiping = false
       } else if (mobileOpenRef.current && deltaX < -40) {
         // Swipe left on open sidebar → close
-        console.log('[SWIPE] CLOSE gesture accepted')
         e.preventDefault()
         setMobileOpen(false)
         s.swiping = false
       }
     }
 
-    const onTouchEnd = (e) => {
-      console.log('[SWIPE] touchend — swiping was:', s.swiping)
+    const onTouchEnd = () => {
       s.swiping = false
     }
 
@@ -272,10 +289,12 @@ const pageContent =
           }}
         />
       )}
-      <div className="app-shell">
+      <div className={`app-shell${sidebarCollapsed ? ' collapsed' : ''}`}>
         <Sidebar
           currentPage={safePage}
           setPage={handleSidebarNav}
+          collapsed={sidebarCollapsed}
+          setCollapsed={setSidebarCollapsed}
           mobileOpen={mobileOpen}
           setMobileOpen={setMobileOpen}
         />
@@ -345,14 +364,17 @@ function PublicRoute({ children }) {
 // ─────────────────────────────────────────────────────────────
 function RouterTree() {
   return (
-    <Routes>
-      <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
-      <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
-      <Route path="/dashboard" element={<ProtectedRoute><AppShell /></ProtectedRoute>} />
-      <Route path="/reception" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer']}><ReceptionMode /></ProtectedRoute>} />
-      <Route path="/payment-status" element={<ProtectedRoute><PaymentStatus /></ProtectedRoute>} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <Suspense fallback={<LoadingVideo />}>
+      <Routes>
+        <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
+        <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','gym_owner','trainer','member']}><AppShell /></ProtectedRoute>} />
+        <Route path="/reception" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer']}><ReceptionMode /></ProtectedRoute>} />
+        <Route path="/payment-status" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','gym_owner','trainer','member']}><PaymentStatus /></ProtectedRoute>} />
+        <Route path="/checkout" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','gym_owner','trainer','member']}><Checkout /></ProtectedRoute>} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   )
 }
 
@@ -361,9 +383,6 @@ function RouterTree() {
 //  underneath. When video ends, the overlay is removed.
 // ─────────────────────────────────────────────────────────────
 export default function App() {
-  console.log('[AUDIT] App mount — startup')
-  console.log('[AUDIT] Firebase currentUser:', JSON.stringify({ uid: null, email: null }))
-
   const [startupDone, setStartupDone] = useState(
     () => sessionStorage.getItem('ironpulse-startup') === '1'
   )

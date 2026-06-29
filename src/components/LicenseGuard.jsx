@@ -91,7 +91,7 @@ export default function LicenseGuard({ children }) {
     check()
 
     return () => { cancelled = true }
-  }, [authLoading, needsCheck, gymId, currentSubscription, retryKey])
+  }, [authLoading, needsCheck, gymId, currentSubscription, currentSubscription?.status, currentSubscription?.licenseKey, retryKey])
 
   const handleRetry = () => {
     setRetryKey(k => k + 1)

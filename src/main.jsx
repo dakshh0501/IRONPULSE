@@ -4,6 +4,9 @@ import { BrowserRouter } from 'react-router-dom'
 
 import App from './App.jsx'
 import './firebase'
+import './styles/tokens.css'
+import './styles/theme.css'
+import './styles/components.css'
 import './index.css'
 
 function preloadVideo(src) {

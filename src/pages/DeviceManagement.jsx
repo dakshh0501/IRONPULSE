@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { useApp } from '../context/AppContext'
 import {
-  subscribeToDevices, removeDevice, getDeviceCount,
+  subscribeToDevices, removeDevice,
+  revokeDevice, suspendDevice, activateDevice,
 } from '../services/deviceService'
 import { addLicenseHistory } from '../services/licenseHistoryService'
 
@@ -18,9 +20,11 @@ function StatCard({ label, value, color, icon }) {
 }
 
 export default function DeviceManagement() {
+  const { effectiveRole } = useAuth()
   const { gymId, currentSubscription } = useApp()
   const [devices, setDevices] = useState([])
   const [loading, setLoading] = useState(false)
+  const canManage = effectiveRole === 'gym_admin' || effectiveRole === 'admin' || effectiveRole === 'super_admin'
 
   useEffect(() => {
     if (!gymId) return
@@ -45,7 +49,52 @@ export default function DeviceManagement() {
         gymId,
         licenseKey: currentSubscription?.licenseKey || '',
         action: 'Device Removed',
-        performedBy: 'gym_admin',
+        performedBy: effectiveRole || 'gym_admin',
+        deviceId: dev.deviceId,
+      })
+    } catch (err) { console.error(err) }
+    finally { setLoading(false) }
+  }
+
+  const handleRevoke = async (dev) => {
+    setLoading(true)
+    try {
+      await revokeDevice(dev.id)
+      await addLicenseHistory({
+        gymId,
+        licenseKey: currentSubscription?.licenseKey || '',
+        action: 'Device Revoked',
+        performedBy: effectiveRole || 'gym_admin',
+        deviceId: dev.deviceId,
+      })
+    } catch (err) { console.error(err) }
+    finally { setLoading(false) }
+  }
+
+  const handleSuspend = async (dev) => {
+    setLoading(true)
+    try {
+      await suspendDevice(dev.id)
+      await addLicenseHistory({
+        gymId,
+        licenseKey: currentSubscription?.licenseKey || '',
+        action: 'Device Suspended',
+        performedBy: effectiveRole || 'gym_admin',
+        deviceId: dev.deviceId,
+      })
+    } catch (err) { console.error(err) }
+    finally { setLoading(false) }
+  }
+
+  const handleActivate = async (dev) => {
+    setLoading(true)
+    try {
+      await activateDevice(dev.id)
+      await addLicenseHistory({
+        gymId,
+        licenseKey: currentSubscription?.licenseKey || '',
+        action: 'Device Activated',
+        performedBy: effectiveRole || 'gym_admin',
         deviceId: dev.deviceId,
       })
     } catch (err) { console.error(err) }
@@ -87,10 +136,22 @@ export default function DeviceManagement() {
                   {dev.lastSeen?.seconds ? new Date(dev.lastSeen.seconds * 1000).toLocaleString() : '—'}
                 </td>
                 <td>
-                  <button className="btn btn-sm btn-ghost" style={{ fontSize:11, color:'var(--red)' }}
-                    onClick={() => handleRemove(dev)} disabled={loading}>
-                    Remove
-                  </button>
+                  <div style={{ display:'flex', gap:4 }}>
+                    {dev.status === 'active' && canManage && (
+                      <>
+                        <button className="btn btn-sm btn-ghost" style={{ fontSize:10, color:'var(--orange)' }}
+                          onClick={() => handleSuspend(dev)} disabled={loading}>Suspend</button>
+                        <button className="btn btn-sm btn-ghost" style={{ fontSize:10, color:'var(--red)' }}
+                          onClick={() => handleRevoke(dev)} disabled={loading}>Revoke</button>
+                      </>
+                    )}
+                    {dev.status === 'suspended' && canManage && (
+                      <button className="btn btn-sm btn-ghost" style={{ fontSize:10, color:'var(--green)' }}
+                        onClick={() => handleActivate(dev)} disabled={loading}>Activate</button>
+                    )}
+                    <button className="btn btn-sm btn-ghost" style={{ fontSize:10, color:'var(--red)' }}
+                      onClick={() => handleRemove(dev)} disabled={loading}>Remove</button>
+                  </div>
                 </td>
               </tr>
             ))}

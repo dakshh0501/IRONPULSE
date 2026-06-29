@@ -51,23 +51,18 @@ export function getDeviceInfo() {
 }
 
 // ── Firestore CRUD ────────────────────────────────────────
-export function subscribeToDevices(gymId, callback) {
+export function subscribeToDevices(gymId, callback, statusFilter) {
   if (!gymId) return () => {}
-  const q = query(
-    collection(db, DEVICES_COLLECTION),
-    where('gymId', '==', gymId),
-    where('status', '==', 'active')
-  )
+  const constraints = [where('gymId', '==', gymId)]
+  if (statusFilter) constraints.push(where('status', '==', statusFilter))
+  const q = query(collection(db, DEVICES_COLLECTION), ...constraints)
   return onSnapshot(q, (snap) => {
     callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
   })
 }
 
 export function subscribeToAllDevices(callback) {
-  const q = query(
-    collection(db, DEVICES_COLLECTION),
-    where('status', '==', 'active')
-  )
+  const q = query(collection(db, DEVICES_COLLECTION))
   return onSnapshot(q, (snap) => {
     callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
   })

@@ -1,5 +1,6 @@
 // src/pages/Subscriptions.jsx
 import { useState, useMemo, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { updateSubscription } from '../services/firestoreService'
 import { getPendingAttemptsForSubscription } from '../services/paymentService'
@@ -99,7 +100,7 @@ function SubscriptionDetailModal({ sub, gymName, ownerName, onClose, onAction, o
           <select
             value={selectedPlan}
             onChange={e => setSelectedPlan(e.target.value)}
-            className="input"
+            className="form-select"
             style={{ width: '100%', marginTop: 8 }}
           >
             {availablePlans.map(p => (
@@ -208,6 +209,7 @@ function SubscriptionDetailModal({ sub, gymName, ownerName, onClose, onAction, o
 
 // ── Main Component ─────────────────────────────────────────────
 export default function Subscriptions({ search }) {
+  const navigate = useNavigate()
   const { subscriptions, gyms, initiatePayment, paymentAttempts, gymId } = useApp()
   const [searchTerm, setSearchTerm] = useState(search || '')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -265,7 +267,7 @@ export default function Subscriptions({ search }) {
       const now = new Date()
       let expiryDate = new Date(now)
       const plan = sub?.plan || 'Standard'
-      const durations = { Trial: 7, Standard: 30, Premium: 30, Quarterly: 90, Annual: 365, Lifetime: 9999, 'Day Pass': 1 }
+      const durations = { Trial: 14, Standard: 30, Premium: 30, Quarterly: 90, Annual: 365, Lifetime: 9999, 'Day Pass': 1 }
       expiryDate.setDate(expiryDate.getDate() + (durations[plan] || 30))
       // Mark as pending payment — Cloud Function will finalize on success
       await updateSubscription(subId, {
@@ -282,31 +284,53 @@ export default function Subscriptions({ search }) {
       const sub = subscriptions.find(s => s.id === subId)
       const now = new Date()
       const newPlan = data.plan
-      const durations = { Trial: 7, Standard: 30, Premium: 30, Quarterly: 90, Annual: 365, Lifetime: 9999, 'Day Pass': 1 }
+      const currentPlan = sub?.plan || 'Standard'
+      const currentOrder = PLAN_ORDER[currentPlan] || 0
+      const newOrder = PLAN_ORDER[newPlan] || 0
+      const isDowngrade = newOrder < currentOrder
+      const durations = { Trial: 14, Standard: 30, Premium: 30, Quarterly: 90, Annual: 365, Lifetime: 9999, 'Day Pass': 1 }
       const amounts = { Trial: 0, Standard: 9999, Premium: 19999, Quarterly: 29999, Annual: 99999, Lifetime: 499999, 'Day Pass': 99 }
       const duration = durations[newPlan] || 30
       const expiryDate = new Date(now)
       expiryDate.setDate(expiryDate.getDate() + duration)
       const graceEnd = new Date(expiryDate)
       graceEnd.setDate(graceEnd.getDate() + 5)
-      // Mark as pending payment with new plan — Cloud Function will finalize on success
-      await updateSubscription(subId, {
-        status: 'active',
-        paymentStatus: 'pending',
-        paymentMethod: 'PhonePe',
-        plan: newPlan,
-        planType: newPlan,
-        startDate: now.toISOString().split('T')[0],
-        expiryDate: expiryDate.toISOString().split('T')[0],
-        graceEndDate: graceEnd.toISOString().split('T')[0],
-        daysRemaining: duration,
-        isLifetime: newPlan === 'Lifetime',
-        amount: amounts[newPlan] || 0,
-        originalAmount: amounts[newPlan] || 0,
-        finalAmount: amounts[newPlan] || 0,
-        paidAt: null,
-      })
-      setPendingPaymentType('upgrade')
+      if (isDowngrade) {
+        // Downgrade: no payment needed, update plan and mark as paid immediately
+        await updateSubscription(subId, {
+          status: 'active',
+          paymentStatus: 'paid',
+          plan: newPlan,
+          planType: newPlan,
+          startDate: now.toISOString().split('T')[0],
+          expiryDate: expiryDate.toISOString().split('T')[0],
+          graceEndDate: graceEnd.toISOString().split('T')[0],
+          daysRemaining: duration,
+          isLifetime: newPlan === 'Lifetime',
+          amount: amounts[newPlan] || 0,
+          originalAmount: amounts[newPlan] || 0,
+          finalAmount: amounts[newPlan] || 0,
+        })
+      } else {
+        // Upgrade: mark as pending payment — Cloud Function will finalize on success
+        await updateSubscription(subId, {
+          status: 'active',
+          paymentStatus: 'pending',
+          paymentMethod: 'PhonePe',
+          plan: newPlan,
+          planType: newPlan,
+          startDate: now.toISOString().split('T')[0],
+          expiryDate: expiryDate.toISOString().split('T')[0],
+          graceEndDate: graceEnd.toISOString().split('T')[0],
+          daysRemaining: duration,
+          isLifetime: newPlan === 'Lifetime',
+          amount: amounts[newPlan] || 0,
+          originalAmount: amounts[newPlan] || 0,
+          finalAmount: amounts[newPlan] || 0,
+          paidAt: null,
+        })
+      }
+      setPendingPaymentType(isDowngrade ? 'downgrade' : 'upgrade')
     } else if (type === 'suspend') {
       await updateSubscription(subId, { status: 'suspended' })
     } else if (type === 'activate') {
@@ -321,57 +345,27 @@ export default function Subscriptions({ search }) {
 
   const today = new Date()
 
-  // Handle Pay Now — initiate PhonePe payment for a subscription
+  // Handle Pay Now — navigate to checkout page for billing info collection
   const handlePayNow = useCallback(async (sub) => {
     if (paying) return
-
-    // Prevent duplicate payment attempts
-    const pendingAttempts = await getPendingAttemptsForSubscription(sub.id, gymId)
-    if (pendingAttempts.length > 0) {
-      alert('A payment is already in progress for this subscription. Please complete or wait for it to expire.')
-      return
-    }
-
-    // Determine payment type: use pending type if set, otherwise fallback to 'new'
-    const paymentType = pendingPaymentType || 'new'
-
     setPaying(true)
     try {
-      const amount = sub.finalAmount || sub.amount || PLAN_AMOUNTS[sub.plan] || 0
-      const callbackUrl = `${window.location.origin}/api/phonepe/callback`
-      const result = await initiatePayment({
-        type: paymentType,
-        gymId: sub.gymId,
-        subscriptionId: sub.id,
-        plan: sub.plan,
-        originalAmount: sub.originalAmount || amount,
-        discountAmount: (sub.originalAmount || amount) - amount,
-        finalAmount: amount,
-        currency: sub.currency || 'INR',
-        paymentMethod: 'PhonePe',
-        name: sub.gymName || '',
-        email: '',
-        phone: '',
-        redirectUrl: `${window.location.origin}/payment-status`,
-        callbackUrl,
-      })
-
-      if (result.error) {
-        alert(`Payment failed: ${result.error}`)
-        setPaying(false)
+      // Prevent duplicate payment attempts
+      const pendingAttempts = await getPendingAttemptsForSubscription(sub.id, gymId)
+      if (pendingAttempts.length > 0) {
+        alert('A payment is already in progress for this subscription. Please complete or wait for it to expire.')
         return
       }
 
+      // Determine payment type: use pending type if set, otherwise fallback to 'new'
+      const paymentType = pendingPaymentType || 'new'
       setPendingPaymentType(null)
 
-      if (result.redirectUrl) {
-        window.location.href = result.redirectUrl
-      }
-    } catch (err) {
-      alert(`Payment error: ${err.message}`)
+      navigate(`/checkout?subId=${encodeURIComponent(sub.id)}&type=${encodeURIComponent(paymentType)}`)
+    } finally {
       setPaying(false)
     }
-  }, [paying, initiatePayment, pendingPaymentType])
+  }, [paying, navigate, pendingPaymentType, gymId])
 
   return (
     <div className="page-container" style={{ padding: 32 }}>
@@ -388,12 +382,12 @@ export default function Subscriptions({ search }) {
             placeholder="Search by gym name or owner..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="input"
+            className="form-input"
             style={{ width: '100%' }}
           />
         </div>
         <div style={{ minWidth: 150 }}>
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="input" style={{ width: '100%' }}>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="form-select" style={{ width: '100%' }}>
             <option value="all">All Status</option>
             <option value="trial">Trial</option>
             <option value="active">Active</option>
@@ -403,7 +397,7 @@ export default function Subscriptions({ search }) {
           </select>
         </div>
         <div style={{ minWidth: 150 }}>
-          <select value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)} className="input" style={{ width: '100%' }}>
+          <select value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)} className="form-select" style={{ width: '100%' }}>
             <option value="all">All Payments</option>
             <option value="paid">Paid</option>
             <option value="pending">Pending</option>

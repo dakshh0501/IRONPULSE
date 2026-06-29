@@ -1,3 +1,8 @@
+// Required Firestore composite indexes:
+// 1. Collection: notifications, Fields: targetUserId (ASC), createdAt (DESC)
+// 2. Collection: notifications, Fields: gymId (ASC), createdAt (DESC)
+// 3. Collection: notifications, Fields: type (ASC), createdAt (DESC)
+
 import {
   collection,
   addDoc,
@@ -7,6 +12,8 @@ import {
   query,
   where,
   orderBy,
+  limit as firestoreLimit,
+  startAfter,
   onSnapshot,
   getDocs,
   serverTimestamp,
@@ -15,12 +22,15 @@ import { db } from '../firebase'
 
 const COLLECTION = 'notifications'
 
+const PAGE_SIZE = 50
+
 export function subscribeToNotifications(userId, callback, gymId) {
   const constraints = [where('userId', '==', userId)]
   if (gymId) {
     constraints.push(where('gymId', '==', gymId))
   }
   constraints.push(orderBy('createdAt', 'desc'))
+  constraints.push(firestoreLimit(PAGE_SIZE))
   const q = query(collection(db, COLLECTION), ...constraints)
   return onSnapshot(q, (snapshot) => {
     const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
@@ -28,6 +38,19 @@ export function subscribeToNotifications(userId, callback, gymId) {
   }, (err) => {
     console.error('subscribeToNotifications error:', err)
   })
+}
+
+export async function loadMoreNotifications(userId, lastVisible, gymId) {
+  const constraints = [where('userId', '==', userId)]
+  if (gymId) {
+    constraints.push(where('gymId', '==', gymId))
+  }
+  constraints.push(orderBy('createdAt', 'desc'))
+  if (lastVisible) constraints.push(startAfter(lastVisible))
+  constraints.push(firestoreLimit(PAGE_SIZE))
+  const q = query(collection(db, COLLECTION), ...constraints)
+  const snapshot = await getDocs(q)
+  return snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
 }
 
 export async function addNotification(data) {

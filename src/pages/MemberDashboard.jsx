@@ -256,7 +256,7 @@ function AttendanceHistory({ records }) {
 
 // ─── main component ──────────────────────────────────────────
 export default function MemberDashboard() {
-  const { attendance, payments } = useApp()
+  const { attendance, payments, members } = useApp()
   const {
   currentUser,
   userProfile
@@ -264,14 +264,19 @@ export default function MemberDashboard() {
 
   const me = userProfile
 
+  const myMember = useMemo(
+    () => members.find(m => m.authUid === currentUser?.uid),
+    [members, currentUser?.uid]
+  )
+
   const myAttendance = useMemo(
-    () => attendance.filter(a => a.memberId === currentUser?.uid),
-    [attendance, currentUser?.uid]
+    () => myMember ? attendance.filter(a => a.memberId === myMember.id) : [],
+    [attendance, myMember]
   )
 
   const myPayments = useMemo(
-    () => payments.filter(p => p.memberId === currentUser?.uid),
-    [payments, currentUser?.uid]
+    () => myMember ? payments.filter(p => p.memberId === myMember.id) : [],
+    [payments, myMember]
   )
 
   // ── derived stats

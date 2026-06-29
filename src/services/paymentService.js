@@ -235,6 +235,10 @@ export async function refreshPaymentStatus(attemptId) {
   }
 }
 
+// NOTE: PhonePe callback URLs (webhooks) are unreachable from localhost.
+// In development, payment status must be polled via refreshPaymentStatus.
+// In production, ensure the callback URL is a public HTTPS endpoint.
+
 // ─────────────────────────────────────────────
 // FIRESTORE PERSISTENCE — paymentAttempts collection
 // ─────────────────────────────────────────────
@@ -306,6 +310,8 @@ export function subscribeToPaymentAttempts(callback, gymId) {
   return onSnapshot(ref, (snapshot) => {
     const attempts = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
     callback(attempts)
+  }, (error) => {
+    console.error(`[Firestore] Subscription error (paymentAttempts):`, error.message)
   })
 }
 
@@ -324,4 +330,29 @@ export async function getPendingAttemptsForSubscription(subscriptionId, gymId) {
   const q = query(collection(db, COLLECTION), ...constraints)
   const snap = await getDocs(q)
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+}
+
+/**
+ * Cleanup expired payment attempts (30-min TTL).
+ * Sets status to 'expired' for any pending attempts where expiresAt < now.
+ * Recommended: call on app mount and/or via periodic Cloud Function.
+ * Requires a composite index on paymentAttempts: status ASC, expiresAt ASC.
+ */
+export async function cleanupExpiredPaymentAttempts() {
+  const now = new Date()
+  const q = query(
+    collection(db, COLLECTION),
+    where('status', '==', 'pending'),
+    where('expiresAt', '<', now.toISOString())
+  )
+  const snap = await getDocs(q)
+  const batch = []
+  snap.docs.forEach(d => {
+    batch.push(updateDoc(doc(db, COLLECTION, d.id), {
+      status: 'expired',
+      updatedAt: serverTimestamp(),
+    }))
+  })
+  await Promise.allSettled(batch)
+  return snap.size
 }

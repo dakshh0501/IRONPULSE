@@ -119,7 +119,7 @@ export default function GymOwners({ setPage }) {
             placeholder="Search gyms or owners..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="input"
+            className="form-input"
             style={{ width: '100%' }}
           />
         </div>
@@ -127,7 +127,7 @@ export default function GymOwners({ setPage }) {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="input"
+            className="form-select"
             style={{ width: '100%' }}
           >
             <option value="all">All Status</option>

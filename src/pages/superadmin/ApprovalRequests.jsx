@@ -83,7 +83,7 @@ export default function ApprovalRequests({ search }) {
 
               <div style={{ marginTop:12 }}>
                 <textarea
-                  className="input"
+                  className="form-textarea"
                   placeholder="Add remarks (optional)..."
                   rows={2}
                   value={remarks[g.id] || ''}

@@ -34,6 +34,7 @@ export const NOTIF_TYPES = {
   sub_expiring_3days:    { type: 'subscription', icon: '⚠️', priority: 'high' },
   sub_expiring_1day:     { type: 'subscription', icon: '🔴', priority: 'high' },
   sub_expired:           { type: 'subscription', icon: '🚫', priority: 'high' },
+  sub_reactivated:       { type: 'subscription', icon: '🔄', priority: 'high' },
   system_login:      { type: 'system',     icon: '🔑', priority: 'low' },
   system_logout:     { type: 'system',     icon: '🚪', priority: 'low' },
   system_offline:    { type: 'system',     icon: '📡', priority: 'high' },

@@ -75,7 +75,6 @@ export function AuthProvider({ children }) {
     const unsubscribe = subscribeToAuthState(async (firebaseUser) => {
       try {
         if (!firebaseUser) {
-          console.log('[AUDIT] onAuthStateChanged: null user (signed out or cold start)')
           setCurrentUser(null)
           setUserProfile(null)
           setRole(null)
@@ -84,15 +83,11 @@ export function AuthProvider({ children }) {
           return
         }
 
-        console.log('[AUDIT] onAuthStateChanged: user present UID:', firebaseUser.uid)
-        console.log('[AUDIT] onAuthStateChanged: currentUser before profile:', firebaseUser.email)
-
         // ── SIGNUP GUARD ──────────────────────────────────────────
         // If register() is in progress, the users/{uid} doc hasn't been
         // written yet.  Skip the profile check — signUp() will write the
         // doc and sign out, letting this handler clean up normally.
         if (signingUpRef.current) {
-          console.log('[AUDIT] onAuthStateChanged: signup in progress, deferring profile check')
           return
         }
 
@@ -102,16 +97,12 @@ export function AuthProvider({ children }) {
         let profileError = null
         for (let attempt = 1; attempt <= 3; attempt++) {
           try {
-            console.log(`[AUDIT] getUserProfile attempt ${attempt}/3 for UID:`, firebaseUser.uid)
             profile = await getUserProfile(firebaseUser.uid)
             profileError = null
-            console.log(`[AUDIT] getUserProfile attempt ${attempt}/3 result:`, profile ? 'found' : 'null')
             break
           } catch (err) {
             profileError = err
-            console.log(`[AUDIT] getUserProfile attempt ${attempt}/3 FAILED:`, err.code || err.name, err.message)
             if (attempt < 3) {
-              console.log('[AUDIT] waiting 1s before retry...')
               await new Promise(r => setTimeout(r, 1000))
             }
           }
@@ -132,7 +123,6 @@ export function AuthProvider({ children }) {
         }
 
         if (!profile) {
-          console.log('[AUDIT] AuthContext: no profile document found for UID:', firebaseUser.uid)
           await logOut()
           setCurrentUser(null)
           setUserProfile(null)
@@ -143,10 +133,7 @@ export function AuthProvider({ children }) {
           return
         }
 
-        console.log('[AUDIT] AuthContext profile found — role:', profile.role)
-
         if (profile.role === 'pending') {
-          console.log('[AUDIT] AuthContext: role is pending — signing out')
           await logOut()
           setCurrentUser(null)
           setUserProfile(null)
@@ -158,7 +145,6 @@ export function AuthProvider({ children }) {
         }
 
         // Approved — set state
-        console.log('[AUDIT] AuthContext: setting approved state — role:', profile.role)
         setCurrentUser(firebaseUser)
         setUserProfile(profile)
         setRole(profile.role)
@@ -244,8 +230,6 @@ export function AuthProvider({ children }) {
   // LOGOUT
   // ─────────────────────────────────────────────────────────────
   async function logout() {
-    console.log('[AUDIT] logout() called')
-    console.trace('[AUDIT] logout() stack trace:')
     try {
       await logOut()
     } finally {

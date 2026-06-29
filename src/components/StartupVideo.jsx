@@ -18,7 +18,6 @@ export default function StartupVideo({ onEnd }) {
 
     const handleEnd = () => {
       clearTimeout(timeout)
-      console.log('[StartupVideo] Video playback complete')
       setState('fading')
       setTimeout(() => {
         setState('done')
@@ -27,7 +26,6 @@ export default function StartupVideo({ onEnd }) {
     }
 
     const handleCanPlay = () => {
-      console.log('[StartupVideo] Video loaded, playing...')
       setState('playing')
       video.play().catch((err) => {
         console.warn('[StartupVideo] play() failed:', err.message)
@@ -58,7 +56,6 @@ export default function StartupVideo({ onEnd }) {
     video.addEventListener('ended', handleEnd)
     video.addEventListener('error', handleError)
 
-    console.log('[StartupVideo] Loading video from', STARTUP_VIDEO_SRC)
     video.load()
 
     return () => {

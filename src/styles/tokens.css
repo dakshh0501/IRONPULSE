@@ -1,0 +1,130 @@
+/* ══════════════════════════════════════════════════════════
+   IRONPULSE — Design Tokens
+   ══════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Spacing ── */
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-8:   32px;
+  --space-10:  40px;
+  --space-12:  48px;
+
+  /* ── Typography ── */
+  --font-sans:    'Barlow', sans-serif;
+  --font-display: 'Barlow Condensed', sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+
+  --text-xs:   10px;
+  --text-sm:   12px;
+  --text-base: 14px;
+  --text-lg:   16px;
+  --text-xl:   20px;
+  --text-2xl:  24px;
+  --text-3xl:  32px;
+  --text-4xl:  40px;
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+
+  --leading-tight:   1.15;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.65;
+
+  --tracking-tight:  -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.05em;
+  --tracking-wider:  0.1em;
+
+  /* ── Border Radius ── */
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --shadow-xs:  0 1px 2px rgba(0,0,0,0.04);
+  --shadow-sm:  0 1px 4px rgba(0,0,0,0.06);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg:  0 8px 32px rgba(0,0,0,0.12);
+  --shadow-xl:  0 20px 60px rgba(0,0,0,0.18);
+
+  /* ── Transitions ── */
+  --transition-fast:     0.12s ease;
+  --transition-base:     0.2s ease;
+  --transition-slow:     0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring:   0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── Z-Index Scale ── */
+  --z-sidebar:       300;
+  --z-header:        150;
+  --z-overlay:       200;
+  --z-modal:         1000;
+  --z-dropdown:      400;
+  --z-notif-panel:   200;
+  --z-tooltip:       500;
+
+  /* ── Sidebar ── */
+  --sidebar-w:       260px;
+  --sidebar-collapsed-w: 64px;
+  --sidebar-transition: var(--transition-slow);
+
+  /* ── Header ── */
+  --header-h:        60px;
+
+  /* ── Icon Sizes ── */
+  --icon-sm:  16px;
+  --icon-md:  20px;
+  --icon-lg:  24px;
+}
+
+/* ── Spacing helpers ── */
+.mt-1 { margin-top: var(--space-1); }
+.mt-2 { margin-top: var(--space-2); }
+.mt-3 { margin-top: var(--space-3); }
+.mt-4 { margin-top: var(--space-4); }
+.mt-6 { margin-top: var(--space-6); }
+.mb-1 { margin-bottom: var(--space-1); }
+.mb-2 { margin-bottom: var(--space-2); }
+.mb-3 { margin-bottom: var(--space-3); }
+.mb-4 { margin-bottom: var(--space-4); }
+.mb-6 { margin-bottom: var(--space-6); }
+.ml-auto { margin-left: auto; }
+.gap-1 { gap: var(--space-1); }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+.gap-4 { gap: var(--space-4); }
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideLeft {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

@@ -1,524 +1,598 @@
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
-import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useMemo } from 'react'
 
 export default function AdminDashboard({ setPage }) {
 
-  const { members, trainers, payments, attendance, gymSettings, gyms, subscriptions } = useApp()
-  const { effectiveRole } = useAuth()
+  const { members, trainers, payments, attendance, gymSettings, gyms, subscriptions, notifications } = useApp()
+  const { currentUser, effectiveRole } = useAuth()
 
   const isAdmin = effectiveRole === 'super_admin' || effectiveRole === 'gym_admin'
-  const isTrainer = effectiveRole === 'trainer'
-  const isMember = effectiveRole === 'member'
 
-  const greetingName = isAdmin ? (effectiveRole === 'super_admin' ? 'Super Admin' : 'Admin') : isTrainer ? 'Trainer' : 'Member'
+  const ownerName = currentUser?.displayName || (effectiveRole === 'super_admin' ? 'Super Admin' : 'Admin')
   const gymName = gymSettings?.name || 'IronForge Gym'
 
   const todayDate = new Date()
   const todayStr = todayDate.toLocaleDateString('en-CA')
-  const todayMonth = todayDate.getMonth() + 1
-  const todayYear = todayDate.getFullYear()
+  const dateStr = todayDate.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' })
 
-  // ── Existing KPI Cards ───────────────────────────────────────────────────────
+  const hour = todayDate.getHours()
+  const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening'
 
-  // Total Members (existing KPI)
-  const totalMembersFromMembers = members.length
-
-  // Monthly Revenue (existing KPI - to be replaced)
-  const totalSubscriptionRevenue = subscriptions
-    .filter(s => s.paymentStatus === 'paid')
-    .reduce((sum, s) => sum + (Number(s.amount) || 0), 0)
-
-  // Active Today (existing KPI)
+  // ── Existing KPIs ──
+  const totalMembers = members.length
   const activeToday = attendance.filter(a => a.date === todayStr).length
+  const activeMembers = members.filter(m => m.expiry && new Date(m.expiry) >= todayDate).length
 
-  // Expiring Soon (existing KPI)
   const expiringSoon = members.filter(m => {
     if (!m.expiry) return false
     const diffDays = Math.ceil((new Date(m.expiry) - todayDate) / (1000 * 60 * 60 * 24))
     return diffDays >= 0 && diffDays <= 7
   })
 
-  const criticalExpiring = expiringSoon.filter(m => {
+  // ── Revenue (from payments) ──
+  const todayRevenue = payments
+    .filter(p => p.date === todayStr && (p.status === 'paid' || p.paid > 0))
+    .reduce((sum, p) => sum + (Number(p.paid) || 0), 0)
+
+  const pendingPayments = payments.filter(p => p.status === 'pending' || p.status === 'unpaid').length
+
+  const monthlyPaymentRevenue = useMemo(() => {
+    const rev = {}
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    months.forEach(m => rev[m] = 0)
+    const start = new Date(todayDate.getFullYear(), todayDate.getMonth() - 11, 1)
+    payments.forEach(p => {
+      if (!p.date || (!p.paid && p.status !== 'paid')) return
+      const pd = new Date(p.date)
+      if (pd >= start && pd <= todayDate) {
+        rev[months[pd.getMonth()]] += Number(p.paid || p.amount || 0)
+      }
+    })
+    return months.map(m => ({ month: m, revenue: rev[m] }))
+  }, [payments, todayDate])
+
+  // ── Attendance Trend ──
+  const monthlyAttendance = useMemo(() => {
+    const counts = {}
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    months.forEach(m => counts[m] = 0)
+    attendance.forEach(a => {
+      if (!a.date) return
+      const ad = new Date(a.date)
+      if (ad.getFullYear() === todayDate.getFullYear()) {
+        counts[months[ad.getMonth()]]++
+      }
+    })
+    return months.map(m => ({ month: m, attendance: counts[m] }))
+  }, [attendance, todayDate])
+
+  // ── Member Growth ──
+  const memberGrowth = useMemo(() => {
+    const counts = {}
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    months.forEach(m => counts[m] = 0)
+    members.forEach(m => {
+      if (!m.createdAt) return
+      const cd = m.createdAt?.seconds ? new Date(m.createdAt.seconds * 1000) : new Date(m.createdAt)
+      if (cd.getFullYear() === todayDate.getFullYear()) {
+        counts[months[cd.getMonth()]]++
+      }
+    })
+    return months.map(m => ({ month: m, members: counts[m] }))
+  }, [members, todayDate])
+
+  // ── Recent Data ──
+  const recentPayments = useMemo(() =>
+    [...payments].sort((a, b) => ((b.date||'') + (b.time||'')).localeCompare((a.date||'') + (a.time||''))).slice(0, 5),
+  [payments])
+
+  const latestMembers = useMemo(() =>
+    [...members].reverse().slice(0, 5),
+  [members])
+
+  const recentAttendance = useMemo(() =>
+    [...attendance].sort((a, b) => {
+      const da = a.date||'', db = b.date||''
+      if (da !== db) return db.localeCompare(da)
+      return (b.time||'').localeCompare(a.time||'')
+    }).slice(0, 5),
+  [attendance])
+
+  const recentNotifs = useMemo(() =>
+    [...notifications].reverse().slice(0, 5),
+  [notifications])
+
+  // ── Quick Overview ──
+  const upcomingRenewals = members.filter(m => {
     if (!m.expiry) return false
-    const diffDays = Math.ceil((new Date(m.expiry) - todayDate) / (1000 * 60 * 60 * 24))
-    return diffDays <= 3
+    const diff = Math.ceil((new Date(m.expiry) - todayDate) / (1000 * 60 * 60 * 24))
+    return diff >= 0 && diff <= 7
   })
 
-  // ── Super Admin KPI Cards (new - using subscriptions) ──────────────────────────
+  const outstandingPayments = payments.filter(p => p.status === 'pending' || p.status === 'unpaid')
 
-  // Total Gyms
-  const totalGyms = isAdmin ? gyms.length : 1
+  const upcomingBirthdays = useMemo(() => {
+    const today = todayDate
+    const month = today.getMonth()
+    const day = today.getDate()
+    return members.filter(m => {
+      if (!m.dob && !m.birthday) return false
+      const dob = new Date(m.dob || m.birthday)
+      return dob.getMonth() === month && Math.abs(dob.getDate() - day) <= 7
+    })
+  }, [members, todayDate])
 
-  // Active Gyms (approved)
-  const activeGyms = isAdmin
-    ? gyms.filter(g => g.approvalStatus === 'approved').length
-    : 1
+  // ── Super Admin ──
+  const isSuperAdmin = effectiveRole === 'super_admin'
+  const totalGyms = gyms.length
+  const activeGyms = gyms.filter(g => g.approvalStatus === 'approved').length
+  const pendingApprovals = gyms.filter(g => g.approvalStatus === 'pending').length
 
-  // Trial Gyms
-  const trialGyms = isAdmin
-    ? gyms.filter(gym => {
-        const gymSub = subscriptions.find(s => s.gymId === gym.id && s.status === 'active')
-        return gymSub?.plan === 'Trial'
-      }).length
-    : (subscriptions.find(s => s.plan === 'Trial') ? 1 : 0)
+  const totalSubscriptionRevenue = subscriptions
+    .filter(s => s.paymentStatus === 'paid')
+    .reduce((sum, s) => sum + (Number(s.amount) || 0), 0)
 
-  // Expired Gyms
-  const expiredGyms = isAdmin
-    ? gyms.filter(g => {
-        const gymSub = subscriptions.find(s => s.gymId === g.id && s.status === 'active')
-        return gymSub?.expiryDate && new Date(gymSub.expiryDate) < todayDate
-      }).length
-    : (subscriptions.find(s => s.expiryDate && new Date(s.expiryDate) < todayDate) ? 1 : 0)
-
-  // Pending Approvals
-  const pendingApprovals = isAdmin ? gyms.filter(g => g.approvalStatus === 'pending').length : 0
-
-  // Total Members (for all gyms)
-  const totalMembersAllGyms = isAdmin
-    ? gyms.reduce((sum, gym) => sum + (members.filter(m => m.gymId === gym.id).length || 0), 0)
-    : members.length
-
-  // Renewals Due (next 7 days)
-  const renewalsDue = isAdmin
-    ? gyms.reduce((count, gym) => {
-        const gymSubs = subscriptions.filter(s => s.gymId === gym.id && s.status === 'active')
-        return count + gymSubs.filter(sub => {
-          const expiry = new Date(sub.expiryDate)
-          const diffDays = Math.ceil((expiry - todayDate) / (1000 * 60 * 60 * 24))
-          return diffDays >= 0 && diffDays <= 7
-        }).length
-      }, 0)
-    : subscriptions.filter(sub => {
-        const expiry = new Date(sub.expiryDate)
-        const diffDays = Math.ceil((expiry - todayDate) / (1000 * 60 * 60 * 24))
-        return diffDays >= 0 && diffDays <= 7
-      }).length
-
-  // ── Monthly Gym Registrations ──────────────────────────────────────────────
-  const monthlyGymRegistrations = useMemo(() => {
-    if (!isAdmin) return []
-
-    const counts = {};
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const currentYear = todayDate.getFullYear();
-    const twelveMonthsAgo = new Date(currentYear, todayDate.getMonth() - 11, 1);
-
-    months.forEach(m => {
-      counts[m] = 0;
-    });
-
-    gyms.forEach(gym => {
-      if (!gym.createdAt?.seconds) return;
-      const createdDate = new Date(gym.createdAt.seconds * 1000);
-
-      if (createdDate >= twelveMonthsAgo && createdDate <= todayDate) {
-        const monthName = months[createdDate.getMonth()];
-        counts[monthName] += 1;
-      }
-    });
-
-    return months.map(month => ({ month, registrations: counts[month] }));
-  }, [gyms, isAdmin, todayDate]);
-
-  // ── Subscription Plan Distribution ─────────────────────────────────────────
-  const subscriptionPlanDistribution = useMemo(() => {
-    if (!isAdmin || subscriptions.length === 0) return []
-
-    const planCounts = {};
-    subscriptions.forEach(sub => {
-      planCounts[sub.plan] = (planCounts[sub.plan] || 0) + 1;
-    });
-
-    const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#FF6B6B'];
-    return Object.entries(planCounts).map(([plan, count], index) => ({
-      plan,
-      count,
-      color: COLORS[index % COLORS.length],
-    }));
-  }, [subscriptions, isAdmin]);
-
-  // ── Monthly Revenue Trend (from subscriptions with paidAt) ────────────────────
   const monthlyRevenueTrend = useMemo(() => {
-    if (!isAdmin) return []
-
-    const monthlyRevenue = {};
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
-    const currentYear = todayDate.getFullYear();
-    const twelveMonthsAgo = new Date(currentYear, todayDate.getMonth() - 11, 1);
-
-    months.forEach(m => {
-      monthlyRevenue[m] = 0;
-    });
-
+    const rev = {}
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    months.forEach(m => rev[m] = 0)
+    const start = new Date(todayDate.getFullYear(), todayDate.getMonth() - 11, 1)
     subscriptions.forEach(sub => {
-      if (!sub.paidAt || sub.paymentStatus !== 'paid') return;
-      const paidAtSeconds = sub.paidAt?.seconds || (typeof sub.paidAt === 'string' ? new Date(sub.paidAt).getTime() / 1000 : null);
-      if (!paidAtSeconds) return;
-      const paidDate = new Date(paidAtSeconds * 1000);
-
-      if (paidDate >= twelveMonthsAgo && paidDate <= todayDate) {
-        const monthName = months[paidDate.getMonth()];
-        monthlyRevenue[monthName] += Number(sub.amount) || 0;
+      if (!sub.paidAt || sub.paymentStatus !== 'paid') return
+      const pts = sub.paidAt?.seconds || (typeof sub.paidAt === 'string' ? new Date(sub.paidAt).getTime() / 1000 : null)
+      if (!pts) return
+      const pd = new Date(pts * 1000)
+      if (pd >= start && pd <= todayDate) {
+        rev[months[pd.getMonth()]] += Number(sub.amount) || 0
       }
-    });
+    })
+    return months.map(m => ({ month: m, revenue: rev[m] }))
+  }, [subscriptions, todayDate])
 
-    return months.map(month => ({ month, revenue: monthlyRevenue[month] }));
-  }, [subscriptions, isAdmin, todayDate]);
+  // ── Quick Action ──
+  const handleQuickAction = (page) => { if (isAdmin) setPage(page) }
 
-  // ── Gym Status Distribution ────────────────────────────────────────────────
-  const gymStatusDistribution = useMemo(() => {
-    if (!isAdmin) return []
+  // ── Helpers ──
+  function formatCurrency(v) {
+    if (v >= 100000) return `₹${(v / 100000).toFixed(1)}L`
+    if (v >= 1000) return `₹${(v / 1000).toFixed(1)}K`
+    return `₹${v}`
+  }
 
-    const statusCounts = {
-      Active: gyms.filter(g => g.approvalStatus === 'approved').length,
-      Pending: gyms.filter(g => g.approvalStatus === 'pending').length,
-      Rejected: gyms.filter(g => g.approvalStatus === 'rejected').length,
-      Expired: gyms.filter(g => {
-        const gymSub = subscriptions.find(s => s.gymId === g.id && s.status === 'active')
-        return gymSub?.expiryDate && new Date(gymSub.expiryDate) < todayDate
-      }).length,
-    };
+  function trendIcon(current, prev) {
+    if (!prev || prev === 0) return { icon: '—', cls: '' }
+    const pct = ((current - prev) / prev) * 100
+    if (pct > 0) return { icon: `↑ ${Math.abs(pct).toFixed(0)}%`, cls: 'dash-trend-up' }
+    if (pct < 0) return { icon: `↓ ${Math.abs(pct).toFixed(0)}%`, cls: 'dash-trend-down' }
+    return { icon: '→ 0%', cls: '' }
+  }
 
-    const COLORS = ['#10B981', '#F59E0B', '#EF4444', '#6B7280'];
-    return Object.entries(statusCounts)
-      .map(([status, count], index) => ({
-        status,
-        count,
-        color: COLORS[index % COLORS.length],
-      }))
-      .filter(item => item.count > 0);
-  }, [gyms, isAdmin, todayDate]);
+  const prevMonthMembers = members.filter(m => {
+    if (!m.createdAt) return false
+    const cd = m.createdAt?.seconds ? new Date(m.createdAt.seconds * 1000) : new Date(m.createdAt)
+    return cd.getMonth() === (todayDate.getMonth() - 1 + 12) % 12 && cd.getFullYear() === (todayDate.getMonth() === 0 ? todayDate.getFullYear() - 1 : todayDate.getFullYear())
+  }).length
+  const memberTrend = trendIcon(totalMembers, prevMonthMembers)
 
-  // ── Recent Activity Events ─────────────────────────────────────────────────
-  const newRegistrations = useMemo(() => {
-    if (!isAdmin) return [];
-    const today = new Date().toISOString().split('T')[0];
-    return gyms
-      .filter(g => g.createdAt && new Date(g.createdAt.seconds * 1000).toISOString().split('T')[0] === today)
-      .map(g => ({
-        id: g.id,
-        text: `Gym "${g.gymName || g.name}" registered`,
-        time: g.createdAt ? new Date(g.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A',
-      }));
-  }, [gyms, isAdmin]);
+  const prevMonthAttendance = attendance.filter(a => {
+    if (!a.date) return false
+    const ad = new Date(a.date)
+    return ad.getMonth() === (todayDate.getMonth() - 1 + 12) % 12 && ad.getFullYear() === (todayDate.getMonth() === 0 ? todayDate.getFullYear() - 1 : todayDate.getFullYear())
+  }).length
+  const attendanceTrend = trendIcon(activeToday, prevMonthAttendance)
 
-  const recentApprovals = useMemo(() => {
-    if (!isAdmin) return [];
-    const today = new Date().toISOString().split('T')[0];
-    return gyms
-      .filter(g => g.approvalStatus === 'approved' && g.updatedAt && new Date(g.updatedAt.seconds * 1000).toISOString().split('T')[0] === today)
-      .map(g => ({
-        id: g.id,
-        text: `Gym "${g.gymName || g.name}" approved`,
-        time: g.updatedAt ? new Date(g.updatedAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A',
-      }));
-  }, [gyms, isAdmin]);
-
-  const recentRenewals = useMemo(() => {
-    if (!isAdmin) return [];
-    const today = new Date().toISOString().split('T')[0];
-
-    return gyms
-      .filter(g => {
-        const gSubs = subscriptions.filter(s => s.gymId === g.id && s.status === 'active');
-        return gSubs.some(sub => {
-          const expiry = new Date(sub.expiryDate);
-          const diffDays = Math.ceil((expiry - new Date(today)) / (1000 * 60 * 60 * 24));
-          return diffDays >= 0 && diffDays <= 7;
-        });
-      })
-      .map(g => ({
-        id: g.id,
-        text: `Subscription renewal due for "${g.gymName || g.name}"`,
-        time: subscriptions.find(s => s.gymId === g.id && s.status === 'active' && (() => {
-          const expiry = new Date(s.expiryDate);
-          const diffDays = Math.ceil((expiry - new Date(today)) / (1000 * 60 * 60 * 24));
-          return diffDays >= 0 && diffDays <= 7;
-        })()) ? new Date(subscriptions.find(s => s.gymId === g.id && s.status === 'active').expiryDate).toLocaleDateString() : 'N/A',
-      }));
-  }, [gyms, subscriptions, isAdmin]);
-
-  const recentExpired = useMemo(() => {
-    if (!isAdmin) return [];
-    const today = new Date().toISOString().split('T')[0];
-    return gyms
-      .filter(g => {
-        const gymSub = subscriptions.find(s => s.gymId === g.id && s.status === 'active')
-        return gymSub?.expiryDate && new Date(gymSub.expiryDate) < new Date(today)
-      })
-      .map(g => ({
-        id: g.id,
-        text: `Subscription expired for "${g.gymName || g.name}"`,
-        time: subscriptions.find(s => s.gymId === g.id)?.expiryDate || 'N/A',
-      }));
-  }, [gyms, subscriptions, isAdmin]);
-
-  // ── Quick Actions Handlers ────────────────────────────────────────────────
-  const handleQuickAction = (action) => {
-    if (!isAdmin) return;
-    switch (action) {
-      case 'approvals':
-        setPage('pending');
-        break;
-      case 'gymOwners':
-        setPage('gymOwners');
-        break;
-      case 'subscriptions':
-        setPage('subscriptions');
-        break;
-      case 'reports':
-        setPage('reports');
-        break;
-      default:
-        break;
-    }
-  };
+  const yesterdayRevenue = payments
+    .filter(p => {
+      const yd = new Date(todayDate)
+      yd.setDate(yd.getDate() - 1)
+      const ys = yd.toLocaleDateString('en-CA')
+      return p.date === ys && (p.status === 'paid' || p.paid > 0)
+    })
+    .reduce((sum, p) => sum + (Number(p.paid) || 0), 0)
+  const revenueTrend = trendIcon(todayRevenue, yesterdayRevenue)
 
   return (
-    <div>
-      {/* Welcome */}
-      <div
-        style={{ background: 'linear-gradient(135deg, rgba(232,66,10,0.12) 0%, rgba(0,200,180,0.06) 100%)', border: '1px solid rgba(232,66,10,0.2)', borderRadius: 'var(--radius)', padding: '20px 24px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-      >
-        <div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>{greetingName} 👋</h2>
-          <p style={{ color: 'var(--text-muted)', marginTop: 4 }}>{gymName}</p>
-        </div>
-        {isAdmin && (
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn btn-primary btn-sm" onClick={() => setPage('members')}>+ Add Member</button>
-            <button className="btn btn-outline btn-sm" onClick={() => setPage('reports')}>View Reports</button>
+    <div className="page-container">
+      {/* ═══════════════════ HERO ═══════════════════ */}
+      <div className="dash-hero">
+        <div className="dash-hero-left">
+          <div className="dash-hero-badge-row">
+            <span className="badge badge-teal" style={{ fontSize:10, letterSpacing:'0.08em' }}>ACTIVE</span>
+            <span className="dash-hero-date">{dateStr}</span>
           </div>
-        )}
+          <h1 className="dash-hero-title">{greeting}, {ownerName} 👋</h1>
+          <p className="dash-hero-sub">{gymName} — Your gym is performing well today.</p>
+        </div>
+        <div className="dash-hero-right">
+          <button className="btn btn-primary btn-sm" onClick={() => handleQuickAction('members')}>+ Add Member</button>
+          <button className="btn btn-outline btn-sm" onClick={() => handleQuickAction('payments')}>💰 Collect Payment</button>
+          <button className="btn btn-outline btn-sm" onClick={() => handleQuickAction('attendance')}>📋 Mark Attendance</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => handleQuickAction('reports')}>📊 Generate Report</button>
+        </div>
       </div>
 
-      {/* Existing KPI Cards */}
-      <div className="stats-grid">
-        <div className="stat-card orange" style={{ cursor: 'pointer' }} onClick={() => setPage('members')}>
-          <span className="stat-icon">👥</span>
-          <span className="stat-label">Total Members</span>
-          <span className="stat-value">{totalMembersFromMembers}</span>
+      {/* ═══════════════════ KPI CARDS ═══════════════════ */}
+      <div className="dash-kpi-grid">
+        <div className="dash-kpi-card" onClick={() => handleQuickAction('members')} style={{ cursor:'pointer' }}>
+          <div className="dash-kpi-top">
+            <span className="dash-kpi-icon dash-kpi-icon-orange">👥</span>
+            <span className={`dash-kpi-trend ${memberTrend.cls}`}>{memberTrend.icon}</span>
+          </div>
+          <span className="dash-kpi-value">{totalMembers}</span>
+          <span className="dash-kpi-label">Total Members</span>
         </div>
 
-        {isAdmin && (
-          <div className="stat-card teal" style={{ cursor: 'pointer' }} onClick={() => setPage('payments')}>
-            <span className="stat-icon">💰</span>
-            <span className="stat-label">SaaS Revenue</span>
-            <span className="stat-value">₹{(totalSubscriptionRevenue / 100).toFixed(0)}</span>
+        <div className="dash-kpi-card" onClick={() => handleQuickAction('members')} style={{ cursor:'pointer' }}>
+          <div className="dash-kpi-top">
+            <span className="dash-kpi-icon dash-kpi-icon-teal">💪</span>
+            <span className="dash-kpi-trend dash-trend-up">↑ {totalMembers > 0 ? ((activeMembers/totalMembers)*100).toFixed(0) : 0}%</span>
           </div>
-        )}
-
-        <div className="stat-card green">
-          <span className="stat-icon">🏃</span>
-          <span className="stat-label">Active Today</span>
-          <span className="stat-value">{activeToday}</span>
+          <span className="dash-kpi-value">{activeMembers}</span>
+          <span className="dash-kpi-label">Active Members</span>
         </div>
 
-        {!isMember && (
-          <div className="stat-card red" style={{ cursor: 'pointer' }} onClick={() => setPage('members')}>
-            <span className="stat-icon">⏰</span>
-            <span className="stat-label">Expiring Soon</span>
-            <span className="stat-value">{expiringSoon.length}</span>
+        <div className="dash-kpi-card">
+          <div className="dash-kpi-top">
+            <span className="dash-kpi-icon dash-kpi-icon-green">🏃</span>
+            <span className={`dash-kpi-trend ${attendanceTrend.cls}`}>{attendanceTrend.icon}</span>
           </div>
-        )}
+          <span className="dash-kpi-value">{activeToday}</span>
+          <span className="dash-kpi-label">Today's Attendance</span>
+        </div>
+
+        <div className="dash-kpi-card">
+          <div className="dash-kpi-top">
+            <span className="dash-kpi-icon dash-kpi-icon-amber">💰</span>
+            <span className={`dash-kpi-trend ${revenueTrend.cls}`}>{revenueTrend.icon}</span>
+          </div>
+          <span className="dash-kpi-value">{formatCurrency(todayRevenue)}</span>
+          <span className="dash-kpi-label">Today's Revenue</span>
+        </div>
+
+        <div className="dash-kpi-card" onClick={() => handleQuickAction('payments')} style={{ cursor:'pointer' }}>
+          <div className="dash-kpi-top">
+            <span className="dash-kpi-icon dash-kpi-icon-red">⏳</span>
+            <span className="dash-kpi-trend">{pendingPayments > 0 ? `${pendingPayments} pending` : '—'}</span>
+          </div>
+          <span className="dash-kpi-value">{pendingPayments}</span>
+          <span className="dash-kpi-label">Pending Payments</span>
+        </div>
+
+        <div className="dash-kpi-card" onClick={() => handleQuickAction('members')} style={{ cursor:'pointer' }}>
+          <div className="dash-kpi-top">
+            <span className="dash-kpi-icon dash-kpi-icon-purple">⏰</span>
+            <span className="dash-kpi-trend">{expiringSoon.length > 0 ? `${expiringSoon.length} at risk` : '—'}</span>
+          </div>
+          <span className="dash-kpi-value">{expiringSoon.length}</span>
+          <span className="dash-kpi-label">Expiring Memberships</span>
+        </div>
       </div>
 
-      {/* Super Admin KPI Cards (from subscriptions) */}
-      {isAdmin && (
-        <div className="stats-grid" style={{ marginTop: 20 }}>
-          <div className="stat-card blue">
-            <span className="stat-icon">🏢</span>
-            <span className="stat-label">Total Gyms</span>
-            <span className="stat-value">{totalGyms}</span>
+      {/* ═══════════════════ SUPER ADMIN KPI ═══════════════════ */}
+      {isSuperAdmin && (
+        <div className="dash-kpi-grid" style={{ marginTop:0 }}>
+          <div className="dash-kpi-card">
+            <div className="dash-kpi-top">
+              <span className="dash-kpi-icon dash-kpi-icon-blue">🏢</span>
+            </div>
+            <span className="dash-kpi-value">{totalGyms}</span>
+            <span className="dash-kpi-label">Total Gyms</span>
           </div>
-
-          <div className="stat-card green">
-            <span className="stat-icon">✅</span>
-            <span className="stat-label">Active Gyms</span>
-            <span className="stat-value">{activeGyms}</span>
+          <div className="dash-kpi-card">
+            <div className="dash-kpi-top">
+              <span className="dash-kpi-icon dash-kpi-icon-green">✅</span>
+            </div>
+            <span className="dash-kpi-value">{activeGyms}</span>
+            <span className="dash-kpi-label">Active Gyms</span>
           </div>
-
-          <div className="stat-card yellow">
-            <span className="stat-icon">⏳</span>
-            <span className="stat-label">Trial Gyms</span>
-            <span className="stat-value">{trialGyms}</span>
+          <div className="dash-kpi-card">
+            <div className="dash-kpi-top">
+              <span className="dash-kpi-icon dash-kpi-icon-amber">📋</span>
+            </div>
+            <span className="dash-kpi-value">{pendingApprovals}</span>
+            <span className="dash-kpi-label">Pending Approvals</span>
           </div>
-
-          <div className="stat-card red">
-            <span className="stat-icon">⚠️</span>
-            <span className="stat-label">Expired Gyms</span>
-            <span className="stat-value">{expiredGyms}</span>
-          </div>
-
-          <div className="stat-card purple">
-            <span className="stat-icon">📋</span>
-            <span className="stat-label">Pending Approvals</span>
-            <span className="stat-value">{pendingApprovals}</span>
-          </div>
-
-          <div className="stat-card orange">
-            <span className="stat-icon">👥</span>
-            <span className="stat-label">Total Members</span>
-            <span className="stat-value">{totalMembersAllGyms}</span>
-          </div>
-
-          <div className="stat-card cyan">
-            <span className="stat-icon">🔄</span>
-            <span className="stat-label">Renewals Due (7d)</span>
-            <span className="stat-value">{renewalsDue}</span>
+          <div className="dash-kpi-card">
+            <div className="dash-kpi-top">
+              <span className="dash-kpi-icon dash-kpi-icon-teal">💳</span>
+            </div>
+            <span className="dash-kpi-value">{formatCurrency(totalSubscriptionRevenue)}</span>
+            <span className="dash-kpi-label">SaaS Revenue</span>
           </div>
         </div>
       )}
 
-      {/* Charts Grid (using subscription data) */}
+      {/* ═══════════════════ CHARTS ═══════════════════ */}
       {isAdmin && (
-        <div className="cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginTop: 20, marginBottom: 20 }}>
-          {/* Monthly Gym Registrations */}
-          <div className="card">
-            <h3 className="card-title">Monthly Gym Registrations</h3>
-            {monthlyGymRegistrations.length > 0 ? (
-              <LineChart width={300} height={200} data={monthlyGymRegistrations} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="registrations" stroke="#8884d8" strokeWidth={2} />
-              </LineChart>
-            ) : (
-              <p className="card-subtitle" style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No gym registration data available</p>
-            )}
+        <div className="dash-charts-grid">
+          <div className="dash-chart-card dash-chart-card-wide">
+            <div className="dash-chart-header">
+              <h3 className="dash-chart-title">Revenue Overview</h3>
+              <p className="dash-chart-desc">Monthly payment collection</p>
+            </div>
+            <div className="dash-chart-body">
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={monthlyPaymentRevenue}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="month" tick={{ fontSize:11, fill:'var(--text-dim)' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize:11, fill:'var(--text-dim)' }} axisLine={false} tickLine={false} tickFormatter={v => `₹${(v/1000).toFixed(0)}K`} />
+                  <Tooltip
+                    contentStyle={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, fontSize:12 }}
+                    formatter={(v) => [`₹${v.toLocaleString()}`, 'Revenue']}
+                  />
+                  <Bar dataKey="revenue" fill="var(--orange)" radius={[4,4,0,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
-          {/* Subscription Plan Distribution */}
-          <div className="card">
-            <h3 className="card-title">Subscription Plan Distribution</h3>
-            {subscriptionPlanDistribution.length > 0 ? (
-              <PieChart width={300} height={200}>
-                <Pie
-                  data={subscriptionPlanDistribution}
-                  dataKey="count"
-                  nameKey="plan"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  fill="#8884d8"
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                >
-                  {subscriptionPlanDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            ) : (
-              <p className="card-subtitle" style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No subscription data available</p>
-            )}
+          <div className="dash-chart-card">
+            <div className="dash-chart-header">
+              <h3 className="dash-chart-title">Attendance Trend</h3>
+              <p className="dash-chart-desc">Monthly check-ins this year</p>
+            </div>
+            <div className="dash-chart-body">
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart data={monthlyAttendance}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="month" tick={{ fontSize:11, fill:'var(--text-dim)' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize:11, fill:'var(--text-dim)' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, fontSize:12 }}
+                  />
+                  <Line type="monotone" dataKey="attendance" stroke="var(--teal)" strokeWidth={2} dot={{ r:3, fill:'var(--teal)' }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
-          {/* Monthly Revenue Trend (from subscriptions) */}
-          <div className="card">
-            <h3 className="card-title">Monthly Subscription Revenue</h3>
-            {monthlyRevenueTrend.length > 0 ? (
-              <LineChart width={300} height={200} data={monthlyRevenueTrend} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis tickFormatter={v=>`₹${(v/100000).toFixed(1)}K`} />
-                <Tooltip formatter={(v) => [`₹${(v/100).toFixed(2)}`, 'Revenue']} />
-                <Line type="monotone" dataKey="revenue" stroke="#82ca9d" strokeWidth={2} />
-              </LineChart>
-            ) : (
-              <p className="card-subtitle" style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No subscription revenue data available</p>
-            )}
+          <div className="dash-chart-card dash-chart-card-full">
+            <div className="dash-chart-header">
+              <h3 className="dash-chart-title">Membership Growth</h3>
+              <p className="dash-chart-desc">New member registrations this year</p>
+            </div>
+            <div className="dash-chart-body">
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={memberGrowth}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="month" tick={{ fontSize:11, fill:'var(--text-dim)' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize:11, fill:'var(--text-dim)' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, fontSize:12 }}
+                  />
+                  <Line type="monotone" dataKey="members" stroke="var(--green)" strokeWidth={2} dot={{ r:3, fill:'var(--green)' }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
-          {/* Gym Status Distribution */}
-          <div className="card">
-            <h3 className="card-title">Gym Status Distribution</h3>
-            {gymStatusDistribution.length > 0 ? (
-              <PieChart width={300} height={200}>
-                <Pie
-                  data={gymStatusDistribution}
-                  dataKey="count"
-                  nameKey="status"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  fill="#8884d8"
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                >
-                  {gymStatusDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            ) : (
-              <p className="card-subtitle" style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No gym status data available</p>
-            )}
-          </div>
+          {/* Super Admin SaaS Revenue Chart */}
+          {isSuperAdmin && (
+            <div className="dash-chart-card dash-chart-card-wide">
+              <div className="dash-chart-header">
+                <h3 className="dash-chart-title">SaaS Revenue</h3>
+                <p className="dash-chart-desc">Monthly subscription revenue</p>
+              </div>
+              <div className="dash-chart-body">
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart data={monthlyRevenueTrend}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                    <XAxis dataKey="month" tick={{ fontSize:11, fill:'var(--text-dim)' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize:11, fill:'var(--text-dim)' }} axisLine={false} tickLine={false} tickFormatter={v => `₹${(v/100000).toFixed(1)}L`} />
+                    <Tooltip
+                      contentStyle={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, fontSize:12 }}
+                      formatter={(v) => [`₹${(v/100).toFixed(2)}`, 'Revenue']}
+                    />
+                    <Bar dataKey="revenue" fill="var(--purple)" radius={[4,4,0,0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Recent Activity (using gym data) */}
+      {/* ═══════════════════ ACTIVITY GRID ═══════════════════ */}
       {isAdmin && (
-        <div className="card">
-          <h3 className="card-title">Recent Activity</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[
-              ...newRegistrations.map(item => ({ ...item, type: 'registration' })),
-              ...recentApprovals.map(item => ({ ...item, type: 'approval' })),
-              ...recentRenewals.map(item => ({ ...item, type: 'renewal' })),
-              ...recentExpired.map(item => ({ ...item, type: 'expired' })),
-            ]
-              .filter(Boolean)
-              .sort((a, b) => {
-                const timeA = a.time && !isNaN(Date.parse(a.time)) ? new Date(a.time) : new Date(0);
-                const timeB = b.time && !isNaN(Date.parse(b.time)) ? new Date(b.time) : new Date(0);
-                return timeB - timeA;
-              })
-              .slice(0, 10)
-              .map((activity, i) => (
-                <div key={i} className="activity-item">
-                  <span>
-                    {activity.type === 'registration' && '🏢'}
-                    {activity.type === 'approval' && '✅'}
-                    {activity.type === 'renewal' && '🔄'}
-                    {activity.type === 'expired' && '❌'}
-                  </span>
-                  <div>
-                    <span style={{ fontWeight: 600 }}>{activity.text}</span>
-                    <small style={{ color: 'var(--text-muted)', marginLeft: 8 }}>{activity.time}</small>
+        <div className="dash-activity-grid">
+          <div className="dash-card">
+            <div className="dash-card-header">
+              <span className="dash-card-icon">💰</span>
+              <div>
+                <h3 className="dash-card-title">Recent Payments</h3>
+                <p className="dash-card-desc">Latest 5 transactions</p>
+              </div>
+            </div>
+            <div className="dash-card-body">
+              {recentPayments.length === 0 ? (
+                <div className="dash-empty">No payments yet</div>
+              ) : (
+                recentPayments.map((p, i) => (
+                  <div key={p.id || i} className="dash-activity-row" onClick={() => handleQuickAction('payments')} style={{ cursor:'pointer' }}>
+                    <div className="dash-activity-avatar av-orange" style={{ width:32, height:32, fontSize:12, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, flexShrink:0 }}>
+                      {(p.memberName||'?')[0]}
+                    </div>
+                    <div className="dash-activity-info">
+                      <span className="dash-activity-name">{p.memberName||'Unknown'}</span>
+                      <span className="dash-activity-meta">{p.plan||'—'} · {p.date||''}</span>
+                    </div>
+                    <div className="dash-activity-right">
+                      <span className="dash-activity-amount">₹{p.paid||p.amount||0}</span>
+                      <span className={`badge ${p.status==='paid'?'badge-green':p.status==='pending'?'badge-amber':'badge-red'}`} style={{ fontSize:9 }}>{p.status||'—'}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
-            {[...newRegistrations.map(item => ({ ...item, type: 'registration' })),
-              ...recentApprovals.map(item => ({ ...item, type: 'approval' })),
-              ...recentRenewals.map(item => ({ ...item, type: 'renewal' })),
-              ...recentExpired.map(item => ({ ...item, type: 'expired' })),
-            ].length === 0 && (
-              <p className="card-subtitle" style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No recent activity</p>
-            )}
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="dash-card">
+            <div className="dash-card-header">
+              <span className="dash-card-icon">👥</span>
+              <div>
+                <h3 className="dash-card-title">Latest Members</h3>
+                <p className="dash-card-desc">Recently joined</p>
+              </div>
+            </div>
+            <div className="dash-card-body">
+              {latestMembers.length === 0 ? (
+                <div className="dash-empty">No members yet</div>
+              ) : (
+                latestMembers.map((m, i) => (
+                  <div key={m.id || i} className="dash-activity-row" onClick={() => handleQuickAction('members')} style={{ cursor:'pointer' }}>
+                    <div className="dash-activity-avatar" style={{ width:32, height:32, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, flexShrink:0, background:`${m.color||'var(--orange)'}22`, color:m.color||'var(--orange)' }}>
+                      {(m.name||'?')[0]}
+                    </div>
+                    <div className="dash-activity-info">
+                      <span className="dash-activity-name">{m.name||'Unknown'}</span>
+                      <span className="dash-activity-meta">{m.plan||'No plan'} · {m.phone||''}</span>
+                    </div>
+                    <div className="dash-activity-right">
+                      <span className={`badge ${m.expiry&&new Date(m.expiry)>todayDate?'badge-green':'badge-amber'}`} style={{ fontSize:9 }}>
+                        {m.expiry&&new Date(m.expiry)>todayDate?'Active':'Expiring'}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="dash-card">
+            <div className="dash-card-header">
+              <span className="dash-card-icon">🏃</span>
+              <div>
+                <h3 className="dash-card-title">Recent Attendance</h3>
+                <p className="dash-card-desc">Latest check-ins</p>
+              </div>
+            </div>
+            <div className="dash-card-body">
+              {recentAttendance.length === 0 ? (
+                <div className="dash-empty">No attendance records</div>
+              ) : (
+                recentAttendance.map((a, i) => (
+                  <div key={i} className="dash-activity-row">
+                    <div className="dash-activity-avatar" style={{ width:32, height:32, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, flexShrink:0, background:`${a.color||'var(--teal)'}22`, color:a.color||'var(--teal)' }}>
+                      {(a.memberName||'?')[0]}
+                    </div>
+                    <div className="dash-activity-info">
+                      <span className="dash-activity-name">{a.memberName||'Unknown'}</span>
+                      <span className="dash-activity-meta">{a.plan||'—'} · {a.date||''}</span>
+                    </div>
+                    <div className="dash-activity-right">
+                      <span style={{ fontSize:11, color:'var(--text-muted)' }}>{a.time||''}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="dash-card">
+            <div className="dash-card-header">
+              <span className="dash-card-icon">🔔</span>
+              <div>
+                <h3 className="dash-card-title">Notifications</h3>
+                <p className="dash-card-desc">Latest alerts</p>
+              </div>
+            </div>
+            <div className="dash-card-body">
+              {recentNotifs.length === 0 ? (
+                <div className="dash-empty">No notifications</div>
+              ) : (
+                recentNotifs.map((n, i) => (
+                  <div key={n.id||i} className="dash-activity-row">
+                    <div className="dash-activity-dot" style={{ background: n.read ? 'var(--border)' : 'var(--teal)', width:8, height:8, borderRadius:'50%', flexShrink:0 }} />
+                    <div className="dash-activity-info">
+                      <span className="dash-activity-name">{n.title||'Alert'}</span>
+                      <span className="dash-activity-meta">{n.message?.substring(0,40)||''}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Quick Actions */}
+      {/* ═══════════════════ QUICK OVERVIEW ═══════════════════ */}
       {isAdmin && (
-        <div className="card">
-          <h3 className="card-title">Quick Actions</h3>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <button className="btn btn-primary" onClick={() => handleQuickAction('approvals')}>
-              📋 Approvals ({pendingApprovals})
+        <div className="dash-overview-grid">
+          <div className="dash-overview-card">
+            <div className="dash-overview-top">
+              <span className="dash-overview-icon">🔄</span>
+              <span className="dash-overview-value">{upcomingRenewals.length}</span>
+            </div>
+            <span className="dash-overview-label">Pending Renewals</span>
+            <span className="dash-overview-desc">Members expiring this week</span>
+          </div>
+
+          <div className="dash-overview-card">
+            <div className="dash-overview-top">
+              <span className="dash-overview-icon">⏰</span>
+              <span className="dash-overview-value">{expiringSoon.filter(m => {
+                if (!m.expiry) return false
+                return Math.ceil((new Date(m.expiry) - todayDate) / (1000*60*60*24)) <= 3
+              }).length}</span>
+            </div>
+            <span className="dash-overview-label">Critical Expiry</span>
+            <span className="dash-overview-desc">Within 3 days</span>
+          </div>
+
+          <div className="dash-overview-card">
+            <div className="dash-overview-top">
+              <span className="dash-overview-icon">💳</span>
+              <span className="dash-overview-value">{outstandingPayments.length}</span>
+            </div>
+            <span className="dash-overview-label">Outstanding Payments</span>
+            <span className="dash-overview-desc">{outstandingPayments.length > 0 ? `₹${outstandingPayments.reduce((s,p)=>s+(Number(p.amount)||0),0).toLocaleString()} total` : 'All clear'}</span>
+          </div>
+
+          <div className="dash-overview-card">
+            <div className="dash-overview-top">
+              <span className="dash-overview-icon">🎂</span>
+              <span className="dash-overview-value">{upcomingBirthdays.length}</span>
+            </div>
+            <span className="dash-overview-label">Upcoming Birthdays</span>
+            <span className="dash-overview-desc">{upcomingBirthdays.length > 0 ? upcomingBirthdays.map(m=>m.name).join(', ') : 'No birthdays this week'}</span>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════ QUICK ACTIONS ═══════════════════ */}
+      {isAdmin && (
+        <div className="dash-quick-actions">
+          <div className="settings-section-header" style={{ marginBottom:16, paddingBottom:12 }}>
+            <div>
+              <div className="settings-section-title-row">
+                <span className="settings-section-icon">⚡</span>
+                <h3 className="settings-section-title">Quick Actions</h3>
+              </div>
+              <p className="settings-section-desc" style={{ marginLeft:30 }}>Common tasks at your fingertips</p>
+            </div>
+          </div>
+          <div className="dash-quick-grid">
+            <button className="dash-quick-btn" onClick={() => handleQuickAction('members')}>
+              <span className="dash-quick-btn-icon">+</span>
+              <span className="dash-quick-btn-label">Add Member</span>
             </button>
-            <button className="btn btn-outline" onClick={() => handleQuickAction('gymOwners')}>🏢 Gym Owners</button>
-            <button className="btn btn-outline" onClick={() => handleQuickAction('subscriptions')}>💳 Subscriptions</button>
-            <button className="btn btn-outline" onClick={() => handleQuickAction('reports')}>📊 Reports</button>
+            <button className="dash-quick-btn" onClick={() => handleQuickAction('payments')}>
+              <span className="dash-quick-btn-icon">💰</span>
+              <span className="dash-quick-btn-label">Collect Payment</span>
+            </button>
+            <button className="dash-quick-btn" onClick={() => handleQuickAction('attendance')}>
+              <span className="dash-quick-btn-icon">📋</span>
+              <span className="dash-quick-btn-label">Mark Attendance</span>
+            </button>
+            <button className="dash-quick-btn" onClick={() => handleQuickAction('reports')}>
+              <span className="dash-quick-btn-icon">📊</span>
+              <span className="dash-quick-btn-label">Generate Report</span>
+            </button>
           </div>
         </div>
       )}
     </div>
-  );
+  )
 }

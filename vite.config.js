@@ -7,6 +7,16 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          firebase: ['firebase/app', 'firebase/firestore', 'firebase/auth', 'firebase/functions'],
+          charts: ['recharts'],
+          pdf: ['jspdf'],
+        },
+      },
+    },
   },
   server: {
     port: 3000,
