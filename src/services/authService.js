@@ -114,8 +114,8 @@ export async function signIn(email, password) {
 
     const role = userDoc.data().role
 
-    // 3. If pending or gym_owner_pending, immediately sign out
-    if (role === 'pending' || role === 'gym_owner_pending') {
+    // 3. If pending, gym_owner_pending, or rejected, immediately sign out
+    if (role === 'pending' || role === 'gym_owner_pending' || role === 'rejected') {
       await signOut(auth)
       throw new Error('pending')
     }

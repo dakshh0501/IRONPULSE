@@ -6,28 +6,28 @@ sntfStyles.textContent = `
   @keyframes sntf-fade-up { 0% { opacity:0; transform:translateY(16px) } 100% { opacity:1; transform:translateY(0) } }
   @keyframes sntf-shimmer { 0% { background-position:200% 0 } 100% { background-position:-200% 0 } }
   .sntf-stat-card {
-    background:rgba(12,15,26,0.7); border:1px solid rgba(255,255,255,0.04); border-radius:18px;
+    background:var(--card); border:1px solid var(--border); border-radius:18px;
     padding:18px 20px; position:relative; overflow:hidden; transition:all 0.3s cubic-bezier(0.16,1,0.3,1); cursor:default;
   }
   .sntf-stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:18px 18px 0 0; }
   .sntf-stat-card:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,0,0,0.2); border-color:rgba(232,66,10,0.15); }
   .sntf-stat-card .sntf-stat-icon { width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
-  .sntf-stat-card .sntf-stat-label { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:#506080; margin-bottom:2px; font-weight:600; }
-  .sntf-stat-card .sntf-stat-value { font-family:'Barlow Condensed',sans-serif; font-size:24px; font-weight:700; color:#e4e8f0; line-height:1.1; }
+  .sntf-stat-card .sntf-stat-label { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); margin-bottom:2px; font-weight:600; }
+  .sntf-stat-card .sntf-stat-value { font-family:'Barlow Condensed',sans-serif; font-size:24px; font-weight:700; color:var(--text); line-height:1.1; }
   .sntf-card {
-    background:rgba(12,15,26,0.7); border:1px solid rgba(255,255,255,0.04); border-radius:18px;
-    backdrop-filter:blur(12px); transition:all 0.3s cubic-bezier(0.16,1,0.3,1);
+    background:var(--card); border:1px solid var(--border); border-radius:18px;
+    transition:all 0.3s cubic-bezier(0.16,1,0.3,1);
   }
   .sntf-card:hover { border-color:rgba(232,66,10,0.1); box-shadow:0 8px 32px rgba(0,0,0,0.15); }
-  .sntf-skeleton { background:linear-gradient(90deg,rgba(255,255,255,0.03) 25%,rgba(255,255,255,0.06) 50%,rgba(255,255,255,0.03) 75%); background-size:200% 100%; animation:sntf-shimmer 1.5s infinite; border-radius:6px; }
+  .sntf-skeleton { background:linear-gradient(90deg,var(--skeleton) 25%,var(--hover-strong) 50%,var(--skeleton) 75%); background-size:200% 100%; animation:sntf-shimmer 1.5s infinite; border-radius:6px; }
   .sntf-pill { display:inline-flex; align-items:center; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:600; white-space:nowrap; }
   .sntf-pulse-dot { width:6px; height:6px; border-radius:50%; display:inline-block; margin-right:4px; }
   .sntf-tab {
     padding:7px 16px; border-radius:10px; border:1px solid transparent; font-size:12px; font-weight:600; cursor:pointer;
-    transition:all 0.15s ease; background:transparent; color:#6070a0; white-space:nowrap;
+    transition:all 0.15s ease; background:transparent; color:var(--text-muted); white-space:nowrap;
   }
-  .sntf-tab:hover { background:rgba(255,255,255,0.04); color:#a0aac0; }
-  .sntf-tab.active { background:rgba(232,66,10,0.12); color:#e8420a; border-color:rgba(232,66,10,0.15); }
+  .sntf-tab:hover { background:var(--hover); color:var(--text); }
+  .sntf-tab.active { background:var(--accent-dim); color:var(--accent); border-color:rgba(232,66,10,0.15); }
   @media (max-width:768px) {
     .sntf-stat-card { padding:14px 16px; }
     .sntf-stat-card .sntf-stat-value { font-size:20px; }
@@ -131,7 +131,7 @@ export default function SuperAdminNotifications() {
           <p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Platform-wide notification management · {unreadCount} unread · {notifications.length} total</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, color: '#a0aac0', padding: '8px 14px', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}
+          <button className="btn btn-sm" style={{ background: 'var(--hover)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-muted)', padding: '8px 14px', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}
             onClick={markAllNotifsRead}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4, verticalAlign: 'middle' }}><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
             Mark All Read
@@ -156,7 +156,7 @@ export default function SuperAdminNotifications() {
           <button key={t.key} className={`sntf-tab ${filter === t.key ? 'active' : ''}`} onClick={() => setFilter(t.key)}>
             {t.icon} {t.label}
             {t.count !== undefined && (
-              <span style={{ marginLeft: 4, background: 'rgba(255,255,255,0.06)', padding: '1px 6px', borderRadius: 8, fontSize: 10 }}>{t.count}</span>
+              <span style={{ marginLeft: 4, background: 'var(--bg3)', padding: '1px 6px', borderRadius: 8, fontSize: 10 }}>{t.count}</span>
             )}
           </button>
         ))}
@@ -174,13 +174,13 @@ export default function SuperAdminNotifications() {
             {filtered.map((n, i) => (
               <div key={n.id} style={{
                 display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 18px',
-                borderBottom: i < filtered.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none',
+                borderBottom: i < filtered.length - 1 ? '1px solid var(--border-light)' : 'none',
                 background: !n.read ? 'rgba(0,200,180,0.02)' : 'transparent',
                 transition: 'all 0.15s ease',
               }}>
                 <div style={{
                   width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-                  background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
+                  background: 'var(--hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
                 }}>
                   {n.icon || '📢'}
                 </div>

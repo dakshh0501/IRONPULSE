@@ -8,37 +8,39 @@ secStyles.textContent = `
   @keyframes sec-pulse { 0%,100% { opacity:1 } 50% { opacity:0.5 } }
   @keyframes sec-slide-up { 0% { opacity:0; transform:translateY(10px) } 100% { opacity:1; transform:translateY(0) } }
   .sec-stat-card {
-    background:rgba(12,15,26,0.7); border:1px solid rgba(255,255,255,0.04); border-radius:18px;
+    background:var(--card); border:1px solid var(--card-border); border-radius:18px;
     padding:18px 20px; position:relative; overflow:hidden; transition:all 0.3s cubic-bezier(0.16,1,0.3,1); cursor:default;
+    box-shadow:0 1px 3px rgba(0,0,0,0.04);
   }
   .sec-stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:18px 18px 0 0; }
-  .sec-stat-card:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,0,0,0.2); border-color:rgba(232,66,10,0.15); }
+  .sec-stat-card:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,0,0,0.08); border-color:var(--accent-dim); }
   .sec-stat-card .sec-stat-icon { width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
-  .sec-stat-card .sec-stat-label { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:#506080; margin-bottom:2px; font-weight:600; }
-  .sec-stat-card .sec-stat-value { font-family:'Barlow Condensed',sans-serif; font-size:24px; font-weight:700; color:#e4e8f0; line-height:1.1; }
+  .sec-stat-card .sec-stat-label { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); margin-bottom:2px; font-weight:600; }
+  .sec-stat-card .sec-stat-value { font-family:'Barlow Condensed',sans-serif; font-size:24px; font-weight:700; color:var(--text); line-height:1.1; }
   .sec-card {
-    background:rgba(12,15,26,0.7); border:1px solid rgba(255,255,255,0.04); border-radius:18px;
-    backdrop-filter:blur(12px); transition:all 0.3s cubic-bezier(0.16,1,0.3,1);
+    background:var(--card); border:1px solid var(--card-border); border-radius:18px;
+    transition:all 0.3s cubic-bezier(0.16,1,0.3,1);
+    box-shadow:0 1px 3px rgba(0,0,0,0.04);
   }
-  .sec-card:hover { border-color:rgba(232,66,10,0.1); box-shadow:0 8px 32px rgba(0,0,0,0.15); }
-  .sec-skeleton { background:linear-gradient(90deg,rgba(255,255,255,0.03) 25%,rgba(255,255,255,0.06) 50%,rgba(255,255,255,0.03) 75%); background-size:200% 100%; animation:sec-shimmer 1.5s infinite; border-radius:6px; }
+  .sec-card:hover { border-color:var(--accent-dim); box-shadow:0 8px 32px rgba(0,0,0,0.08); }
+  .sec-skeleton { background:var(--skeleton); background-size:200% 100%; animation:sec-shimmer 1.5s infinite; border-radius:6px; }
   .sec-pill { display:inline-flex; align-items:center; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:600; white-space:nowrap; }
   .sec-pulse-dot { width:7px; height:7px; border-radius:50%; display:inline-block; }
   .sec-timeline { position:relative; padding-left:24px; }
-  .sec-timeline::before { content:''; position:absolute; left:7px; top:4px; bottom:4px; width:2px; background:rgba(255,255,255,0.04); }
+  .sec-timeline::before { content:''; position:absolute; left:7px; top:4px; bottom:4px; width:2px; background:var(--border); }
   .sec-timeline-item { position:relative; padding-bottom:18px; }
   .sec-timeline-item:last-child { padding-bottom:0; }
   .sec-timeline-dot { position:absolute; left:-24px; top:4px; width:16px; height:16px; border-radius:50%; border:2px solid; background:var(--bg); display:flex; align-items:center; justify-content:center; font-size:7px; }
   .sec-session-card {
-    background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04); border-radius:14px;
+    background:var(--surface); border:1px solid var(--card-border); border-radius:14px;
     padding:16px; transition:all 0.2s ease;
   }
-  .sec-session-card:hover { background:rgba(255,255,255,0.04); border-color:rgba(232,66,10,0.1); }
+  .sec-session-card:hover { background:var(--hover); border-color:var(--accent-dim); }
   .sec-btn-secondary {
-    background:transparent; border:1px solid rgba(255,255,255,0.06); color:#a0aac0; padding:7px 14px; border-radius:10px;
+    background:transparent; border:1px solid var(--border); color:var(--text-muted); padding:7px 14px; border-radius:10px;
     font-size:12px; font-weight:500; cursor:pointer; transition:all 0.2s ease; white-space:nowrap;
   }
-  .sec-btn-secondary:hover { background:rgba(255,255,255,0.04); border-color:rgba(255,255,255,0.1); color:#e4e8f0; }
+  .sec-btn-secondary:hover { background:var(--hover); border-color:var(--border); color:var(--text); }
   .sec-btn-danger {
     background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); color:#ef4444; padding:9px 16px; border-radius:10px;
     font-size:12px; font-weight:600; cursor:pointer; transition:all 0.2s ease; white-space:nowrap;
@@ -46,21 +48,21 @@ secStyles.textContent = `
   .sec-btn-danger:hover { background:rgba(239,68,68,0.18); box-shadow:0 4px 16px rgba(239,68,68,0.15); }
   .sec-table-wrap { overflow-x:auto; }
   .sec-table { width:100%; border-collapse:collapse; font-size:12px; }
-  .sec-table th { text-align:left; padding:10px 12px; color:#506080; font-weight:600; font-size:9px; text-transform:uppercase; letter-spacing:0.06em; border-bottom:1px solid rgba(255,255,255,0.04); white-space:nowrap; }
-  .sec-table td { padding:10px 12px; color:#a0aac0; border-bottom:1px solid rgba(255,255,255,0.02); white-space:nowrap; }
+  .sec-table th { text-align:left; padding:10px 12px; color:var(--text-muted); font-weight:600; font-size:9px; text-transform:uppercase; letter-spacing:0.06em; border-bottom:1px solid var(--border); white-space:nowrap; }
+  .sec-table td { padding:10px 12px; color:var(--text-muted); border-bottom:1px solid var(--border-light); white-space:nowrap; }
   .sec-table tr:last-child td { border-bottom:none; }
-  .sec-table tr:hover td { background:rgba(255,255,255,0.01); }
+  .sec-table tr:hover td { background:var(--hover); }
   .sec-device-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px; }
   .sec-device-card {
-    background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04); border-radius:14px;
+    background:var(--surface); border:1px solid var(--card-border); border-radius:14px;
     padding:14px; transition:all 0.2s ease;
   }
-  .sec-device-card:hover { background:rgba(255,255,255,0.04); border-color:rgba(232,66,10,0.1); }
+  .sec-device-card:hover { background:var(--hover); border-color:var(--accent-dim); }
   .sec-policy-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px; }
-  .sec-policy-item { background:rgba(255,255,255,0.02); border-radius:12px; padding:12px 14px; }
-  .sec-policy-label { font-size:9px; text-transform:uppercase; letter-spacing:0.06em; color:#506080; font-weight:600; margin-bottom:4px; }
-  .sec-policy-value { font-size:14px; font-weight:600; color:#e4e8f0; }
-  .sec-section-header { padding:16px 18px; border-bottom:1px solid rgba(255,255,255,0.04); display:flex; align-items:center; justify-content:space-between; }
+  .sec-policy-item { background:var(--surface); border-radius:12px; padding:12px 14px; border:1px solid var(--border-light); }
+  .sec-policy-label { font-size:9px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); font-weight:600; margin-bottom:4px; }
+  .sec-policy-value { font-size:14px; font-weight:600; color:var(--text); }
+  .sec-section-header { padding:16px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
   .sec-section-body { padding:12px 16px; }
   @media (max-width:768px) {
     .sec-stat-card { padding:14px 16px; }
@@ -127,7 +129,7 @@ function StatCard({ label, value, icon, color, delay = 0 }) {
 }
 
 function StatusBadge({ status }) {
-  const color = status === 'active' ? '#22c55e' : status === 'warning' ? '#f59e0b' : status === 'danger' ? '#ef4444' : status === 'suspended' ? '#f59e0b' : status === 'success' ? '#22c55e' : status === 'failed' ? '#ef4444' : '#506080'
+  const color = status === 'active' ? '#22c55e' : status === 'warning' ? '#f59e0b' : status === 'danger' ? '#ef4444' : status === 'suspended' ? '#f59e0b' : status === 'success' ? '#22c55e' : status === 'failed' ? '#ef4444' : 'var(--text-muted)'
   return (
     <span className="sec-pill" style={{ background: `${color}14`, color }}>
       <span className="sec-pulse-dot" style={{ background: color, boxShadow: `0 0 6px ${color}40`, marginRight: 4 }} />
@@ -205,8 +207,8 @@ export default function Security() {
     <div className="page-container">
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4, color: '#e4e8f0' }}>Security Center</h2>
-          <p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Platform security monitoring, session management, and audit trail.</p>
+          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4, color: 'var(--text)' }}>Security Center</h2>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Platform security monitoring, session management, and audit trail.</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="sec-btn-danger">
@@ -228,38 +230,38 @@ export default function Security() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
         <div className="sec-card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', margin: 0 }}>
+          <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
               <span style={{ marginRight: 8 }}>🟢</span> Active Sessions
             </h3>
-            <span style={{ fontSize: 11, color: '#6070a0' }}>{recentSessions.length} active</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{recentSessions.length} active</span>
           </div>
           <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {recentSessions.map((s, i) => (
               <div key={i} className="sec-session-card">
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: 13, color: '#e4e8f0' }}>{s.user}</div>
-                    <div style={{ fontSize: 11, color: '#6070a0', marginTop: 2 }}>{s.browser} · {s.platform}</div>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>{s.user}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{s.browser} · {s.platform}</div>
                   </div>
                   <StatusBadge status={s.status} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
                   <div>
-                    <div style={{ fontSize: 9, color: '#384860', textTransform: 'uppercase', letterSpacing: '0.05em' }}>IP</div>
-                    <div style={{ fontSize: 11, color: '#a0aac0', fontFamily: "'JetBrains Mono', monospace", marginTop: 1 }}>{s.ip}</div>
+                    <div style={{ fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>IP</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: "'JetBrains Mono', monospace", marginTop: 1 }}>{s.ip}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 9, color: '#384860', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location</div>
-                    <div style={{ fontSize: 11, color: '#a0aac0', marginTop: 1 }}>{s.location}</div>
+                    <div style={{ fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{s.location}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 9, color: '#384860', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Duration</div>
-                    <div style={{ fontSize: 11, color: '#a0aac0', marginTop: 1 }}>{s.duration}</div>
+                    <div style={{ fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Duration</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{s.duration}</div>
                   </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8, gap: 6 }}>
-                  <span style={{ fontSize: 10, color: '#384860' }}>Last: {s.lastActive}</span>
+                  <span style={{ fontSize: 10, color: 'var(--text-dim)' }}>Last: {s.lastActive}</span>
                   <button className="sec-btn-secondary" style={{ padding: '3px 8px', fontSize: 10, color: '#ef4444' }}>Logout</button>
                 </div>
               </div>
@@ -268,11 +270,11 @@ export default function Security() {
         </div>
 
         <div className="sec-card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', margin: 0 }}>
+          <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
               <span style={{ marginRight: 8 }}>📋</span> Audit Timeline
             </h3>
-            <span style={{ fontSize: 11, color: '#6070a0' }}>Last 7 days</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Last 7 days</span>
           </div>
           <div style={{ padding: '16px 18px' }}>
             <div className="sec-timeline">
@@ -281,11 +283,11 @@ export default function Security() {
                   <div className="sec-timeline-dot" style={{ borderColor: a.color, color: a.color, fontSize: 9 }}>{timelineIcon(a.type)}</div>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#a0aac0' }}>{a.action}</div>
-                      <div style={{ fontSize: 11, color: '#6070a0', marginTop: 2 }}>{a.detail}</div>
-                      <div style={{ fontSize: 10, color: '#384860', marginTop: 1 }}>by {a.user}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>{a.action}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{a.detail}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 1 }}>by {a.user}</div>
                     </div>
-                    <span style={{ fontSize: 10, color: '#384860', whiteSpace: 'nowrap', marginLeft: 12 }}>{a.timestamp}</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-dim)', whiteSpace: 'nowrap', marginLeft: 12 }}>{a.timestamp}</span>
                   </div>
                 </div>
               ))}
@@ -296,10 +298,10 @@ export default function Security() {
 
       <div className="sec-card" style={{ padding: 0, overflow: 'hidden', marginBottom: 16 }}>
         <div className="sec-section-header">
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', margin: 0 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
             <span style={{ marginRight: 8 }}>🔑</span> Recent Logins
           </h3>
-          <span style={{ fontSize: 11, color: '#6070a0' }}>Last 24 hours</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Last 24 hours</span>
         </div>
         <div className="sec-section-body">
           <div className="sec-table-wrap">
@@ -316,10 +318,10 @@ export default function Security() {
               <tbody>
                 {recentLogins.map((l, i) => (
                   <tr key={i}>
-                    <td style={{ fontWeight: 600, color: l.status === 'failed' ? '#ef4444' : '#e4e8f0' }}>{l.user}</td>
+                    <td style={{ fontWeight: 600, color: l.status === 'failed' ? '#ef4444' : 'var(--text)' }}>{l.user}</td>
                     <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11 }}>{l.ip}</td>
                     <td style={{ fontSize: 11 }}>{l.device}</td>
-                    <td style={{ fontSize: 11, color: '#6070a0' }}>{l.timestamp}</td>
+                    <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>{l.timestamp}</td>
                     <td><StatusBadge status={l.status} /></td>
                   </tr>
                 ))}
@@ -331,35 +333,35 @@ export default function Security() {
 
       <div className="sec-card" style={{ padding: 0, overflow: 'hidden', marginBottom: 16 }}>
         <div className="sec-section-header">
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', margin: 0 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
             <span style={{ marginRight: 8 }}>💻</span> Devices
           </h3>
-          <span style={{ fontSize: 11, color: '#6070a0' }}>{devices.length} registered</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{devices.length} registered</span>
         </div>
         <div className="sec-section-body">
           <div className="sec-device-grid">
             {devices.map((d, i) => (
               <div key={i} className="sec-device-card">
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: '#e4e8f0' }}>{d.name}</div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>{d.name}</div>
                   <StatusBadge status={d.status} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 10px', fontSize: 11 }}>
                   <div>
-                    <div style={{ fontSize: 9, color: '#384860', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Platform</div>
-                    <div style={{ color: '#a0aac0', marginTop: 1 }}>{d.platform}</div>
+                    <div style={{ fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Platform</div>
+                    <div style={{ color: 'var(--text-muted)', marginTop: 1 }}>{d.platform}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 9, color: '#384860', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Version</div>
-                    <div style={{ color: '#a0aac0', marginTop: 1, fontFamily: "'JetBrains Mono', monospace" }}>{d.version}</div>
+                    <div style={{ fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Version</div>
+                    <div style={{ color: 'var(--text-muted)', marginTop: 1, fontFamily: "'JetBrains Mono', monospace" }}>{d.version}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 9, color: '#384860', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Owner</div>
-                    <div style={{ color: '#a0aac0', marginTop: 1 }}>{d.owner}</div>
+                    <div style={{ fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Owner</div>
+                    <div style={{ color: 'var(--text-muted)', marginTop: 1 }}>{d.owner}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 9, color: '#384860', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Last Seen</div>
-                    <div style={{ color: '#6070a0', marginTop: 1 }}>{d.lastSeen}</div>
+                    <div style={{ fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Last Seen</div>
+                    <div style={{ color: 'var(--text-muted)', marginTop: 1 }}>{d.lastSeen}</div>
                   </div>
                 </div>
               </div>
@@ -371,7 +373,7 @@ export default function Security() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
         <div className="sec-card" style={{ padding: 0, overflow: 'hidden' }}>
           <div className="sec-section-header">
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', margin: 0 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
               <span style={{ marginRight: 8 }}>🔐</span> Password Policy
             </h3>
             <button className="sec-btn-secondary" style={{ padding: '5px 12px', fontSize: 11 }}>Configure</button>
@@ -416,10 +418,10 @@ export default function Security() {
 
         <div className="sec-card" style={{ padding: 0, overflow: 'hidden' }}>
           <div className="sec-section-header">
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', margin: 0 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
               <span style={{ marginRight: 8 }}>🛡️</span> Permissions / Role Overview
             </h3>
-            <span style={{ fontSize: 11, color: '#6070a0' }}>{roles.length} roles</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{roles.length} roles</span>
           </div>
           <div className="sec-section-body">
             <div className="sec-table-wrap">
@@ -435,10 +437,10 @@ export default function Security() {
                 <tbody>
                   {roles.map((r, i) => (
                     <tr key={i}>
-                      <td style={{ fontWeight: 600, color: '#e4e8f0' }}>{r.role}</td>
+                      <td style={{ fontWeight: 600, color: 'var(--text)' }}>{r.role}</td>
                       <td>{r.permissions}</td>
                       <td>{r.users}</td>
-                      <td style={{ color: '#6070a0' }}>{r.lastModified}</td>
+                      <td style={{ color: 'var(--text-muted)' }}>{r.lastModified}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -453,7 +455,7 @@ export default function Security() {
           <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#ef4444' }}>⚠️</div>
           <div>
             <h3 style={{ fontSize: 14, fontWeight: 700, color: '#ef4444', margin: 0 }}>Danger Zone</h3>
-            <p style={{ fontSize: 11, color: '#6070a0', margin: '2px 0 0' }}>Irreversible actions with platform-wide impact</p>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>Irreversible actions with platform-wide impact</p>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>

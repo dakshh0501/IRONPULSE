@@ -7,8 +7,8 @@ subStyles.textContent = `
 @keyframes sub-pulse { 0%,100% { opacity: 0.3; } 50% { opacity: 0.8; } }
 @keyframes sub-fade-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 .sub-glass {
-  background: rgba(12,15,26,0.7); backdrop-filter: blur(16px);
-  border: 1px solid rgba(255,255,255,0.06); border-radius: 16px;
+  background: var(--card);
+  border: 1px solid var(--border); border-radius: 16px;
 }
 .sub-btn-primary {
   padding: 12px 28px; border: none; border-radius: 10px;
@@ -19,11 +19,11 @@ subStyles.textContent = `
 .sub-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(232,66,10,0.35); }
 .sub-btn-secondary {
   padding: 12px 28px; border-radius: 10px;
-  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
-  color: #e4e8f0; font-size: 14px; font-weight: 500; cursor: pointer;
+  background: var(--card); border: 1px solid var(--border);
+  color: var(--text-muted); font-size: 14px; font-weight: 500; cursor: pointer;
   transition: all 0.2s ease;
 }
-.sub-btn-secondary:hover { background: rgba(255,255,255,0.1); }
+.sub-btn-secondary:hover { background: var(--hover); }
 `
 document.head.appendChild(subStyles)
 
@@ -81,7 +81,7 @@ export default function GymSubscription() {
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#070a12',
+      minHeight: '100vh', background: 'var(--bg)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: 24, position: 'relative', overflow: 'hidden'
     }}>

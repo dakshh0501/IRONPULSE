@@ -46,6 +46,7 @@ const GymReports          = lazy(() => import('./pages/Reports'))
 const GymSubscription     = lazy(() => import('./pages/GymSubscription'))
 const GymDevices          = lazy(() => import('./pages/DeviceManagement'))
 const NotFound            = lazy(() => import('./pages/NotFound'))
+const Rejected            = lazy(() => import('./pages/Rejected'))
 
 // ── Shared component map (all pages that exist) ──────────────
 const PAGE_COMPONENTS = {
@@ -318,8 +319,12 @@ const pageContent =
 // ─────────────────────────────────────────────────────────────
 //  ROUTE GUARDS
 // ─────────────────────────────────────────────────────────────
+function isLocalhost() {
+  try { const h = window.location.hostname; return h === 'localhost' || h === '127.0.0.1' } catch { return false }
+}
+
 function ProtectedRoute({ children, allowedRoles }) {
-  const { isLoggedIn, role, effectiveRole, authLoading } = useAuth()
+  const { isLoggedIn, role, effectiveRole, authLoading, userProfile } = useAuth()
   const checkRole = effectiveRole || role
   const [exiting, setExiting] = useState(false)
   const exitTimer = useRef(null)
@@ -332,7 +337,15 @@ function ProtectedRoute({ children, allowedRoles }) {
   }, [authLoading, exiting])
 
   if (!authLoading && exiting) {
-    if (!isLoggedIn) return <Navigate to="/" replace />
+    if (!isLoggedIn) {
+      const target = isLocalhost() ? '/auth' : '/'
+      return <Navigate to={target} replace />
+    }
+    if (userProfile?.role === 'rejected') {
+      const target = isLocalhost() ? '/' : '/rejected'
+      return <Navigate to={target} replace />
+    }
+    if (userProfile?.role === 'pending') return <Navigate to="/" replace />
     if (allowedRoles && !allowedRoles.includes(checkRole)) return <Navigate to="/dashboard" replace />
     return children
   }
@@ -372,6 +385,7 @@ function RouterTree() {
         <Route path="/reception" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer']}><ReceptionMode /></ProtectedRoute>} />
         <Route path="/payment-status" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','gym_owner','trainer','member']}><PaymentStatus /></ProtectedRoute>} />
         <Route path="/checkout" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','gym_owner','trainer','member']}><Checkout /></ProtectedRoute>} />
+        <Route path="/rejected" element={<Rejected />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

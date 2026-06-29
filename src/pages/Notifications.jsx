@@ -23,20 +23,22 @@ ntfStyles.textContent = `
   @keyframes ntf-pulse { 0%,100% { opacity:1 } 50% { opacity:0.4 } }
   @keyframes ntf-shimmer { 0% { background-position:200% 0 } 100% { background-position:-200% 0 } }
   .ntf-stat-card {
-    background:rgba(12,15,26,0.7); border:1px solid rgba(255,255,255,0.04); border-radius:18px;
+    background:var(--card); border:1px solid var(--card-border); border-radius:18px;
     padding:18px 20px; position:relative; overflow:hidden; transition:all 0.3s cubic-bezier(0.16,1,0.3,1); cursor:default;
+    box-shadow:0 1px 3px rgba(0,0,0,0.04);
   }
   .ntf-stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:18px 18px 0 0; }
-  .ntf-stat-card:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,0,0,0.2); border-color:rgba(232,66,10,0.15); }
+  .ntf-stat-card:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,0,0,0.08); border-color:var(--accent-dim); }
   .ntf-stat-card .ntf-stat-icon { width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
-  .ntf-stat-card .ntf-stat-label { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:#506080; margin-bottom:2px; font-weight:600; }
-  .ntf-stat-card .ntf-stat-value { font-family:'Barlow Condensed',sans-serif; font-size:24px; font-weight:700; color:#e4e8f0; line-height:1.1; }
+  .ntf-stat-card .ntf-stat-label { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); margin-bottom:2px; font-weight:600; }
+  .ntf-stat-card .ntf-stat-value { font-family:'Barlow Condensed',sans-serif; font-size:24px; font-weight:700; color:var(--text); line-height:1.1; }
   .ntf-card {
-    background:rgba(12,15,26,0.7); border:1px solid rgba(255,255,255,0.04); border-radius:18px;
-    backdrop-filter:blur(12px); transition:all 0.3s cubic-bezier(0.16,1,0.3,1);
+    background:var(--card); border:1px solid var(--card-border); border-radius:18px;
+    transition:all 0.3s cubic-bezier(0.16,1,0.3,1);
+    box-shadow:0 1px 3px rgba(0,0,0,0.04);
   }
   .ntf-card:hover { border-color:rgba(232,66,10,0.1); box-shadow:0 8px 32px rgba(0,0,0,0.15); }
-  .ntf-skeleton { background:linear-gradient(90deg,rgba(255,255,255,0.03) 25%,rgba(255,255,255,0.06) 50%,rgba(255,255,255,0.03) 75%); background-size:200% 100%; animation:ntf-shimmer 1.5s infinite; border-radius:6px; }
+  .ntf-skeleton { background:var(--skeleton); background-size:200% 100%; animation:ntf-shimmer 1.5s infinite; border-radius:6px; }
   .ntf-pill { display:inline-flex; align-items:center; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap; }
   .ntf-pulse-dot { width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:6px; }
   @media (max-width:768px) {
@@ -195,8 +197,8 @@ export default function Notifications({ search = '' }) {
     <div className="page-container">
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4, color: '#e4e8f0' }}>Notifications</h2>
-          <p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4, color: 'var(--text)' }}>Notifications</h2>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
             {unreadCount > 0
               ? <span style={{ color: '#e8420a', fontWeight: 700 }}>{unreadCount} unread</span>
               : 'All caught up!'
@@ -206,7 +208,7 @@ export default function Notifications({ search = '' }) {
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', width: 200 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="2" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="2" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
             <input className="form-input" style={{ paddingLeft: 34, height: 36, fontSize: 13, borderRadius: 10 }} placeholder="Search notifications..." value={search || ''} readOnly />
@@ -249,7 +251,7 @@ export default function Notifications({ search = '' }) {
                     display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600,
                     border: `1.5px solid ${isActive ? (cfg?.color || '#00c8b4') : 'rgba(255,255,255,0.06)'}`,
                     background: isActive ? (cfg?.bg || 'rgba(0,200,180,0.1)') : 'transparent',
-                    color: isActive ? (cfg?.color || '#00c8b4') : '#6070a0',
+                    color: isActive ? (cfg?.color || '#00c8b4') : 'var(--text-muted)',
                     cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
                   }}>
                   {f.icon} {f.label}
@@ -266,7 +268,7 @@ export default function Notifications({ search = '' }) {
               <option value="normal">Normal</option>
               <option value="low">Low</option>
             </select>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 11, color: '#6070a0', flexShrink: 0 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
               <div className={`toggle ${showUnread ? 'on' : ''}`} style={{ transform: 'scale(0.8)' }} onClick={() => setShowUnread(p => !p)}>
                 <div className="toggle-thumb" />
               </div>
@@ -280,24 +282,24 @@ export default function Notifications({ search = '' }) {
         {filtered.length === 0 ? (
           <div className="ntf-card" style={{ padding: '48px 24px', textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 12, opacity: 0.5 }}>🔕</div>
-            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6, color: '#e4e8f0' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6, color: 'var(--text)' }}>
               {showUnread ? 'No unread notifications' : 'No notifications found'}
             </h3>
-            <p style={{ fontSize: 13, color: '#6070a0', marginBottom: 20 }}>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>
               {showUnread ? 'Toggle off "Unread only" to see all.' : 'Try a different filter.'}
             </p>
-            <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, color: '#a0aac0', padding: '8px 16px', cursor: 'pointer', fontSize: 12 }}
-              onClick={() => { setTypeFilter('all'); setShowUnread(false); setPriorityFilter('all') }}>
-              Clear filters
+<button className="btn btn-sm" style={{ background: 'var(--border)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, color: 'var(--text-muted)', padding: '8px 16px', cursor: 'pointer', fontSize: 12 }}
+  onClick={() => { setTypeFilter('all'); setShowUnread(false); setPriorityFilter('all') }}>
+  Clear filters
             </button>
           </div>
         ) : (
           groupOrder.filter(g => grouped[g]).map(group => (
             <div key={group}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#506080', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{group}</span>
-                <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.04)' }} />
-                <span style={{ fontSize: 11, color: '#384860' }}>{grouped[group].length}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{group}</span>
+                <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>{grouped[group].length}</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {grouped[group].map(n => {
@@ -305,8 +307,8 @@ export default function Notifications({ search = '' }) {
                   return (
                     <div key={n.id} className="ntf-card" style={{
                       padding: '14px 18px', display: 'flex', gap: 14, alignItems: 'flex-start',
-                      borderLeft: !n.read ? `3px solid ${cfg.color}` : '1px solid rgba(255,255,255,0.04)',
-                      background: !n.read ? `${cfg.bg}` : 'rgba(12,15,26,0.4)',
+                      borderLeft: !n.read ? `3px solid ${cfg.color}` : '1px solid var(--border)',
+                      background: !n.read ? `${cfg.bg}` : 'var(--bg3)',
                     }}>
                       <div style={{
                         width: 40, height: 40, borderRadius: 12, flexShrink: 0,
@@ -320,17 +322,17 @@ export default function Notifications({ search = '' }) {
                           <span className="ntf-pill" style={{ background: cfg.bg, color: cfg.color, fontSize: 9 }}>{cfg.label}</span>
                           {n.priority === 'urgent' && <span className="ntf-pill" style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444', fontSize: 9 }}>URGENT</span>}
                           {!n.read && <span style={{ width: 6, height: 6, borderRadius: '50%', background: cfg.color }} />}
-                          <span style={{ fontSize: 11, color: '#384860', marginLeft: 'auto', whiteSpace: 'nowrap' }}>{getTimeAgo(n.createdAt)}</span>
+                          <span style={{ fontSize: 11, color: 'var(--text-dim)', marginLeft: 'auto', whiteSpace: 'nowrap' }}>{getTimeAgo(n.createdAt)}</span>
                         </div>
-                        <p style={{ fontSize: 14, fontWeight: n.read ? 500 : 700, color: '#e4e8f0', marginBottom: 4 }}>{n.title}</p>
-                        <p style={{ fontSize: 12, color: '#6070a0', lineHeight: 1.5, margin: 0 }}>{n.message}</p>
+                        <p style={{ fontSize: 14, fontWeight: n.read ? 500 : 700, color: 'var(--text)', marginBottom: 4 }}>{n.title}</p>
+                        <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>{n.message}</p>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
                         {!n.read ? (
-                          <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, color: '#a0aac0', padding: '4px 10px', fontSize: 10, cursor: 'pointer' }}
+                          <button className="btn btn-sm" style={{ background: 'var(--border)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, color: 'var(--text-muted)', padding: '4px 10px', fontSize: 10, cursor: 'pointer' }}
                             onClick={() => handleMarkRead(n.id)}>Read</button>
                         ) : (
-                          <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, color: '#6070a0', padding: '4px 10px', fontSize: 10, cursor: 'pointer' }}
+                          <button className="btn btn-sm" style={{ background: 'var(--border)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, color: 'var(--text-muted)', padding: '4px 10px', fontSize: 10, cursor: 'pointer' }}
                             onClick={() => handleMarkUnread(n.id)}>Unread</button>
                         )}
                         <button className="btn btn-sm" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.1)', borderRadius: 8, color: '#ef4444', padding: '4px 10px', fontSize: 10, cursor: 'pointer' }}
@@ -348,14 +350,13 @@ export default function Notifications({ search = '' }) {
       {toast && (
         <div style={{
           position: 'fixed', top: 80, right: 24, zIndex: 9999,
-          background: 'rgba(12,15,26,0.96)', border: '1px solid rgba(0,200,180,0.3)',
+          background: 'var(--card)', border: '1px solid rgba(0,200,180,0.3)',
           borderRadius: 12, padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 10,
           boxShadow: '0 8px 30px rgba(0,0,0,0.4)', animation: 'slideLeft 0.25s ease', maxWidth: 320,
-          backdropFilter: 'blur(12px)',
         }}>
           <span style={{ fontSize: 16 }}>✅</span>
-          <p style={{ fontSize: 13, color: '#e4e8f0', flex: 1, margin: 0 }}>{toast}</p>
-          <button onClick={() => setToast(null)} style={{ background: 'none', border: 'none', color: '#384860', fontSize: 14, cursor: 'pointer', padding: 4 }}>✕</button>
+          <p style={{ fontSize: 13, color: 'var(--text)', flex: 1, margin: 0 }}>{toast}</p>
+          <button onClick={() => setToast(null)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: 14, cursor: 'pointer', padding: 4 }}>✕</button>
         </div>
       )}
     </div>

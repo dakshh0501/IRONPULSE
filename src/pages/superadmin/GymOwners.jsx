@@ -14,8 +14,8 @@ goStyles.textContent = `
 @keyframes go-shimmer { 0% { background-position:-400% 0; } 100% { background-position:400% 0; } }
 @keyframes go-skeleton { 0% { opacity:0.3; } 50% { opacity:0.6; } 100% { opacity:0.3; } }
 .go-card {
-  background:rgba(12,15,26,0.7); backdrop-filter:blur(8px);
-  border:1px solid rgba(255,255,255,0.06); border-radius:14px;
+  background:var(--card);
+  border:1px solid var(--border); border-radius:14px;
   transition:all 0.3s cubic-bezier(0.16,1,0.3,1);
 }
 .go-card:hover { transform:translateY(-2px); border-color:rgba(232,66,10,0.12); box-shadow:0 12px 40px rgba(0,0,0,0.2); }
@@ -28,19 +28,19 @@ goStyles.textContent = `
 .go-btn-primary:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(232,66,10,0.3); }
 .go-btn-secondary {
   padding:9px 16px; border-radius:8px; font-size:12px; font-weight:500;
-  background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);
-  color:#a0aac0; cursor:pointer; transition:all 0.2s;
+  background:var(--card); border:1px solid var(--border);
+  color:var(--text-muted); cursor:pointer; transition:all 0.2s;
 }
-.go-btn-secondary:hover { background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.1); }
+.go-btn-secondary:hover { background:var(--hover); border-color:var(--border); }
 .go-input {
-  background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);
-  border-radius:8px; padding:0 12px; height:36px; color:#e4e8f0; font-size:13px;
+  background:var(--input-bg); border:1px solid var(--input-border);
+  border-radius:8px; padding:0 12px; height:36px; color:var(--text); font-size:13px;
   outline:none; transition:border-color 0.2s; width:100%; box-sizing:border-box;
 }
 .go-input:focus { border-color:rgba(232,66,10,0.3); box-shadow:0 0 0 2px rgba(232,66,10,0.06); }
 .go-select {
-  background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);
-  border-radius:8px; height:36px; color:#a0aac0; font-size:12px; font-weight:500;
+  background:var(--input-bg); border:1px solid var(--input-border);
+  border-radius:8px; height:36px; color:var(--text-muted); font-size:12px; font-weight:500;
   padding:0 28px 0 10px; cursor:pointer; outline:none;
   appearance:none; transition:border-color 0.2s;
   background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%236070a0' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
@@ -52,13 +52,13 @@ goStyles.textContent = `
   position:sticky; top:0; z-index:2;
   padding:12px 16px; text-align:left; white-space:nowrap;
   font-size:10px; text-transform:uppercase; letter-spacing:0.08em;
-  color:#384860; font-weight:700;
-  background:rgba(7,10,18,0.95);
-  border-bottom:1px solid rgba(255,255,255,0.04);
+  color:var(--text-muted); font-weight:700;
+  background:#fafafa;
+  border-bottom:1px solid var(--border);
 }
-.go-table td { padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.03); transition:background 0.15s; }
+.go-table td { padding:12px 16px; border-bottom:1px solid var(--border-light); transition:background 0.15s; }
 .go-table tr { cursor:pointer; transition:background 0.15s; }
-.go-table tbody tr:hover td { background:rgba(232,66,10,0.03); }
+.go-table tbody tr:hover td { background:#f5f6f8; }
 .go-pill {
   display:inline-flex; align-items:center; gap:4px;
   padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap;
@@ -66,19 +66,19 @@ goStyles.textContent = `
 .go-drawer-tab {
   display:flex; align-items:center; gap:8px; padding:10px 14px; border-radius:8px;
   border:none; cursor:pointer; font-size:12px; font-weight:600; text-align:left;
-  transition:all 0.2s; background:transparent; color:#6070a0;
+  transition:all 0.2s; background:transparent; color:var(--text-muted);
 }
-.go-drawer-tab:hover { background:rgba(255,255,255,0.04); }
-.go-drawer-tab.active { background:rgba(232,66,10,0.06); color:#e8420a; }
+.go-drawer-tab:hover { background:var(--hover); }
+.go-drawer-tab.active { background:var(--accent-dim); color:var(--accent); }
 .go-stat-card {
-  background:rgba(12,15,26,0.7); backdrop-filter:blur(8px);
-  border:1px solid rgba(255,255,255,0.06); border-radius:14px; padding:20px;
+  background:var(--card);
+  border:1px solid var(--border); border-radius:14px; padding:20px;
   position:relative; overflow:hidden; transition:all 0.3s cubic-bezier(0.16,1,0.3,1);
 }
 .go-stat-card:hover { transform:translateY(-3px); border-color:rgba(232,66,10,0.1); box-shadow:0 16px 48px rgba(0,0,0,0.25); }
 .go-stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:14px 14px 0 0; }
 .go-skeleton {
-  background:rgba(255,255,255,0.04); border-radius:6px;
+  background:var(--skeleton); border-radius:6px;
   animation:go-skeleton 1.5s ease-in-out infinite;
 }
 @media (max-width:768px) {
@@ -170,7 +170,7 @@ function ArrowLeft() {
 
 function InfoRow({ label, value, icon }) {
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', background:'rgba(255,255,255,0.02)', borderRadius:8, fontSize:13 }}>
+    <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', background:'var(--bg3)', borderRadius:8, fontSize:13 }}>
       <span style={{ fontSize:14, width:20, textAlign:'center', flexShrink:0 }}>{icon}</span>
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontSize:10, color:'#384860', marginBottom:1 }}>{label}</div>
@@ -475,7 +475,7 @@ export default function SuperAdminGymOwners({ search: parentSearch }) {
 
         {/* Empty state — no documents at all */}
         {filteredTypes.length > 0 && Object.values(docStatuses).every(s => s === 'missing') && (
-          <div style={{ textAlign:'center', padding:'16px 12px', background:'rgba(255,255,255,0.02)', borderRadius:10 }}>
+          <div style={{ textAlign:'center', padding:'16px 12px', background:'var(--bg3)', borderRadius:10 }}>
             <div style={{ fontSize:28, marginBottom:8 }}>📄</div>
             <div style={{ fontSize:13, fontWeight:600, color:'#6070a0', marginBottom:4 }}>No documents uploaded</div>
             <div style={{ fontSize:11, color:'#384860', marginBottom:12 }}>Gym owners can upload documents for verification in their settings.</div>
@@ -489,16 +489,16 @@ export default function SuperAdminGymOwners({ search: parentSearch }) {
         <div>
           <div style={{ fontSize:11, fontWeight:600, color:'#384860', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10 }}>Activity Timeline</div>
           <div style={{ position:'relative', paddingLeft:20 }}>
-            <div style={{ position:'absolute', left:5, top:4, bottom:0, width:2, background:'rgba(255,255,255,0.04)' }} />
+            <div style={{ position:'absolute', left:5, top:4, bottom:0, width:2, background:'var(--border)' }} />
             {hasGst ? (
               <div style={{ position:'relative', paddingBottom:14 }}>
-                <div style={{ position:'absolute', left:-15, top:0, width:18, height:18, borderRadius:'50%', background:'rgba(12,15,26,0.9)', border:'2px solid rgba(16,185,129,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9 }}>🧾</div>
+                <div style={{ position:'absolute', left:-15, top:0, width:18, height:18, borderRadius:'50%', background:'var(--card)', border:'2px solid rgba(16,185,129,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9 }}>🧾</div>
                 <div style={{ fontSize:12, fontWeight:600, color:'#a0aac0' }}>GST Added</div>
                 <div style={{ fontSize:10, color:'#384860' }}>GST number provided during registration</div>
               </div>
             ) : (
               <div style={{ position:'relative', paddingBottom:14 }}>
-                <div style={{ position:'absolute', left:-15, top:0, width:18, height:18, borderRadius:'50%', background:'rgba(12,15,26,0.9)', border:'2px solid rgba(255,255,255,0.06)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9 }}>📄</div>
+                <div style={{ position:'absolute', left:-15, top:0, width:18, height:18, borderRadius:'50%', background:'var(--card)', border:'2px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9 }}>📄</div>
                 <div style={{ fontSize:12, color:'#384860' }}>No document activity yet</div>
                 <div style={{ fontSize:10, color:'#384860' }}>Documents will appear here when uploaded</div>
               </div>
@@ -535,7 +535,7 @@ export default function SuperAdminGymOwners({ search: parentSearch }) {
     return (
       <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
         {/* Drawer header */}
-        <div style={{ padding:'16px 20px', borderBottom:'1px solid rgba(255,255,255,0.04)', display:'flex', alignItems:'center', gap:12 }}>
+        <div style={{ padding:'16px 20px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:12 }}>
           <button className="go-btn-secondary" onClick={() => setDrawerGym(null)} style={{ padding:6, lineHeight:0 }}>
             <ArrowLeft />
           </button>
@@ -548,7 +548,7 @@ export default function SuperAdminGymOwners({ search: parentSearch }) {
         {/* Sidebar tabs + content */}
         <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
           {/* Sidebar */}
-          <div style={{ width:140, flexShrink:0, padding:'12px 8px', borderRight:'1px solid rgba(255,255,255,0.04)', overflowY:'auto' }}>
+          <div style={{ width:140, flexShrink:0, padding:'12px 8px', borderRight:'1px solid var(--border)', overflowY:'auto' }}>
             {tabs.map(tab => (
               <button key={tab.id}
                 className={`go-drawer-tab ${drawerTab === tab.id ? 'active' : ''}`}
@@ -565,7 +565,7 @@ export default function SuperAdminGymOwners({ search: parentSearch }) {
 
             {/* ── OVERVIEW ── */}
             <div style={{ display: section('overview') }}>
-              <div style={{ display:'flex', gap:14, alignItems:'center', padding:'14px 16px', background:'rgba(255,255,255,0.02)', borderRadius:12, marginBottom:12 }}>
+              <div style={{ display:'flex', gap:14, alignItems:'center', padding:'14px 16px', background:'var(--bg3)', borderRadius:12, marginBottom:12 }}>
                 <div style={{
                   width:48, height:48, borderRadius:12, flexShrink:0,
                   background:'linear-gradient(135deg, #e8420a, #ff6a2a)',
@@ -709,7 +709,7 @@ export default function SuperAdminGymOwners({ search: parentSearch }) {
             {/* ── ACTIVITY ── */}
             <div style={{ display: section('activity') }}>
               <div style={{ position:'relative', paddingLeft:24 }}>
-                <div style={{ position:'absolute', left:7, top:4, bottom:0, width:2, background:'rgba(255,255,255,0.04)' }} />
+                <div style={{ position:'absolute', left:7, top:4, bottom:0, width:2, background:'var(--border)' }} />
                 {[
                   { icon:'🎉', title:'Gym Registered', desc:formatDate(g.createdAt) },
                   ...(g.approvalStatus === 'approved' || g.approvalStatus === 'pending'
@@ -724,7 +724,7 @@ export default function SuperAdminGymOwners({ search: parentSearch }) {
                   <div key={i} style={{ position:'relative', paddingBottom:16 }}>
                     <div style={{
                       position:'absolute', left:-17, top:0, width:20, height:20, borderRadius:'50%',
-                      background:'rgba(12,15,26,0.9)', border:'2px solid rgba(255,255,255,0.06)',
+                      background:'var(--card)', border:'2px solid var(--border)',
                       display:'flex', alignItems:'center', justifyContent:'center', fontSize:10,
                     }}>{item.icon}</div>
                     <div style={{ fontSize:13, fontWeight:600, color:'#a0aac0' }}>{item.title}</div>
@@ -942,11 +942,11 @@ export default function SuperAdminGymOwners({ search: parentSearch }) {
 
         {/* ── PAGINATION ── */}
         {totalPages > 1 && (
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 20px', borderTop:'1px solid rgba(255,255,255,0.04)', fontSize:12, color:'#384860' }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 20px', borderTop:'1px solid var(--border)', fontSize:12, color:'var(--text-dim)' }}>
             <span>{filtered.length} gyms total</span>
             <div style={{ display:'flex', gap:4, alignItems:'center' }}>
               <button disabled={safePage <= 1} onClick={() => setPage(safePage - 1)} style={{
-                padding:'5px 12px', borderRadius:6, border:'1px solid rgba(255,255,255,0.06)',
+                padding:'5px 12px', borderRadius:6, border:'1px solid var(--border)',
                 background:'transparent', cursor: safePage > 1 ? 'pointer' : 'default',
                 color: safePage > 1 ? '#a0aac0' : '#384860', fontSize:12, fontWeight:500,
               }}>← Prev</button>
@@ -966,7 +966,7 @@ export default function SuperAdminGymOwners({ search: parentSearch }) {
                 )
               })}
               <button disabled={safePage >= totalPages} onClick={() => setPage(safePage + 1)} style={{
-                padding:'5px 12px', borderRadius:6, border:'1px solid rgba(255,255,255,0.06)',
+                padding:'5px 12px', borderRadius:6, border:'1px solid var(--border)',
                 background:'transparent', cursor: safePage < totalPages ? 'pointer' : 'default',
                 color: safePage < totalPages ? '#a0aac0' : '#384860', fontSize:12, fontWeight:500,
               }}>Next →</button>
@@ -982,8 +982,8 @@ export default function SuperAdminGymOwners({ search: parentSearch }) {
           <div className="go-drawer" style={{
             position:'fixed', top:0, right:0, bottom:0, zIndex:100,
             width:520, maxWidth:'100vw',
-            background:'rgba(7,10,18,0.96)', backdropFilter:'blur(20px)',
-            borderLeft:'1px solid rgba(255,255,255,0.04)',
+            background:'var(--bg2)',
+            borderLeft:'1px solid var(--border)',
             boxShadow:'-8px 0 48px rgba(0,0,0,0.3)',
             animation:'go-slide-in 0.25s cubic-bezier(0.16,1,0.3,1)',
             display:'flex', flexDirection:'column',
@@ -996,7 +996,7 @@ export default function SuperAdminGymOwners({ search: parentSearch }) {
       {/* ── CONFIRM MODAL ── */}
       {confirmAction && (
         <div className="modal-overlay" onClick={() => setConfirmAction(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth:380, background:'rgba(12,15,26,0.96)', backdropFilter:'blur(20px)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:16 }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth:380, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:16 }}>
             <h3 style={{ marginBottom:8, fontSize:16, color:'#e4e8f0' }}>
               {confirmAction.type === 'approve' && 'Approve Gym'}
               {confirmAction.type === 'suspend' && 'Suspend Gym'}

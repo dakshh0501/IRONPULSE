@@ -37,6 +37,7 @@ export function subscribeToNotifications(userId, callback, gymId) {
     callback(list)
   }, (err) => {
     console.error('subscribeToNotifications error:', err)
+    callback([])
   })
 }
 

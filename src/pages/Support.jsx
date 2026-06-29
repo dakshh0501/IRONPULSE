@@ -7,65 +7,66 @@ sptStyles.textContent = `
   @keyframes spt-fade-up { 0% { opacity:0; transform:translateY(16px) } 100% { opacity:1; transform:translateY(0) } }
   @keyframes spt-shimmer { 0% { background-position:200% 0 } 100% { background-position:-200% 0 } }
   .spt-stat-card {
-    background:rgba(12,15,26,0.7); border:1px solid rgba(255,255,255,0.04); border-radius:18px;
-    padding:16px 20px; position:relative; overflow:hidden; transition:all 0.3s cubic-bezier(0.16,1,0.3,1); cursor:default;
+    background:var(--card); border:1px solid var(--border); border-radius:18px;
+    padding:16px 20px; position:relative; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.04);
+    transition:all 0.3s cubic-bezier(0.16,1,0.3,1); cursor:default;
   }
   .spt-stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:18px 18px 0 0; }
-  .spt-stat-card:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,0,0,0.2); border-color:rgba(232,66,10,0.15); }
+  .spt-stat-card:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,0,0,0.2); border-color:var(--accent-dim); }
   .spt-stat-card .spt-stat-icon { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
-  .spt-stat-card .spt-stat-label { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:#506080; margin-bottom:2px; font-weight:600; }
-  .spt-stat-card .spt-stat-value { font-family:'Barlow Condensed',sans-serif; font-size:22px; font-weight:700; color:#e4e8f0; line-height:1.1; }
+  .spt-stat-card .spt-stat-label { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); margin-bottom:2px; font-weight:600; }
+  .spt-stat-card .spt-stat-value { font-family:'Barlow Condensed',sans-serif; font-size:22px; font-weight:700; color:var(--text); line-height:1.1; }
   .spt-card {
-    background:rgba(12,15,26,0.7); border:1px solid rgba(255,255,255,0.04); border-radius:18px;
-    backdrop-filter:blur(12px); transition:all 0.3s cubic-bezier(0.16,1,0.3,1);
+    background:var(--card); border:1px solid var(--border); border-radius:18px;
+    box-shadow:0 1px 3px rgba(0,0,0,0.04); transition:all 0.3s cubic-bezier(0.16,1,0.3,1);
   }
-  .spt-card:hover { border-color:rgba(232,66,10,0.1); box-shadow:0 8px 32px rgba(0,0,0,0.15); }
+  .spt-card:hover { border-color:rgba(232,66,10,0.1); box-shadow:0 8px 32px rgba(0,0,0,0.08); }
   .spt-skeleton { background:linear-gradient(90deg,rgba(255,255,255,0.03) 25%,rgba(255,255,255,0.06) 50%,rgba(255,255,255,0.03) 75%); background-size:200% 100%; animation:spt-shimmer 1.5s infinite; border-radius:6px; }
   .spt-pill { display:inline-flex; align-items:center; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:600; white-space:nowrap; }
   .spt-pulse-dot { width:6px; height:6px; border-radius:50%; display:inline-block; margin-right:4px; }
   .spt-tab {
     padding:8px 18px; border-radius:10px; border:1px solid transparent; font-size:12px; font-weight:600; cursor:pointer;
-    transition:all 0.15s ease; background:transparent; color:#6070a0; white-space:nowrap;
+    transition:all 0.15s ease; background:transparent; color:var(--text-muted); white-space:nowrap;
   }
-  .spt-tab:hover { background:rgba(255,255,255,0.04); color:#a0aac0; }
-  .spt-tab.active { background:rgba(232,66,10,0.12); color:#e8420a; border-color:rgba(232,66,10,0.15); }
+  .spt-tab:hover { background:var(--surface); color:var(--text-muted); }
+  .spt-tab.active { background:rgba(232,66,10,0.12); color:#e8420a; border-color:var(--accent-dim); }
   .spt-tabs-scroll { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
   .spt-form-card {
-    background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04); border-radius:14px; padding:20px;
+    background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px;
     transition:all 0.2s ease;
   }
-  .spt-form-card:focus-within { border-color:rgba(232,66,10,0.15); }
+  .spt-form-card:focus-within { border-color:var(--accent-dim); }
   .spt-drawer-overlay {
-    position:fixed; inset:0; background:rgba(0,0,0,0.55);
+    position:fixed; inset:0; background:rgba(0,0,0,0.45);
     z-index:9998; opacity:0; pointer-events:none;
     transition:opacity 0.3s ease;
   }
   .spt-drawer-overlay.open { opacity:1; pointer-events:auto; }
   .spt-drawer {
     position:fixed; top:0; right:0; width:520px; max-width:100vw; height:100vh;
-    background:rgba(10,12,22,0.96); border-left:1px solid rgba(255,255,255,0.06);
+    background:var(--card); border-left:1px solid var(--border);
     z-index:9999; transform:translateX(100%);
     transition:transform 0.35s cubic-bezier(0.16,1,0.3,1);
     display:flex; flex-direction:column;
-    backdrop-filter:blur(24px); box-shadow:-8px 0 40px rgba(0,0,0,0.3);
+    backdrop-filter:blur(24px); box-shadow:-8px 0 40px rgba(0,0,0,0.15);
   }
   .spt-drawer.open { transform:translateX(0); }
   .spt-drawer-header {
     display:flex; align-items:flex-start; padding:18px 20px;
-    border-bottom:1px solid rgba(255,255,255,0.04); gap:12px;
+    border-bottom:1px solid var(--border); gap:12px;
   }
   .spt-drawer-body { display:flex; flex:1; overflow:hidden; }
   .spt-drawer-sidebar {
-    width:140px; border-right:1px solid rgba(255,255,255,0.04);
+    width:140px; border-right:1px solid var(--border);
     padding:8px 0; flex-shrink:0;
   }
   .spt-drawer-content { flex:1; padding:20px; overflow-y:auto; }
   .spt-drawer-nav-item {
     display:flex; align-items:center; gap:8px; padding:10px 16px;
     font-size:12px; font-weight:600; cursor:pointer;
-    color:#6070a0; transition:all 0.15s; border:none; background:none; width:100%; text-align:left;
+    color:var(--text-muted); transition:all 0.15s; border:none; background:none; width:100%; text-align:left;
   }
-  .spt-drawer-nav-item:hover { background:rgba(255,255,255,0.04); color:#a0aac0; }
+  .spt-drawer-nav-item:hover { background:var(--surface); color:var(--text-muted); }
   .spt-drawer-nav-item.active { background:rgba(232,66,10,0.10); color:#e8420a; }
   .spt-timeline { position:relative; padding-left:20px; }
   .spt-timeline::before {
@@ -76,39 +77,39 @@ sptStyles.textContent = `
   .spt-timeline-item:last-child { padding-bottom:0; }
   .spt-timeline-dot {
     position:absolute; left:-16px; top:3px; width:12px; height:12px;
-    border-radius:50%; border:2px solid; background:rgba(10,12,22,0.96);
+    border-radius:50%; border:2px solid; background:var(--card);
   }
-  .spt-timeline-title { font-size:13px; font-weight:600; color:#e4e8f0; margin-bottom:2px; }
-  .spt-timeline-sub { font-size:11px; color:#506080; }
+  .spt-timeline-title { font-size:13px; font-weight:600; color:var(--text); margin-bottom:2px; }
+  .spt-timeline-sub { font-size:11px; color:var(--text-muted); }
   .spt-kb-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px; }
   .spt-kb-card {
-    background:rgba(12,15,26,0.7); border:1px solid rgba(255,255,255,0.04);
+    background:var(--card); border:1px solid var(--border);
     border-radius:16px; padding:20px; transition:all 0.3s cubic-bezier(0.16,1,0.3,1);
     cursor:default; text-align:center;
   }
-  .spt-kb-card:hover { transform:translateY(-2px); border-color:rgba(232,66,10,0.12); box-shadow:0 8px 32px rgba(0,0,0,0.15); }
+  .spt-kb-card:hover { transform:translateY(-2px); border-color:var(--accent-dim); box-shadow:0 8px 32px rgba(0,0,0,0.08); }
   .spt-kb-icon { font-size:32px; margin-bottom:8px; display:block; }
-  .spt-kb-title { font-size:14px; font-weight:700; color:#e4e8f0; margin-bottom:2px; }
-  .spt-kb-sub { font-size:11px; color:#506080; margin-bottom:10px; }
+  .spt-kb-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:2px; }
+  .spt-kb-sub { font-size:11px; color:var(--text-muted); margin-bottom:10px; }
   .spt-kb-badge {
     display:inline-block; padding:2px 10px; border-radius:20px; font-size:9px;
     font-weight:700; text-transform:uppercase; letter-spacing:0.05em;
     background:rgba(232,66,10,0.10); color:#e8420a;
   }
   .spt-empty-state {
-    text-align:center; padding:32px 20px; color:#6070a0;
+    text-align:center; padding:32px 20px; color:var(--text-muted);
   }
   .spt-empty-state .spt-empty-icon { font-size:36px; margin-bottom:8px; opacity:0.4; display:block; }
-  .spt-empty-state .spt-empty-text { font-size:13px; font-weight:600; color:#a0aac0; margin:0 0 4px; }
-  .spt-empty-state .spt-empty-hint { font-size:11px; color:#506080; margin:0; }
+  .spt-empty-state .spt-empty-text { font-size:13px; font-weight:600; color:var(--text-muted); margin:0 0 4px; }
+  .spt-empty-state .spt-empty-hint { font-size:11px; color:var(--text-muted); margin:0; }
   .spt-drop-hint {
-    border:2px dashed rgba(255,255,255,0.08); border-radius:12px;
+    border:2px dashed var(--card-border); border-radius:12px;
     padding:28px 20px; text-align:center; margin-top:8px;
     transition:border-color 0.2s; cursor:pointer;
   }
   .spt-drop-hint:hover { border-color:rgba(232,66,10,0.2); }
   .spt-drop-hint .spt-drop-icon { font-size:28px; display:block; margin-bottom:6px; }
-  .spt-drop-hint .spt-drop-text { font-size:11px; color:#6070a0; margin:0; }
+  .spt-drop-hint .spt-drop-text { font-size:11px; color:var(--text-muted); margin:0; }
   @media (max-width:768px) {
     .spt-stat-card { padding:12px 16px; }
     .spt-stat-card .spt-stat-value { font-size:18px; }
@@ -176,13 +177,13 @@ function StatCard({ label, value, icon, color, delay = 0 }) {
 
 function StatusBadge({ status }) {
   const colors = { Open: '#f59e0b', 'In Progress': '#00c8b4', Closed: '#ef4444', Resolved: '#22c55e', 'Under Review': '#a855f7', Received: '#3b82f6' }
-  const color = colors[status] || '#6070a0'
+  const color = colors[status] || 'var(--text-muted)'
   return <span className="spt-pill" style={{ background: `${color}14`, color }}><span className="spt-pulse-dot" style={{ background: color }} />{status || '—'}</span>
 }
 
 function PriorityBadge({ priority }) {
-  const colors = { urgent: '#ef4444', high: '#f59e0b', normal: '#3b82f6', low: '#6070a0' }
-  const color = colors[priority?.toLowerCase()] || '#6070a0'
+  const colors = { urgent: '#ef4444', high: '#f59e0b', normal: '#3b82f6', low: 'var(--text-muted)' }
+  const color = colors[priority?.toLowerCase()] || 'var(--text-muted)'
   return <span className="spt-pill" style={{ background: `${color}14`, color }}>{priority || 'Normal'}</span>
 }
 
@@ -213,16 +214,16 @@ function TicketDrawer({ ticket, open, onClose, drawerTab, setDrawerTab, replyTex
       <div className={`spt-drawer${open ? ' open' : ''}`}>
         <div className="spt-drawer-header">
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {ticket?.subject || 'Ticket Details'}
             </div>
-            <div style={{ fontSize: 11, color: '#506080', display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', gap: 8, alignItems: 'center' }}>
               <span>#{ticket?.id?.slice(0, 8) || '—'}</span>
-              <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#384860' }} />
+              <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--text-dim)' }} />
               <StatusBadge status={ticket?.status || 'Open'} />
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#6070a0', cursor: 'pointer', fontSize: 14, flexShrink: 0 }}>✕</button>
+          <button onClick={onClose} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--border)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 14, flexShrink: 0 }}>✕</button>
         </div>
 
         <div className="spt-drawer-body">
@@ -238,18 +239,18 @@ function TicketDrawer({ ticket, open, onClose, drawerTab, setDrawerTab, replyTex
             {drawerTab === 'conversation' && (
               <div>
                 <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 11, color: '#506080', fontWeight: 600, marginBottom: 4 }}>SUBJECT</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#e4e8f0', marginBottom: 8 }}>{ticket?.subject || '—'}</div>
-                  <div style={{ fontSize: 11, color: '#506080', fontWeight: 600, marginBottom: 4 }}>DESCRIPTION</div>
-                  <div style={{ fontSize: 13, color: '#a0aac0', lineHeight: 1.6 }}>{ticket?.description || '—'}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 4 }}>SUBJECT</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>{ticket?.subject || '—'}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 4 }}>DESCRIPTION</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>{ticket?.description || '—'}</div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-                  <div><span style={{ fontSize: 10, color: '#506080', fontWeight: 600, marginRight: 6 }}>CATEGORY:</span><StatusBadge status={ticket?.category || '—'} /></div>
-                  <div><span style={{ fontSize: 10, color: '#506080', fontWeight: 600, marginRight: 6 }}>PRIORITY:</span><PriorityBadge priority={ticket?.priority} /></div>
-                  <div><span style={{ fontSize: 10, color: '#506080', fontWeight: 600, marginRight: 6 }}>STATUS:</span><StatusBadge status={ticket?.status || 'Open'} /></div>
+                  <div><span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, marginRight: 6 }}>CATEGORY:</span><StatusBadge status={ticket?.category || '—'} /></div>
+                  <div><span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, marginRight: 6 }}>PRIORITY:</span><PriorityBadge priority={ticket?.priority} /></div>
+                  <div><span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, marginRight: 6 }}>STATUS:</span><StatusBadge status={ticket?.status || 'Open'} /></div>
                 </div>
-                <div style={{ height: 1, background: 'rgba(255,255,255,0.04)', margin: '0 0 16px' }} />
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#e4e8f0', marginBottom: 10 }}>Reply</div>
+                <div style={{ height: 1, background: 'var(--border)', margin: '0 0 16px' }} />
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 10 }}>Reply</div>
                 <textarea className="form-textarea" rows={4} value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Type your reply here..." style={{ borderRadius: 10, fontSize: 13, marginBottom: 10, resize: 'vertical' }} />
                 <button className="btn btn-primary" style={{ borderRadius: 10, fontSize: 12, padding: '8px 18px' }} onClick={() => {}}>Send Reply</button>
               </div>
@@ -257,12 +258,12 @@ function TicketDrawer({ ticket, open, onClose, drawerTab, setDrawerTab, replyTex
 
             {drawerTab === 'timeline' && (
               <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#e4e8f0', marginBottom: 16 }}>Status Timeline</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 16 }}>Status Timeline</div>
                 <div className="spt-timeline">
                   {timelineEvents.map((ev, i) => (
                     <div key={i} className="spt-timeline-item">
-                      <div className="spt-timeline-dot" style={{ borderColor: ev.done ? ev.color : '#384860' }} />
-                      <div className="spt-timeline-title" style={{ color: ev.done ? ev.color : '#6070a0' }}>{ev.title}</div>
+                      <div className="spt-timeline-dot" style={{ borderColor: ev.done ? ev.color : 'var(--text-dim)' }} />
+                      <div className="spt-timeline-title" style={{ color: ev.done ? ev.color : 'var(--text-muted)' }}>{ev.title}</div>
                       <div className="spt-timeline-sub">{ev.date}</div>
                     </div>
                   ))}
@@ -277,7 +278,7 @@ function TicketDrawer({ ticket, open, onClose, drawerTab, setDrawerTab, replyTex
                   <p className="spt-empty-text">No internal notes yet</p>
                   <p className="spt-empty-hint">Internal notes are only visible to staff members.</p>
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#e4e8f0', marginBottom: 8 }}>Add Internal Note</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>Add Internal Note</div>
                 <textarea className="form-textarea" rows={4} value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add an internal note..." style={{ borderRadius: 10, fontSize: 13, marginBottom: 10, resize: 'vertical' }} />
                 <button className="btn btn-primary" style={{ borderRadius: 10, fontSize: 12, padding: '8px 18px', opacity: 0.6 }} disabled>Save Note</button>
               </div>
@@ -293,7 +294,7 @@ function TicketDrawer({ ticket, open, onClose, drawerTab, setDrawerTab, replyTex
                 <div className="spt-drop-hint">
                   <span className="spt-drop-icon">📂</span>
                   <p className="spt-drop-text">Drop files here or click to browse</p>
-                  <p style={{ fontSize: 10, color: '#384860', margin: '4px 0 0' }}>Max file size: 10MB</p>
+                  <p style={{ fontSize: 10, color: 'var(--text-dim)', margin: '4px 0 0' }}>Max file size: 10MB</p>
                 </div>
               </div>
             )}
@@ -418,8 +419,8 @@ export default function Support() {
     <div className="page-container">
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4, color: '#e4e8f0' }}>Support Center</h2>
-          <p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Tickets, bug reports, feature requests, and feedback.</p>
+          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4, color: 'var(--text)' }}>Support Center</h2>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Tickets, bug reports, feature requests, and feedback.</p>
         </div>
       </div>
 
@@ -452,7 +453,7 @@ export default function Support() {
       {activeTab === 'tickets' && (
         <div>
           <div className="spt-card" style={{ padding: 20, marginBottom: 16 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 16 }}>📝</span> Raise a Ticket
             </h3>
             <div className="spt-form-card">
@@ -480,11 +481,11 @@ export default function Support() {
 
           {visibleTickets.length > 0 && (
             <div className="spt-card" style={{ padding: 0, overflow: 'hidden' }}>
-              <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0' }}>Ticket History</span>
+              <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Ticket History</span>
                 <div style={{ flex: 1 }} />
                 <div style={{ position: 'relative', width: 200 }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="2" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="2" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
                     <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                   </svg>
                   <input className="form-input" style={{ paddingLeft: 28, height: 32, fontSize: 12, borderRadius: 8, maxWidth: 200 }} placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
@@ -498,14 +499,14 @@ export default function Support() {
                   <thead><tr><th>Subject</th><th>Category</th><th>Status</th><th>Priority</th><th>Date</th></tr></thead>
                   <tbody>
                     {filteredTickets.length === 0 ? (
-                      <tr><td colSpan={5} style={{ textAlign: 'center', padding: 32, color: '#6070a0' }}>No matching tickets</td></tr>
+                      <tr><td colSpan={5} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>No matching tickets</td></tr>
                     ) : filteredTickets.map(t => (
                       <tr key={t.id} onClick={() => openDrawer(t)} style={{ cursor: 'pointer' }}>
-                        <td style={{ fontWeight: 600, color: '#e4e8f0' }}>{t.subject || '—'}</td>
-                        <td style={{ color: '#6070a0' }}>{t.category || '—'}</td>
+                        <td style={{ fontWeight: 600, color: 'var(--text)' }}>{t.subject || '—'}</td>
+                        <td style={{ color: 'var(--text-muted)' }}>{t.category || '—'}</td>
                         <td><StatusBadge status={t.status || 'Open'} /></td>
                         <td><PriorityBadge priority={t.priority} /></td>
-                        <td style={{ color: '#6070a0', fontSize: 12, whiteSpace: 'nowrap' }}>{t.createdAt?.seconds ? new Date(t.createdAt.seconds * 1000).toLocaleDateString() : '—'}</td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: 12, whiteSpace: 'nowrap' }}>{t.createdAt?.seconds ? new Date(t.createdAt.seconds * 1000).toLocaleDateString() : '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -517,8 +518,8 @@ export default function Support() {
           {visibleTickets.length === 0 && (
             <div className="spt-card" style={{ padding: '40px 24px', textAlign: 'center' }}>
               <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.5 }}>🎫</div>
-              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#e4e8f0', marginBottom: 6 }}>No Tickets Yet</h3>
-              <p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Submitted tickets will appear here once created.</p>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>No Tickets Yet</h3>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Submitted tickets will appear here once created.</p>
             </div>
           )}
         </div>
@@ -526,7 +527,7 @@ export default function Support() {
 
       {activeTab === 'bugs' && (
         <div className="spt-card" style={{ padding: 20 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 16 }}>🐛</span> Report a Bug
           </h3>
           <div className="spt-form-card">
@@ -560,7 +561,7 @@ export default function Support() {
       {activeTab === 'features' && (
         <div>
           <div className="spt-card" style={{ padding: 20, marginBottom: 16 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 16 }}>💡</span> Submit a Feature Request
             </h3>
             <div className="spt-form-card">
@@ -580,8 +581,8 @@ export default function Support() {
 
           {featureRequests.filter(f => f.type !== 'feedback').length > 0 && (
             <div className="spt-card" style={{ padding: 0, overflow: 'hidden' }}>
-              <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0' }}>Previous Requests ({featureRequests.filter(f => f.type !== 'feedback').length})</span>
+              <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Previous Requests ({featureRequests.filter(f => f.type !== 'feedback').length})</span>
               </div>
               <div style={{ overflowX: 'auto' }}>
                 <table className="data-table">
@@ -589,9 +590,9 @@ export default function Support() {
                   <tbody>
                     {[...featureRequests].filter(f => f.type !== 'feedback').reverse().map(f => (
                       <tr key={f.id}>
-                        <td style={{ fontWeight: 600, color: '#e4e8f0' }}>{f.title || '—'}</td>
+                        <td style={{ fontWeight: 600, color: 'var(--text)' }}>{f.title || '—'}</td>
                         <td><StatusBadge status={f.status || 'Under Review'} /></td>
-                        <td style={{ color: '#6070a0', fontSize: 12, whiteSpace: 'nowrap' }}>{f.createdAt?.seconds ? new Date(f.createdAt.seconds * 1000).toLocaleDateString() : '—'}</td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: 12, whiteSpace: 'nowrap' }}>{f.createdAt?.seconds ? new Date(f.createdAt.seconds * 1000).toLocaleDateString() : '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -605,10 +606,10 @@ export default function Support() {
       {activeTab === 'feedback' && (
         <div>
           <div className="spt-card" style={{ padding: 20, marginBottom: 16 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 16 }}>💬</span> Send Feedback
             </h3>
-            <p style={{ fontSize: 12, color: '#6070a0', marginBottom: 16 }}>We'd love to hear your thoughts about IRONPULSE. Your feedback helps us improve.</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>We'd love to hear your thoughts about IRONPULSE. Your feedback helps us improve.</p>
             <div className="spt-form-card">
               <div style={{ marginBottom: 14 }}>
                 <label className="form-label">Subject</label>
@@ -626,8 +627,8 @@ export default function Support() {
 
           {featureRequests.filter(f => f.type === 'feedback').length > 0 && (
             <div className="spt-card" style={{ padding: 0, overflow: 'hidden' }}>
-              <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0' }}>Previous Feedback ({featureRequests.filter(f => f.type === 'feedback').length})</span>
+              <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Previous Feedback ({featureRequests.filter(f => f.type === 'feedback').length})</span>
               </div>
               <div style={{ overflowX: 'auto' }}>
                 <table className="data-table">
@@ -635,9 +636,9 @@ export default function Support() {
                   <tbody>
                     {[...featureRequests].filter(f => f.type === 'feedback').reverse().map(f => (
                       <tr key={f.id}>
-                        <td style={{ fontWeight: 600, color: '#e4e8f0' }}>{f.title || '—'}</td>
+                        <td style={{ fontWeight: 600, color: 'var(--text)' }}>{f.title || '—'}</td>
                         <td><StatusBadge status={f.status || 'Received'} /></td>
-                        <td style={{ color: '#6070a0', fontSize: 12, whiteSpace: 'nowrap' }}>{f.createdAt?.seconds ? new Date(f.createdAt.seconds * 1000).toLocaleDateString() : '—'}</td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: 12, whiteSpace: 'nowrap' }}>{f.createdAt?.seconds ? new Date(f.createdAt.seconds * 1000).toLocaleDateString() : '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -650,7 +651,7 @@ export default function Support() {
 
       {activeTab === 'knowledge-base' && (
         <div className="spt-card" style={{ padding: 24 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 16 }}>📚</span> Knowledge Base
           </h3>
           <div className="spt-kb-grid">
@@ -669,8 +670,8 @@ export default function Support() {
       {activeTab === 'announcements' && (
         <div className="spt-card" style={{ padding: '48px 24px', textAlign: 'center' }}>
           <div style={{ fontSize: 44, marginBottom: 12, opacity: 0.4 }}>📢</div>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#e4e8f0', marginBottom: 6 }}>No Announcements</h3>
-          <p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Platform announcements and updates will appear here.</p>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>No Announcements</h3>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Platform announcements and updates will appear here.</p>
         </div>
       )}
 

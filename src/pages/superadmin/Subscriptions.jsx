@@ -59,14 +59,15 @@ subStyles.textContent = `
     100% { transform: scale(4); opacity: 0; }
   }
   .sub-stat-card {
-    background: rgba(12,15,26,0.7);
-    border: 1px solid rgba(255,255,255,0.04);
+    background: var(--card);
+    border: 1px solid var(--card-border);
     border-radius: 18px;
     padding: 20px 24px;
     position: relative;
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
     cursor: default;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
   .sub-stat-card::before {
     content: '';
@@ -79,8 +80,8 @@ subStyles.textContent = `
   }
   .sub-stat-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-    border-color: rgba(232,66,10,0.15);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    border-color: var(--accent-dim);
   }
   .sub-stat-card .sub-stat-icon {
     width: 42px;
@@ -96,7 +97,7 @@ subStyles.textContent = `
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #506080;
+    color: var(--text-muted);
     margin-bottom: 2px;
     font-weight: 600;
   }
@@ -104,18 +105,18 @@ subStyles.textContent = `
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 26px;
     font-weight: 700;
-    color: #e4e8f0;
+    color: var(--text);
     line-height: 1.1;
   }
   .sub-card {
-    background: rgba(12,15,26,0.7);
-    border: 1px solid rgba(255,255,255,0.04);
+    background: var(--card);
+    border: 1px solid var(--card-border);
     border-radius: 18px;
-    backdrop-filter: blur(12px);
     transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
   .sub-card:hover {
-    border-color: rgba(232,66,10,0.1);
+    border-color: var(--accent-dim);
     box-shadow: 0 8px 32px rgba(0,0,0,0.15);
   }
   .sub-btn-primary {
@@ -140,8 +141,8 @@ subStyles.textContent = `
   .sub-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
   .sub-btn-secondary {
     background: transparent;
-    border: 1px solid rgba(255,255,255,0.06);
-    color: #a0aac0;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
     padding: 8px 16px;
     border-radius: 10px;
     font-size: 13px;
@@ -151,15 +152,15 @@ subStyles.textContent = `
     white-space: nowrap;
   }
   .sub-btn-secondary:hover {
-    background: rgba(255,255,255,0.04);
-    border-color: rgba(255,255,255,0.1);
-    color: #e4e8f0;
+    background: var(--hover);
+    border-color: var(--border);
+    color: var(--text);
   }
   .sub-btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
   .sub-input {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.06);
-    color: #e4e8f0;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--text);
     padding: 8px 12px;
     border-radius: 10px;
     font-size: 13px;
@@ -171,11 +172,11 @@ subStyles.textContent = `
     border-color: rgba(232,66,10,0.4);
     box-shadow: 0 0 0 3px rgba(232,66,10,0.1);
   }
-  .sub-input::placeholder { color: #384860; }
+  .sub-input::placeholder { color: var(--text-dim); }
   .sub-select {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.06);
-    color: #a0aac0;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--text);
     padding: 8px 32px 8px 12px;
     border-radius: 10px;
     font-size: 13px;
@@ -191,7 +192,7 @@ subStyles.textContent = `
   .sub-select:focus {
     border-color: rgba(232,66,10,0.4);
     box-shadow: 0 0 0 3px rgba(232,66,10,0.1);
-    color: #e4e8f0;
+    color: var(--text);
   }
   .sub-table {
     width: 100%;
@@ -204,19 +205,19 @@ subStyles.textContent = `
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #506080;
+    color: var(--text-muted);
     font-weight: 700;
-    background: rgba(7,10,18,0.5);
+    background: #fafafa;
     position: sticky;
     top: 0;
     z-index: 2;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid var(--border);
   }
   .sub-table td {
     padding: 14px 16px;
     font-size: 13px;
-    color: #a0aac0;
-    border-bottom: 1px solid rgba(255,255,255,0.02);
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-light);
   }
   .sub-table tbody tr {
     transition: all 0.15s ease;
@@ -226,10 +227,10 @@ subStyles.textContent = `
     background: rgba(232,66,10,0.03);
   }
   .sub-table tbody tr:nth-child(even) {
-    background: rgba(255,255,255,0.01);
+    background: var(--hover);
   }
   .sub-table tbody tr:nth-child(even):hover {
-    background: rgba(232,66,10,0.04);
+    background: #f5f6f8;
   }
   .sub-pill {
     display: inline-flex;
@@ -241,7 +242,7 @@ subStyles.textContent = `
     white-space: nowrap;
   }
   .sub-skeleton {
-    background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%);
+    background: var(--skeleton);
     background-size: 200% 100%;
     animation: sub-shimmer 1.5s infinite;
     border-radius: 6px;
@@ -254,10 +255,10 @@ subStyles.textContent = `
     z-index: 100;
     width: 520px;
     max-width: 100vw;
-    background: rgba(7,10,18,0.96);
+    background: var(--card);
     backdrop-filter: blur(20px);
-    border-left: 1px solid rgba(255,255,255,0.04);
-    box-shadow: -8px 0 48px rgba(0,0,0,0.3);
+    border-left: 1px solid var(--card-border);
+    box-shadow: -8px 0 48px rgba(0,0,0,0.15);
     animation: sub-slide-in 0.25s cubic-bezier(0.16,1,0.3,1);
     display: flex;
     flex-direction: column;
@@ -270,7 +271,7 @@ subStyles.textContent = `
     padding: 10px 14px;
     border: none;
     background: transparent;
-    color: #6070a0;
+    color: var(--text-muted);
     font-size: 12px;
     font-weight: 500;
     border-radius: 10px;
@@ -278,7 +279,7 @@ subStyles.textContent = `
     transition: all 0.15s ease;
     text-align: left;
   }
-  .sub-drawer-tab:hover { background: rgba(255,255,255,0.04); color: #a0aac0; }
+  .sub-drawer-tab:hover { background: var(--hover); color: var(--text); }
   .sub-drawer-tab.active {
     background: rgba(232,66,10,0.12);
     color: #e8420a;
@@ -303,7 +304,7 @@ subStyles.textContent = `
     top: 4px;
     bottom: 4px;
     width: 2px;
-    background: rgba(255,255,255,0.04);
+    background: var(--border);
   }
   .sub-timeline-item {
     position: relative;
@@ -697,8 +698,8 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4, color: '#e4e8f0' }}>Subscription Center</h2>
-          <p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Manage plans, billing and lifecycle for every gym.</p>
+          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4, color: 'var(--text)' }}>Subscription Center</h2>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Manage plans, billing and lifecycle for every gym.</p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="sub-btn-secondary" onClick={exportCSV}>
@@ -735,7 +736,7 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
             </svg>
             <input className="sub-input" style={{ paddingLeft: 34 }} placeholder="Search by gym, plan or ID..." value={localSearch} onChange={e => { setLocalSearch(e.target.value); setPage(1) }} />
             {localSearch && (
-              <button onClick={() => setLocalSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#384860', cursor: 'pointer', padding: 4 }}>
+              <button onClick={() => setLocalSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: 4 }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             )}
@@ -790,8 +791,8 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.5 }}>
                       <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
                     </svg>
-                    <p style={{ fontSize: 14, color: '#6070a0', margin: '0 0 4px' }}>No subscriptions found</p>
-                    <p style={{ fontSize: 12, color: '#384860', margin: 0 }}>{hasFilters ? 'Try adjusting your filters' : 'No gym subscriptions exist yet'}</p>
+                    <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: '0 0 4px' }}>No subscriptions found</p>
+                    <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: 0 }}>{hasFilters ? 'Try adjusting your filters' : 'No gym subscriptions exist yet'}</p>
                   </td>
                 </tr>
               ) : paginated.map((s, i) => {
@@ -800,24 +801,24 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
                 const daysRemaining = endDate ? Math.ceil((endDate.getTime() - Date.now()) / 86400000) : null
                 return (
                   <tr key={s.id} onClick={() => { setSelectedSub(s); setDrawerTab('overview') }}>
-                    <td style={{ fontWeight: 600, color: '#e4e8f0' }}>{gym?.gymName || s.gymId || '—'}</td>
+                    <td style={{ fontWeight: 600, color: 'var(--text)' }}>{gym?.gymName || s.gymId || '—'}</td>
                     <td><Pill color={PLAN_COLORS[s.plan] || '#6070a0'}>{s.plan || '—'}</Pill></td>
                     <td><StatusBadge status={s.status || s.paymentStatus || 'pending'} /></td>
-                    <td style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 700, color: '#e4e8f0' }}>
+                    <td style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
                       {formatCurrency(s.amount)}
                     </td>
                     <td style={{ fontSize: 12 }}>
                       {daysRemaining !== null ? (
-                        <span style={{ color: daysRemaining <= 7 ? '#f59e0b' : daysRemaining <= 0 ? '#ef4444' : '#6070a0' }}>
+                        <span style={{ color: daysRemaining <= 7 ? '#f59e0b' : daysRemaining <= 0 ? '#ef4444' : 'var(--text-muted)' }}>
                           {daysRemaining <= 0 ? 'Overdue' : `${daysRemaining}d`}
                         </span>
                       ) : '—'}
-                      <span style={{ color: '#384860', marginLeft: 4, fontSize: 11 }}>{formatDate(s.endDate)}</span>
+                      <span style={{ color: 'var(--text-dim)', marginLeft: 4, fontSize: 11 }}>{formatDate(s.endDate)}</span>
                     </td>
                     <td>
                       <span className="sub-pill" style={{
-                        background: `${(s.paymentStatus === 'paid' ? '#22c55e' : s.paymentStatus === 'pending' ? '#f59e0b' : s.paymentStatus === 'failed' ? '#ef4444' : '#384860')}14`,
-                        color: s.paymentStatus === 'paid' ? '#22c55e' : s.paymentStatus === 'pending' ? '#f59e0b' : s.paymentStatus === 'failed' ? '#ef4444' : '#6070a0',
+                        background: `${(s.paymentStatus === 'paid' ? '#22c55e' : s.paymentStatus === 'pending' ? '#f59e0b' : s.paymentStatus === 'failed' ? '#ef4444' : 'var(--text-dim)')}14`,
+                        color: s.paymentStatus === 'paid' ? '#22c55e' : s.paymentStatus === 'pending' ? '#f59e0b' : s.paymentStatus === 'failed' ? '#ef4444' : 'var(--text-muted)',
                         fontSize: 10,
                       }}>
                         {s.paymentStatus || '—'}
@@ -846,11 +847,11 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
           </table>
         </div>
         {totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-            <span style={{ fontSize: 12, color: '#6070a0' }}>{filtered.length} subscriptions total</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: '1px solid var(--border)' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{filtered.length} subscriptions total</span>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
               <button disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}
-                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)', background: 'transparent', color: safePage <= 1 ? '#384860' : '#a0aac0', cursor: safePage <= 1 ? 'not-allowed' : 'pointer', fontSize: 12, transition: 'all 0.15s ease' }}>
+                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: safePage <= 1 ? 'var(--text-dim)' : 'var(--text-muted)', cursor: safePage <= 1 ? 'not-allowed' : 'pointer', fontSize: 12, transition: 'all 0.15s ease' }}>
                 ← Prev
               </button>
               {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
@@ -869,7 +870,7 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
                     style={{
                       width: 32, height: 32, borderRadius: 8, border: 'none',
                       background: p === safePage ? 'linear-gradient(135deg,#e8420a,#ff5520)' : 'transparent',
-                      color: p === safePage ? '#fff' : '#6070a0',
+                      color: p === safePage ? '#fff' : 'var(--text-muted)',
                       cursor: 'pointer', fontSize: 12, fontWeight: p === safePage ? 700 : 500,
                       transition: 'all 0.15s ease',
                     }}>
@@ -878,7 +879,7 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
                 )
               })}
               <button disabled={safePage >= totalPages} onClick={() => setPage(safePage + 1)}
-                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)', background: 'transparent', color: safePage >= totalPages ? '#384860' : '#a0aac0', cursor: safePage >= totalPages ? 'not-allowed' : 'pointer', fontSize: 12, transition: 'all 0.15s ease' }}>
+                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: safePage >= totalPages ? 'var(--text-dim)' : 'var(--text-muted)', cursor: safePage >= totalPages ? 'not-allowed' : 'pointer', fontSize: 12, transition: 'all 0.15s ease' }}>
                 Next →
               </button>
             </div>
@@ -890,21 +891,21 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 99, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => setSelectedSub(null)} />
           <div className="sub-drawer" ref={drawerRef}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <button className="sub-btn-secondary" style={{ padding: '6px 10px', fontSize: 11 }} onClick={() => setSelectedSub(null)}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
                 </button>
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#e4e8f0' }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
                     {gyms.find(g => g.id === selectedSub.gymId || g.gymId === selectedSub.gymId)?.gymName || selectedSub.gymId || 'Unknown Gym'}
                   </div>
-                  <div style={{ fontSize: 11, color: '#384860' }}>ID: {selectedSub.id ? selectedSub.id.substring(0, 12) + '...' : '—'}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>ID: {selectedSub.id ? selectedSub.id.substring(0, 12) + '...' : '—'}</div>
                 </div>
               </div>
             </div>
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-              <div style={{ width: 130, flexShrink: 0, padding: '12px 8px', borderRight: '1px solid rgba(255,255,255,0.04)', overflowY: 'auto' }}>
+              <div style={{ width: 130, flexShrink: 0, padding: '12px 8px', borderRight: '1px solid var(--border)', overflowY: 'auto' }}>
                 {drawerTabs.map(tab => (
                   <button key={tab.id} className={`sub-drawer-tab ${drawerTab === tab.id ? 'active' : ''}`} onClick={() => setDrawerTab(tab.id)}>
                     <span style={{ fontSize: 14 }}>{tab.icon}</span> {tab.label}
@@ -914,7 +915,7 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
               <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {/* Overview */}
                 <div style={{ display: section('overview') }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', margin: '0 0 16px' }}>Plan Overview</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 16px' }}>Plan Overview</h3>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                     {[
                       ['📋', 'Current Plan', selectedSub.plan || '—'],
@@ -937,11 +938,11 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
                         return String(gym?.subscription?.deviceLimit || '—')
                       })()],
                     ].map(([icon, label, value]) => (
-                      <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, fontSize: 13 }}>
+                      <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg3)', borderRadius: 10, fontSize: 13 }}>
                         <span style={{ fontSize: 14, width: 20, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 10, color: '#384860', marginBottom: 1 }}>{label}</div>
-                          <div style={{ fontWeight: 600, color: '#a0aac0' }}>{value}</div>
+                          <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 1 }}>{label}</div>
+                          <div style={{ fontWeight: 600, color: 'var(--text-muted)' }}>{value}</div>
                         </div>
                       </div>
                     ))}
@@ -950,43 +951,43 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
 
                 {/* Billing */}
                 <div style={{ display: section('billing') }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', margin: '0 0 16px' }}>Billing Details</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 16px' }}>Billing Details</h3>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                     <div style={{ padding: '14px', background: 'rgba(34,197,94,0.06)', borderRadius: 12, border: '1px solid rgba(34,197,94,0.1)' }}>
-                      <div style={{ fontSize: 10, color: '#384860', marginBottom: 2 }}>Revenue</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 2 }}>Revenue</div>
                       <div style={{ fontSize: 20, fontWeight: 700, color: '#22c55e', fontFamily: "'Barlow Condensed', sans-serif" }}>
                         {formatCurrency(selectedSub.amount)}
                       </div>
                     </div>
                     <div style={{ padding: '14px', background: 'rgba(59,130,246,0.06)', borderRadius: 12, border: '1px solid rgba(59,130,246,0.1)' }}>
-                      <div style={{ fontSize: 10, color: '#384860', marginBottom: 2 }}>Payment Status</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 2 }}>Payment Status</div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: '#60a5fa', marginTop: 4 }}>
                         <StatusBadge status={selectedSub.paymentStatus || 'unknown'} />
                       </div>
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 8 }}>
-                    <div style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 10 }}>
-                      <div style={{ fontSize: 10, color: '#384860' }}>Invoices</div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: '#a0aac0', fontFamily: "'Barlow Condensed', sans-serif" }}>—</div>
+                    <div style={{ padding: '10px 12px', background: 'var(--bg3)', borderRadius: 10 }}>
+                      <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>Invoices</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-muted)', fontFamily: "'Barlow Condensed', sans-serif" }}>—</div>
                     </div>
-                    <div style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 10 }}>
-                      <div style={{ fontSize: 10, color: '#384860' }}>Discounts</div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: '#a0aac0', fontFamily: "'Barlow Condensed', sans-serif" }}>—</div>
+                    <div style={{ padding: '10px 12px', background: 'var(--bg3)', borderRadius: 10 }}>
+                      <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>Discounts</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-muted)', fontFamily: "'Barlow Condensed', sans-serif" }}>—</div>
                     </div>
-                    <div style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 10 }}>
-                      <div style={{ fontSize: 10, color: '#384860' }}>Refunds</div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: '#a0aac0', fontFamily: "'Barlow Condensed', sans-serif" }}>—</div>
+                    <div style={{ padding: '10px 12px', background: 'var(--bg3)', borderRadius: 10 }}>
+                      <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>Refunds</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-muted)', fontFamily: "'Barlow Condensed', sans-serif" }}>—</div>
                     </div>
                   </div>
-                  <p style={{ fontSize: 12, color: '#384860', margin: '12px 0 0', fontStyle: 'italic' }}>
+                  <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '12px 0 0', fontStyle: 'italic' }}>
                     Detailed billing data appears after invoice records are synced.
                   </p>
                 </div>
 
                 {/* History */}
                 <div style={{ display: section('history') }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', margin: '0 0 16px' }}>Subscription Timeline</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 16px' }}>Subscription Timeline</h3>
                   <div className="sub-timeline">
                     {[
                       { action: 'Created', date: selectedSub.startDate || selectedSub.createdAt, color: '#3b82f6', icon: '✦' },
@@ -997,8 +998,8 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
                       <div key={i} className="sub-timeline-item">
                         <div className="sub-timeline-dot" style={{ borderColor: e.color, color: e.color, fontSize: 9 }}>{e.icon}</div>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: '#a0aac0' }}>{e.action}</div>
-                          {e.date && <div style={{ fontSize: 11, color: '#384860', marginTop: 2 }}>{formatDate(e.date)}</div>}
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>{e.action}</div>
+                          {e.date && <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>{formatDate(e.date)}</div>}
                         </div>
                       </div>
                     ))}
@@ -1007,19 +1008,19 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
 
                 {/* Invoices */}
                 <div style={{ display: section('invoices') }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', margin: '0 0 16px' }}>Invoices</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 16px' }}>Invoices</h3>
                   <div className="empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
                     <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.5 }}>
                       <rect x="2" y="3" width="20" height="18" rx="2"/><line x1="6" y1="7" x2="18" y2="7"/><line x1="6" y1="11" x2="18" y2="11"/><line x1="6" y1="15" x2="12" y2="15"/>
                     </svg>
-                    <p style={{ fontSize: 13, color: '#6070a0', margin: '0 0 4px' }}>No invoices yet</p>
-                    <p style={{ fontSize: 11, color: '#384860', margin: 0 }}>Invoices are generated upon payment completion.</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 4px' }}>No invoices yet</p>
+                    <p style={{ fontSize: 11, color: 'var(--text-dim)', margin: 0 }}>Invoices are generated upon payment completion.</p>
                   </div>
                 </div>
 
                 {/* Usage */}
                 <div style={{ display: section('usage') }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', margin: '0 0 16px' }}>Usage Overview</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 16px' }}>Usage Overview</h3>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
                     {[
                       { label: 'Members', value: '—', color: '#3b82f6', icon: '👥' },
@@ -1029,22 +1030,22 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
                       { label: 'Attendance', value: '—', color: '#00c8b4', icon: '📋' },
                       { label: 'Payments', value: '—', color: '#e8420a', icon: '💳' },
                     ].map((item, i) => (
-                      <div key={i} style={{ padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, textAlign: 'center' }}>
+                      <div key={i} style={{ padding: '12px', background: 'var(--bg3)', borderRadius: 10, textAlign: 'center' }}>
                         <div style={{ fontSize: 20, marginBottom: 4 }}>{item.icon}</div>
                         <div style={{ fontSize: 18, fontWeight: 700, color: item.color, fontFamily: "'Barlow Condensed', sans-serif" }}>{item.value}</div>
-                        <div style={{ fontSize: 10, color: '#384860' }}>{item.label}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>{item.label}</div>
                       </div>
                     ))}
                   </div>
-                  <p style={{ fontSize: 12, color: '#384860', margin: '12px 0 0', fontStyle: 'italic' }}>
+                  <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '12px 0 0', fontStyle: 'italic' }}>
                     Usage metrics sync with gym activity data.
                   </p>
                 </div>
 
                 {/* Actions */}
                 <div style={{ display: section('actions') }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', margin: '0 0 16px' }}>Quick Actions</h3>
-                  <p style={{ fontSize: 12, color: '#6070a0', margin: '0 0 16px' }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 16px' }}>Quick Actions</h3>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 16px' }}>
                     Manage the subscription lifecycle for this gym.
                   </p>
                   {[
@@ -1074,7 +1075,7 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
                         padding: '12px 16px', marginBottom: 6, borderRadius: 10,
                         background: disabled ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.02)',
                         border: `1px solid ${disabled ? 'rgba(255,255,255,0.03)' : `${color}18`}`,
-                        color: disabled ? '#384860' : '#a0aac0', cursor: disabled ? 'not-allowed' : 'pointer',
+                        color: disabled ? 'var(--text-dim)' : 'var(--text-muted)', cursor: disabled ? 'not-allowed' : 'pointer',
                         transition: 'all 0.15s ease', fontSize: 13,
                       }}
                       onMouseEnter={e => { if (!disabled) { e.currentTarget.style.background = `${color}0a`; e.currentTarget.style.borderColor = `${color}30` } }}
@@ -1093,13 +1094,13 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
       {confirmAction && (
         <div className="modal-overlay" onClick={() => setConfirmAction(null)}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
-            <h3 style={{ marginBottom: 12, color: '#e4e8f0', fontSize: 16 }}>
+            <h3 style={{ marginBottom: 12, color: 'var(--text)', fontSize: 16 }}>
               {confirmAction.type === 'activate' && 'Activate Subscription'}
               {confirmAction.type === 'trial' && 'Assign Trial'}
               {confirmAction.type === 'suspend' && 'Suspend Subscription'}
               {confirmAction.type === 'expire' && 'Expire Subscription'}
             </h3>
-            <p style={{ fontSize: 13, color: '#6070a0', marginBottom: 20, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
               {confirmAction.type === 'activate' && 'Activate this subscription. Status will be set to active and payment to paid.'}
               {confirmAction.type === 'trial' && 'Assign a trial period for this gym. They will have full access during the trial.'}
               {confirmAction.type === 'suspend' && 'Suspending will restrict gym access. This action can be reversed by activating again.'}
@@ -1126,7 +1127,7 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
       {actionType && ['renew', 'upgrade', 'downgrade', 'change'].includes(actionType) && (
         <div className="modal-overlay" onClick={() => setActionType(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#e4e8f0', marginBottom: 16 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>
               {ACTION_STYLES[actionType]?.label || 'Action'}
             </h3>
             <label className="form-label">Select Plan</label>
@@ -1148,7 +1149,7 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
       {actionType === 'extend' && (
         <div className="modal-overlay" onClick={() => setActionType(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#e4e8f0', marginBottom: 16 }}>Extend Expiry</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Extend Expiry</h3>
             <label className="form-label">Extend by (days)</label>
             <input className="form-input" type="number" value={formDays} onChange={e => setFormDays(Math.max(1, Number(e.target.value)))} style={{ marginBottom: 16 }} />
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
@@ -1163,7 +1164,7 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
         <div className="modal-overlay" onClick={() => setActionType(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h3 style={{ marginBottom: 16, color: '#22c55e', fontSize: 16 }}>Activate Subscription</h3>
-            <p style={{ fontSize: 13, color: '#6070a0', marginBottom: 16 }}>Activate this subscription for the gym. This will set status to active and payment to paid.</p>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>Activate this subscription for the gym. This will set status to active and payment to paid.</p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="sub-btn-secondary" onClick={() => setActionType(null)} disabled={loading}>Cancel</button>
               <button className="sub-btn-primary" style={{ background: '#22c55e' }} onClick={() => handleAction('activate')} disabled={loading}>{loading ? 'Processing...' : 'Activate'}</button>
@@ -1176,7 +1177,7 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
         <div className="modal-overlay" onClick={() => setActionType(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h3 style={{ marginBottom: 16, color: '#a855f7', fontSize: 16 }}>Suspend Subscription</h3>
-            <p style={{ fontSize: 13, color: '#6070a0', marginBottom: 16 }}>Suspending will restrict gym access. This action can be reversed by activating again.</p>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>Suspending will restrict gym access. This action can be reversed by activating again.</p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="sub-btn-secondary" onClick={() => setActionType(null)} disabled={loading}>Cancel</button>
               <button className="sub-btn-primary" style={{ background: '#a855f7' }} onClick={() => handleAction('suspend')} disabled={loading}>{loading ? 'Processing...' : 'Suspend'}</button>
@@ -1189,7 +1190,7 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
         <div className="modal-overlay" onClick={() => setActionType(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h3 style={{ marginBottom: 16, color: '#ef4444', fontSize: 16 }}>Expire Subscription</h3>
-            <p style={{ fontSize: 13, color: '#6070a0', marginBottom: 16 }}>Mark this subscription as expired. The gym will lose access to premium features.</p>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>Mark this subscription as expired. The gym will lose access to premium features.</p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="sub-btn-secondary" onClick={() => setActionType(null)} disabled={loading}>Cancel</button>
               <button className="sub-btn-primary" style={{ background: '#ef4444' }} onClick={() => handleAction('expire')} disabled={loading}>{loading ? 'Processing...' : 'Expire'}</button>
@@ -1201,7 +1202,7 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
       {actionType === 'trial' && (
         <div className="modal-overlay" onClick={() => setActionType(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#e4e8f0', marginBottom: 16 }}>Assign Trial</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Assign Trial</h3>
             <label className="form-label">Trial Days</label>
             <input className="form-input" type="number" value={formDays} onChange={e => setFormDays(Math.max(1, Number(e.target.value)))} style={{ marginBottom: 16 }} />
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>

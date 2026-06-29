@@ -19,6 +19,15 @@ import { getEffectiveRole } from '../utils/rbac'
 
 const AuthContext = createContext(null)
 
+function isLocalhost() {
+  try {
+    const host = window.location.hostname
+    return host === 'localhost' || host === '127.0.0.1'
+  } catch {
+    return false
+  }
+}
+
 // Loads the gym-wide accent color from Firestore and applies it.
 // Falls back to the default on any failure (e.g. not yet signed in).
 async function loadAndApplyAccent(gymId) {
@@ -133,6 +142,27 @@ export function AuthProvider({ children }) {
           return
         }
 
+        if (profile.role === 'rejected') {
+          if (isLocalhost()) {
+            await logOut()
+            setCurrentUser(null)
+            setUserProfile(null)
+            setRole(null)
+            setIsSuperAdmin(false)
+            setAuthError('')
+            setAuthLoading(false)
+            window.location.replace('/auth')
+            return
+          }
+          setCurrentUser(firebaseUser)
+          setUserProfile(profile)
+          setRole('rejected')
+          setIsSuperAdmin(false)
+          setAuthError('Your account has been rejected.')
+          setAuthLoading(false)
+          return
+        }
+
         if (profile.role === 'pending') {
           await logOut()
           setCurrentUser(null)
@@ -204,6 +234,26 @@ export function AuthProvider({ children }) {
     try {
       const { user, role: userRole } = await signIn(email, password)
       const profile = await getUserProfile(user.uid)
+
+      if (userRole === 'rejected') {
+        if (isLocalhost()) {
+          await logOut()
+          setCurrentUser(null)
+          setUserProfile(null)
+          setRole(null)
+          setIsSuperAdmin(false)
+          setAuthError('')
+          window.location.replace('/auth')
+          return
+        }
+        setCurrentUser(user)
+        setUserProfile(profile)
+        setRole('rejected')
+        setIsSuperAdmin(false)
+        setAuthError('Your account has been rejected.')
+        throw new Error('rejected')
+      }
+
       setCurrentUser(user)
       setUserProfile(profile)
       setRole(userRole)
@@ -220,6 +270,8 @@ export function AuthProvider({ children }) {
     } catch (err) {
       const msg = err.message === 'pending'
         ? 'Your account is awaiting admin approval.'
+        : err.message === 'rejected'
+        ? 'Your account has been rejected.'
         : friendlyError(err.code || err.message)
       setAuthError(msg)
       throw err

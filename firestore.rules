@@ -253,7 +253,7 @@ service cloud.firestore {
 
       allow read: if (isAdminOrOwner() && inCallersGym()) || (
         isApproved() &&
-        (docId == 'gym' || docId.matches('.*:gym$'))
+        (docId == 'gym' || docId.matches('.*:gym$') || docId == 'theme' || docId.matches('.*:theme$'))
       );
       allow create: if isAdminOrOwner() && inCallersGymCreate();
       allow update: if isAdminOrOwner() && inCallersGym();

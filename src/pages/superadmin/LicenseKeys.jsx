@@ -24,14 +24,15 @@ licStyles.textContent = `
     100% { background-position: -200% 0; }
   }
   .lic-stat-card {
-    background: rgba(12,15,26,0.7);
-    border: 1px solid rgba(255,255,255,0.04);
+    background: var(--card);
+    border: 1px solid var(--card-border);
     border-radius: 18px;
     padding: 20px 24px;
     position: relative;
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
     cursor: default;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
   .lic-stat-card::before {
     content: '';
@@ -44,8 +45,8 @@ licStyles.textContent = `
   }
   .lic-stat-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-    border-color: rgba(232,66,10,0.15);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    border-color: var(--accent-dim);
   }
   .lic-stat-card .lic-stat-icon {
     width: 42px;
@@ -61,7 +62,7 @@ licStyles.textContent = `
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #506080;
+    color: var(--text-muted);
     margin-bottom: 2px;
     font-weight: 600;
   }
@@ -69,18 +70,18 @@ licStyles.textContent = `
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 26px;
     font-weight: 700;
-    color: #e4e8f0;
+    color: var(--text);
     line-height: 1.1;
   }
   .lic-card {
-    background: rgba(12,15,26,0.7);
-    border: 1px solid rgba(255,255,255,0.04);
+    background: var(--card);
+    border: 1px solid var(--card-border);
     border-radius: 18px;
-    backdrop-filter: blur(12px);
     transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
   .lic-card:hover {
-    border-color: rgba(232,66,10,0.1);
+    border-color: var(--accent-dim);
     box-shadow: 0 8px 32px rgba(0,0,0,0.15);
   }
   .lic-btn-primary {
@@ -105,8 +106,8 @@ licStyles.textContent = `
   .lic-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
   .lic-btn-secondary {
     background: transparent;
-    border: 1px solid rgba(255,255,255,0.06);
-    color: #a0aac0;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
     padding: 8px 16px;
     border-radius: 10px;
     font-size: 13px;
@@ -116,9 +117,9 @@ licStyles.textContent = `
     white-space: nowrap;
   }
   .lic-btn-secondary:hover {
-    background: rgba(255,255,255,0.04);
-    border-color: rgba(255,255,255,0.1);
-    color: #e4e8f0;
+    background: var(--hover);
+    border-color: var(--border);
+    color: var(--text);
   }
   .lic-btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
   .lic-btn-danger {
@@ -135,9 +136,9 @@ licStyles.textContent = `
   .lic-btn-danger:hover { background: #dc2626; box-shadow: 0 4px 16px rgba(239,68,68,0.3); }
   .lic-btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
   .lic-input {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.06);
-    color: #e4e8f0;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--text);
     padding: 8px 12px;
     border-radius: 10px;
     font-size: 13px;
@@ -149,11 +150,11 @@ licStyles.textContent = `
     border-color: rgba(232,66,10,0.4);
     box-shadow: 0 0 0 3px rgba(232,66,10,0.1);
   }
-  .lic-input::placeholder { color: #384860; }
+  .lic-input::placeholder { color: var(--text-dim); }
   .lic-select {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.06);
-    color: #a0aac0;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--text-muted);
     padding: 8px 32px 8px 12px;
     border-radius: 10px;
     font-size: 13px;
@@ -169,7 +170,7 @@ licStyles.textContent = `
   .lic-select:focus {
     border-color: rgba(232,66,10,0.4);
     box-shadow: 0 0 0 3px rgba(232,66,10,0.1);
-    color: #e4e8f0;
+    color: var(--text);
   }
   .lic-table {
     width: 100%;
@@ -182,19 +183,19 @@ licStyles.textContent = `
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #506080;
+    color: var(--text-muted);
     font-weight: 700;
-    background: rgba(7,10,18,0.5);
+    background: #fafafa;
     position: sticky;
     top: 0;
     z-index: 2;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid var(--border);
   }
   .lic-table td {
     padding: 14px 16px;
     font-size: 13px;
-    color: #a0aac0;
-    border-bottom: 1px solid rgba(255,255,255,0.02);
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-light);
   }
   .lic-table tbody tr {
     transition: all 0.15s ease;
@@ -204,10 +205,10 @@ licStyles.textContent = `
     background: rgba(232,66,10,0.03);
   }
   .lic-table tbody tr:nth-child(even) {
-    background: rgba(255,255,255,0.01);
+    background: var(--hover);
   }
   .lic-table tbody tr:nth-child(even):hover {
-    background: rgba(232,66,10,0.04);
+    background: #f5f6f8;
   }
   .lic-pill {
     display: inline-flex;
@@ -219,7 +220,7 @@ licStyles.textContent = `
     white-space: nowrap;
   }
   .lic-skeleton {
-    background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%);
+    background: var(--skeleton);
     background-size: 200% 100%;
     animation: lic-shimmer 1.5s infinite;
     border-radius: 6px;
@@ -232,10 +233,10 @@ licStyles.textContent = `
     z-index: 100;
     width: 520px;
     max-width: 100vw;
-    background: rgba(7,10,18,0.96);
+    background: var(--card);
     backdrop-filter: blur(20px);
-    border-left: 1px solid rgba(255,255,255,0.04);
-    box-shadow: -8px 0 48px rgba(0,0,0,0.3);
+    border-left: 1px solid var(--border);
+    box-shadow: -8px 0 40px rgba(0,0,0,0.15);
     animation: lic-slide-in 0.25s cubic-bezier(0.16,1,0.3,1);
     display: flex;
     flex-direction: column;
@@ -248,7 +249,7 @@ licStyles.textContent = `
     padding: 10px 14px;
     border: none;
     background: transparent;
-    color: #6070a0;
+    color: var(--text-muted);
     font-size: 12px;
     font-weight: 500;
     border-radius: 10px;
@@ -256,7 +257,7 @@ licStyles.textContent = `
     transition: all 0.15s ease;
     text-align: left;
   }
-  .lic-drawer-tab:hover { background: rgba(255,255,255,0.04); color: #a0aac0; }
+  .lic-drawer-tab:hover { background: var(--hover); color: var(--text); }
   .lic-drawer-tab.active {
     background: rgba(232,66,10,0.12);
     color: #e8420a;
@@ -281,7 +282,7 @@ licStyles.textContent = `
     top: 4px;
     bottom: 4px;
     width: 2px;
-    background: rgba(255,255,255,0.04);
+    background: var(--border);
   }
   .lic-timeline-item {
     position: relative;
@@ -303,15 +304,15 @@ licStyles.textContent = `
     font-size: 7px;
   }
   .lic-device-card {
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.04);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 12px;
     padding: 14px;
     transition: all 0.2s ease;
   }
   .lic-device-card:hover {
-    background: rgba(255,255,255,0.04);
-    border-color: rgba(232,66,10,0.1);
+    background: var(--hover);
+    border-color: var(--accent-dim);
   }
   @media (max-width: 768px) {
     .lic-drawer { width: 100vw; }
@@ -423,7 +424,7 @@ function StatusBadge({ status }) {
 }
 
 function Pill({ children, color }) {
-  return <span className="lic-pill" style={{ background: `${color || '#6070a0'}14`, color: color || '#6070a0' }}>{children}</span>
+  return <span className="lic-pill" style={{ background: `${color || 'var(--text-muted)'}14`, color: color || 'var(--text-muted)' }}>{children}</span>
 }
 
 function formatDate(d) {
@@ -658,8 +659,8 @@ export default function LicenseKeys() {
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4, color: '#e4e8f0' }}>License Center</h2>
-          <p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Manage license keys, activation and compliance across all gyms.</p>
+          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4, color: 'var(--text)' }}>License Center</h2>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Manage license keys, activation and compliance across all gyms.</p>
         </div>
         <button className="lic-btn-primary" onClick={() => setShowGenerate(true)}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -684,7 +685,7 @@ export default function LicenseKeys() {
             </svg>
             <input className="lic-input" style={{ paddingLeft: 34 }} placeholder="Search by gym, key or plan..." value={localSearch} onChange={e => { setLocalSearch(e.target.value); setPage(1) }} />
             {localSearch && (
-              <button onClick={() => setLocalSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#384860', cursor: 'pointer', padding: 4 }}>
+              <button onClick={() => setLocalSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: 4 }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             )}
@@ -731,21 +732,21 @@ export default function LicenseKeys() {
                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.5 }}>
                       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                     </svg>
-                    <p style={{ fontSize: 14, color: '#6070a0', margin: '0 0 4px' }}>No license keys found</p>
-                    <p style={{ fontSize: 12, color: '#384860', margin: 0 }}>
+                    <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: '0 0 4px' }}>No license keys found</p>
+                    <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: 0 }}>
                       {hasFilters ? 'Try adjusting your filters' : 'Generate a license key for a gym subscription'}
                     </p>
                   </td>
                 </tr>
               ) : paginated.map((g, i) => (
                 <tr key={g.gymId || i} onClick={() => { setDrawerGym(g); setDrawerTab('overview') }}>
-                  <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 600, color: g.key ? '#e4e8f0' : '#384860', letterSpacing: '0.02em' }}>
+                  <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 600, color: g.key ? 'var(--text)' : 'var(--text-dim)', letterSpacing: '0.02em' }}>
                     {g.key || '—'}
                   </td>
-                  <td style={{ fontWeight: 600, color: '#e4e8f0' }}>{g.gymName}</td>
+                  <td style={{ fontWeight: 600, color: 'var(--text)' }}>{g.gymName}</td>
                   <td><StatusBadge status={g.status} /></td>
-                  <td><Pill color={g.plan === 'Premium' ? '#a855f7' : g.plan === 'Standard' ? '#22c55e' : g.plan === 'Trial' ? '#00c8b4' : '#6070a0'}>{g.plan}</Pill></td>
-                  <td style={{ color: '#6070a0' }}>{g.deviceLimit || '—'}</td>
+                  <td><Pill color={g.plan === 'Premium' ? '#a855f7' : g.plan === 'Standard' ? '#22c55e' : g.plan === 'Trial' ? '#00c8b4' : 'var(--text-muted)'}>{g.plan}</Pill></td>
+                  <td style={{ color: 'var(--text-muted)' }}>{g.deviceLimit || '—'}</td>
                   <td style={{ fontSize: 12 }}>{formatDate(g.expires)}</td>
                 </tr>
               ))}
@@ -753,11 +754,11 @@ export default function LicenseKeys() {
           </table>
         </div>
         {totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-            <span style={{ fontSize: 12, color: '#6070a0' }}>{filtered.length} licenses total</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: '1px solid var(--border)' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{filtered.length} licenses total</span>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
               <button disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}
-                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)', background: 'transparent', color: safePage <= 1 ? '#384860' : '#a0aac0', cursor: safePage <= 1 ? 'not-allowed' : 'pointer', fontSize: 12 }}>
+                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: safePage <= 1 ? 'var(--text-dim)' : 'var(--text-muted)', cursor: safePage <= 1 ? 'not-allowed' : 'pointer', fontSize: 12 }}>
                 ← Prev
               </button>
               {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
@@ -770,14 +771,14 @@ export default function LicenseKeys() {
                   <button key={p} onClick={() => setPage(p)}
                     style={{ width: 32, height: 32, borderRadius: 8, border: 'none',
                       background: p === safePage ? 'linear-gradient(135deg,#e8420a,#ff5520)' : 'transparent',
-                      color: p === safePage ? '#fff' : '#6070a0', cursor: 'pointer', fontSize: 12,
+                      color: p === safePage ? '#fff' : 'var(--text-muted)', cursor: 'pointer', fontSize: 12,
                       fontWeight: p === safePage ? 700 : 500, transition: 'all 0.15s ease' }}>
                     {p}
                   </button>
                 )
               })}
               <button disabled={safePage >= totalPages} onClick={() => setPage(safePage + 1)}
-                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)', background: 'transparent', color: safePage >= totalPages ? '#384860' : '#a0aac0', cursor: safePage >= totalPages ? 'not-allowed' : 'pointer', fontSize: 12 }}>
+                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: safePage >= totalPages ? 'var(--text-dim)' : 'var(--text-muted)', cursor: safePage >= totalPages ? 'not-allowed' : 'pointer', fontSize: 12 }}>
                 Next →
               </button>
             </div>
@@ -789,19 +790,19 @@ export default function LicenseKeys() {
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 99, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => setDrawerGym(null)} />
           <div className="lic-drawer">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <button className="lic-btn-secondary" style={{ padding: '6px 10px', fontSize: 11 }} onClick={() => setDrawerGym(null)}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
                 </button>
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#e4e8f0' }}>{drawerGym.gymName}</div>
-                  <div style={{ fontSize: 11, color: '#384860', fontFamily: "'JetBrains Mono', monospace" }}>KEY: {drawerGym.key ? drawerGym.key.substring(0, 16) + '...' : '—'}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{drawerGym.gymName}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: "'JetBrains Mono', monospace" }}>KEY: {drawerGym.key ? drawerGym.key.substring(0, 16) + '...' : '—'}</div>
                 </div>
               </div>
             </div>
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-              <div style={{ width: 130, flexShrink: 0, padding: '12px 8px', borderRight: '1px solid rgba(255,255,255,0.04)', overflowY: 'auto' }}>
+              <div style={{ width: 130, flexShrink: 0, padding: '12px 8px', borderRight: '1px solid var(--border)', overflowY: 'auto' }}>
                 {drawerTabs.map(tab => (
                   <button key={tab.id} className={`lic-drawer-tab ${drawerTab === tab.id ? 'active' : ''}`} onClick={() => setDrawerTab(tab.id)}>
                     <span style={{ fontSize: 14 }}>{tab.icon}</span> {tab.label}
@@ -811,7 +812,7 @@ export default function LicenseKeys() {
               <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {/* Overview */}
                 <div style={{ display: section('overview') }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', margin: '0 0 16px' }}>License Overview</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 16px' }}>License Overview</h3>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                     {[
                       ['🔑', 'License Key', drawerGym.key || '—'],
@@ -821,11 +822,11 @@ export default function LicenseKeys() {
                       ['📱', 'Device Limit', String(drawerGym.deviceLimit || '—')],
                       ['📈', 'Current Usage', '—'],
                     ].map(([icon, label, value]) => (
-                      <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, fontSize: 13 }}>
+                      <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--surface)', borderRadius: 10, fontSize: 13 }}>
                         <span style={{ fontSize: 14, width: 20, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 10, color: '#384860', marginBottom: 1 }}>{label}</div>
-                          <div style={{ fontWeight: 600, color: '#a0aac0' }}>{value}</div>
+                          <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 1 }}>{label}</div>
+                          <div style={{ fontWeight: 600, color: 'var(--text-muted)' }}>{value}</div>
                         </div>
                       </div>
                     ))}
@@ -834,19 +835,19 @@ export default function LicenseKeys() {
 
                 {/* Devices */}
                 <div style={{ display: section('devices') }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', margin: '0 0 16px' }}>Registered Devices</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 16px' }}>Registered Devices</h3>
                   <div className="empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
                     <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.5 }}>
                       <rect x="2" y="2" width="20" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/>
                     </svg>
-                    <p style={{ fontSize: 13, color: '#6070a0', margin: '0 0 4px' }}>No devices registered</p>
-                    <p style={{ fontSize: 11, color: '#384860', margin: 0 }}>Devices appear when gyms activate this license.</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 4px' }}>No devices registered</p>
+                    <p style={{ fontSize: 11, color: 'var(--text-dim)', margin: 0 }}>Devices appear when gyms activate this license.</p>
                   </div>
                 </div>
 
                 {/* History */}
                 <div style={{ display: section('history') }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', margin: '0 0 16px' }}>License Timeline</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 16px' }}>License Timeline</h3>
                   <div className="lic-timeline">
                     {[
                       { action: 'License Generated', date: null, color: '#3b82f6', icon: '✦' },
@@ -856,8 +857,8 @@ export default function LicenseKeys() {
                       <div key={i} className="lic-timeline-item">
                         <div className="lic-timeline-dot" style={{ borderColor: e.color, color: e.color, fontSize: 9 }}>{e.icon}</div>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: '#a0aac0' }}>{e.action}</div>
-                          {e.date && <div style={{ fontSize: 11, color: '#384860', marginTop: 2 }}>{formatDate(e.date)}</div>}
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>{e.action}</div>
+                          {e.date && <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>{formatDate(e.date)}</div>}
                         </div>
                       </div>
                     ))}
@@ -866,8 +867,8 @@ export default function LicenseKeys() {
 
                 {/* Settings */}
                 <div style={{ display: section('settings') }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', margin: '0 0 16px' }}>License Actions</h3>
-                  <p style={{ fontSize: 12, color: '#6070a0', margin: '0 0 16px' }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 16px' }}>License Actions</h3>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 16px' }}>
                     Manage this license key for {drawerGym.gymName}.
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -898,9 +899,9 @@ export default function LicenseKeys() {
                         style={{
                           display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
                           padding: '12px 16px', borderRadius: 10,
-                          background: disabled ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.02)',
+                          background: disabled ? 'rgba(255,255,255,0.01)' : 'var(--surface)',
                           border: `1px solid ${disabled ? 'rgba(255,255,255,0.03)' : `${bg}18`}`,
-                          color: disabled ? '#384860' : '#a0aac0', cursor: disabled ? 'not-allowed' : 'pointer',
+                          color: disabled ? 'var(--text-dim)' : 'var(--text-muted)', cursor: disabled ? 'not-allowed' : 'pointer',
                           transition: 'all 0.15s ease', fontSize: 13,
                         }}>
                         <span style={{ fontWeight: 600 }}>{label}</span>
@@ -918,11 +919,11 @@ export default function LicenseKeys() {
       {showGenerate === true && (
         <div className="modal-overlay" onClick={() => setShowGenerate(null)}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#e4e8f0', marginBottom: 16 }}>Generate License Key</h3>
-            <p style={{ fontSize: 13, color: '#6070a0', marginBottom: 16 }}>Select a gym to generate a new license key for:</p>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Generate License Key</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>Select a gym to generate a new license key for:</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20, maxHeight: 300, overflowY: 'auto' }}>
               {licenseGyms.filter(g => !g.key).length === 0 ? (
-                <p style={{ fontSize: 13, color: '#384860', textAlign: 'center', padding: 20 }}>All gyms already have a license key</p>
+                <p style={{ fontSize: 13, color: 'var(--text-dim)', textAlign: 'center', padding: 20 }}>All gyms already have a license key</p>
               ) : licenseGyms.filter(g => !g.key).map(g => (
                 <button key={g.gymId}
                   className="lic-btn-secondary"
@@ -945,8 +946,8 @@ export default function LicenseKeys() {
       {showRegen && (
         <div className="modal-overlay" onClick={() => setShowRegen(null)}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#e4e8f0', marginBottom: 16 }}>Regenerate License Key</h3>
-            <p style={{ fontSize: 13, color: '#6070a0', marginBottom: 20, lineHeight: 1.6 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Regenerate License Key</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
               This will invalidate the current key and reset all registered devices. The gym will need to re-register their devices with the new key. This action cannot be undone.
             </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>

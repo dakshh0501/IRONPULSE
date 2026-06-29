@@ -25,10 +25,11 @@ devStyles.textContent = `
     100% { background-position: -200% 0; }
   }
   .dev-stat-card {
-    background: rgba(12,15,26,0.7);
-    border: 1px solid rgba(255,255,255,0.04);
+    background: var(--card);
+    border: 1px solid var(--card-border);
     border-radius: 18px;
     padding: 20px 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     position: relative;
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
@@ -45,8 +46,8 @@ devStyles.textContent = `
   }
   .dev-stat-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-    border-color: rgba(232,66,10,0.15);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    border-color: var(--accent-dim);
   }
   .dev-stat-card .dev-stat-icon {
     width: 42px;
@@ -62,7 +63,7 @@ devStyles.textContent = `
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #506080;
+    color: var(--text-muted);
     margin-bottom: 2px;
     font-weight: 600;
   }
@@ -70,19 +71,19 @@ devStyles.textContent = `
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 26px;
     font-weight: 700;
-    color: #e4e8f0;
+    color: var(--text);
     line-height: 1.1;
   }
   .dev-card {
-    background: rgba(12,15,26,0.7);
-    border: 1px solid rgba(255,255,255,0.04);
+    background: var(--card);
+    border: 1px solid var(--card-border);
     border-radius: 18px;
-    backdrop-filter: blur(12px);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
   }
   .dev-card:hover {
-    border-color: rgba(232,66,10,0.1);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    border-color: var(--accent-dim);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
   }
   .dev-btn-primary {
     background: linear-gradient(135deg, #e8420a, #ff5520);
@@ -106,8 +107,8 @@ devStyles.textContent = `
   .dev-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
   .dev-btn-secondary {
     background: transparent;
-    border: 1px solid rgba(255,255,255,0.06);
-    color: #a0aac0;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
     padding: 8px 16px;
     border-radius: 10px;
     font-size: 13px;
@@ -117,9 +118,9 @@ devStyles.textContent = `
     white-space: nowrap;
   }
   .dev-btn-secondary:hover {
-    background: rgba(255,255,255,0.04);
-    border-color: rgba(255,255,255,0.1);
-    color: #e4e8f0;
+    background: var(--hover);
+    border-color: var(--border);
+    color: var(--text);
   }
   .dev-btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
   .dev-btn-danger {
@@ -136,9 +137,9 @@ devStyles.textContent = `
   .dev-btn-danger:hover { background: #dc2626; box-shadow: 0 4px 16px rgba(239,68,68,0.3); }
   .dev-btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
   .dev-input {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.06);
-    color: #e4e8f0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
     padding: 8px 12px;
     border-radius: 10px;
     font-size: 13px;
@@ -150,11 +151,11 @@ devStyles.textContent = `
     border-color: rgba(232,66,10,0.4);
     box-shadow: 0 0 0 3px rgba(232,66,10,0.1);
   }
-  .dev-input::placeholder { color: #384860; }
+  .dev-input::placeholder { color: var(--text-dim); }
   .dev-select {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.06);
-    color: #a0aac0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
     padding: 8px 32px 8px 12px;
     border-radius: 10px;
     font-size: 13px;
@@ -170,7 +171,7 @@ devStyles.textContent = `
   .dev-select:focus {
     border-color: rgba(232,66,10,0.4);
     box-shadow: 0 0 0 3px rgba(232,66,10,0.1);
-    color: #e4e8f0;
+    color: var(--text);
   }
   .dev-table {
     width: 100%;
@@ -183,19 +184,19 @@ devStyles.textContent = `
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #506080;
+    color: var(--text-muted);
     font-weight: 700;
-    background: rgba(7,10,18,0.5);
+    background: #fafafa;
     position: sticky;
     top: 0;
     z-index: 2;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid var(--border);
   }
   .dev-table td {
     padding: 14px 16px;
     font-size: 13px;
-    color: #a0aac0;
-    border-bottom: 1px solid rgba(255,255,255,0.02);
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
   }
   .dev-table tbody tr {
     transition: all 0.15s ease;
@@ -205,7 +206,7 @@ devStyles.textContent = `
     background: rgba(232,66,10,0.03);
   }
   .dev-table tbody tr:nth-child(even) {
-    background: rgba(255,255,255,0.01);
+    background: var(--hover);
   }
   .dev-table tbody tr:nth-child(even):hover {
     background: rgba(232,66,10,0.04);
@@ -220,7 +221,7 @@ devStyles.textContent = `
     white-space: nowrap;
   }
   .dev-skeleton {
-    background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%);
+    background: var(--skeleton);
     background-size: 200% 100%;
     animation: dev-shimmer 1.5s infinite;
     border-radius: 6px;
@@ -233,10 +234,10 @@ devStyles.textContent = `
     z-index: 100;
     width: 520px;
     max-width: 100vw;
-    background: rgba(7,10,18,0.96);
+    background: var(--card);
     backdrop-filter: blur(20px);
-    border-left: 1px solid rgba(255,255,255,0.04);
-    box-shadow: -8px 0 48px rgba(0,0,0,0.3);
+    border-left: 1px solid var(--border);
+    box-shadow: -8px 0 40px rgba(0,0,0,0.15);
     animation: dev-slide-in 0.25s cubic-bezier(0.16,1,0.3,1);
     display: flex;
     flex-direction: column;
@@ -249,7 +250,7 @@ devStyles.textContent = `
     padding: 10px 14px;
     border: none;
     background: transparent;
-    color: #6070a0;
+    color: var(--text-muted);
     font-size: 12px;
     font-weight: 500;
     border-radius: 10px;
@@ -257,7 +258,7 @@ devStyles.textContent = `
     transition: all 0.15s ease;
     text-align: left;
   }
-  .dev-drawer-tab:hover { background: rgba(255,255,255,0.04); color: #a0aac0; }
+  .dev-drawer-tab:hover { background: var(--hover); color: var(--text); }
   .dev-drawer-tab.active {
     background: rgba(232,66,10,0.12);
     color: #e8420a;
@@ -282,7 +283,7 @@ devStyles.textContent = `
     top: 4px;
     bottom: 4px;
     width: 2px;
-    background: rgba(255,255,255,0.04);
+    background: var(--border);
   }
   .dev-timeline-item {
     position: relative;
@@ -622,8 +623,8 @@ export default function SuperAdminDeviceManagement() {
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4, color: '#e4e8f0' }}>Device Management</h2>
-          <p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Monitor and manage all registered devices across gyms.</p>
+          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4, color: 'var(--text)' }}>Device Management</h2>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Monitor and manage all registered devices across gyms.</p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {Object.keys(gymMap).filter(gid => allDevices.some(d => d.gymId === gid)).map(gid => (
@@ -650,12 +651,12 @@ export default function SuperAdminDeviceManagement() {
       <div className="dev-card" style={{ padding: '12px 16px', marginBottom: 16 }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: 200, maxWidth: 300 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="2" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="2" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
             <input className="dev-input" style={{ paddingLeft: 34 }} placeholder="Search by device, gym or platform..." value={localSearch} onChange={e => { setLocalSearch(e.target.value); setPage(1) }} />
             {localSearch && (
-              <button onClick={() => setLocalSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#384860', cursor: 'pointer', padding: 4 }}>
+              <button onClick={() => setLocalSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: 4 }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             )}
@@ -707,11 +708,11 @@ export default function SuperAdminDeviceManagement() {
               ) : paginated.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ padding: 48, textAlign: 'center' }}>
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.5 }}>
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.5 }}>
                       <rect x="2" y="2" width="20" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/>
                     </svg>
-                    <p style={{ fontSize: 14, color: '#6070a0', margin: '0 0 4px' }}>No devices registered</p>
-                    <p style={{ fontSize: 12, color: '#384860', margin: 0 }}>
+                    <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: '0 0 4px' }}>No devices registered</p>
+                    <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: 0 }}>
                       {hasFilters ? 'Try adjusting your filters' : 'Devices appear when gyms register with their license key.'}
                     </p>
                   </td>
@@ -722,14 +723,14 @@ export default function SuperAdminDeviceManagement() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <span style={{ fontSize: 20, flexShrink: 0 }}>{getPlatformIcon(dev.platform)}</span>
                       <div>
-                        <div style={{ fontWeight: 600, color: '#e4e8f0', fontSize: 13 }}>{dev.deviceName || '—'}</div>
-                        <div style={{ fontSize: 10, color: '#384860', fontFamily: "'JetBrains Mono', monospace", marginTop: 1 }}>
+                        <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13 }}>{dev.deviceName || '—'}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-dim)', fontFamily: "'JetBrains Mono', monospace", marginTop: 1 }}>
                           {dev.deviceId ? dev.deviceId.substring(0, 16) + '...' : '—'}
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td style={{ fontWeight: 600, color: '#e4e8f0' }}>{gymMap[dev.gymId] || dev.gymId || '—'}</td>
+                  <td style={{ fontWeight: 600, color: 'var(--text)' }}>{gymMap[dev.gymId] || dev.gymId || '—'}</td>
                   <td>
                     <span className="dev-pill" style={{
                       background: `${getPlatformColor(dev.platform)}14`,
@@ -739,9 +740,9 @@ export default function SuperAdminDeviceManagement() {
                       {getPlatformIcon(dev.platform)} {dev.platform || '—'}
                     </span>
                   </td>
-                  <td style={{ fontSize: 12, color: '#6070a0' }}>{dev.appVersion || dev.version || '—'}</td>
+                  <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{dev.appVersion || dev.version || '—'}</td>
                   <td><StatusBadge status={dev.status || 'offline'} /></td>
-                  <td style={{ fontSize: 11, color: '#6070a0', whiteSpace: 'nowrap' }}>
+                  <td style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                     {formatDateTime(dev.lastSeen)}
                   </td>
                   <td onClick={e => e.stopPropagation()}>
@@ -767,11 +768,11 @@ export default function SuperAdminDeviceManagement() {
           </table>
         </div>
         {totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-            <span style={{ fontSize: 12, color: '#6070a0' }}>{filtered.length} devices total</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: '1px solid var(--border)' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{filtered.length} devices total</span>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
               <button disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}
-                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)', background: 'transparent', color: safePage <= 1 ? '#384860' : '#a0aac0', cursor: safePage <= 1 ? 'not-allowed' : 'pointer', fontSize: 12 }}>
+                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: safePage <= 1 ? 'var(--text-dim)' : 'var(--text-muted)', cursor: safePage <= 1 ? 'not-allowed' : 'pointer', fontSize: 12 }}>
                 ← Prev
               </button>
               {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
@@ -784,14 +785,14 @@ export default function SuperAdminDeviceManagement() {
                   <button key={p} onClick={() => setPage(p)}
                     style={{ width: 32, height: 32, borderRadius: 8, border: 'none',
                       background: p === safePage ? 'linear-gradient(135deg,#e8420a,#ff5520)' : 'transparent',
-                      color: p === safePage ? '#fff' : '#6070a0', cursor: 'pointer', fontSize: 12,
+                      color: p === safePage ? '#fff' : 'var(--text-muted)', cursor: 'pointer', fontSize: 12,
                       fontWeight: p === safePage ? 700 : 500, transition: 'all 0.15s ease' }}>
                     {p}
                   </button>
                 )
               })}
               <button disabled={safePage >= totalPages} onClick={() => setPage(safePage + 1)}
-                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)', background: 'transparent', color: safePage >= totalPages ? '#384860' : '#a0aac0', cursor: safePage >= totalPages ? 'not-allowed' : 'pointer', fontSize: 12 }}>
+                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: safePage >= totalPages ? 'var(--text-dim)' : 'var(--text-muted)', cursor: safePage >= totalPages ? 'not-allowed' : 'pointer', fontSize: 12 }}>
                 Next →
               </button>
             </div>
@@ -801,9 +802,9 @@ export default function SuperAdminDeviceManagement() {
 
       {drawerDev && (
         <>
-          <div style={{ position: 'fixed', inset: 0, zIndex: 99, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => setDrawerDev(null)} />
+          <div style={{ position: 'fixed', inset: 0, zIndex: 99, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }} onClick={() => setDrawerDev(null)} />
           <div className="dev-drawer">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <button className="dev-btn-secondary" style={{ padding: '6px 10px', fontSize: 11 }} onClick={() => setDrawerDev(null)}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
@@ -812,8 +813,8 @@ export default function SuperAdminDeviceManagement() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 22 }}>{getPlatformIcon(drawerDev.platform)}</span>
                     <div>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: '#e4e8f0' }}>{drawerDev.deviceName || 'Unnamed Device'}</div>
-                      <div style={{ fontSize: 11, color: '#384860', fontFamily: "'JetBrains Mono', monospace" }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{drawerDev.deviceName || 'Unnamed Device'}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: "'JetBrains Mono', monospace" }}>
                         ID: {drawerDev.deviceId ? drawerDev.deviceId.substring(0, 20) + '...' : '—'}
                       </div>
                     </div>
@@ -822,7 +823,7 @@ export default function SuperAdminDeviceManagement() {
               </div>
             </div>
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-              <div style={{ width: 130, flexShrink: 0, padding: '12px 8px', borderRight: '1px solid rgba(255,255,255,0.04)', overflowY: 'auto' }}>
+              <div style={{ width: 130, flexShrink: 0, padding: '12px 8px', borderRight: '1px solid var(--border)', overflowY: 'auto' }}>
                 {drawerTabs.map(tab => (
                   <button key={tab.id} className={`dev-drawer-tab ${drawerTab === tab.id ? 'active' : ''}`} onClick={() => setDrawerTab(tab.id)}>
                     <span style={{ fontSize: 14 }}>{tab.icon}</span> {tab.label}
@@ -832,7 +833,7 @@ export default function SuperAdminDeviceManagement() {
               <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {/* Overview */}
                 <div style={{ display: section('overview') }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', margin: '0 0 16px' }}>Device Details</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 16px' }}>Device Details</h3>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                     {[
                       ['📱', 'Device Name', drawerDev.deviceName || '—'],
@@ -844,11 +845,11 @@ export default function SuperAdminDeviceManagement() {
                       ['🌐', 'IP Address', drawerDev.ip || drawerDev.ipAddress || '—'],
                       ['🔑', 'License Key', drawerDev.licenseKey ? drawerDev.licenseKey.substring(0, 16) + '...' : '—'],
                     ].map(([icon, label, value]) => (
-                      <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, fontSize: 13 }}>
+                      <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--surface)', borderRadius: 10, fontSize: 13 }}>
                         <span style={{ fontSize: 14, width: 20, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 10, color: '#384860', marginBottom: 1 }}>{label}</div>
-                          <div style={{ fontWeight: 600, color: '#a0aac0' }}>{value}</div>
+                          <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 1 }}>{label}</div>
+                          <div style={{ fontWeight: 600, color: 'var(--text-muted)' }}>{value}</div>
                         </div>
                       </div>
                     ))}
@@ -857,7 +858,7 @@ export default function SuperAdminDeviceManagement() {
 
                 {/* History */}
                 <div style={{ display: section('history') }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', margin: '0 0 16px' }}>Device Timeline</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 16px' }}>Device Timeline</h3>
                   <div className="dev-timeline">
                     {[
                       { action: 'Device Registered', date: drawerDev.createdAt || drawerDev.lastSeen, color: '#3b82f6', icon: '✦' },
@@ -867,8 +868,8 @@ export default function SuperAdminDeviceManagement() {
                       <div key={i} className="dev-timeline-item">
                         <div className="dev-timeline-dot" style={{ borderColor: e.color, color: e.color, fontSize: 9 }}>{e.icon}</div>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: '#a0aac0' }}>{e.action}</div>
-                          <div style={{ fontSize: 11, color: '#384860', marginTop: 2 }}>{formatDateTime(e.date)}</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>{e.action}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>{formatDateTime(e.date)}</div>
                         </div>
                       </div>
                     ))}
@@ -877,36 +878,36 @@ export default function SuperAdminDeviceManagement() {
 
                 {/* Sessions */}
                 <div style={{ display: section('sessions') }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', margin: '0 0 16px' }}>Session Details</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 16px' }}>Session Details</h3>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                    <div style={{ padding: '14px', background: 'rgba(255,255,255,0.02)', borderRadius: 12 }}>
-                      <div style={{ fontSize: 10, color: '#384860', marginBottom: 2 }}>Last Login</div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#a0aac0', marginTop: 4 }}>{formatDateTime(drawerDev.lastSeen)}</div>
+                    <div style={{ padding: '14px', background: 'var(--surface)', borderRadius: 12 }}>
+                      <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 2 }}>Last Login</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', marginTop: 4 }}>{formatDateTime(drawerDev.lastSeen)}</div>
                     </div>
-                    <div style={{ padding: '14px', background: 'rgba(255,255,255,0.02)', borderRadius: 12 }}>
-                      <div style={{ fontSize: 10, color: '#384860', marginBottom: 2 }}>Platform</div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#a0aac0', marginTop: 4 }}>{drawerDev.platform || '—'}</div>
+                    <div style={{ padding: '14px', background: 'var(--surface)', borderRadius: 12 }}>
+                      <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 2 }}>Platform</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', marginTop: 4 }}>{drawerDev.platform || '—'}</div>
                     </div>
-                    <div style={{ padding: '14px', background: 'rgba(255,255,255,0.02)', borderRadius: 12 }}>
-                      <div style={{ fontSize: 10, color: '#384860', marginBottom: 2 }}>IP Address</div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#a0aac0', fontFamily: "'JetBrains Mono', monospace", marginTop: 4 }}>
+                    <div style={{ padding: '14px', background: 'var(--surface)', borderRadius: 12 }}>
+                      <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 2 }}>IP Address</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', fontFamily: "'JetBrains Mono', monospace", marginTop: 4 }}>
                         {drawerDev.ip || drawerDev.ipAddress || '—'}
                       </div>
                     </div>
-                    <div style={{ padding: '14px', background: 'rgba(255,255,255,0.02)', borderRadius: 12 }}>
-                      <div style={{ fontSize: 10, color: '#384860', marginBottom: 2 }}>Session Duration</div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#a0aac0', marginTop: 4 }}>—</div>
+                    <div style={{ padding: '14px', background: 'var(--surface)', borderRadius: 12 }}>
+                      <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 2 }}>Session Duration</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', marginTop: 4 }}>—</div>
                     </div>
                   </div>
-                  <p style={{ fontSize: 12, color: '#384860', margin: '12px 0 0', fontStyle: 'italic' }}>
+                  <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '12px 0 0', fontStyle: 'italic' }}>
                     Detailed session tracking will be available in a future update.
                   </p>
                 </div>
 
                 {/* Settings */}
                 <div style={{ display: section('settings') }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0', margin: '0 0 16px' }}>Device Actions</h3>
-                  <p style={{ fontSize: 12, color: '#6070a0', margin: '0 0 16px' }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 16px' }}>Device Actions</h3>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 16px' }}>
                     Manage this device for {gymMap[drawerDev.gymId] || 'the gym'}.
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -926,9 +927,9 @@ export default function SuperAdminDeviceManagement() {
                         style={{
                           display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
                           padding: '12px 16px', borderRadius: 10,
-                          background: disabled ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.02)',
+                          background: disabled ? 'rgba(255,255,255,0.01)' : 'var(--surface)',
                           border: `1px solid ${disabled ? 'rgba(255,255,255,0.03)' : `${bg}18`}`,
-                          color: disabled ? '#384860' : '#a0aac0', cursor: disabled ? 'not-allowed' : 'pointer',
+                          color: disabled ? 'var(--text-dim)' : 'var(--text-muted)', cursor: disabled ? 'not-allowed' : 'pointer',
                           transition: 'all 0.15s ease', fontSize: 13,
                         }}>
                         <span style={{ fontWeight: 600 }}>{label}</span>
@@ -949,12 +950,12 @@ export default function SuperAdminDeviceManagement() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
               <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: '#ef4444' }}>⚠️</div>
               <div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#e4e8f0', margin: 0 }}>Reset All Devices</h3>
-                <p style={{ fontSize: 12, color: '#6070a0', margin: '2px 0 0' }}>{gymMap[confirmReset]}</p>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Reset All Devices</h3>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0' }}>{gymMap[confirmReset]}</p>
               </div>
             </div>
-            <p style={{ fontSize: 13, color: '#6070a0', marginBottom: 20, lineHeight: 1.6 }}>
-              This will remove all registered devices for <strong style={{ color: '#a0aac0' }}>{gymMap[confirmReset]}</strong>.
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
+              This will remove all registered devices for <strong style={{ color: 'var(--text-muted)' }}>{gymMap[confirmReset]}</strong>.
               All users will need to re-register their devices with the license key. This action cannot be undone.
             </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>

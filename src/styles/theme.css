@@ -38,7 +38,7 @@
 
 /* ── Light Theme ── */
 [data-theme="light"] {
-  --bg:          #f0f2f6;
+  --bg:          #ffffff;
   --bg2:         #ffffff;
   --bg3:         #e8ebf0;
   --card:        #ffffff;
@@ -59,7 +59,7 @@
   --shadow-lg:   0 8px 40px rgba(0,0,0,0.10);
   --chart-grid:  rgba(0,0,0,0.05);
   --skeleton:    rgba(0,0,0,0.06);
-  --surface:     rgba(0,0,0,0.02);
+  --surface:     #ffffff;
 
   --accent-dim:  rgba(var(--accent-rgb), 0.06);
   --accent-glow: 0 0 20px rgba(var(--accent-rgb), 0.08);
