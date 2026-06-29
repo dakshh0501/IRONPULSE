@@ -1,8 +1,9 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useCallback } from 'react'
 
 const STARTUP_VIDEO_SRC = '/videos/Startup.mp4'
 
 export default function StartupVideo({ onEnd }) {
+  const notifyEnd = useCallback(() => { onEnd?.() }, [onEnd])
   const videoRef = useRef(null)
   const [state, setState] = useState('loading')
 
@@ -13,7 +14,7 @@ export default function StartupVideo({ onEnd }) {
     let timeout = setTimeout(() => {
       console.warn('[StartupVideo] Fallback timeout reached (3s) — continuing')
       setState('done')
-      onEnd()
+      notifyEnd()
     }, 3000)
 
     const handleEnd = () => {
@@ -21,7 +22,7 @@ export default function StartupVideo({ onEnd }) {
       setState('fading')
       setTimeout(() => {
         setState('done')
-        onEnd()
+        notifyEnd()
       }, 400)
     }
 
@@ -32,7 +33,7 @@ export default function StartupVideo({ onEnd }) {
         clearTimeout(timeout)
         timeout = setTimeout(() => {
           setState('done')
-          onEnd()
+          notifyEnd()
         }, 2500)
       })
     }
@@ -48,7 +49,7 @@ export default function StartupVideo({ onEnd }) {
       clearTimeout(timeout)
       timeout = setTimeout(() => {
         setState('done')
-        onEnd()
+        notifyEnd()
       }, 2000)
     }
 
@@ -64,7 +65,7 @@ export default function StartupVideo({ onEnd }) {
       video.removeEventListener('ended', handleEnd)
       video.removeEventListener('error', handleError)
     }
-  }, [onEnd])
+  }, [notifyEnd])
 
   if (state === 'done') return null
 

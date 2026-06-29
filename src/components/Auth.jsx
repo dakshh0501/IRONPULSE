@@ -115,6 +115,7 @@ export default function Auth() {
           return
         }
         const result = await register({ name: form.name, email: form.email, password: form.password, gymName: form.gymName, phone: form.phone })
+        setLoading(false)
         if (result && result.includes('pending')) {
           setPendingName(form.name)
           setMode('pending')
@@ -128,7 +129,7 @@ export default function Auth() {
     } catch (err) {
       console.error('Auth error:', err)
     } finally {
-      if (mode !== 'signup') setLoading(false)
+      setLoading(false)
     }
   }, [mode, signupStep, form, confirmPassword, remember, login, register, sendPasswordReset, setAuthError])
 

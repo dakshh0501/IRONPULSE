@@ -39,24 +39,26 @@ export function subscribeToSubscriptionHistory(gymId, callback) {
 async function updateGymSubscription(gymId, updates) {
   if (!gymId) throw new Error('gymId required')
   const gymRef = doc(db, 'gyms', gymId)
-  const existing = (await getDoc(gymRef)).data()?.subscription || {}
-  const deviceLimit = updates.planType
-    ? getDeviceLimit(updates.planType)
-    : existing.deviceLimit || 2
-  await updateDoc(gymRef, {
-    subscription: {
-      ...existing,
-      licenseKey: existing.licenseKey || '',
-      licenseStatus: existing.licenseStatus || '',
-      deviceLimit: deviceLimit,
-      lastLicenseCheck: existing.lastLicenseCheck || null,
-      ...updates,
-      updatedAt: serverTimestamp(),
-    },
-    subscriptionId: gymId,
-    subscriptionStatus: updates.status || existing.status || 'active',
-    updatedAt: serverTimestamp(),
-  })
+
+  // Use dot-notation field paths for atomic partial updates.
+  // This avoids the read-then-write race condition: updateDoc only
+  // touches the specified fields; all other subscription fields are
+  // preserved server-side (no stale spread from a prior getDoc).
+  const fieldUpdates = {}
+  if (updates.planType) {
+    fieldUpdates['subscription.deviceLimit'] = getDeviceLimit(updates.planType)
+  }
+  for (const [key, value] of Object.entries(updates)) {
+    fieldUpdates[`subscription.${key}`] = value
+  }
+  fieldUpdates['subscription.updatedAt'] = serverTimestamp()
+  fieldUpdates.subscriptionId = gymId
+  if (updates.status) {
+    fieldUpdates.subscriptionStatus = updates.status
+  }
+  fieldUpdates.updatedAt = serverTimestamp()
+
+  await updateDoc(gymRef, fieldUpdates)
 }
 
 async function addHistoryRecord(record) {

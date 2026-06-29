@@ -8,13 +8,34 @@ import { getAuth, browserLocalPersistence, setPersistence } from 'firebase/auth'
 import { getStorage } from 'firebase/storage'
 import { getFunctions } from 'firebase/functions'
 
+const REQUIRED_ENV_VARS = {
+  VITE_FIREBASE_API_KEY: import.meta.env.VITE_FIREBASE_API_KEY,
+  VITE_FIREBASE_AUTH_DOMAIN: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  VITE_FIREBASE_PROJECT_ID: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  VITE_FIREBASE_STORAGE_BUCKET: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  VITE_FIREBASE_MESSAGING_SENDER_ID: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  VITE_FIREBASE_APP_ID: import.meta.env.VITE_FIREBASE_APP_ID,
+}
+
+const missingVars = Object.entries(REQUIRED_ENV_VARS)
+  .filter(([, value]) => !value)
+  .map(([key]) => key)
+
+if (missingVars.length > 0) {
+  throw new Error(
+    `Missing required environment variables: ${missingVars.join(', ')}. ` +
+    'Create a .env file in the project root with these values. ' +
+    'See .env.example for the required format.'
+  )
+}
+
 export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: REQUIRED_ENV_VARS.VITE_FIREBASE_API_KEY,
+  authDomain: REQUIRED_ENV_VARS.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: REQUIRED_ENV_VARS.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: REQUIRED_ENV_VARS.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: REQUIRED_ENV_VARS.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: REQUIRED_ENV_VARS.VITE_FIREBASE_APP_ID,
 }
 
 // Initialize Firebase app
