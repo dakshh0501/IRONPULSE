@@ -8,11 +8,7 @@ import { useState, useMemo, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { getPendingAttemptsForSubscription } from '../services/paymentService'
-
-const PLAN_AMOUNTS = {
-  'Trial': 0, 'Standard': 9999, 'Premium': 19999,
-  'Quarterly': 29999, 'Annual': 99999, 'Lifetime': 499999, 'Day Pass': 99,
-}
+import { PLAN_AMOUNTS } from '../constants/plans'
 
 export default function Checkout() {
   const [searchParams] = useSearchParams()

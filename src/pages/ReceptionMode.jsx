@@ -1,17 +1,15 @@
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import QRScanner from '../components/QRScanner'
 import { addAttendance as addAttendanceService } from '../services/attendanceService'
 
-const todayStr = new Date().toISOString().split('T')[0]
-
-const todayLabel = new Date().toLocaleDateString('en-IN', {
-  weekday: 'long',
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-})
+function getTodayStr() { return new Date().toISOString().split('T')[0] }
+function getTodayLabel() {
+  return new Date().toLocaleDateString('en-IN', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  })
+}
 
 const FB_SUCCESS   = 'success'
 const FB_DUPLICATE = 'duplicate'
@@ -33,7 +31,7 @@ function getMemberExpiry(member) {
 function isMemberExpired(member) {
   const d = getMemberExpiry(member)
   if (!d) return false
-  return new Date(d) < new Date(todayStr)
+  return new Date(d) < new Date(getTodayStr())
 }
 function getMemberUid(member) {
   return member.authUid || member.uid || member.id
@@ -307,6 +305,16 @@ export default function ReceptionMode() {
   const [showManual,  setShowManual]  = useState(false)
   const [quickSearch, setQuickSearch] = useState('')
   const [lastUid,     setLastUid]     = useState(null)
+  const [todayStr,    setTodayStr]    = useState(getTodayStr)
+  const [todayLabel,  setTodayLabel]  = useState(getTodayLabel)
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      const ts = getTodayStr()
+      if (ts !== todayStr) { setTodayStr(ts); setTodayLabel(getTodayLabel()) }
+    }, 60000)
+    return () => clearInterval(id)
+  }, [todayStr])
 
   const timerRef = useRef(null)
 
@@ -315,7 +323,7 @@ export default function ReceptionMode() {
       .filter(l => l.date === todayStr)
       .slice()
       .sort((a, b) => (b.time || '').localeCompare(a.time || ''))
-  , [safeAttendance])
+  , [safeAttendance, todayStr])
 
   const checkedInIds = useMemo(() =>
     new Set(todayLogs.map(l => l.memberId))
@@ -331,7 +339,7 @@ export default function ReceptionMode() {
   }, [quickSearch, safeMembers])
 
   const attendanceRate = safeMembers.length > 0
-    ? Math.round((todayLogs.length / safeMembers.length) * 100) + '%'
+    ? Math.round((checkedInIds.size / safeMembers.length) * 100) + '%'
     : '—'
 
   const pushFeedback = useCallback((type, member, extra) => {
@@ -380,7 +388,7 @@ export default function ReceptionMode() {
     setLastUid(uid)
     setTimeout(() => setLastUid(null), 4000)
     pushFeedback(FB_SUCCESS, member, { time })
-  }, [checkedInIds, pushFeedback])
+  }, [checkedInIds, pushFeedback, todayStr])
 
   const handleScanSuccess = useCallback((rawText) => {
     const scannedId = String(rawText).trim()

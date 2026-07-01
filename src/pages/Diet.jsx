@@ -1,94 +1,6 @@
 import { useState, useMemo, useEffect, memo } from 'react'
 import { useApp } from '../context/AppContext'
 import { buildDietPlanWhatsAppMessage, buildDietPlanWhatsAppLink } from '../utils/whatsappReminders'
-// ─── Mock / seed data (mirrors mockData.js pattern) ────────────────────────
-const INITIAL_PLANS = [
-  {
-    id: 1,
-    name: 'Lean Shred Protocol',
-    goal: 'Fat Loss',
-    calories: 1800,
-    protein: 160,
-    carbs: 150,
-    fat: 55,
-    assignedMember: 'Riya Sharma',
-    assignedTrainer: 'Coach Arjun',
-    duration: '8 weeks',
-    status: 'Active',
-    createdAt: '2025-04-10',
-    meals: [
-      { id: 1, name: 'Breakfast', time: '7:00 AM', calories: 380, items: ['Oats 80g', 'Egg whites 4', 'Banana 1', 'Black coffee'] },
-      { id: 2, name: 'Mid Morning', time: '10:30 AM', calories: 200, items: ['Greek yogurt 150g', 'Almonds 20g', 'Green apple'] },
-      { id: 3, name: 'Lunch', time: '1:00 PM', calories: 480, items: ['Brown rice 120g', 'Grilled chicken 150g', 'Broccoli 100g', 'Olive oil 1 tsp'] },
-      { id: 4, name: 'Pre-Workout', time: '4:30 PM', calories: 220, items: ['Sweet potato 100g', 'Whey protein shake', 'Black coffee'] },
-      { id: 5, name: 'Dinner', time: '8:00 PM', calories: 320, items: ['Salmon 130g', 'Spinach salad', 'Quinoa 80g', 'Lemon dressing'] },
-      { id: 6, name: 'Night Snack', time: '10:00 PM', calories: 200, items: ['Casein protein shake', 'Peanut butter 1 tbsp'] },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Muscle Builder Extreme',
-    goal: 'Muscle Gain',
-    calories: 3200,
-    protein: 220,
-    carbs: 380,
-    fat: 85,
-    assignedMember: 'Karan Mehta',
-    assignedTrainer: 'Coach Priya',
-    duration: '12 weeks',
-    status: 'Active',
-    createdAt: '2025-03-22',
-    meals: [
-      { id: 1, name: 'Breakfast', time: '7:00 AM', calories: 680, items: ['Whole eggs 4', 'Whole wheat toast 3 slices', 'Avocado half', 'OJ 250ml', 'Whey shake'] },
-      { id: 2, name: 'Mid Morning', time: '10:00 AM', calories: 420, items: ['Mass gainer shake', 'Banana 2', 'Peanut butter 2 tbsp'] },
-      { id: 3, name: 'Lunch', time: '1:00 PM', calories: 780, items: ['White rice 200g', 'Chicken breast 200g', 'Lentils 100g', 'Mixed veggies', 'Ghee 1 tsp'] },
-      { id: 4, name: 'Pre-Workout', time: '4:30 PM', calories: 380, items: ['Banana 2', 'Whey protein 40g', 'Oats 60g', 'Creatine'] },
-      { id: 5, name: 'Post-Workout', time: '7:00 PM', calories: 500, items: ['Mass gainer 80g', 'Milk 400ml', 'Banana'] },
-      { id: 6, name: 'Dinner', time: '9:00 PM', calories: 440, items: ['Beef 180g', 'Sweet potato 150g', 'Broccoli', 'Olive oil'] },
-    ],
-  },
-  {
-    id: 3,
-    name: 'Keto Performance',
-    goal: 'Keto / Low Carb',
-    calories: 2100,
-    protein: 175,
-    carbs: 30,
-    fat: 145,
-    assignedMember: 'Sanya Patel',
-    assignedTrainer: 'Coach Arjun',
-    duration: '6 weeks',
-    status: 'Paused',
-    createdAt: '2025-05-01',
-    meals: [
-      { id: 1, name: 'Breakfast', time: '8:00 AM', calories: 500, items: ['Eggs 3 + yolks', 'Bacon 3 strips', 'Avocado 1', 'Butter coffee'] },
-      { id: 2, name: 'Lunch', time: '1:00 PM', calories: 620, items: ['Salmon 180g', 'Caesar salad no croutons', 'Olive oil dressing', 'Cheese 40g'] },
-      { id: 3, name: 'Snack', time: '4:00 PM', calories: 280, items: ['Almonds 40g', 'Cheddar 30g', 'Celery sticks'] },
-      { id: 4, name: 'Dinner', time: '8:00 PM', calories: 700, items: ['Ribeye steak 220g', 'Asparagus', 'Garlic butter', 'Spinach sauté'] },
-    ],
-  },
-  {
-    id: 4,
-    name: 'Maintenance & Balance',
-    goal: 'Maintenance',
-    calories: 2400,
-    protein: 140,
-    carbs: 280,
-    fat: 75,
-    assignedMember: 'Arjun Singh',
-    assignedTrainer: 'Coach Priya',
-    duration: 'Ongoing',
-    status: 'Active',
-    createdAt: '2025-02-14',
-    meals: [
-      { id: 1, name: 'Breakfast', time: '7:30 AM', calories: 520, items: ['Poha 150g', 'Boiled eggs 2', 'Fruits bowl', 'Green tea'] },
-      { id: 2, name: 'Lunch', time: '1:00 PM', calories: 680, items: ['Dal 1 cup', 'Roti 3', 'Sabzi', 'Curd 100g', 'Salad'] },
-      { id: 3, name: 'Snack', time: '5:00 PM', calories: 300, items: ['Sprouts chaat', 'Buttermilk', 'Roasted chana 30g'] },
-      { id: 4, name: 'Dinner', time: '8:30 PM', calories: 500, items: ['Khichdi 200g', 'Grilled paneer 100g', 'Raita', 'Mixed salad'] },
-      { id: 5, name: 'Post Dinner', time: '10:00 PM', calories: 400, items: ['Warm milk with turmeric', 'Banana'] },
-    ],
-  },
-]
 
 const GOALS = Object.freeze(['Fat Loss', 'Muscle Gain', 'Keto / Low Carb', 'Maintenance', 'Endurance', 'Vegan', 'Diabetic Friendly'])
 const STATUS_OPTIONS = Object.freeze(['Active', 'Paused', 'Completed'])
@@ -468,6 +380,8 @@ const EMPTY_PLAN = {
 }
 
 function PlanFormModal({ existing, onSave, onClose, members = [] }) {
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [form, setForm] = useState(() => {
     if (existing) {
       const f = { ...existing, meals: existing.meals.map(m => ({ ...m, items: [...m.items] })) }
@@ -505,16 +419,24 @@ function PlanFormModal({ existing, onSave, onClose, members = [] }) {
     return e
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const e = validate()
     if (Object.keys(e).length) { setErrors(e); return }
-    onSave({
-      ...form,
-      id: existing?.id || Date.now(),
-      calories: +form.calories, protein: +form.protein, carbs: +form.carbs, fat: +form.fat,
-      createdAt: existing?.createdAt || new Date().toISOString().split('T')[0],
-      meals: form.meals.map(m => ({ ...m, calories: +m.calories, items: m.items.filter(i => i.trim()) })),
-    })
+    setSaving(true)
+    setSaveError('')
+    try {
+      await onSave({
+        ...form,
+        id: existing?.id || Date.now(),
+        calories: +form.calories, protein: +form.protein, carbs: +form.carbs, fat: +form.fat,
+        createdAt: existing?.createdAt || new Date().toISOString().split('T')[0],
+        meals: form.meals.map(m => ({ ...m, calories: +m.calories, items: m.items.filter(i => i.trim()) })),
+      })
+    } catch (e) {
+      setSaveError(e?.message || 'Save failed. Check your connection.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const addMeal = () => setForm(f => ({
@@ -650,7 +572,14 @@ function PlanFormModal({ existing, onSave, onClose, members = [] }) {
                 </div>
                 <div>
                   <label style={labelStyle}>Assigned Trainer *</label>
-                  <input {...inp('assignedTrainer', 'Trainer name')} />
+                  <select value={form.assignedTrainer} onChange={e => {
+                    const val = e.target.value
+                    setForm(f => ({ ...f, assignedTrainer: val }))
+                    setErrors(err => ({ ...err, assignedTrainer: '' }))
+                  }} style={{ ...inp('assignedTrainer', 'Trainer name').style, cursor: 'pointer' }}>
+                    <option value="">— Select trainer —</option>
+                    {trainers.map(t => <option key={t.id} value={t.name} style={{ background: 'var(--bg2)' }}>{t.name}</option>)}
+                  </select>
                   {errors.assignedTrainer && <div style={errStyle}>{errors.assignedTrainer}</div>}
                 </div>
               </div>
@@ -714,10 +643,11 @@ function PlanFormModal({ existing, onSave, onClose, members = [] }) {
 
               <button onClick={addMeal} style={{ padding: '10px', background: 'var(--hover)', border: '1px dashed var(--border)', borderRadius: 10, color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer' }}>+ ADD MEAL</button>
 
+              {saveError && <p style={{ color:'var(--red)', fontSize:12, margin:0, textAlign:'center' }}>{saveError}</p>}
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button onClick={() => setStep(0)} style={{ flex: 1, padding: '12px', background: 'var(--hover)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-muted)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>← BACK</button>
-                <button onClick={handleSave} style={{ flex: 2, padding: '12px', background: 'linear-gradient(135deg,var(--orange),#F59E0B)', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', letterSpacing: 1 }}>
-                  {existing ? '✔ SAVE CHANGES' : '✔ CREATE PLAN'}
+                <button onClick={() => setStep(0)} disabled={saving} style={{ flex: 1, padding: '12px', background: 'var(--hover)', border: '1px solid var(--border)', borderRadius: 10, color: saving ? 'var(--text-muted)' : 'var(--text-muted)', fontWeight: 700, fontSize: 13, cursor: saving ? 'not-allowed' : 'pointer' }}>← BACK</button>
+                <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: '12px', background: saving ? 'var(--disabled)' : 'linear-gradient(135deg,var(--orange),#F59E0B)', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 800, fontSize: 14, cursor: saving ? 'not-allowed' : 'pointer', letterSpacing: 1 }}>
+                  {saving ? 'Saving…' : existing ? '✔ SAVE CHANGES' : '✔ CREATE PLAN'}
                 </button>
               </div>
             </div>
@@ -754,7 +684,7 @@ function DeleteConfirm({ plan, onConfirm, onCancel }) {
 
 // ─── Main Diet Page ───────────────────────────────────────────────────────────
 export default function Diet({ search = '' }) {
-  const { darkMode, gymSettings, dietPlans, addDietPlan, updateDietPlan, deleteDietPlan, members } = useApp()
+  const { gymSettings, dietPlans, addDietPlan, updateDietPlan, deleteDietPlan, members, trainers } = useApp()
   const gymName = gymSettings?.name || 'IronForge Gym'
   const [viewPlan, setViewPlan] = useState(null)
   const [editPlan, setEditPlan] = useState(null)
@@ -792,11 +722,12 @@ export default function Diet({ search = '' }) {
         const { id, ...rest } = plan
         await addDietPlan(rest)
       }
+      setShowForm(false)
+      setEditPlan(null)
     } catch (e) {
       console.error('Failed to save diet plan:', e)
+      throw e
     }
-    setShowForm(false)
-    setEditPlan(null)
   }
 
   const handleDelete = async (id) => {
@@ -910,7 +841,7 @@ export default function Diet({ search = '' }) {
 
       {/* Modals */}
       {viewPlan && <PlanDetailModal plan={viewPlan} onClose={() => setViewPlan(null)} onEdit={(p) => { setViewPlan(null); openEdit(p) }} gymName={gymName} />}
-      {showForm && <PlanFormModal existing={editPlan} onSave={handleSave} onClose={() => { setShowForm(false); setEditPlan(null) }} members={members} />}
+      {showForm && <PlanFormModal existing={editPlan} onSave={handleSave} onClose={() => { setShowForm(false); setEditPlan(null) }} members={members} trainers={trainers} />}
       {delPlan && <DeleteConfirm plan={delPlan} onConfirm={() => handleDelete(delPlan.id)} onCancel={() => setDelPlan(null)} />}
     </div>
   )

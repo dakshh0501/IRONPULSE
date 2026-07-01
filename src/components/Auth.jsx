@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { openSupportWhatsApp } from '../utils/whatsappSupport'
+import HexBackground from './HexBackground'
 
 const authStyles = document.createElement('style')
 authStyles.textContent = `
@@ -73,7 +75,7 @@ const inpIcon = {
 }
 
 export default function Auth() {
-  const { login, register, sendPasswordReset, authError, setAuthError } = useAuth()
+  const { login, register, sendPasswordReset, authError, setAuthError, currentUser } = useAuth()
   const [searchParams] = useSearchParams()
 
   const [mode, setMode] = useState(searchParams.get('tab') === 'signup' ? 'signup' : 'login')
@@ -153,6 +155,7 @@ export default function Auth() {
       minHeight: '100vh', background: '#070a12', display: 'flex', alignItems: 'center', justifyContent: 'center',
       position: 'relative', overflow: 'hidden', padding: 24
     }}>
+      <HexBackground />
       {/* Glow orbs */}
       <div style={{ position: 'absolute', top: '15%', left: '10%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(232,66,10,0.06), transparent 70%)', pointerEvents: 'none', animation: 'auth-float-d 12s ease-in-out infinite' }} />
       <div style={{ position: 'absolute', bottom: '10%', right: '15%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,200,180,0.04), transparent 70%)', pointerEvents: 'none', animation: 'auth-float 15s ease-in-out infinite reverse' }} />
@@ -301,7 +304,7 @@ export default function Auth() {
                 <button onClick={() => setMode('login')} className="auth-btn-primary" style={{ marginBottom: 10 }}>
                   Back to Sign In
                 </button>
-                <button className="auth-btn-secondary" style={{ width: '100%' }}>
+                <button className="auth-btn-secondary" style={{ width: '100%' }} onClick={() => openSupportWhatsApp({ user: currentUser, page: 'Pending Approval', issue: 'Approval Status' })}>
                   Contact Support
                 </button>
               </div>
@@ -518,11 +521,11 @@ export default function Auth() {
 
                     {/* Bottom links */}
                     <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 16, fontSize: 11, color: '#384860' }}>
-                      <a href="#" style={{ color: '#384860', textDecoration: 'none' }}>Privacy</a>
+                      <a href="javascript:void(0)" style={{ color: '#384860', textDecoration: 'none' }}>Privacy</a>
                       <span>·</span>
-                      <a href="#" style={{ color: '#384860', textDecoration: 'none' }}>Terms</a>
+                      <a href="javascript:void(0)" style={{ color: '#384860', textDecoration: 'none' }}>Terms</a>
                       <span>·</span>
-                      <a href="#" style={{ color: '#384860', textDecoration: 'none' }}>Support</a>
+                      <a href="#" style={{ color: '#384860', textDecoration: 'none' }} onClick={(e) => { e.preventDefault(); const ctx = mode === 'reset' ? { page:'Forgot Password', issue:'Password Reset' } : mode === 'signup' ? { page:'Sign Up', issue:'Registration Help' } : { page:'Login', issue:'Unable to Login' }; openSupportWhatsApp({ ...ctx, user: currentUser }) }}>Support</a>
                     </div>
                   </div>
                 )}

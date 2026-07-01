@@ -91,7 +91,7 @@ function StatCard({ label, value, icon, color, delay = 0 }) {
 }
 
 export default function SuperAdminNotifications() {
-  const { notifications, markAllNotifsRead, deleteNotification } = useApp()
+  const { notifications, markAllNotifsRead, deleteNotif } = useApp()
   const [filter, setFilter] = useState('all')
 
   const typeCounts = useMemo(() => {
@@ -195,7 +195,7 @@ export default function SuperAdminNotifications() {
                   <p style={{ fontSize: 12, color: '#6070a0', margin: '4px 0 0', lineHeight: 1.5 }}>{n.message}</p>
                 </div>
                 <button className="btn btn-sm" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.1)', borderRadius: 8, color: '#ef4444', padding: '4px 10px', fontSize: 10, cursor: 'pointer', flexShrink: 0 }}
-                  onClick={() => deleteNotification?.(n.id)}>Delete</button>
+                  onClick={() => deleteNotif?.(n.id)}>Delete</button>
               </div>
             ))}
           </div>

@@ -11,7 +11,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import { getPaymentAttempt } from '../services/paymentService'
-import LoadingVideo from '../components/LoadingVideo'
+import LoadingScreen from '../components/LoadingScreen'
 import { updateSubscription } from '../services/firestoreService'
 
 const POLL_INTERVAL = 10000
@@ -203,7 +203,7 @@ function PaymentStatusContent() {
         textAlign: 'center',
         boxShadow: 'var(--shadow)',
       }}>
-        {status === 'loading' && <LoadingVideo />}
+        {status === 'loading' && <LoadingScreen />}
 
         {status === 'error' && (
           <>
@@ -383,12 +383,4 @@ function PaymentStatusContent() {
   )
 }
 
-export default function PaymentStatus() {
-  return (
-    <AuthProvider>
-      <AppProvider>
-        <PaymentStatusContent />
-      </AppProvider>
-    </AuthProvider>
-  )
-}
+export default PaymentStatusContent

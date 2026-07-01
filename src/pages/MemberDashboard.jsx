@@ -298,7 +298,7 @@ export default function MemberDashboard() {
 
   const membershipStatus = isExpired(me?.expiry) ? '❌ Expired' : '✅ Active'
 
-  const latestPayment = myPayments[0]
+  const latestPayment = [...myPayments].sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt))[0]
 
   return (
     <div className="dashboard-page">

@@ -138,7 +138,7 @@ function MemberModal({ member, trainers, onSave, onClose, plans }) {
   }
 
   return (
-    <div className="modal-overlay">
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal modal-lg">
         <div className="modal-header">
           <div>
@@ -280,7 +280,7 @@ function MemberModal({ member, trainers, onSave, onClose, plans }) {
 // ─────────────────────────────────────────────────────────────
 function DeleteConfirm({ member, onConfirm, onClose }) {
   return (
-    <div className="modal-overlay">
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal modal-sm">
         <div style={{ textAlign:'center', padding:'10px 0 20px' }}>
           <div style={{ fontSize:48, marginBottom:12 }}>🗑️</div>
@@ -304,6 +304,12 @@ function DeleteConfirm({ member, onConfirm, onClose }) {
 // ─────────────────────────────────────────────────────────────
 function MemberDrawer({ member, onClose, onEdit, onCheckIn, onRenew, isAdmin, isTrainer, attendance, payments, progressLogs, dietPlans, workoutPlans, plans, trainers }) {
   const [tab, setTab] = useState('profile')
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose?.() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
 
   const memberAttendance = useMemo(() =>
     attendance.filter(a => a.memberId === (member.authUid || member.uid || member.id)).slice(-10).reverse(),
@@ -552,7 +558,8 @@ export default function Members({ search: propSearch }) {
   const pageSize = 15
 
   const statuses = ['All', 'Active', 'Expired', 'Trial']
-  const todayDate = useMemo(() => new Date(), [])
+  const [todayDate, setTodayDate] = useState(() => new Date())
+  useEffect(() => { const t = setInterval(() => setTodayDate(new Date()), 60000); return () => clearInterval(t) }, [])
 
   const normalizedMembers = useMemo(() =>
     members.map(member => {
@@ -562,8 +569,9 @@ export default function Members({ search: propSearch }) {
     }),
   [members, todayDate])
 
+  const currentTrainer = useMemo(() => trainers.find(t => t.authUid === currentUser?.uid), [trainers, currentUser])
+
   const filtered = useMemo(() => {
-    const currentTrainer = trainers.find(t => t.authUid === currentUser?.uid)
     return normalizedMembers.filter(m => {
       const matchTrainer = effectiveRole === 'trainer' ? m.trainerId === currentTrainer?.id : true
       const matchFilter  = filter === 'All' || m.status === filter
@@ -615,27 +623,37 @@ export default function Members({ search: propSearch }) {
   const handleBulkDelete = useCallback(async () => {
     if (selectedIds.size === 0) return
     if (!window.confirm(`Delete ${selectedIds.size} selected members?`)) return
-    for (const id of selectedIds) await deleteMember(id)
+    const results = await Promise.allSettled(
+      Array.from(selectedIds).map(id => deleteMember(id))
+    )
+    const succeeded = results.filter(r => r.status === 'fulfilled').length
+    const failed = results.filter(r => r.status === 'rejected').length
+    if (failed > 0) alert(`Deleted ${succeeded} member(s). ${failed} deletion(s) failed.`)
     setSelectedIds(new Set())
   }, [selectedIds, deleteMember])
 
   const handleBulkRenew = useCallback(async () => {
     if (selectedIds.size === 0) return
     if (!window.confirm(`Renew ${selectedIds.size} selected members?`)) return
-    for (const id of selectedIds) {
-      const m = members.find(mm => mm.id === id)
-      if (!m) continue
-      const today = new Date()
-      const matchedPlan = plans.find(p => p.name === m.plan)
-      const planPrice = matchedPlan?.price || m.planPrice || 1499
-      const durationDays = matchedPlan?.durationDays || 30
-      const nextDate = new Date(); nextDate.setDate(today.getDate() + durationDays)
-      const expiry = nextDate.toISOString().split('T')[0]
-      await updateMember(id, { status:'Active', expiry, planPrice })
-      await addPayment({ memberId: id, memberName: m.name, amount: planPrice, status:'Paid', plan: m.plan, date: today.toISOString().split('T')[0] })
-    }
+    const results = await Promise.allSettled(
+      Array.from(selectedIds).map(async (id) => {
+        const m = members.find(mm => mm.id === id)
+        if (!m) return
+        const today = new Date()
+        const matchedPlan = plans.find(p => p.name === m.plan)
+        const planPrice = matchedPlan?.price || m.planPrice || 1499
+        const durationDays = matchedPlan?.durationDays || 30
+        const nextDate = new Date(); nextDate.setDate(today.getDate() + durationDays)
+        const expiry = nextDate.toISOString().split('T')[0]
+        await updateMember(id, { status:'Active', expiry, planPrice })
+        await addPayment({ memberId: id, memberName: m.name, amount: planPrice, status:'Paid', plan: m.plan, date: today.toISOString().split('T')[0], authUid: m.authUid || '' })
+      })
+    )
+    const succeeded = results.filter(r => r.status === 'fulfilled').length
+    const failed = results.filter(r => r.status === 'rejected').length
+    if (failed > 0) alert(`Renewed ${succeeded} member(s). ${failed} renewal(s) failed.`)
     setSelectedIds(new Set())
-  }, [selectedIds, members, plans, updateMember])
+  }, [selectedIds, members, plans, updateMember, addPayment])
 
   return (
     <div className="page-container">
@@ -817,8 +835,10 @@ export default function Members({ search: propSearch }) {
             const planPrice = matchedPlan?.price || m.planPrice || 1499
             const durationDays = matchedPlan?.durationDays || 30
             const nextDate = new Date(); nextDate.setDate(today.getDate() + durationDays)
-            await updateMember(m.id, { status:'Active', expiry: nextDate.toISOString().split('T')[0], planPrice })
-            await addPayment({ memberId: m.id, memberName: m.name, amount: planPrice, status:'Paid', plan: m.plan, date: today.toISOString().split('T')[0] })
+            try {
+              await updateMember(m.id, { status:'Active', expiry: nextDate.toISOString().split('T')[0], planPrice })
+              await addPayment({ memberId: m.id, memberName: m.name, amount: planPrice, status:'Paid', plan: m.plan, date: today.toISOString().split('T')[0], authUid: m.authUid || '' })
+            } catch (err) { console.error('card renew failed:', m.id, err) }
           }}
           isAdmin={isAdmin}
           isTrainer={isTrainer}
@@ -889,9 +909,9 @@ const MemberRow = memo(({ member, selectedIds, toggleSelect, isAdmin, isTrainer,
         <div className="members-actions">
           <button className="btn-ico" title="View Profile" aria-label="View profile" onClick={() => setViewMember(m)}>👁</button>
           {isAdmin && <button className="btn-ico" title="Edit" aria-label="Edit member" onClick={() => { setEditMember(m); setModalOpen(true) }}>✏️</button>}
-          {isAdmin && <button className="btn-ico" title="Collect Payment" aria-label="Collect payment" onClick={() => { if (window.confirm(`Create payment for ${m.name}?`)) { const today = new Date(); addPayment({ memberId: m.id, memberName: m.name, amount: m.planPrice || 1499, status:'Pending', plan: m.plan, date: today.toISOString().split('T')[0] }) } }}>💰</button>}
+          {isAdmin && <button className="btn-ico" title="Collect Payment" aria-label="Collect payment" onClick={async () => { if (!window.confirm(`Create payment for ${m.name}?`)) return; try { const today = new Date(); await addPayment({ memberId: m.id, memberName: m.name, amount: m.planPrice || 1499, status:'Pending', plan: m.plan, date: today.toISOString().split('T')[0], authUid: m.authUid || '' }) } catch (err) { console.error('collect payment failed:', err) } }}>💰</button>}
           {(isAdmin || isTrainer) && <button className="btn-ico" title="Check In" aria-label="Check in" onClick={() => checkInMember(m)}>✅</button>}
-          {isAdmin && <button className="btn-ico" title="Renew" aria-label="Renew membership" onClick={async () => { if (!window.confirm(`Renew ${m.name}'s membership?`)) return; const today = new Date(); const matchedPlan = plans.find(p => p.name === m.plan); const planPrice = matchedPlan?.price || m.planPrice || 1499; const durationDays = matchedPlan?.durationDays || 30; const nextDate = new Date(); nextDate.setDate(today.getDate() + durationDays); const expiry = nextDate.toISOString().split('T')[0]; await updateMember(m.id, { status:'Active', expiry, planPrice }); await addPayment({ memberId: m.id, memberName: m.name, amount: planPrice, status:'Paid', plan: m.plan, date: today.toISOString().split('T')[0] }) }}>🔄</button>}
+          {isAdmin && <button className="btn-ico" title="Renew" aria-label="Renew membership" onClick={async () => { if (!window.confirm(`Renew ${m.name}'s membership?`)) return; try { const today = new Date(); const matchedPlan = plans.find(p => p.name === m.plan); const planPrice = matchedPlan?.price || m.planPrice || 1499; const durationDays = matchedPlan?.durationDays || 30; const nextDate = new Date(); nextDate.setDate(today.getDate() + durationDays); const expiry = nextDate.toISOString().split('T')[0]; await updateMember(m.id, { status:'Active', expiry, planPrice }); await addPayment({ memberId: m.id, memberName: m.name, amount: planPrice, status:'Paid', plan: m.plan, date: today.toISOString().split('T')[0], authUid: m.authUid || '' }) } catch (err) { console.error('renew member failed:', err) } }}>🔄</button>}
           {isAdmin && <button className="btn-ico btn-ico-danger" title="Delete" aria-label="Delete member" onClick={() => setDelMember(m)}>🗑</button>}
         </div>
       </td>

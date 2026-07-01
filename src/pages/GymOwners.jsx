@@ -260,7 +260,7 @@ export default function GymOwners({ setPage }) {
               <div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button
-                    onClick={() => setPage('gymOwners')}
+                    onClick={() => setDrawerGym(gym)}
                     className="btn btn-sm btn-primary"
                     title="View Details"
                   >

@@ -5,8 +5,10 @@ import { db } from '../../firebase'
 import { resetAllDevices } from '../../services/deviceService'
 import { addLicenseHistory } from '../../services/licenseHistoryService'
 
-const licStyles = document.createElement('style')
-licStyles.textContent = `
+if (!document.getElementById('lic-styles')) {
+  const licStyles = document.createElement('style')
+  licStyles.id = 'lic-styles'
+  licStyles.textContent = `
   @keyframes lic-fade-up {
     0% { opacity: 0; transform: translateY(16px); }
     100% { opacity: 1; transform: translateY(0); }
@@ -325,7 +327,8 @@ licStyles.textContent = `
     .lic-stat-card .lic-stat-icon { width: 36px; height: 36px; font-size: 16px; }
   }
 `
-document.head.appendChild(licStyles)
+  document.head.appendChild(licStyles)
+}
 
 const ROWS_PER_PAGE = 10
 const STATUS_COLORS = {
@@ -434,7 +437,11 @@ function formatDate(d) {
 }
 
 function generateKey() {
-  const seg = () => Math.random().toString(36).substring(2, 6).toUpperCase()
+  const seg = () => {
+    const a = new Uint8Array(4)
+    crypto.getRandomValues(a)
+    return Array.from(a, b => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[b % 36]).join('')
+  }
   return `IRP-${seg()}-${seg()}-${seg()}`
 }
 
@@ -885,15 +892,15 @@ export default function LicenseKeys() {
                           else if (key === 'reset') {
                             if (window.confirm(`Reset all devices for ${drawerGym.gymName}?`)) {
                               resetAllDevices(drawerGym.gymId).then(() => {
-                                addLicenseHistory({ gymId: drawerGym.gymId, licenseKey: drawerGym.key, action: 'Device Reset', performedBy: 'super_admin', deviceId: 'all' })
-                              })
+                                addLicenseHistory({ gymId: drawerGym.gymId, licenseKey: drawerGym.key, action: 'Device Reset', performedBy: 'super_admin', deviceId: 'all' }).catch(err => console.error('license history failed:', err))
+                              }).catch(err => console.error('reset devices failed:', err))
                             }
                           } else if (key === 'activate') handleActivate(drawerGym.gymId, drawerGym.key)
                           else if (key === 'revoke') handleRevoke(drawerGym.gymId, drawerGym.key)
                           else if (key === 'suspend') {
                             updateDoc(doc(db, 'gyms', drawerGym.gymId), { 'subscription.licenseStatus': 'suspended', 'subscription.updatedAt': new Date() }).then(() => {
-                              addLicenseHistory({ gymId: drawerGym.gymId, licenseKey: drawerGym.key, action: 'Suspended', performedBy: 'super_admin', deviceId: 'system' })
-                            })
+                              addLicenseHistory({ gymId: drawerGym.gymId, licenseKey: drawerGym.key, action: 'Suspended', performedBy: 'super_admin', deviceId: 'system' }).catch(err => console.error('license history failed:', err))
+                            }).catch(err => console.error('suspend failed:', err))
                           }
                         }}
                         style={{

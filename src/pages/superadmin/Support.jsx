@@ -291,7 +291,7 @@ function TicketDrawer({ ticket, gymName, onClose }) {
               <div style={{ marginTop: 'auto', paddingTop: 12 }}>
                 <div className="sspt-reply-box">
                   <textarea placeholder="Type your reply..." value={replyText} onChange={e => setReplyText(e.target.value)} />
-                  <button className="sspt-reply-btn" onClick={() => {}}>Send Reply</button>
+                  <button className="sspt-reply-btn" disabled style={{ opacity: 0.6, cursor: 'not-allowed' }}>Send Reply</button>
                 </div>
               </div>
             </>
@@ -321,7 +321,7 @@ function TicketDrawer({ ticket, gymName, onClose }) {
               <div style={{ marginTop: 'auto', paddingTop: 8 }}>
                 <div className="sspt-reply-box" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
                   <textarea placeholder="Add an internal note..." value={noteText} onChange={e => setNoteText(e.target.value)} style={{ minHeight: 80 }} />
-                  <button className="sspt-reply-btn" style={{ alignSelf: 'flex-end' }} onClick={() => {}}>Save Note</button>
+                  <button className="sspt-reply-btn" style={{ alignSelf: 'flex-end', opacity: 0.6, cursor: 'not-allowed' }} disabled>Save Note</button>
                 </div>
               </div>
             </>

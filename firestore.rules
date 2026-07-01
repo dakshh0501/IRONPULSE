@@ -74,7 +74,9 @@ service cloud.firestore {
     }
 
     function isOwnAttendance(resourceMemberId) {
-      return isMember() && resourceMemberId == request.auth.uid;
+      return isMember() &&
+        exists(/databases/$(database)/documents/members/$(resourceMemberId)) &&
+        get(/databases/$(database)/documents/members/$(resourceMemberId)).data.authUid == request.auth.uid;
     }
 
     function isOwnMemberDoc(resourceMemberId) {
@@ -149,7 +151,12 @@ service cloud.firestore {
     // ════════════════════════════════════════════════════════
     match /payments/{paymentId} {
 
-      allow read: if (isAdminOrOwner() && inCallersGym()) || isOwnMemberDoc(resource.data.memberId);
+      allow read: if (isAdminOrOwner() && inCallersGym()) || (
+        resource.data.gymId == getCallerGymId() && (
+          isOwnMemberDoc(resource.data.memberId) ||
+          (isMember() && resource.data.authUid == request.auth.uid)
+        )
+      );
       allow create: if isAdminOrOwner() && inCallersGymCreate();
       allow update: if isAdminOrOwner() && inCallersGym();
       allow delete: if isAdminOrOwner() && inCallersGym();
@@ -163,7 +170,8 @@ service cloud.firestore {
       allow read: if (isStaff() && inCallersGym()) || isOwnAttendance(resource.data.memberId);
       allow create: if (isStaff() && inCallersGymCreate()) || (
         isMember() &&
-        request.resource.data.memberId == request.auth.uid
+        exists(/databases/$(database)/documents/members/$(request.resource.data.memberId)) &&
+        get(/databases/$(database)/documents/members/$(request.resource.data.memberId)).data.authUid == request.auth.uid
       );
       allow update: if isAdminOrOwner() && inCallersGym();
       allow delete: if isAdminOrOwner() && inCallersGym();
@@ -229,7 +237,9 @@ service cloud.firestore {
     // ════════════════════════════════════════════════════════
     match /supportTickets/{ticketId} {
 
-      allow read: if isAdminOrOwner() && inCallersGym();
+      allow read: if (isAdminOrOwner() && inCallersGym()) || (
+        isAuthed() && resource.data.createdBy == request.auth.uid
+      );
       allow create: if isAuthed() && inCallersGymCreate();
       allow update: if isAdminOrOwner() && inCallersGym();
       allow delete: if isAdminOrOwner() && inCallersGym();
@@ -240,7 +250,9 @@ service cloud.firestore {
     // ════════════════════════════════════════════════════════
     match /featureRequests/{requestId} {
 
-      allow read: if isAdminOrOwner() && inCallersGym();
+      allow read: if (isAdminOrOwner() && inCallersGym()) || (
+        isAuthed() && resource.data.createdBy == request.auth.uid
+      );
       allow create: if isAuthed() && inCallersGymCreate();
       allow update: if isAdminOrOwner() && inCallersGym();
       allow delete: if isAdminOrOwner() && inCallersGym();
@@ -356,7 +368,10 @@ service cloud.firestore {
       );
 
       allow create: if isAuthed() && (
-        isSuperAdmin() || request.resource.data.gymId == getCallerGymId()
+        isSuperAdmin() || (
+          request.resource.data.userId == request.auth.uid &&
+          request.resource.data.gymId == getCallerGymId()
+        )
       );
 
       allow update: if isSuperAdmin() || (

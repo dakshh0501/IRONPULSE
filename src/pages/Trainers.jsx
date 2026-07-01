@@ -43,12 +43,19 @@ function DayBadges({ days = [] }) {
 // ─── Trainer Profile Drawer ──────────────────────────────────
 function TrainerProfileDrawer({ trainer, members, workoutPlans, dietPlans, attendance, onEdit, onClose }) {
   const [tab, setTab] = useState('profile')
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose?.() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+
   const color = avColor(trainer.name)
   const exp = getExp(trainer)
   const salary = getSalary(trainer)
   const myMembers = members.filter(m => m.trainerId === trainer.id)
-  const myWorkouts = workoutPlans?.filter(w => w.trainerId === trainer.id) || []
-  const myDiets = dietPlans?.filter(d => d.trainerId === trainer.id) || []
+  const myWorkouts = workoutPlans?.filter(w => w.trainer === trainer?.name) || []
+  const myDiets = dietPlans?.filter(d => d.assignedTrainer === trainer?.name) || []
   const trAttendance = attendance?.filter(a => a.trainerId === trainer.id) || []
   const todayAtt = trAttendance.filter(a => a.date === todayStr())
   const monthAtt = trAttendance.filter(a => (a.date||'').startsWith(todayStr().slice(0, 7)))
@@ -267,6 +274,8 @@ function TrainerProfileDrawer({ trainer, members, workoutPlans, dietPlans, atten
 // ─── Add/Edit Trainer Modal ──────────────────────────────────
 function TrainerFormModal({ trainer, onSave, onClose }) {
   const isEdit = Boolean(trainer)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [form, setForm] = useState(trainer ? { ...EMPTY_TRAINER, ...trainer, exp: getExp(trainer), salary: getSalary(trainer) } : { ...EMPTY_TRAINER })
   const [errors, setErrors] = useState({})
 
@@ -283,12 +292,23 @@ function TrainerFormModal({ trainer, onSave, onClose }) {
     return e
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const e = validate()
     if (Object.keys(e).length) { setErrors(e); return }
+    setSaving(true)
+    setSaveError('')
     const avatar = form.name.trim().split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
-    onSave({ ...form, avatar, exp: Number(form.exp), salary: Number(form.salary) || 0 })
-    onClose()
+    try {
+      const result = await onSave({ ...form, avatar, exp: Number(form.exp), salary: Number(form.salary) || 0 })
+      if (result?.password) {
+        alert(`Trainer created successfully!\n\nTemporary password: ${result.password}\n\nPlease share this with the trainer and ask them to change it on first login.`)
+      }
+      onClose()
+    } catch (err) {
+      setSaveError(err?.message || 'Save failed. Check your connection.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const Field = ({ label, error, children }) => (
@@ -376,10 +396,11 @@ function TrainerFormModal({ trainer, onSave, onClose }) {
             {errors.days && <p style={{ fontSize:11, color:'var(--red)' }}>⚠ {errors.days}</p>}
           </div>
 
+          {saveError && <p style={{ color:'var(--red)', fontSize:12, margin:0, textAlign:'center' }}>{saveError}</p>}
           <div style={{ display:'flex', gap:8, marginTop:4 }}>
-            <button className="btn btn-ghost" onClick={onClose} style={{ flex:1 }}>Cancel</button>
-            <button className="btn btn-primary" onClick={handleSave} style={{ flex:2 }}>
-              {isEdit ? '💾 Save Changes' : '+ Add Trainer'}
+            <button className="btn btn-ghost" onClick={onClose} style={{ flex:1 }} disabled={saving}>Cancel</button>
+            <button className="btn btn-primary" onClick={handleSave} style={{ flex:2 }} disabled={saving}>
+              {saving ? 'Saving…' : isEdit ? '💾 Save Changes' : '+ Add Trainer'}
             </button>
           </div>
         </div>

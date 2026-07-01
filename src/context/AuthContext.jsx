@@ -97,6 +97,7 @@ export function AuthProvider({ children }) {
         // written yet.  Skip the profile check — signUp() will write the
         // doc and sign out, letting this handler clean up normally.
         if (signingUpRef.current) {
+          setAuthLoading(false)
           return
         }
 
@@ -159,6 +160,17 @@ export function AuthProvider({ children }) {
           setRole('rejected')
           setIsSuperAdmin(false)
           setAuthError('Your account has been rejected.')
+          setAuthLoading(false)
+          return
+        }
+
+        if (profile.role === 'gym_owner_pending') {
+          await logOut()
+          setCurrentUser(null)
+          setUserProfile(null)
+          setRole(null)
+          setIsSuperAdmin(false)
+          setAuthError('Your gym registration is awaiting admin approval.')
           setAuthLoading(false)
           return
         }
@@ -233,25 +245,13 @@ export function AuthProvider({ children }) {
     setAuthError('')
     try {
       const { user, role: userRole } = await signIn(email, password)
-      const profile = await getUserProfile(user.uid)
-
-      if (userRole === 'rejected') {
-        if (isLocalhost()) {
-          await logOut()
-          setCurrentUser(null)
-          setUserProfile(null)
-          setRole(null)
-          setIsSuperAdmin(false)
-          setAuthError('')
-          window.location.replace('/auth')
-          return
-        }
-        setCurrentUser(user)
-        setUserProfile(profile)
-        setRole('rejected')
-        setIsSuperAdmin(false)
-        setAuthError('Your account has been rejected.')
-        throw new Error('rejected')
+      let profile
+      try {
+        profile = await getUserProfile(user.uid)
+      } catch (profileErr) {
+        await logOut()
+        setAuthError('Unable to load profile. Check your network connection.')
+        throw new Error('Unable to load profile.')
       }
 
       setCurrentUser(user)
@@ -268,7 +268,7 @@ export function AuthProvider({ children }) {
 
       return userRole
     } catch (err) {
-      const msg = err.message === 'pending'
+      const msg = err.message === 'pending' || err.message === 'gym_owner_pending'
         ? 'Your account is awaiting admin approval.'
         : err.message === 'rejected'
         ? 'Your account has been rejected.'

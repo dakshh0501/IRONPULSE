@@ -27,7 +27,7 @@ import {
   updatePlan as updatePlanInFirestore,
   deletePlan as deletePlanFromFirestore,
   migrateDefaultPlans,
-  subscribeToProgressLogs,
+  subscribeToProgressLogs, subscribeToMyProgressLogs,
   addProgressLog as addProgressLogToFirestore,
   updateProgressLog as updateProgressLogInFirestore,
   deleteProgressLog as deleteProgressLogFromFirestore,
@@ -110,7 +110,6 @@ export function AppProvider({ children }) {
   const [trainers,      setTrainers]      = useState([])
   const [payments,      setPayments]      = useState([])
   const [plans,         setPlans]         = useState([])
-  const [checkinLog,    setCheckinLog]    = useState([])
   const [attendance,    setAttendance]    = useState([])
   const [oldPendingCount, setOldPendingCount] = useState(0)
   const [gymOwnersPending, setGymOwnersPending] = useState([])
@@ -120,7 +119,6 @@ export function AppProvider({ children }) {
   const [dietPlans,     setDietPlans]     = useState([])
   const [workoutPlans,  setWorkoutPlans]  = useState([])
   const [gyms,          setGyms]          = useState([])
-  const [currentGym,    setCurrentGym]    = useState(null)
   const [supportTickets, setSupportTickets] = useState([])
   const [featureRequests, setFeatureRequests] = useState([])
   const [subscriptions, setSubscriptions] = useState([])
@@ -129,6 +127,15 @@ export function AppProvider({ children }) {
   const [paymentAttempts, setPaymentAttempts] = useState([])
   const [notifications, setNotifications] = useState([])
   const [notifLoading, setNotifLoading] = useState(true)
+  const [snapshotErrors, setSnapshotErrors] = useState([])
+
+  const reportSnapshotError = useCallback((error, collection) => {
+    const entry = { collection, message: error.message, timestamp: Date.now() }
+    setSnapshotErrors(prev => [...prev, entry])
+    setTimeout(() => {
+      setSnapshotErrors(prev => prev.filter(e => e.timestamp !== entry.timestamp))
+    }, 10000)
+  }, [])
 
   // ── Gym context (derived from userGymId) ───────────────
   const gymId = userGymId || null
@@ -147,7 +154,7 @@ export function AppProvider({ children }) {
       setGyms(data)
       const pendingOwners = data.filter(g => g.approvalStatus === 'pending')
       setGymOwnersPending(pendingOwners)
-    })
+    }, reportSnapshotError)
     return unsubscribe
   }, [currentUser, authLoading, effectiveRole])
 
@@ -182,6 +189,31 @@ export function AppProvider({ children }) {
           paymentMethod: 'Not Set',
           autoRenew: false,
         })
+
+        // Initialize gyms/{gymId}.subscription — the runtime source of truth
+        // that subscribeToGymSubscription, LicenseGuard, and AppShell all read.
+        const initNow = new Date()
+        const initExpiry = new Date(initNow)
+        const planLower = (newSubscription || 'Trial').toLowerCase()
+        const daysMap = { trial: 7, monthly: 30, quarterly: 90, yearly: 365, annual: 365, lifetime: 9999 }
+        initExpiry.setDate(initExpiry.getDate() + (daysMap[planLower] || 7))
+        const seg = () => { const a = new Uint8Array(4); crypto.getRandomValues(a); return Array.from(a, b => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[b % 36]).join('') }
+        await updateDoc(doc(db, 'gyms', gymId), {
+          'subscription.plan': newSubscription,
+          'subscription.planType': planLower,
+          'subscription.status': 'active',
+          'subscription.paymentStatus': 'paid',
+          'subscription.paymentMethod': 'Not Set',
+          'subscription.startDate': initNow.toISOString(),
+          'subscription.expiryDate': initExpiry.toISOString(),
+          'subscription.amount': newSubscription === 'Trial' ? 0 : 0,
+          'subscription.currency': 'INR',
+          'subscription.deviceLimit': planLower === 'trial' ? 1 : 2,
+          'subscription.licenseKey': `IRP-${seg()}-${seg()}-${seg()}`,
+          'subscription.licenseStatus': 'active',
+          'subscription.generatedAt': initNow.toISOString(),
+          'subscription.updatedAt': initNow.toISOString(),
+        })
       }
 
       // 5. Notify the gym owner
@@ -192,7 +224,7 @@ export function AppProvider({ children }) {
           message: `Your gym "${gymData.gymName || gymData.name}" has been approved by the admin.`,
           relatedDocumentId: gymId,
           actionUrl: '/dashboard',
-        }).catch(() => {})
+        }).catch(err => console.error('[AppContext]', err))
       }
     } catch (err) {
       console.error('Failed to approve gym owner:', err)
@@ -224,7 +256,7 @@ export function AppProvider({ children }) {
           title: 'Gym Registration Rejected',
           message: `Your gym "${gymData.gymName || gymData.name}" registration has been rejected.`,
           relatedDocumentId: gymId,
-        }).catch(() => {})
+        }).catch(err => console.error('[AppContext]', err))
       }
     } catch (err) {
       console.error('Failed to reject gym owner:', err)
@@ -301,7 +333,7 @@ export function AppProvider({ children }) {
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (effectiveRole !== 'super_admin') return
-    const unsubscribe = subscribeToSubscriptions((data) => setSubscriptions(data))
+    const unsubscribe = subscribeToSubscriptions((data) => setSubscriptions(data), reportSnapshotError)
     return unsubscribe
   }, [currentUser, authLoading, effectiveRole])
 
@@ -313,7 +345,7 @@ export function AppProvider({ children }) {
       if (sub) {
         const checked = checkAutoExpiry(sub)
         if (checked.status !== sub.status) {
-          updateGymInFirestore(gymId, { subscription: checked }).catch(() => {})
+          updateGymInFirestore(gymId, { subscription: checked }).catch(err => console.error('[AppContext]', err))
         }
         setCurrentSubscription(checked)
       } else {
@@ -336,14 +368,14 @@ export function AppProvider({ children }) {
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (effectiveRole !== 'super_admin') return
-    const unsubscribe = subscribeToPaymentAttempts((data) => setPaymentAttempts(data), queryGymId)
+    const unsubscribe = subscribeToPaymentAttempts((data) => setPaymentAttempts(data), queryGymId, reportSnapshotError)
     return unsubscribe
   }, [currentUser, authLoading, effectiveRole, queryGymId])
 
   // ── Cleanup expired payment attempts on mount ────────
   useEffect(() => {
     if (authLoading || !currentUser) return
-    cleanupExpiredPaymentAttempts().catch(() => {})
+    cleanupExpiredPaymentAttempts().catch(err => console.error('[AppContext]', err))
   }, [authLoading, currentUser])
 
   // ── Notifications listener (deferred) ─────────────────
@@ -355,7 +387,7 @@ export function AppProvider({ children }) {
       unsub = subscribeToNotifications(currentUser.uid, (data) => {
         setNotifications(data)
         setNotifLoading(false)
-      }, gymId)
+      }, gymId, reportSnapshotError)
     }
     if ('requestIdleCallback' in window) {
       requestIdleCallback(schedule, { timeout: 300 })
@@ -391,7 +423,8 @@ export function AppProvider({ children }) {
 
     const unsubscribe = subscribeToMembers(
       (data) => { setMembers(data) },
-      queryGymId
+      queryGymId,
+      reportSnapshotError
     )
     return unsubscribe
   }, [currentUser, authLoading, effectiveRole, queryGymId])
@@ -400,7 +433,7 @@ export function AppProvider({ children }) {
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'payments')) return
-    const unsubscribe = subscribeToPayments((data) => setPayments(data), queryGymId)
+    const unsubscribe = subscribeToPayments((data) => setPayments(data), queryGymId, reportSnapshotError)
     return unsubscribe
   }, [currentUser, authLoading, effectiveRole, queryGymId])
 
@@ -409,8 +442,9 @@ export function AppProvider({ children }) {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'trainers')) return
     const unsubscribe = subscribeToTrainers(
-      (data) => setTrainers(data),
-      queryGymId
+      (data) => { setTrainers(data) },
+      queryGymId,
+      reportSnapshotError
     )
     return unsubscribe
   }, [currentUser, authLoading, effectiveRole, queryGymId])
@@ -425,7 +459,7 @@ export function AppProvider({ children }) {
       migrateDefaultPlans(queryGymId).catch(err => console.error('Failed to migrate plans:', err))
     }
 
-    const unsubscribe = subscribeToPlans((data) => setPlans(data), queryGymId)
+    const unsubscribe = subscribeToPlans((data) => setPlans(data), queryGymId, reportSnapshotError)
     return unsubscribe
   }, [currentUser, authLoading, effectiveRole, queryGymId])
 
@@ -434,7 +468,13 @@ export function AppProvider({ children }) {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'progressLogs')) return
     let unsub
-    const schedule = () => { unsub = subscribeToProgressLogs((data) => setProgressLogs(data), queryGymId) }
+    const schedule = () => {
+      if (effectiveRole === 'member' && currentUser?.uid) {
+        unsub = subscribeToMyProgressLogs((data) => setProgressLogs(data), currentUser.uid, reportSnapshotError)
+      } else {
+        unsub = subscribeToProgressLogs((data) => setProgressLogs(data), queryGymId, reportSnapshotError)
+      }
+    }
     if ('requestIdleCallback' in window) {
       requestIdleCallback(schedule, { timeout: 300 })
     } else {
@@ -448,7 +488,7 @@ export function AppProvider({ children }) {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'dietPlans')) return
     let unsub
-    const schedule = () => { unsub = subscribeToDietPlans((data) => setDietPlans(data), queryGymId) }
+    const schedule = () => { unsub = subscribeToDietPlans((data) => setDietPlans(data), queryGymId, reportSnapshotError) }
     if ('requestIdleCallback' in window) {
       requestIdleCallback(schedule, { timeout: 300 })
     } else {
@@ -462,7 +502,7 @@ export function AppProvider({ children }) {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'workoutPlans')) return
     let unsub
-    const schedule = () => { unsub = subscribeToWorkoutPlans((data) => setWorkoutPlans(data), queryGymId) }
+    const schedule = () => { unsub = subscribeToWorkoutPlans((data) => setWorkoutPlans(data), queryGymId, reportSnapshotError) }
     if ('requestIdleCallback' in window) {
       requestIdleCallback(schedule, { timeout: 300 })
     } else {
@@ -475,7 +515,7 @@ export function AppProvider({ children }) {
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'supportTickets')) return
-    const unsubscribe = subscribeToSupportTickets((data) => setSupportTickets(data), queryGymId)
+    const unsubscribe = subscribeToSupportTickets((data) => setSupportTickets(data), queryGymId, reportSnapshotError)
     return unsubscribe
   }, [currentUser, authLoading, effectiveRole, queryGymId])
 
@@ -483,7 +523,7 @@ export function AppProvider({ children }) {
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'featureRequests')) return
-    const unsubscribe = subscribeToFeatureRequests((data) => setFeatureRequests(data), queryGymId)
+    const unsubscribe = subscribeToFeatureRequests((data) => setFeatureRequests(data), queryGymId, reportSnapshotError)
     return unsubscribe
   }, [currentUser, authLoading, effectiveRole, queryGymId])
 
@@ -573,7 +613,7 @@ export function AppProvider({ children }) {
     if (updates.length > 0) {
       Promise.allSettled(updates)
     }
-  }, [payments, members, currentUser, authLoading, userProfile])
+  }, [payments, members, currentUser, authLoading, userProfile, effectiveRole])
 
   // ── Persist dark mode ──────────────────────────────────
   // FIX: also save to localStorage whenever darkMode changes
@@ -660,7 +700,7 @@ export function AppProvider({ children }) {
           title: 'New Member Added',
           message: `${memberData.name || 'Member'} has been added with ${memberData.plan || 'Monthly'} plan.`,
           relatedDocumentId: memberId || '',
-        }).catch(() => {})
+        }).catch(err => console.error('[AppContext]', err))
       }
       return memberId
     } catch (error) {
@@ -691,7 +731,7 @@ export function AppProvider({ children }) {
           title: 'Member Deleted',
           message: `${member.name} has been removed from the system.`,
           relatedDocumentId: id,
-        }).catch(() => {})
+        }).catch(err => console.error('[AppContext]', err))
       }
     } catch (error) {
       console.error('Error deleting member:', error)
@@ -729,7 +769,7 @@ export function AppProvider({ children }) {
           userId: member.authUid || member.uid,
           title: 'Check-in Successful',
           message: `You checked in at ${time}. Have a great workout!`,
-        }).catch(() => {})
+        }).catch(err => console.error('[AppContext]', err))
       }
     } catch (error) {
       console.error('Error checking in:', error)
@@ -754,14 +794,14 @@ export function AppProvider({ children }) {
           message: `₹${Number(paymentData.amount).toLocaleString('en-IN')} received from ${paymentData.memberName || 'member'} for ${paymentData.plan || 'plan'}.`,
           relatedDocumentId: paymentId || '',
           actionUrl: '/payments',
-        }).catch(() => {})
+        }).catch(err => console.error('[AppContext]', err))
         if (paymentData.memberId) {
           fireNotif('payment_received', {
             userId: paymentData.memberId,
             title: 'Payment Confirmed',
             message: `Your payment of ₹${Number(paymentData.amount).toLocaleString('en-IN')} has been received.`,
             relatedDocumentId: paymentId || '',
-          }).catch(() => {})
+          }).catch(err => console.error('[AppContext]', err))
         }
       }
       return paymentId
@@ -795,21 +835,22 @@ export function AppProvider({ children }) {
   // ── Trainer CRUD ───────────────────────────────────────
   const addTrainer = async (trainerData) => {
     try {
-      const trainerId = await addTrainerToFirestore({
+      const result = await addTrainerToFirestore({
         ...trainerData,
         gymId,
         rating:  trainerData.rating  || 5,
         clients: trainerData.clients || 0,
       })
+      const trainerId = result?.id || ''
       if (currentUser?.uid) {
         fireNotif('trainer_added', {
           userId: currentUser.uid,
           title: 'New Trainer Added',
           message: `${trainerData.name || 'Trainer'} has been added to the team.`,
           relatedDocumentId: trainerId || '',
-        }).catch(() => {})
+        }).catch(err => console.error('[AppContext]', err))
       }
-      return trainerId
+      return result
     } catch (error) {
       console.error('Error adding trainer:', error)
       throw error
@@ -835,7 +876,7 @@ export function AppProvider({ children }) {
           title: 'Trainer Removed',
           message: `${trainer.name} has been removed from the system.`,
           relatedDocumentId: id,
-        }).catch(() => {})
+        }).catch(err => console.error('[AppContext]', err))
       }
     } catch (error) {
       console.error('Error deleting trainer:', error)
@@ -890,7 +931,7 @@ export function AppProvider({ children }) {
           message: `Your progress has been updated. Check your latest metrics.`,
           relatedDocumentId: logId || '',
           actionUrl: '/progress',
-        }).catch(() => {})
+        }).catch(err => console.error('[AppContext]', err))
       }
       return logId
     } catch (error) {
@@ -927,7 +968,7 @@ export function AppProvider({ children }) {
         message: `Ticket #${ticketId?.slice(-6)} has been submitted.`,
         relatedDocumentId: ticketId || '',
         actionUrl: '/support',
-      }).catch(() => {})
+      }).catch(err => console.error('[AppContext]', err))
       return ticketId
     } catch (error) {
       console.error('Error adding support ticket:', error)
@@ -944,7 +985,7 @@ export function AppProvider({ children }) {
         title: 'Feature Request Submitted',
         message: 'Your feature request has been submitted for review.',
         relatedDocumentId: requestId || '',
-      }).catch(() => {})
+      }).catch(err => console.error('[AppContext]', err))
       return requestId
     } catch (error) {
       console.error('Error adding feature request:', error)
@@ -963,7 +1004,7 @@ export function AppProvider({ children }) {
           message: `A new diet plan "${planData.name || 'Diet Plan'}" has been assigned to you.`,
           relatedDocumentId: planId || '',
           actionUrl: '/diet',
-        }).catch(() => {})
+        }).catch(err => console.error('[AppContext]', err))
       }
       return planId
     } catch (error) {
@@ -1001,7 +1042,7 @@ export function AppProvider({ children }) {
           message: `A new workout plan "${planData.name || 'Workout Plan'}" has been assigned to you.`,
           relatedDocumentId: planId || '',
           actionUrl: '/workouts',
-        }).catch(() => {})
+        }).catch(err => console.error('[AppContext]', err))
       }
       return planId
     } catch (error) {
@@ -1045,114 +1086,164 @@ export function AppProvider({ children }) {
 
   // ── Subscription Lifecycle ──────────────────────────────
   const activateSubscription = async (planName, planType, amount) => {
-    await activateSubService(gymId, planName, planType, amount, currentUser?.uid)
-    fireNotif('sub_activated', {
-      userId: currentUser?.uid,
-      title: 'Subscription Activated',
-      message: `Your ${planName} subscription has been activated.`,
-      relatedDocumentId: gymId,
-      actionUrl: '/subscription',
-    }).catch(() => {})
+    try {
+      await activateSubService(gymId, planName, planType, amount, currentUser?.uid)
+      fireNotif('sub_activated', {
+        userId: currentUser?.uid,
+        title: 'Subscription Activated',
+        message: `Your ${planName} subscription has been activated.`,
+        relatedDocumentId: gymId,
+        actionUrl: '/subscription',
+      }).catch(err => console.error('[AppContext]', err))
+    } catch (error) {
+      console.error('Failed to activate subscription:', error)
+      throw error
+    }
   }
 
   const suspendSubscription = async () => {
-    await suspendSubService(gymId, currentUser?.uid)
-    const targetGym = gyms.find(g => g.id === gymId)
-    const targetUserId = targetGym?.ownerUid || targetGym?.createdBy || currentUser?.uid
-    fireNotif('gym_suspended', {
-      userId: targetUserId,
-      title: 'Subscription Suspended',
-      message: 'The gym subscription has been suspended.',
-      relatedDocumentId: gymId,
-      actionUrl: '/subscription',
-    }).catch(() => {})
+    try {
+      await suspendSubService(gymId, currentUser?.uid)
+      const targetGym = gyms.find(g => g.id === gymId)
+      const targetUserId = targetGym?.ownerUid || targetGym?.createdBy || currentUser?.uid
+      fireNotif('gym_suspended', {
+        userId: targetUserId,
+        title: 'Subscription Suspended',
+        message: 'The gym subscription has been suspended.',
+        relatedDocumentId: gymId,
+        actionUrl: '/subscription',
+      }).catch(err => console.error('[AppContext]', err))
+    } catch (error) {
+      console.error('Failed to suspend subscription:', error)
+      throw error
+    }
   }
 
   const expireSubscription = async () => {
-    await expireSubService(gymId, currentUser?.uid)
-    fireNotif('sub_expired', {
-      userId: currentUser?.uid,
-      title: 'Subscription Expired',
-      message: 'The gym subscription has expired.',
-      relatedDocumentId: gymId,
-      actionUrl: '/subscription',
-    }).catch(() => {})
+    try {
+      await expireSubService(gymId, currentUser?.uid)
+      fireNotif('sub_expired', {
+        userId: currentUser?.uid,
+        title: 'Subscription Expired',
+        message: 'The gym subscription has expired.',
+        relatedDocumentId: gymId,
+        actionUrl: '/subscription',
+      }).catch(err => console.error('[AppContext]', err))
+    } catch (error) {
+      console.error('Failed to expire subscription:', error)
+      throw error
+    }
   }
 
   const renewSubscription = async (planName, planType, amount) => {
-    await renewSubService(gymId, planName, planType, amount, currentUser?.uid)
-    fireNotif('sub_renewed', {
-      userId: currentUser?.uid,
-      title: 'Subscription Renewed',
-      message: `Your ${planName} subscription has been renewed.`,
-      relatedDocumentId: gymId,
-      actionUrl: '/subscription',
-    }).catch(() => {})
+    try {
+      await renewSubService(gymId, planName, planType, amount, currentUser?.uid)
+      fireNotif('sub_renewed', {
+        userId: currentUser?.uid,
+        title: 'Subscription Renewed',
+        message: `Your ${planName} subscription has been renewed.`,
+        relatedDocumentId: gymId,
+        actionUrl: '/subscription',
+      }).catch(err => console.error('[AppContext]', err))
+    } catch (error) {
+      console.error('Failed to renew subscription:', error)
+      throw error
+    }
   }
 
   const upgradeSubscription = async (planName, planType, amount) => {
-    await upgradeSubService(gymId, planName, planType, amount, currentUser?.uid)
-    fireNotif('sub_upgraded', {
-      userId: currentUser?.uid,
-      title: 'Plan Upgraded',
-      message: `Upgraded to ${planName}.`,
-      relatedDocumentId: gymId,
-      actionUrl: '/subscription',
-    }).catch(() => {})
+    try {
+      await upgradeSubService(gymId, planName, planType, amount, currentUser?.uid)
+      fireNotif('sub_upgraded', {
+        userId: currentUser?.uid,
+        title: 'Plan Upgraded',
+        message: `Upgraded to ${planName}.`,
+        relatedDocumentId: gymId,
+        actionUrl: '/subscription',
+      }).catch(err => console.error('[AppContext]', err))
+    } catch (error) {
+      console.error('Failed to upgrade subscription:', error)
+      throw error
+    }
   }
 
   // delegates to changePlan (same date calc and update logic)
   const downgradeSubscription = async (planName, planType, amount) => {
-    await downgradeSubService(gymId, planName, planType, amount, currentUser?.uid)
-    fireNotif('sub_downgraded', {
-      userId: currentUser?.uid,
-      title: 'Plan Downgraded',
-      message: `Downgraded to ${planName}.`,
-      relatedDocumentId: gymId,
-      actionUrl: '/subscription',
-    }).catch(() => {})
+    try {
+      await downgradeSubService(gymId, planName, planType, amount, currentUser?.uid)
+      fireNotif('sub_downgraded', {
+        userId: currentUser?.uid,
+        title: 'Plan Downgraded',
+        message: `Downgraded to ${planName}.`,
+        relatedDocumentId: gymId,
+        actionUrl: '/subscription',
+      }).catch(err => console.error('[AppContext]', err))
+    } catch (error) {
+      console.error('Failed to downgrade subscription:', error)
+      throw error
+    }
   }
 
   const reactivateSubscription = async () => {
-    const sub = currentSubscription
-    const now = new Date()
-    const daysMap = { trial: 14, monthly: 30, quarterly: 90, yearly: 365 }
-    const billingInterval = daysMap[sub?.planType] || 30
-    const currentExpiry = sub?.expiryDate ? new Date(sub.expiryDate) : now
-    const newExpiry = new Date(currentExpiry)
-    newExpiry.setDate(newExpiry.getDate() + billingInterval)
-    await updateDoc(doc(db, 'gyms', gymId), {
-      'subscription.status': 'active',
-      'subscription.expiryDate': newExpiry.toISOString(),
-      'subscription.cancelledAt': null,
-      'subscription.updatedAt': serverTimestamp(),
-    })
-    fireNotif('sub_reactivated', {
-      userId: currentUser?.uid,
-      title: 'Subscription Reactivated',
-      message: 'Your subscription has been reactivated.',
-      relatedDocumentId: gymId,
-      actionUrl: '/subscription',
-    }).catch(() => {})
+    try {
+      const sub = currentSubscription
+      const now = new Date()
+      const daysMap = { trial: 14, monthly: 30, quarterly: 90, yearly: 365, annual: 365, lifetime: 9999 }
+      const billingInterval = daysMap[sub?.planType] || 30
+      const currentExpiry = sub?.expiryDate ? new Date(sub.expiryDate) : now
+      const newExpiry = new Date(currentExpiry)
+      newExpiry.setDate(newExpiry.getDate() + billingInterval)
+      await updateDoc(doc(db, 'gyms', gymId), {
+        'subscription.status': 'active',
+        'subscription.expiryDate': newExpiry.toISOString(),
+        'subscription.cancelledAt': null,
+        'subscription.updatedAt': serverTimestamp(),
+      })
+      fireNotif('sub_reactivated', {
+        userId: currentUser?.uid,
+        title: 'Subscription Reactivated',
+        message: 'Your subscription has been reactivated.',
+        relatedDocumentId: gymId,
+        actionUrl: '/subscription',
+      }).catch(err => console.error('[AppContext]', err))
+    } catch (error) {
+      console.error('Failed to reactivate subscription:', error)
+      throw error
+    }
   }
 
   const assignTrialToGym = async (trialDays) => {
-    await assignTrialService(gymId, trialDays, currentUser?.uid)
-    fireNotif('sub_trial_started', {
-      userId: currentUser?.uid,
-      title: 'Trial Started',
-      message: `Your ${trialDays}-day trial has started.`,
-      relatedDocumentId: gymId,
-      actionUrl: '/subscription',
-    }).catch(() => {})
+    try {
+      await assignTrialService(gymId, trialDays, currentUser?.uid)
+      fireNotif('sub_trial_started', {
+        userId: currentUser?.uid,
+        title: 'Trial Started',
+        message: `Your ${trialDays}-day trial has started.`,
+        relatedDocumentId: gymId,
+        actionUrl: '/subscription',
+      }).catch(err => console.error('[AppContext]', err))
+    } catch (error) {
+      console.error('Failed to assign trial:', error)
+      throw error
+    }
   }
 
   const extendSubscription = async (newExpiryDate) => {
-    await extendExpiryService(gymId, newExpiryDate, currentUser?.uid)
+    try {
+      await extendExpiryService(gymId, newExpiryDate, currentUser?.uid)
+    } catch (error) {
+      console.error('Failed to extend subscription:', error)
+      throw error
+    }
   }
 
   const changeSubscriptionPlan = async (planName, planType, amount) => {
-    await changePlanService(gymId, planName, planType, amount, currentUser?.uid)
+    try {
+      await changePlanService(gymId, planName, planType, amount, currentUser?.uid)
+    } catch (error) {
+      console.error('Failed to change subscription plan:', error)
+      throw error
+    }
   }
 
   return (
@@ -1167,16 +1258,15 @@ export function AppProvider({ children }) {
       dietPlans, addDietPlan, updateDietPlan, deleteDietPlan,
       workoutPlans, addWorkoutPlan, updateWorkoutPlan, deleteWorkoutPlan,
       notifications, markAllNotifsRead, markNotifRead, markNotifUnread, deleteNotif, unreadCount, notifLoading, fireNotif,
-      checkinLog, checkIn,
       attendance, checkInMember,
       pendingCount,
       gymSettings,
-      gyms, currentGym, subscriptions,
+      gyms, subscriptions,
       currentSubscription, subscriptionHistory,
       activateSubscription, suspendSubscription, expireSubscription,
       renewSubscription, upgradeSubscription, downgradeSubscription, reactivateSubscription,
       assignTrialToGym, extendSubscription, changeSubscriptionPlan,
-      paymentAttempts, addPaymentAttempt, updatePaymentAttemptStatus,
+      paymentAttempts, addPaymentAttempt, updatePaymentAttemptStatus, snapshotErrors,
       initiatePayment, refreshPaymentStatus,
       approveGymOwner, rejectGymOwner,
       supportTickets, addSupportTicket,

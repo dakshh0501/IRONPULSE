@@ -88,6 +88,8 @@ function LogModal({ onSave, onClose, members, currentUser, initialData }) {
   const isAdmin = effectiveRole === 'super_admin' || effectiveRole === 'gym_admin'
   const isTrainer = effectiveRole === 'trainer'
   const isMember = effectiveRole === 'member'
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   // Get active members for dropdown
   const activeMembers = useMemo(() => 
@@ -111,14 +113,23 @@ function LogModal({ onSave, onClose, members, currentUser, initialData }) {
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.date)   { setErrors({ date: 'Date is required' }); return }
     if (!form.weight) { setErrors({ weight: 'Weight is required' }); return }
     if (isAdmin || isTrainer) {
       if (!form.memberId) { setErrors({ memberId: 'Member is required' }); return }
     }
-    onSave({ ...form, id: initialData?.id || Date.now() })
-    onClose()
+    setSaving(true)
+    setSaveError('')
+    const { id: _, ...data } = form
+    try {
+      await onSave(initialData?.id ? { ...data, id: initialData.id } : data)
+      onClose()
+    } catch (e) {
+      setSaveError(e?.message || 'Save failed. Check your connection.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const Row = ({ children }) => (
@@ -196,9 +207,12 @@ function LogModal({ onSave, onClose, members, currentUser, initialData }) {
             value={form.deadlift} onChange={e => set('deadlift', e.target.value)} />
         </div>
 
+        {saveError && <p style={{ color:'var(--red)', fontSize:12, margin:0, textAlign:'center' }}>{saveError}</p>}
         <div className="modal-footer">
-          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleSave}>📊 Save Entry</button>
+          <button className="btn btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving…' : '📊 Save Entry'}
+          </button>
         </div>
       </div>
     </div>
@@ -208,7 +222,7 @@ function LogModal({ onSave, onClose, members, currentUser, initialData }) {
 // ─────────────────────────────────────────────────────────────
 //  MAIN EXPORT
 // ─────────────────────────────────────────────────────────────
-export default function Progress({ search = '' }) {
+export default function Progress() {
   const { members, progressLogs, addProgressLog, updateProgressLog, deleteProgressLog } = useApp()
   const { currentUser, effectiveRole, userProfile } = useAuth()
   const isAdmin = effectiveRole === 'super_admin' || effectiveRole === 'gym_admin'
@@ -239,6 +253,7 @@ export default function Progress({ search = '' }) {
       })
     } catch (e) {
       console.error('Failed to save progress entry:', e)
+      throw e
     }
   }
 
@@ -248,6 +263,7 @@ export default function Progress({ search = '' }) {
       setEditEntry(null)
     } catch (e) {
       console.error('Failed to update progress entry:', e)
+      throw e
     }
   }
 

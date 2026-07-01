@@ -74,10 +74,9 @@ export async function getAttendanceByDate(date, gymId) {
  *   }, [user])
  */
 export function subscribeAttendance(callback, gymId) {
-  // Use only equality filters to avoid requiring composite indexes — sort client-side
-  const q = gymId
-    ? query(collection(db, COLLECTION), where('gymId', '==', gymId))
-    : query(collection(db, COLLECTION))
+  // Require gymId to prevent cross-gym data exposure
+  if (!gymId) { console.error('[attendanceService] gymId required for subscribeAttendance'); return () => {} }
+  const q = query(collection(db, COLLECTION), where('gymId', '==', gymId))
   return onSnapshot(
     q,
     (snap) => {

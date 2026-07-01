@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { openSupportWhatsApp } from '../utils/whatsappSupport'
+import { shareWebsite } from '../utils/shareWebsite'
 
 const FADE_UP = { opacity: 0, transform: 'translateY(30px)' }
 const VISIBLE = { opacity: 1, transform: 'translateY(0)' }
@@ -719,9 +721,9 @@ function Landing() {
         }}>
           {[
             { name: 'Trial', price: 0, period: '14 days', color: '#f59e0b', features: ['Gym floor access', '1 trainer session', 'Basic reports', 'Up to 20 members'], popular: false },
-            { name: 'Monthly', price: 499, period: '/month', color: '#00c8b4', features: ['Full gym access', '2 trainer sessions/week', 'Diet & workout plans', 'Progress tracking', 'QR check-in'], popular: false },
-            { name: 'Quarterly', price: 1299, period: '/quarter', color: '#e8420a', features: ['Everything in Monthly', 'Unlimited sessions', 'Priority support', 'Custom reports', 'Multiple locations'], popular: true },
-            { name: 'Yearly', price: 4499, period: '/year', color: '#8b5cf6', features: ['Everything in Quarterly', 'Dedicated account manager', 'API access', 'White-label option', 'Early feature access'], popular: false },
+            { name: 'Standard', price: 99, period: '/month', color: '#00c8b4', features: ['Full gym access', '2 trainer sessions/week', 'Diet & workout plans', 'Progress tracking', 'QR check-in'], popular: false },
+            { name: 'Premium', price: 199, period: '/month', color: '#e8420a', features: ['Everything in Standard', 'Unlimited sessions', 'Priority support', 'Custom reports', 'Multiple locations'], popular: true },
+            { name: 'Quarterly', price: 299, period: '/quarter', color: '#8b5cf6', features: ['Everything in Premium', 'Dedicated account manager', 'API access', 'White-label option', 'Early feature access'], popular: false },
             { name: 'Enterprise', price: null, period: 'Custom', color: '#10b981', features: ['Everything in Yearly', 'On-premise option', 'Custom integrations', 'SLA guarantee', '24/7 phone support'], popular: false }
           ].map((p, i) => (
             <Reveal key={p.name}>
@@ -906,7 +908,7 @@ function Landing() {
             {/* Social */}
             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
               {['𝕏','in','▶','📷'].map((s, i) => (
-                <a key={i} href="#" style={{
+                <a key={i} href="javascript:void(0)" style={{
                   width: 32, height: 32, borderRadius: 8,
                   background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -921,27 +923,47 @@ function Landing() {
           <div>
             <h4 style={{ fontSize: 12, fontWeight: 700, color: '#e4e8f0', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>Product</h4>
             {['Features', 'Pricing', 'Integrations', 'Changelog'].map(l => (
-              <a key={l} href="#" style={{ display: 'block', fontSize: 13, color: '#6070a0', marginBottom: 10, textDecoration: 'none', transition: 'color 0.2s' }}
+              <a key={l} href="javascript:void(0)" style={{ display: 'block', fontSize: 13, color: '#6070a0', marginBottom: 10, textDecoration: 'none', transition: 'color 0.2s' }}
                 onMouseEnter={e => e.target.style.color = '#e8420a'} onMouseLeave={e => e.target.style.color = '#6070a0'}>{l}</a>
             ))}
           </div>
           <div>
-            <h4 style={{ fontSize: 12, fontWeight: 700, color: '#e4e8f0', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>Support</h4>
-            {['Documentation', 'Contact', 'FAQ', 'Status'].map(l => (
-              <a key={l} href="#" style={{ display: 'block', fontSize: 13, color: '#6070a0', marginBottom: 10, textDecoration: 'none', transition: 'color 0.2s' }}
-                onMouseEnter={e => e.target.style.color = '#e8420a'} onMouseLeave={e => e.target.style.color = '#6070a0'}>{l}</a>
-            ))}
+            <h4 style={{ fontSize: 12, fontWeight: 700, color: '#e4e8f0', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>Contact</h4>
+            <a href="#" onClick={(e) => { e.preventDefault(); openSupportWhatsApp({ page: 'Landing', issue: 'General Inquiry' }) }}
+              style={{ display: 'block', fontSize: 13, color: '#6070a0', marginBottom: 10, textDecoration: 'none', transition: 'color 0.2s' }}
+              onMouseEnter={e => e.target.style.color = '#e8420a'} onMouseLeave={e => e.target.style.color = '#6070a0'}>
+              💬 WhatsApp Business<br />+91 9371880039
+            </a>
+            <a href="mailto:ironpulsexa@gmail.com"
+              style={{ display: 'block', fontSize: 13, color: '#6070a0', marginBottom: 10, textDecoration: 'none', transition: 'color 0.2s' }}
+              onMouseEnter={e => e.target.style.color = '#e8420a'} onMouseLeave={e => e.target.style.color = '#6070a0'}>
+              ✉️ ironpulsexa@gmail.com
+            </a>
+            <div style={{ fontSize: 13, color: '#6070a0', lineHeight: 1.6 }}>
+              🕐 Business Hours<br />Monday – Saturday<br />9:00 AM – 8:00 PM
+            </div>
           </div>
           <div>
             <h4 style={{ fontSize: 12, fontWeight: 700, color: '#e4e8f0', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>Legal</h4>
             {['Privacy', 'Terms', 'License', 'Cookies'].map(l => (
-              <a key={l} href="#" style={{ display: 'block', fontSize: 13, color: '#6070a0', marginBottom: 10, textDecoration: 'none', transition: 'color 0.2s' }}
+              <a key={l} href="javascript:void(0)" style={{ display: 'block', fontSize: 13, color: '#6070a0', marginBottom: 10, textDecoration: 'none', transition: 'color 0.2s' }}
                 onMouseEnter={e => e.target.style.color = '#e8420a'} onMouseLeave={e => e.target.style.color = '#6070a0'}>{l}</a>
             ))}
           </div>
         </div>
 
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 20, textAlign: 'center' }}>
+          <div style={{ marginBottom: 12 }}>
+            <button onClick={shareWebsite} className="lp-btn-ghost" style={{
+              padding: '8px 20px', fontSize: 12, color: '#6070a0', cursor: 'pointer',
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: 8, transition: 'all 0.2s'
+            }}
+              onMouseEnter={e => { e.target.style.background = 'rgba(232,66,10,0.1)'; e.target.style.borderColor = 'rgba(232,66,10,0.2)'; e.target.style.color = '#e8420a' }}
+              onMouseLeave={e => { e.target.style.background = 'rgba(255,255,255,0.03)'; e.target.style.borderColor = 'rgba(255,255,255,0.06)'; e.target.style.color = '#6070a0' }}>
+              🔗 Share Website
+            </button>
+          </div>
           <p style={{ fontSize: 12, color: '#384860' }}>© 2025 IRONPULSE. All rights reserved. Built for high-performance gyms.</p>
         </div>
       </footer>

@@ -1,15 +1,18 @@
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { openSupportWhatsApp } from '../utils/whatsappSupport'
+import { useApp } from '../context/AppContext'
+import HexBackground from '../components/HexBackground'
 
 export default function Rejected() {
-  const { logout } = useAuth()
-  const navigate = useNavigate()
+  const { logout, currentUser } = useAuth()
+  const { gymSettings } = useApp()
 
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: '#070a12', padding: 24,
+      background: '#070a12', padding: 24, position: 'relative', overflow: 'hidden',
     }}>
+      <HexBackground />
       <div className="auth-glass" style={{
         maxWidth: 420, width: '100%', padding: 48, textAlign: 'center',
       }}>
@@ -34,7 +37,7 @@ export default function Rejected() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <button
             className="btn btn-primary"
-            onClick={() => navigate('/support')}
+            onClick={() => openSupportWhatsApp({ user: currentUser, gym: gymSettings, page: 'Registration Rejected', issue: 'Account Rejected' })}
             style={{ width: '100%' }}
           >
             Contact Support

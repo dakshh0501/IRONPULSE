@@ -22,8 +22,15 @@ export default function LicenseGuard({ children }) {
   }, [])
 
   useEffect(() => {
-    if (authLoading || !needsCheck) {
-      if (!needsCheck && !authLoading) setLicenseState('ok')
+    if (authLoading) return
+
+    if (!needsCheck) {
+      setLicenseState('ok')
+      return
+    }
+
+    // subscription data not yet loaded — stay loading
+    if (!currentSubscription) {
       return
     }
 
@@ -52,7 +59,11 @@ export default function LicenseGuard({ children }) {
 
       // 3. License status
       if (sub.licenseStatus === 'revoked') {
-        if (!cancelled) { setLicenseState('blocked'); setReason('Your license has been revoked. Contact your administrator.'); addAudit('Validation Failed - License Revoked') }
+        if (!cancelled) { setLicenseState('blocked'); setReason('License revoked. Contact your administrator.'); addAudit('Validation Failed - License Revoked') }
+        return
+      }
+      if (sub.licenseStatus === 'suspended') {
+        if (!cancelled) { setLicenseState('blocked'); setReason('License suspended. Contact your administrator.'); addAudit('Validation Failed - License Suspended') }
         return
       }
 

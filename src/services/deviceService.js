@@ -167,7 +167,10 @@ export async function validateDeviceRegistration(gymId) {
   }
 
   if (sub.licenseStatus === 'revoked') {
-    return { valid: false, reason: 'License has been revoked' }
+    return { valid: false, reason: 'License revoked' }
+  }
+  if (sub.licenseStatus === 'suspended') {
+    return { valid: false, reason: 'License suspended' }
   }
 
   if (!sub.licenseKey) {

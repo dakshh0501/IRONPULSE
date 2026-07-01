@@ -3,8 +3,10 @@ import { updateDoc, doc, deleteDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
 import { useApp } from '../../context/AppContext'
 
-const goStyles = document.createElement('style')
-goStyles.textContent = `
+if (!document.getElementById('go-styles')) {
+  const goStyles = document.createElement('style')
+  goStyles.id = 'go-styles'
+  goStyles.textContent = `
 @keyframes go-fade-up { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
 @keyframes go-slide-in { from { transform:translateX(100%); } to { transform:translateX(0); } }
 @keyframes go-slide-out { from { transform:translateX(0); } to { transform:translateX(100%); } }
@@ -93,7 +95,8 @@ goStyles.textContent = `
   .go-header { flex-direction:column !important; align-items:flex-start !important; gap:12px !important; }
 }
 `
-document.head.appendChild(goStyles)
+  document.head.appendChild(goStyles)
+}
 
 const STATUS_COLORS = {
   active: '#10b981', approved: '#10b981',
@@ -337,7 +340,8 @@ export default function SuperAdminGymOwners({ search: parentSearch }) {
     if (drawerGym?.id === gym.id) setDrawerGym(null)
   }
   const handleResetLicense = async (gym) => {
-    const newKey = `IRP-${Math.random().toString(36).substring(2,6).toUpperCase()}-${Math.random().toString(36).substring(2,6).toUpperCase()}-${Math.random().toString(36).substring(2,6).toUpperCase()}`
+    const seg = () => { const a = new Uint8Array(4); crypto.getRandomValues(a); return Array.from(a, b => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[b % 36]).join('') }
+    const newKey = `IRP-${seg()}-${seg()}-${seg()}`
     await updateDoc(doc(db, 'gyms', gym.id), {
       'subscription.licenseKey': newKey,
       'subscription.licenseStatus': 'active',

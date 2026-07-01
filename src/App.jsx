@@ -4,11 +4,13 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppProvider, useApp } from './context/AppContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { PAGE_ROUTES } from './utils/rbac'
-import StartupVideo from './components/StartupVideo'
-import LoadingVideo from './components/LoadingVideo'
+import StartupScreen from './components/StartupScreen'
+import LoadingScreen from './components/LoadingScreen'
 import Sidebar      from './components/Sidebar'
 import Header       from './components/Header'
 import LicenseGuard from './components/LicenseGuard'
+import ErrorBoundary from './components/ErrorBoundary'
+import { openSupportWhatsApp } from './utils/whatsappSupport'
 
 // ── Lazy-loaded pages (code-split at route level) ──────────
 const Landing        = lazy(() => import('./pages/Landing'))
@@ -37,6 +39,7 @@ const PlatformRevenue     = lazy(() => import('./pages/superadmin/Revenue'))
 const UsageAnalytics      = lazy(() => import('./pages/superadmin/UsageAnalytics'))
 const SuperAdminNotifications = lazy(() => import('./pages/superadmin/Notifications'))
 const SuperAdminSupport   = lazy(() => import('./pages/superadmin/Support'))
+const Support             = lazy(() => import('./pages/Support'))
 const Security            = lazy(() => import('./pages/superadmin/Security'))
 const PlatformSettings    = lazy(() => import('./pages/superadmin/PlatformSettings'))
 const LicenseKeys         = lazy(() => import('./pages/superadmin/LicenseKeys'))
@@ -54,7 +57,7 @@ const PAGE_COMPONENTS = {
   gymOwners:      (p) => <SuperAdminGymOwners search={p.search} setPage={p.setPage} />,
   subscriptions:  (p) => <SuperAdminSubscriptions search={p.search} setPage={p.setPage} />,
   pending:        (p) => <ApprovalRequests search={p.search} setPage={p.setPage} />,
-  support:        (p) => <SuperAdminSupport search={p.search} setPage={p.setPage} />,
+  support:        (p) => <Support search={p.search} setPage={p.setPage} />,
   notifications: (p) => <Notifications   search={p.search} setPage={p.setPage} />,
   members:       (p) => <Members         search={p.search} setPage={p.setPage} />,
   trainers:      (p) => <Trainers        search={p.search} setPage={p.setPage} />,
@@ -99,9 +102,11 @@ function buildPageMap(setPage, search, role) {
     map.notifications = <SuperAdminNotifications search={search} setPage={setPage} />
     map.reports       = <SuperAdminReports   search={search} setPage={setPage} />
     map.devices       = <SuperAdminDevices   />
+    map.support       = <SuperAdminSupport search={search} setPage={setPage} />
   }
-  // Wrap gym_admin pages in LicenseGuard (premium pages)
-  if (role === 'gym_admin' || role === 'gym_owner') {
+  // Wrap gym_admin-equivalent pages in LicenseGuard (premium pages)
+  // role here is navRole (effectiveRole || role), which normalizes 'admin' and 'gym_owner' to 'gym_admin'
+  if (role === 'gym_admin') {
     const guardedKeys = ['dashboard','members','trainers','payments','attendance',
       'reception','workouts','diet','progress','reports','notifications',
       'whatsapp','settings','support','devices']
@@ -210,6 +215,7 @@ const UnauthorizedFallback = () => (
     </p>
     <div style={{ display:'flex', gap:12 }}>
       <button className="btn btn-primary" onClick={() => window.location.href = '/'}>Return Home</button>
+      <button className="btn btn-outline" onClick={() => openSupportWhatsApp({ page: 'Unauthorized', issue: 'Permission Issue' })}>🆘 Contact Support</button>
       <button className="btn btn-outline" onClick={logout}>Sign Out</button>
     </div>
   </div>
@@ -279,7 +285,7 @@ const pageContent =
 
   return (
     <>
-      {loadingNav && <LoadingVideo key={navKey} onReady={onLoadingReady} />}
+      {loadingNav && <LoadingScreen key={navKey} onReady={onLoadingReady} />}
       {mobileOpen && (
         <div
           onClick={() => setMobileOpen(false)}
@@ -350,7 +356,7 @@ function ProtectedRoute({ children, allowedRoles }) {
     return children
   }
 
-  return <LoadingVideo />
+  return <LoadingScreen />
 }
 
 function PublicRoute({ children }) {
@@ -369,7 +375,7 @@ function PublicRoute({ children }) {
     return isLoggedIn ? <Navigate to="/dashboard" replace /> : children
   }
 
-  return <LoadingVideo />
+  return <LoadingScreen />
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -377,12 +383,12 @@ function PublicRoute({ children }) {
 // ─────────────────────────────────────────────────────────────
 function RouterTree() {
   return (
-    <Suspense fallback={<LoadingVideo />}>
+    <Suspense fallback={<LoadingScreen />}>
       <Routes>
         <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
         <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','gym_owner','trainer','member']}><AppShell /></ProtectedRoute>} />
-        <Route path="/reception" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer']}><ReceptionMode /></ProtectedRoute>} />
+        <Route path="/reception" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','gym_owner','trainer']}><ReceptionMode /></ProtectedRoute>} />
         <Route path="/payment-status" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','gym_owner','trainer','member']}><PaymentStatus /></ProtectedRoute>} />
         <Route path="/checkout" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','gym_owner','trainer','member']}><Checkout /></ProtectedRoute>} />
         <Route path="/rejected" element={<Rejected />} />
@@ -408,10 +414,10 @@ export default function App() {
 
   return (
     <>
-      {!startupDone && <StartupVideo onEnd={handleStartupEnd} />}
-      <AuthProvider>
+      {!startupDone && <StartupScreen onEnd={handleStartupEnd} />}
+        <AuthProvider>
         <AppProvider>
-          {startupDone ? <RouterTree /> : null}
+          {startupDone ? <ErrorBoundary><RouterTree /></ErrorBoundary> : null}
         </AppProvider>
       </AuthProvider>
     </>

@@ -24,7 +24,7 @@ const COLLECTION = 'notifications'
 
 const PAGE_SIZE = 50
 
-export function subscribeToNotifications(userId, callback, gymId) {
+export function subscribeToNotifications(userId, callback, gymId, onError) {
   const constraints = [where('userId', '==', userId)]
   if (gymId) {
     constraints.push(where('gymId', '==', gymId))
@@ -36,7 +36,7 @@ export function subscribeToNotifications(userId, callback, gymId) {
     const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
     callback(list)
   }, (err) => {
-    console.error('subscribeToNotifications error:', err)
+    console.error('subscribeToNotifications error:', err); if (onError) onError(err, 'notifications')
     callback([])
   })
 }

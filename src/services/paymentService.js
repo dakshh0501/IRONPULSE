@@ -302,7 +302,7 @@ export async function getPaymentAttempt(docId) {
  * @param {string} [gymId]
  * @returns {Function} unsubscribe
  */
-export function subscribeToPaymentAttempts(callback, gymId) {
+export function subscribeToPaymentAttempts(callback, gymId, onError) {
   const ref = gymId
     ? query(collection(db, COLLECTION), where('gymId', '==', gymId))
     : collection(db, COLLECTION)
@@ -311,7 +311,7 @@ export function subscribeToPaymentAttempts(callback, gymId) {
     const attempts = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
     callback(attempts)
   }, (error) => {
-    console.error(`[Firestore] Subscription error (paymentAttempts):`, error.message)
+    console.error(`[Firestore] Subscription error (paymentAttempts):`, error.message); if (onError) onError(error, 'paymentAttempts')
   })
 }
 

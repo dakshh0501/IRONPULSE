@@ -4,19 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { updateSubscription } from '../services/firestoreService'
 import { getPendingAttemptsForSubscription } from '../services/paymentService'
-
-const PLAN_OPTIONS = ['Trial', 'Standard', 'Premium', 'Quarterly', 'Annual', 'Lifetime', 'Day Pass']
-const PLAN_ORDER = { 'Trial': 0, 'Day Pass': 1, 'Standard': 2, 'Premium': 3, 'Quarterly': 4, 'Annual': 5, 'Lifetime': 6 }
-
-const PLAN_AMOUNTS = {
-  'Trial': 0,
-  'Standard': 9999,
-  'Premium': 19999,
-  'Quarterly': 29999,
-  'Annual': 99999,
-  'Lifetime': 499999,
-  'Day Pass': 99,
-}
+import { PLAN_OPTIONS, PLAN_ORDER, PLAN_AMOUNTS } from '../constants/plans'
 
 function getStatusBadge(status) {
   const map = {
@@ -104,7 +92,7 @@ function SubscriptionDetailModal({ sub, gymName, ownerName, onClose, onAction, o
             style={{ width: '100%', marginTop: 8 }}
           >
             {availablePlans.map(p => (
-              <option key={p} value={p}>{p} — ₹{(PLAN_AMOUNTS[p] / 100).toFixed(0)}</option>
+              <option key={p} value={p}>{p} — ₹{(PLAN_AMOUNTS[p] / 100).toFixed(2)}</option>
             ))}
           </select>
         </div>
@@ -289,7 +277,7 @@ export default function Subscriptions({ search }) {
       const newOrder = PLAN_ORDER[newPlan] || 0
       const isDowngrade = newOrder < currentOrder
       const durations = { Trial: 14, Standard: 30, Premium: 30, Quarterly: 90, Annual: 365, Lifetime: 9999, 'Day Pass': 1 }
-      const amounts = { Trial: 0, Standard: 9999, Premium: 19999, Quarterly: 29999, Annual: 99999, Lifetime: 499999, 'Day Pass': 99 }
+      const amounts = PLAN_AMOUNTS
       const duration = durations[newPlan] || 30
       const expiryDate = new Date(now)
       expiryDate.setDate(expiryDate.getDate() + duration)
@@ -429,7 +417,7 @@ export default function Subscriptions({ search }) {
         </div>
         <div className="stat-card">
           <div className="stat-title">Revenue</div>
-          <div className="stat-value" style={{ color: 'var(--primary)' }}>₹{(stats.revenue / 100).toFixed(0)}</div>
+          <div className="stat-value" style={{ color: 'var(--primary)' }}>₹{(stats.revenue / 100).toFixed(2)}</div>
         </div>
       </div>
 

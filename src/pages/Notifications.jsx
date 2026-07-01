@@ -16,8 +16,10 @@ const TYPE_CONFIG = {
   system:     { icon:'⚙️', label:'System',       color:'#6070a0', bg:'rgba(96,112,160,0.1)'  },
 }
 
-const ntfStyles = document.createElement('style')
-ntfStyles.textContent = `
+if (!document.getElementById('ntf-styles')) {
+  const ntfStyles = document.createElement('style')
+  ntfStyles.id = 'ntf-styles'
+  ntfStyles.textContent = `
   @keyframes ntf-fade-up { 0% { opacity:0; transform:translateY(16px) } 100% { opacity:1; transform:translateY(0) } }
   @keyframes ntf-slide-in { 0% { transform:translateX(100%) } 100% { transform:translateX(0) } }
   @keyframes ntf-pulse { 0%,100% { opacity:1 } 50% { opacity:0.4 } }
@@ -46,7 +48,8 @@ ntfStyles.textContent = `
     .ntf-stat-card .ntf-stat-value { font-size:20px; }
   }
 `
-document.head.appendChild(ntfStyles)
+  document.head.appendChild(ntfStyles)
+}
 
 function AnimatedCounter({ value, suffix = '' }) {
   const [display, setDisplay] = useState(0)
@@ -123,18 +126,21 @@ function getTimeGroup(createdAt) {
   const yesterday = today - 86400000
   const weekAgo = today - 7 * 86400000
   if (ts.getTime() >= today) return 'Newest'
-  if (ts.getTime() >= yesterday) return 'Earlier Today'
-  if (ts.getTime() >= weekAgo) return 'Yesterday'
+  if (ts.getTime() >= yesterday) return 'Yesterday'
+  if (ts.getTime() >= weekAgo) return 'Earlier Today'
   return 'This Week'
 }
 
-export default function Notifications({ search = '' }) {
+export default function Notifications({ search: propSearch = '' }) {
   const { notifications, markNotifRead, markAllNotifsRead, markNotifUnread, deleteNotif, notifLoading } = useApp()
 
   const [typeFilter, setTypeFilter] = useState('all')
   const [showUnread, setShowUnread] = useState(false)
   const [priorityFilter, setPriorityFilter] = useState('all')
   const [toast, setToast] = useState(null)
+  const [localSearch, setLocalSearch] = useState('')
+
+  const search = localSearch || propSearch
 
   const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [notifications])
   const todayCount = useMemo(() => notifications.filter(n => {
@@ -211,7 +217,7 @@ export default function Notifications({ search = '' }) {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="2" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
-            <input className="form-input" style={{ paddingLeft: 34, height: 36, fontSize: 13, borderRadius: 10 }} placeholder="Search notifications..." value={search || ''} readOnly />
+            <input className="form-input" style={{ paddingLeft: 34, height: 36, fontSize: 13, borderRadius: 10 }} placeholder="Search notifications..." value={search || ''} onChange={e => setLocalSearch(e.target.value)} />
           </div>
           {unreadCount > 0 && (
             <button className="btn btn-sm" style={{ background: 'linear-gradient(135deg,#e8420a,#ff5520)', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}

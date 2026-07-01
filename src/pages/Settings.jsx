@@ -7,6 +7,10 @@ import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 import { uploadGymLogo } from '../services/storageService'
 import { extractDominantColor } from '../utils/colorExtractor'
+import { SUPPORT_EMAIL, SUPPORT_WHATSAPP, SUPPORT_HOURS, SUPPORT_RESPONSE_TIME } from '../config/support'
+import { openSupportWhatsApp } from '../utils/whatsappSupport'
+import { shareWebsite, copyWebsiteLink } from '../utils/shareWebsite'
+import { WEBSITE_NAME, WEBSITE_URL } from '../config/website'
 
 function Toggle({ on, onChange }) {
   return (
@@ -622,7 +626,7 @@ export default function Settings() {
                           <td>
                             <div className="action-group">
                               <button className="btn btn-sm btn-ghost" title="Edit" onClick={() => openPlanModal(plan)}>✏️</button>
-                              <button className="btn btn-sm btn-danger" title="Delete" onClick={async () => { if (window.confirm(`Delete plan "${plan.name}"?`)) await deletePlan(plan.id) }}>🗑</button>
+                              <button className="btn btn-sm btn-danger" title="Delete" onClick={async () => { if (!window.confirm(`Delete plan "${plan.name}"?`)) return; try { await deletePlan(plan.id) } catch (err) { console.error('delete plan failed:', err) } }}>🗑</button>
                             </div>
                           </td>
                         </tr>
@@ -853,6 +857,19 @@ export default function Settings() {
                   <span className="badge badge-green" style={{ fontSize:11 }}>ACTIVE</span>
                 </div>
               </Section>
+
+              <Section icon="🔗" title="Share" desc={`Spread the word about ${WEBSITE_NAME}`}>
+                <SettingRow label="Website URL" desc="Share this link with others">
+                  <input className="form-input" value={WEBSITE_URL} readOnly style={{ width: 280, fontSize: 12 }} />
+                </SettingRow>
+                <div className="setting-row">
+                  <div className="setting-row-info" />
+                  <div className="setting-row-action" style={{ gap: 8, display: 'flex', flexWrap: 'wrap' }}>
+                    <button className="btn btn-outline btn-sm" onClick={() => { const msg = copyWebsiteLink(); alert(msg) }}>📋 Copy Link</button>
+                    <button className="btn btn-primary btn-sm" onClick={shareWebsite}>🔗 Share Website</button>
+                  </div>
+                </div>
+              </Section>
             </>
           )}
 
@@ -891,7 +908,7 @@ export default function Settings() {
 
               <Section icon="⚠️" title="Danger Zone" desc="Irreversible actions — proceed with caution" className="settings-danger-section">
                 {[
-                  { label:'Sign Out of All Devices', desc:'Terminates all active sessions across every device.', btn:'Sign Out All', action:() => { if (window.confirm('Sign out from all devices?')) logout() } },
+                  { label:'Sign Out Current Device', desc:'Signs out this device only.', btn:'Sign Out', action:() => { if (window.confirm('Sign out from this device?')) logout() } },
                   { label:'Reset All App Data', desc:'Resets all members, payments and settings to demo defaults.', btn:'Reset Data', action:() => alert('Reset requires admin password confirmation.') },
                   { label:'Delete Gym Account', desc:'Permanently deletes this gym and all associated data. Cannot undo.', btn:'Delete Account', action:() => alert('Sends a confirmation email before deletion.') },
                 ].map(item => (
@@ -911,10 +928,15 @@ export default function Settings() {
           {activeTab === 'support' && (
             <>
               <Section icon="📞" title="Contact Support" desc="Reach out to the team directly">
-                <div className="settings-contact-row">
-                  <a href={`tel:${gymContact.replace(/[\s\-\(\)\+]/g,'')}`} className="btn btn-outline">📞 Call {gymContact}</a>
-                  <a href={`mailto:${gymEmail}`} className="btn btn-outline">✉️ Email {gymEmail}</a>
-                  <a href={`https://wa.me/?text=${encodeURIComponent('Hi, I need help with IRONPULSE.')}`} target="_blank" rel="noopener noreferrer" className="btn btn-outline">💬 WhatsApp Support</a>
+                <div className="settings-contact-row" style={{ flexDirection:'column', alignItems:'flex-start', gap:12 }}>
+                  <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+                    <a href={`mailto:${SUPPORT_EMAIL}`} className="btn btn-outline">✉️ Email {SUPPORT_EMAIL}</a>
+                    <button className="btn btn-outline" onClick={() => openSupportWhatsApp({ user: currentUser, gym: gymSettings, page: 'Settings', issue: 'Account Settings' })}>💬 WhatsApp Business</button>
+                  </div>
+                  <div style={{ fontSize:12, color:'var(--text-muted)', lineHeight:1.6 }}>
+                    <div><strong>Response:</strong> {SUPPORT_RESPONSE_TIME}</div>
+                    <div><strong>Hours:</strong> {SUPPORT_HOURS}</div>
+                  </div>
                 </div>
               </Section>
 

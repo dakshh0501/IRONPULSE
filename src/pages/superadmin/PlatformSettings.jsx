@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { getSettings, saveSettings } from '../../services/firestoreService'
+import { SUPPORT_EMAIL, SUPPORT_WHATSAPP, SUPPORT_HOURS, SUPPORT_RESPONSE_TIME } from '../../config/support'
 
-const psStyles = document.createElement('style')
-psStyles.textContent = `
+if (!document.getElementById('ps-styles')) {
+  const psStyles = document.createElement('style')
+  psStyles.id = 'ps-styles'
+  psStyles.textContent = `
 @keyframes ps-fade-up { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
 @keyframes ps-check { 0% { transform:scale(0); } 50% { transform:scale(1.2); } 100% { transform:scale(1); } }
 @keyframes ps-skeleton { 0% { opacity:0.3; } 50% { opacity:0.6; } 100% { opacity:0.3; } }
@@ -86,7 +89,8 @@ psStyles.textContent = `
   .ps-sidebar-tab-desc { display:none !important; }
 }
 `
-document.head.appendChild(psStyles)
+  document.head.appendChild(psStyles)
+}
 
 function Toggle({ on, onChange }) {
   return (
@@ -333,11 +337,16 @@ export default function PlatformSettings() {
         <SettingRow label="Language" desc="Default language for the admin panel interface">
           <SelectField k="language" state={form} setState={set} options={LANGUAGES} style={{ minWidth:160 }} />
         </SettingRow>
-        <SettingRow label="Support Email" desc="Public support email address">
-          <InputField k="supportEmail" state={form} setState={set} placeholder="support@ironpulse.app" style={{ width:240 }} />
+        <SettingRow label="Support Email" desc="Official IRONPULSE support email">
+          <div style={{ fontSize:13, color:'var(--text)' }}>{SUPPORT_EMAIL}</div>
         </SettingRow>
-        <SettingRow label="Support Phone" desc="Public support phone number">
-          <InputField k="supportPhone" state={form} setState={set} placeholder="+91 9876543210" style={{ width:200 }} />
+        <SettingRow label="WhatsApp Number" desc="Official IRONPULSE WhatsApp Business number">
+          <div style={{ fontSize:13, color:'var(--text)' }}>{SUPPORT_WHATSAPP}</div>
+        </SettingRow>
+        <SettingRow label="Business Hours" desc="When support is available">
+          <div style={{ fontSize:13, color:'var(--text)', textAlign:'right', lineHeight:1.6 }}>
+            Monday – Saturday<br />9:00 AM – 8:00 PM
+          </div>
         </SettingRow>
       </SettingsCard>
       <SettingsCard icon="🔧" iconBg="rgba(245,158,11,0.08)" title="Operational Settings" subtitle="Maintenance mode, trials, and auto-backup">

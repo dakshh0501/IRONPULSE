@@ -1,8 +1,10 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
 
-const secStyles = document.createElement('style')
-secStyles.textContent = `
+if (!document.getElementById('sec-styles')) {
+  const secStyles = document.createElement('style')
+  secStyles.id = 'sec-styles'
+  secStyles.textContent = `
   @keyframes sec-fade-up { 0% { opacity:0; transform:translateY(16px) } 100% { opacity:1; transform:translateY(0) } }
   @keyframes sec-shimmer { 0% { background-position:200% 0 } 100% { background-position:-200% 0 } }
   @keyframes sec-pulse { 0%,100% { opacity:1 } 50% { opacity:0.5 } }
@@ -71,7 +73,8 @@ secStyles.textContent = `
     .sec-policy-grid { grid-template-columns:1fr 1fr; }
   }
 `
-document.head.appendChild(secStyles)
+  document.head.appendChild(secStyles)
+}
 
 function AnimatedCounter({ value, suffix = '', prefix = '' }) {
   const [display, setDisplay] = useState(0)

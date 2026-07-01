@@ -715,11 +715,31 @@ function MembershipReport({ members }) {
   )
 }
 
+const getCutoffDate = (range) => {
+  const d = new Date()
+  switch (range) {
+    case 'today':   return formatDate(d)
+    case 'week':    d.setDate(d.getDate() - 7); return formatDate(d)
+    case 'month':   d.setDate(d.getDate() - 30); return formatDate(d)
+    case 'quarter': d.setDate(d.getDate() - 90); return formatDate(d)
+    case 'year':    d.setDate(d.getDate() - 365); return formatDate(d)
+    default:        return '1970-01-01'
+  }
+}
+
 // ─── Main Export ─────────────────────────────────────────────
-export default function Reports() {
+export default function Reports({ search: _search } = {}) {
   const { members, payments, trainers, attendance } = useApp()
   const [activeTab, setActiveTab] = useState('Dashboard')
   const [dateRange, setDateRange] = useState('month')
+
+  const cutoff = getCutoffDate(dateRange)
+  const filteredPayments = useMemo(() => payments.filter(p => {
+    const d = p.paidOn || p.due
+    return d && d >= cutoff
+  }), [payments, cutoff])
+  const filteredAttendance = useMemo(() => attendance.filter(a => a.date && a.date >= cutoff), [attendance, cutoff])
+  const filteredMembers = useMemo(() => members.filter(m => (m.join || '9999-99-99') >= cutoff), [members, cutoff])
 
   const exportPDF = () => {
     const doc = new jsPDF({ unit:'mm', format:'a4' })
@@ -806,7 +826,7 @@ export default function Reports() {
       </div>
 
       {/* ═══════════════ BUSINESS INSIGHTS ═══════════════ */}
-      <BusinessInsights members={members} payments={payments} trainers={trainers} attendance={attendance} />
+      <BusinessInsights members={filteredMembers} payments={filteredPayments} trainers={trainers} attendance={filteredAttendance} />
 
       {/* ═══════════════ TABS ═══════════════ */}
       <div className="rpt-tabs">
@@ -825,12 +845,12 @@ export default function Reports() {
 
       {/* ═══════════════ TAB CONTENT ═══════════════ */}
       <div className="rpt-content">
-        {activeTab === 'Dashboard'  && <DashboardReport  members={members} payments={payments} trainers={trainers} attendance={attendance} />}
-        {activeTab === 'Members'    && <MembersReport    members={members} />}
-        {activeTab === 'Financial'  && <FinancialReport  payments={payments} members={members} attendance={attendance} />}
-        {activeTab === 'Attendance' && <AttendanceReport members={members} attendance={attendance} />}
-        {activeTab === 'Membership' && <MembershipReport members={members} />}
-        {activeTab === 'Trainers'   && <TrainerReport    members={members} trainers={trainers} />}
+        {activeTab === 'Dashboard'  && <DashboardReport  members={filteredMembers} payments={filteredPayments} trainers={trainers} attendance={filteredAttendance} />}
+        {activeTab === 'Members'    && <MembersReport    members={filteredMembers} />}
+        {activeTab === 'Financial'  && <FinancialReport  payments={filteredPayments} members={filteredMembers} attendance={filteredAttendance} />}
+        {activeTab === 'Attendance' && <AttendanceReport members={filteredMembers} attendance={filteredAttendance} />}
+        {activeTab === 'Membership' && <MembershipReport members={filteredMembers} />}
+        {activeTab === 'Trainers'   && <TrainerReport    members={filteredMembers} trainers={trainers} />}
       </div>
     </div>
   )

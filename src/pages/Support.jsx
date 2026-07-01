@@ -2,8 +2,10 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 
-const sptStyles = document.createElement('style')
-sptStyles.textContent = `
+if (!document.getElementById('spt-styles')) {
+  const sptStyles = document.createElement('style')
+  sptStyles.id = 'spt-styles'
+  sptStyles.textContent = `
   @keyframes spt-fade-up { 0% { opacity:0; transform:translateY(16px) } 100% { opacity:1; transform:translateY(0) } }
   @keyframes spt-shimmer { 0% { background-position:200% 0 } 100% { background-position:-200% 0 } }
   .spt-stat-card {
@@ -124,7 +126,8 @@ sptStyles.textContent = `
     .spt-drawer-nav-item { padding:8px 10px; font-size:11px; }
   }
 `
-document.head.appendChild(sptStyles)
+  document.head.appendChild(sptStyles)
+}
 
 function AnimatedCounter({ value, suffix = '' }) {
   const [display, setDisplay] = useState(0)
@@ -252,7 +255,7 @@ function TicketDrawer({ ticket, open, onClose, drawerTab, setDrawerTab, replyTex
                 <div style={{ height: 1, background: 'var(--border)', margin: '0 0 16px' }} />
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 10 }}>Reply</div>
                 <textarea className="form-textarea" rows={4} value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Type your reply here..." style={{ borderRadius: 10, fontSize: 13, marginBottom: 10, resize: 'vertical' }} />
-                <button className="btn btn-primary" style={{ borderRadius: 10, fontSize: 12, padding: '8px 18px' }} onClick={() => {}}>Send Reply</button>
+                <button className="btn btn-primary" style={{ borderRadius: 10, fontSize: 12, padding: '8px 18px', opacity: 0.6 }} disabled>Send Reply</button>
               </div>
             )}
 

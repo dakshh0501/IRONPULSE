@@ -85,10 +85,13 @@ async function fulfillSubscriptionPayment(attempt, phonePeTransactionId) {
       // Just activate and mark paid.
       updateFields.status = 'active'
     } else if (attempt.type === 'upgrade') {
-      // Upgrade: apply the new plan from the payment attempt, recalculate dates + amounts.
+      // Upgrade: apply the new plan from the payment attempt, recalculate dates + amounts,
+      // extending from the current expiry if still active.
       const newPlan = attempt.plan || sub.plan
       const duration = PLAN_DURATIONS[newPlan] || 30
-      const expiryDate = new Date(now)
+      const currentExpiry = sub.expiryDate ? new Date(sub.expiryDate) : null
+      const expiryBase = currentExpiry && currentExpiry.getTime() > now.getTime() ? currentExpiry : now
+      const expiryDate = new Date(expiryBase)
       expiryDate.setDate(expiryDate.getDate() + duration)
       const graceEnd = new Date(expiryDate)
       graceEnd.setDate(graceEnd.getDate() + 5)
@@ -96,7 +99,6 @@ async function fulfillSubscriptionPayment(attempt, phonePeTransactionId) {
       updateFields.status = 'active'
       updateFields.plan = newPlan
       updateFields.planType = newPlan
-      updateFields.startDate = now.toISOString().split('T')[0]
       updateFields.expiryDate = expiryDate.toISOString().split('T')[0]
       updateFields.graceEndDate = graceEnd.toISOString().split('T')[0]
       updateFields.daysRemaining = duration
@@ -123,22 +125,19 @@ async function fulfillSubscriptionPayment(attempt, phonePeTransactionId) {
         const existingSub = gymData.subscription || {}
         const newExpiry = updateFields.expiryDate || existingSub.expiryDate
         transaction.update(gymRef, {
-          subscription: {
-            ...existingSub,
-            planId: updateFields.planType || existingSub.planType,
-            planName: updateFields.plan || existingSub.planName,
-            planType: updateFields.planType || existingSub.planType,
-            status: updateFields.status || 'active',
-            paymentStatus: 'paid',
-            startDate: updateFields.startDate || existingSub.startDate || now.toISOString().split('T')[0],
-            expiryDate: newExpiry || existingSub.expiryDate,
-            amount: (attempt.finalAmount || 0) / 100,
-            currency: 'INR',
-            renewalCount: (existingSub.renewalCount || 0) + (attempt.type === 'renewal' ? 1 : 0),
-            lastPaymentId: attempt.paymentId || '',
-            lastTransactionId: phonePeTransactionId || attempt.phonePeTransactionId || '',
-            updatedAt: now.toISOString(),
-          },
+          'subscription.planId': updateFields.planType || existingSub.planType,
+          'subscription.planName': updateFields.plan || existingSub.planName,
+          'subscription.planType': updateFields.planType || existingSub.planType,
+          'subscription.status': updateFields.status || 'active',
+          'subscription.paymentStatus': 'paid',
+          'subscription.startDate': updateFields.startDate || existingSub.startDate || now.toISOString().split('T')[0],
+          'subscription.expiryDate': newExpiry || existingSub.expiryDate,
+          'subscription.amount': (attempt.finalAmount || 0) / 100,
+          'subscription.currency': 'INR',
+          'subscription.renewalCount': (existingSub.renewalCount || 0) + (attempt.type === 'renewal' ? 1 : 0),
+          'subscription.lastPaymentId': attempt.paymentId || '',
+          'subscription.lastTransactionId': phonePeTransactionId || attempt.phonePeTransactionId || '',
+          'subscription.updatedAt': now.toISOString(),
         })
 
         // ── Create subscription history record ────────
@@ -406,6 +405,7 @@ exports.createPayment = onCall({
   timeoutSeconds: 60,
   memory: '256MiB'
 }, async (request) => {
+  try {
   // Verify authentication
   if (!request.auth) {
     return { attemptId: null, redirectUrl: null, error: 'Authentication required' }
@@ -612,6 +612,10 @@ exports.createPayment = onCall({
       error: fetchError.message || 'Failed to call PhonePe API',
     }
   }
+  } catch (topErr) {
+    console.error('createPayment: unhandled error', topErr)
+    return { attemptId: null, redirectUrl: null, error: topErr.message || 'Internal server error' }
+  }
 })
 
 /**
@@ -626,6 +630,7 @@ exports.verifyPayment = onCall({
   timeoutSeconds: 60,
   memory: '256MiB'
 }, async (request) => {
+  try {
   if (!request.auth) {
     return { status: null, error: 'Authentication required' }
   }
@@ -722,6 +727,10 @@ exports.verifyPayment = onCall({
     return { status: newStatus, error: null }
   } catch (fetchError) {
     return { status: attempt.status, error: fetchError.message || 'Network request failed' }
+  }
+  } catch (topErr) {
+    console.error('verifyPayment: unhandled error', topErr)
+    return { status: null, error: topErr.message || 'Internal server error' }
   }
 })
 

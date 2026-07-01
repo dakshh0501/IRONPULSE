@@ -40,6 +40,20 @@ async function updateGymSubscription(gymId, updates) {
   if (!gymId) throw new Error('gymId required')
   const gymRef = doc(db, 'gyms', gymId)
 
+  // Auto-provision a license key when a subscription first becomes active
+  // or trial, but never overwrite an existing key (preserved across renewals,
+  // upgrades, downgrades, reactivations, and extensions).
+  if (updates.status === 'active' || updates.status === 'trial') {
+    const snap = await getDoc(gymRef)
+    const existing = snap.data()?.subscription
+    if (existing && !existing.licenseKey) {
+      const seg = () => { const a = new Uint8Array(4); crypto.getRandomValues(a); return Array.from(a, b => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[b % 36]).join('') }
+      updates.licenseKey = `IRP-${seg()}-${seg()}-${seg()}`
+      updates.licenseStatus = 'active'
+      updates.generatedAt = new Date().toISOString()
+    }
+  }
+
   // Use dot-notation field paths for atomic partial updates.
   // This avoids the read-then-write race condition: updateDoc only
   // touches the specified fields; all other subscription fields are
@@ -70,7 +84,7 @@ async function addHistoryRecord(record) {
 
 export async function activateSubscription(gymId, planName, planType, amount, actorUid) {
   const now = new Date()
-  const daysMap = { trial: 14, monthly: 30, quarterly: 90, yearly: 365 }
+  const daysMap = { trial: 14, monthly: 30, quarterly: 90, yearly: 365, annual: 365, lifetime: 9999 }
   const duration = daysMap[planType] || 30
   const expiry = new Date(now)
   expiry.setDate(expiry.getDate() + duration)
@@ -129,21 +143,21 @@ export async function expireSubscription(gymId, actorUid) {
 
 export async function renewSubscription(gymId, planName, planType, amount, actorUid) {
   const now = new Date()
-  const daysMap = { trial: 14, monthly: 30, quarterly: 90, yearly: 365 }
+  const daysMap = { trial: 14, monthly: 30, quarterly: 90, yearly: 365, annual: 365, lifetime: 9999 }
   const duration = daysMap[planType] || 30
-  const expiry = new Date(now)
-  expiry.setDate(expiry.getDate() + duration)
 
   const gymSnap = await getDoc(doc(db, 'gyms', gymId))
   const current = gymSnap.data()?.subscription || {}
   const renewalCount = (current.renewalCount || 0) + 1
+  const base = current.expiryDate ? new Date(Math.max(new Date(current.expiryDate).getTime(), now.getTime())) : now
+  const expiry = new Date(base)
+  expiry.setDate(expiry.getDate() + duration)
 
   await updateGymSubscription(gymId, {
     planName,
     planType,
     status: 'active',
     paymentStatus: planType === 'trial' ? 'paid' : 'pending',
-    startDate: now.toISOString(),
     expiryDate: expiry.toISOString(),
     amount,
     renewalCount,
@@ -169,9 +183,13 @@ export async function renewSubscription(gymId, planName, planType, amount, actor
 
 export async function upgradePlan(gymId, newPlanName, newPlanType, newAmount, actorUid) {
   const now = new Date()
-  const daysMap = { trial: 14, monthly: 30, quarterly: 90, yearly: 365 }
+  const daysMap = { trial: 14, monthly: 30, quarterly: 90, yearly: 365, annual: 365, lifetime: 9999 }
   const duration = daysMap[newPlanType] || 30
-  const expiry = new Date(now)
+
+  const snap = await getDoc(doc(db, 'gyms', gymId))
+  const current = snap.data()?.subscription || {}
+  const base = current.expiryDate ? new Date(Math.max(new Date(current.expiryDate).getTime(), now.getTime())) : now
+  const expiry = new Date(base)
   expiry.setDate(expiry.getDate() + duration)
 
   await updateGymSubscription(gymId, {
@@ -202,9 +220,13 @@ export async function upgradePlan(gymId, newPlanName, newPlanType, newAmount, ac
 // delegates to changePlan (identical logic, different action label)
 export async function downgradePlan(gymId, newPlanName, newPlanType, newAmount, actorUid) {
   const now = new Date()
-  const daysMap = { trial: 14, monthly: 30, quarterly: 90, yearly: 365 }
+  const daysMap = { trial: 14, monthly: 30, quarterly: 90, yearly: 365, annual: 365, lifetime: 9999 }
   const duration = daysMap[newPlanType] || 30
-  const expiry = new Date(now)
+
+  const snap = await getDoc(doc(db, 'gyms', gymId))
+  const current = snap.data()?.subscription || {}
+  const base = current.expiryDate ? new Date(Math.max(new Date(current.expiryDate).getTime(), now.getTime())) : now
+  const expiry = new Date(base)
   expiry.setDate(expiry.getDate() + duration)
 
   await updateGymSubscription(gymId, {
@@ -289,7 +311,7 @@ export async function extendExpiry(gymId, newExpiryDate, actorUid) {
 // Cloud Function integrated with the payment gateway.
 export async function changePlan(gymId, planName, planType, amount, actorUid) {
   const now = new Date()
-  const daysMap = { trial: 14, monthly: 30, quarterly: 90, yearly: 365 }
+  const daysMap = { trial: 14, monthly: 30, quarterly: 90, yearly: 365, annual: 365, lifetime: 9999 }
   const duration = daysMap[planType] || 30
   const expiry = new Date(now)
   expiry.setDate(expiry.getDate() + duration)

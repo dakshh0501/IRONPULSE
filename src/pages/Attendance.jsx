@@ -1,17 +1,17 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useApp }            from '../context/AppContext'
 import { addAttendance as addAttendanceService } from '../services/attendanceService'
 import QRScanner             from '../components/QRScanner'
 
-const todayStr = new Date().toISOString().split('T')[0]
+function getTodayStr() { return new Date().toISOString().split('T')[0] }
 
-function fmtDate(ds) {
+function fmtDate(ds, todayStr) {
   if (ds === todayStr) return 'Today'
   return new Date(ds).toLocaleDateString('en-IN', { day:'2-digit', month:'short' })
 }
 
 // ─── 7-Day Heatmap ──────────────────────────────────────────
-function WeekHeatmap({ logs }) {
+function WeekHeatmap({ logs, todayStr }) {
   const days = Array.from({ length:7 }, (_, i) => {
     const d = new Date()
     d.setDate(d.getDate() - (6 - i))
@@ -44,7 +44,7 @@ function WeekHeatmap({ logs }) {
 }
 
 // ─── Member Streak Row ──────────────────────────────────────
-function MemberStreakRow({ member, logs }) {
+function MemberStreakRow({ member, logs, todayStr }) {
   const uid = member.authUid || member.uid || member.id
   const memberLogs = logs.filter(l => l.memberId === uid)
   const days = new Set(memberLogs.map(l => l.date))
@@ -246,7 +246,7 @@ function TodayTimeline({ logs }) {
 }
 
 // ─── Attendance Table ───────────────────────────────────────
-function AttendanceTable({ logs, search, members }) {
+function AttendanceTable({ logs, search, members, todayStr }) {
   const [dateFilter,   setDateFilter]   = useState(todayStr)
   const [methodFilter, setMethodFilter] = useState('All')
   const [localSearch,  setLocalSearch]  = useState('')
@@ -329,7 +329,7 @@ function AttendanceTable({ logs, search, members }) {
                       <span className="att-cell-name">{log.memberName||'—'}</span>
                     </div>
                   </td>
-                  <td><span className={`att-cell-date${log.date===todayStr?' att-cell-date-today':''}`}>{fmtDate(log.date)}</span></td>
+                  <td><span className={`att-cell-date${log.date===todayStr?' att-cell-date-today':''}`}>{fmtDate(log.date, todayStr)}</span></td>
                   <td><span className="att-cell-time">{log.time||'—'}</span></td>
                   <td><span className="att-cell-duration">{log.duration||90}m</span></td>
                   <td>{log.method === 'QR' ? <span className="badge badge-teal" style={{ fontSize:9 }}>⬡ QR</span> : <span className="badge badge-orange" style={{ fontSize:9 }}>✎ Manual</span>}</td>
@@ -361,8 +361,17 @@ export default function Attendance({ search = '' }) {
   const { attendance = [], members = [], gymId } = useApp()
   const [scanResult, setScanResult] = useState(null)
   const [showScanner, setShowScanner] = useState(false)
+  const [todayStr, setTodayStr] = useState(getTodayStr)
 
-  const todayLogs    = useMemo(() => attendance.filter(l => l.date === todayStr), [attendance])
+  useEffect(() => {
+    const id = setInterval(() => {
+      const ts = getTodayStr()
+      if (ts !== todayStr) setTodayStr(ts)
+    }, 60000)
+    return () => clearInterval(id)
+  }, [todayStr])
+
+  const todayLogs    = useMemo(() => attendance.filter(l => l.date === todayStr), [attendance, todayStr])
   const totalCheckins = todayLogs.length
   const qrCheckins    = useMemo(() => todayLogs.filter(l => l.method === 'QR').length, [todayLogs])
   const avgDuration   = useMemo(() => Math.round(todayLogs.reduce((s, l) => s + (l.duration || 0), 0) / (todayLogs.length || 1)), [todayLogs])
@@ -396,6 +405,7 @@ export default function Attendance({ search = '' }) {
         avatar: member.avatar || (member.name||'M').slice(0,2).toUpperCase(),
         color: member.color || '#00c8b4',
         plan: member.plan || member.membershipPlan || 'Standard',
+        trainerId: member.trainerId || '', trainerName: member.trainerName || '',
         date: todayStr, time, method: 'Manual', duration: 90, gymId,
       })
     } catch (err) { console.error('Failed to record attendance:', err); alert('Failed to check in. Please try again.'); return }
@@ -415,6 +425,7 @@ export default function Attendance({ search = '' }) {
         avatar: member.avatar || (member.name||'M').slice(0,2).toUpperCase(),
         color: member.color || '#00c8b4',
         plan: member.plan || member.membershipPlan || 'Standard',
+        trainerId: member.trainerId || '', trainerName: member.trainerName || '',
         date: todayStr, time, method: 'QR', duration: 90, gymId,
       })
     } catch (err) { console.error('Failed to record attendance:', err); alert('Failed to check in. Please try again.'); return }
@@ -531,7 +542,7 @@ export default function Attendance({ search = '' }) {
 
       {/* ═══════════════ ANALYTICS ROW ═══════════════ */}
       <div className="att-analytics-grid">
-        <WeekHeatmap logs={attendance} />
+        <WeekHeatmap logs={attendance} todayStr={todayStr} />
         <PeakHoursChart logs={todayLogs} />
         <div className="att-streaks-card">
           <div className="att-heatmap-header">
@@ -545,14 +556,14 @@ export default function Attendance({ search = '' }) {
                 <div className="att-empty-text">No members found.</div>
               </div>
             ) : members.map(m => (
-              <MemberStreakRow key={m.id} member={m} logs={attendance} />
+              <MemberStreakRow key={m.id} member={m} logs={attendance} todayStr={todayStr} />
             ))}
           </div>
         </div>
       </div>
 
       {/* ═══════════════ ATTENDANCE TABLE ═══════════════ */}
-      <AttendanceTable logs={attendance} search={search} members={members} />
+      <AttendanceTable logs={attendance} search={search} members={members} todayStr={todayStr} />
     </div>
   )
 }

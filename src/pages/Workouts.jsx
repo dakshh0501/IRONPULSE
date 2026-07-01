@@ -163,8 +163,8 @@ function ExerciseTable({ exercises, compact = false }) {
 //  WORKOUT CARD
 // ─────────────────────────────────────────────────────────────
 const WorkoutCard = memo(function WorkoutCard({ plan, members, trainers, onView, onEdit, onDelete, gymName }) {
-  const member  = members.find(m => m.name === plan.member)
-  const trainer = trainers.find(t => t.name === plan.trainer)
+  const member  = plan.memberId ? members.find(m => m.id === plan.memberId) : members.find(m => m.name === plan.member)
+  const trainer = plan.trainerId ? trainers.find(t => t.id === plan.trainerId) : trainers.find(t => t.name === plan.trainer)
   const gc      = GOAL_COLOR[plan.goal] || { bg: 'var(--bg3)', text: 'var(--text-muted)' }
 
   const handleWhatsAppShare = (e) => {
@@ -290,8 +290,8 @@ const WorkoutCard = memo(function WorkoutCard({ plan, members, trainers, onView,
 //  WORKOUT DETAIL MODAL
 // ─────────────────────────────────────────────────────────────
 function WorkoutDetailModal({ plan, members, trainers, onEdit, onClose, gymName }) {
-  const member  = members.find(m => m.name === plan.member)
-  const trainer = trainers.find(t => t.name === plan.trainer)
+  const member  = plan.memberId ? members.find(m => m.id === plan.memberId) : members.find(m => m.name === plan.member)
+  const trainer = plan.trainerId ? trainers.find(t => t.id === plan.trainerId) : trainers.find(t => t.name === plan.trainer)
   const gc      = GOAL_COLOR[plan.goal] || { bg: 'var(--bg3)', text: 'var(--orange)' }
 
   const handleWhatsAppShare = () => {
@@ -529,6 +529,8 @@ function ExerciseEditor({ exercises, onChange }) {
 // ─────────────────────────────────────────────────────────────
 function PlanFormModal({ plan, members, trainers, onSave, onClose }) {
   const isEdit = Boolean(plan)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [form,   setForm]   = useState(() => {
     if (plan) {
       const f = { ...plan }
@@ -564,15 +566,23 @@ function PlanFormModal({ plan, members, trainers, onSave, onClose }) {
     return e
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const e = validate()
     if (Object.keys(e).length) {
       setErrors(e)
       if (e.exercises) setTab('exercises')
       return
     }
-    onSave(form)
-    onClose()
+    setSaving(true)
+    setSaveError('')
+    try {
+      await onSave(form)
+      onClose()
+    } catch (e) {
+      setSaveError(e?.message || 'Save failed. Check your connection.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -799,14 +809,15 @@ function PlanFormModal({ plan, members, trainers, onSave, onClose }) {
 
         {/* Footer */}
         <div className="modal-footer" style={{ flexShrink: 0 }}>
-          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          {saveError && <p style={{ color:'var(--red)', fontSize:12, margin:0, textAlign:'center', width:'100%' }}>{saveError}</p>}
+          <button className="btn btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
           {tab === 'info' && (
-            <button className="btn btn-outline" onClick={() => setTab('exercises')}>
+            <button className="btn btn-outline" onClick={() => setTab('exercises')} disabled={saving}>
               Next: Exercises →
             </button>
           )}
-          <button className="btn btn-primary" onClick={handleSave}>
-            {isEdit ? '💾 Save Changes' : '+ Create Plan'}
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving…' : isEdit ? '💾 Save Changes' : '+ Create Plan'}
           </button>
         </div>
       </div>
@@ -868,6 +879,7 @@ export default function Workouts({ search = '' }) {
       }
     } catch (e) {
       console.error('Failed to save workout plan:', e)
+      throw e
     }
   }
 
@@ -1010,7 +1022,7 @@ export default function Workouts({ search = '' }) {
       {delPlan && (
         <DeleteModal
           plan={delPlan}
-          onConfirm={(id) => { deleteWorkoutPlan(id); setDelPlan(null) }}
+          onConfirm={async (id) => { try { await deleteWorkoutPlan(id) } catch (e) { console.error(e) } setDelPlan(null) }}
           onClose={() => setDelPlan(null)}
         />
       )}

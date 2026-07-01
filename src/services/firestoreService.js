@@ -98,7 +98,7 @@ export async function addMember(memberData) {
 }
 
 // Realtime members listener
-export function subscribeToMembers(callback, gymId) {
+export function subscribeToMembers(callback, gymId, onError) {
   const ref = gymId
     ? query(collection(db, 'members'), where('gymId', '==', gymId))
     : collection(db, 'members')
@@ -117,7 +117,7 @@ export function subscribeToMembers(callback, gymId) {
       callback(members)
     },
     (error) => {
-      console.error(`[Firestore] Subscription error (members):`, error.message)
+      console.error(`[Firestore] Subscription error (members):`, error.message); if (onError) onError(error, 'members')
     }
   )
 }
@@ -166,6 +166,19 @@ export async function deleteMember(memberId) {
   const authUid =
     memberData.authUid
 
+  // Clean up Storage photo if present
+  if (memberData.storagePath) {
+    try {
+      const { deleteMemberPhoto } = await import('./storageService')
+      await deleteMemberPhoto(memberData.storagePath)
+    } catch (_) {}
+  } else if (memberData.photoUrl) {
+    try {
+      const { deleteMemberPhoto } = await import('./storageService')
+      await deleteMemberPhoto(`members/${memberId}/profile.webp`)
+    } catch (_) {}
+  }
+
   await deleteDoc(memberRef)
 
   if (authUid) {
@@ -182,6 +195,7 @@ export async function deleteMember(memberId) {
       await deleteUserFn({ uid: authUid })
     } catch (cfErr) {
       console.error('deleteMember: failed to delete Auth user (non-blocking):', cfErr)
+      throw new Error('Member deleted but Auth account cleanup failed. Contact support.')
     }
   }
 }
@@ -216,7 +230,7 @@ export async function addPayment(paymentData) {
 }
 
 // Realtime payments listener
-export function subscribeToPayments(callback, gymId) {
+export function subscribeToPayments(callback, gymId, onError) {
   const ref = gymId
     ? query(collection(db, 'payments'), where('gymId', '==', gymId))
     : collection(db, 'payments')
@@ -228,13 +242,13 @@ export function subscribeToPayments(callback, gymId) {
 
       const payments =
   snapshot.docs.map(doc => ({
-    firestoreId: doc.id,
+    id: doc.id,
     ...doc.data(),
   }))
       callback(payments)
     },
     (error) => {
-      console.error(`[Firestore] Subscription error (payments):`, error.message)
+      console.error(`[Firestore] Subscription error (payments):`, error.message); if (onError) onError(error, 'payments')
     }
   )
 }
@@ -269,7 +283,9 @@ export async function deletePayment(paymentId) {
 // Add trainer
 export async function addTrainer(trainerData) {
 
-  const password = 'Trainer@123'
+  const p = Math.random().toString(36).slice(2, 8)
+  const s = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')[Math.floor(Math.random() * 26)]
+  const password = p + s + '1!'
 
   let user
 
@@ -307,7 +323,7 @@ export async function addTrainer(trainerData) {
       }
     )
 
-    return docRef.id
+    return { id: docRef.id, password }
   } catch (error) {
     // Cleanup: delete the auth user if Firestore write failed
     if (user) {
@@ -322,7 +338,7 @@ export async function addTrainer(trainerData) {
 }
 
 // Subscribe realtime trainers
-export function subscribeToTrainers(callback, gymId) {
+export function subscribeToTrainers(callback, gymId, onError) {
   const ref = gymId
     ? query(collection(db, 'trainers'), where('gymId', '==', gymId))
     : collection(db, 'trainers')
@@ -340,7 +356,7 @@ export function subscribeToTrainers(callback, gymId) {
       callback(trainers)
     },
     (error) => {
-      console.error(`[Firestore] Subscription error (trainers):`, error.message)
+      console.error(`[Firestore] Subscription error (trainers):`, error.message); if (onError) onError(error, 'trainers')
     }
   )
 }
@@ -380,6 +396,19 @@ export async function deleteTrainer(
 
   const authUid =
     trainerData.authUid
+
+  // Nullify trainer references on assigned members
+  try {
+    const membersRef = collection(db, 'members')
+    const q = query(membersRef, where('trainerId', '==', trainerId))
+    const snap = await getDocs(q)
+    const updates = snap.docs.map(d =>
+      updateDoc(doc(db, 'members', d.id), { trainerId: '', trainerName: '' })
+    )
+    if (updates.length > 0) await Promise.allSettled(updates)
+  } catch (mErr) {
+    console.error('deleteTrainer: failed to cleanup member trainer refs:', mErr)
+  }
 
   await deleteDoc(trainerRef)
 
@@ -422,7 +451,7 @@ export async function addSupportTicket(ticketData) {
   return docRef.id
 }
 
-export function subscribeToSupportTickets(callback, gymId) {
+export function subscribeToSupportTickets(callback, gymId, onError) {
   const ref = gymId
     ? query(collection(db, 'supportTickets'), where('gymId', '==', gymId))
     : collection(db, 'supportTickets')
@@ -431,7 +460,7 @@ export function subscribeToSupportTickets(callback, gymId) {
     const tickets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
     callback(tickets)
   }, (error) => {
-    console.error(`[Firestore] Subscription error (supportTickets):`, error.message)
+    console.error(`[Firestore] Subscription error (supportTickets):`, error.message); if (onError) onError(error, 'supportTickets')
   })
 }
 
@@ -452,7 +481,7 @@ export async function addFeatureRequest(requestData) {
   return docRef.id
 }
 
-export function subscribeToFeatureRequests(callback, gymId) {
+export function subscribeToFeatureRequests(callback, gymId, onError) {
   const ref = gymId
     ? query(collection(db, 'featureRequests'), where('gymId', '==', gymId))
     : collection(db, 'featureRequests')
@@ -461,7 +490,7 @@ export function subscribeToFeatureRequests(callback, gymId) {
     const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
     callback(requests)
   }, (error) => {
-    console.error(`[Firestore] Subscription error (featureRequests):`, error.message)
+    console.error(`[Firestore] Subscription error (featureRequests):`, error.message); if (onError) onError(error, 'featureRequests')
   })
 }
 
@@ -512,7 +541,7 @@ function applyDiscount(originalAmount, discountType, discountValue) {
 // PROGRESS LOGS
 // ─────────────────────────────────────────────
 
-export function subscribeToProgressLogs(callback, gymId) {
+export function subscribeToProgressLogs(callback, gymId, onError) {
   const ref = gymId
     ? query(collection(db, 'progressLogs'), where('gymId', '==', gymId))
     : collection(db, 'progressLogs')
@@ -520,11 +549,26 @@ export function subscribeToProgressLogs(callback, gymId) {
   return onSnapshot(
     ref,
     (snapshot) => {
-      const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      const logs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }))
       callback(logs)
     },
     (error) => {
-      console.error(`[Firestore] Subscription error (progressLogs):`, error.message)
+      console.error(`[Firestore] Subscription error (progressLogs):`, error.message); if (onError) onError(error, 'progressLogs')
+    }
+  )
+}
+
+export function subscribeToMyProgressLogs(callback, authUid, onError) {
+  if (!authUid) return () => {}
+  const ref = query(collection(db, 'progressLogs'), where('authUid', '==', authUid))
+  return onSnapshot(
+    ref,
+    (snapshot) => {
+      const logs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }))
+      callback(logs)
+    },
+    (error) => {
+      console.error(`[Firestore] Subscription error (myProgressLogs):`, error.message); if (onError) onError(error, 'myProgressLogs')
     }
   )
 }
@@ -571,7 +615,7 @@ export async function deleteProgressLog(logId) {
 // ─────────────────────────────────────────────
 
 // Realtime plans listener (global — shared across gyms)
-export function subscribeToPlans(callback, gymId) {
+export function subscribeToPlans(callback, gymId, onError) {
   const ref = gymId
     ? query(collection(db, 'plans'), where('gymId', '==', gymId))
     : collection(db, 'plans')
@@ -583,7 +627,7 @@ export function subscribeToPlans(callback, gymId) {
       callback(plans)
     },
     (error) => {
-      console.error(`[Firestore] Subscription error (plans):`, error.message)
+      console.error(`[Firestore] Subscription error (plans):`, error.message); if (onError) onError(error, 'plans')
     }
   )
 }
@@ -638,7 +682,7 @@ export async function migrateDefaultPlans(gymId) {
 // DIET PLANS
 // ─────────────────────────────────────────────
 
-export function subscribeToDietPlans(callback, gymId) {
+export function subscribeToDietPlans(callback, gymId, onError) {
   const ref = gymId
     ? query(collection(db, 'dietPlans'), where('gymId', '==', gymId))
     : collection(db, 'dietPlans')
@@ -650,7 +694,7 @@ export function subscribeToDietPlans(callback, gymId) {
       callback(plans)
     },
     (error) => {
-      console.error(`[Firestore] Subscription error (dietPlans):`, error.message)
+      console.error(`[Firestore] Subscription error (dietPlans):`, error.message); if (onError) onError(error, 'dietPlans')
     }
   )
 }
@@ -675,7 +719,7 @@ export async function deleteDietPlan(planId) {
 // WORKOUT PLANS
 // ─────────────────────────────────────────────
 
-export function subscribeToWorkoutPlans(callback, gymId) {
+export function subscribeToWorkoutPlans(callback, gymId, onError) {
   const ref = gymId
     ? query(collection(db, 'workoutPlans'), where('gymId', '==', gymId))
     : collection(db, 'workoutPlans')
@@ -687,7 +731,7 @@ export function subscribeToWorkoutPlans(callback, gymId) {
       callback(plans)
     },
     (error) => {
-      console.error(`[Firestore] Subscription error (workoutPlans):`, error.message)
+      console.error(`[Firestore] Subscription error (workoutPlans):`, error.message); if (onError) onError(error, 'workoutPlans')
     }
   )
 }
@@ -767,7 +811,7 @@ export async function backfillOwnershipFields() {
 // GYMS (global collection — one doc per gym)
 // ─────────────────────────────────────────────
 
-export function subscribeToGyms(callback) {
+export function subscribeToGyms(callback, onError) {
   return onSnapshot(
     collection(db, 'gyms'),
     (snapshot) => {
@@ -775,7 +819,7 @@ export function subscribeToGyms(callback) {
       callback(gyms)
     },
     (error) => {
-      console.error(`[Firestore] Subscription error (gyms):`, error.message)
+      console.error(`[Firestore] Subscription error (gyms):`, error.message); if (onError) onError(error, 'gyms')
     }
   )
 }
@@ -808,7 +852,7 @@ export async function deleteGym(gymId) {
 // SUBSCRIPTIONS (global collection — billing per gym)
 // ─────────────────────────────────────────────
 
-export function subscribeToSubscriptions(callback) {
+export function subscribeToSubscriptions(callback, onError) {
   return onSnapshot(
     collection(db, 'subscriptions'),
     (snapshot) => {
@@ -816,7 +860,7 @@ export function subscribeToSubscriptions(callback) {
       callback(subs)
     },
     (error) => {
-      console.error(`[Firestore] Subscription error (subscriptions):`, error.message)
+      console.error(`[Firestore] Subscription error (subscriptions):`, error.message); if (onError) onError(error, 'subscriptions')
     }
   )
 }

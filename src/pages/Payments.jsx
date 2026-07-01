@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import {
   buildPaymentReceiptWhatsAppMessage,
@@ -112,6 +112,12 @@ function DailyRevenueChart({ payments }) {
 
 // ─── Payment Details Drawer ──────────────────────────────────
 function PaymentDetailsDrawer({ invoice, onClose, onMarkPaid, gymName, gymSettings = {} }) {
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose?.() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+
   const c       = STATUS_CFG[invoice.status]
   const balance = (Number(invoice.amount) || 0) - (Number(invoice.paid) || 1)
   const contactInfo = gymSettings?.contact || ''
@@ -290,6 +296,8 @@ function PaymentDetailsDrawer({ invoice, onClose, onMarkPaid, gymName, gymSettin
 const EMPTY_INV = { memberId: '', memberName: '', plan: '', amount: '', method: METHODS[0], due: '', status: 'Pending', avatar: '' }
 
 function NewInvoiceModal({ onSave, onClose, members, plans }) {
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [form,   setForm]   = useState({ ...EMPTY_INV })
   const [errors, setErrors] = useState({})
   const activePlans = plans?.filter(p => p.active !== false) || []
@@ -321,14 +329,22 @@ function NewInvoiceModal({ onSave, onClose, members, plans }) {
     return e
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const e = validate()
     if (Object.keys(e).length) { setErrors(e); return }
-    onSave({
-      id: 'INV-', memberId: form.memberId, member: form.memberName, memberName: form.memberName,
-      plan: form.plan, amount: +form.amount, paid: 0, paidOn: null,
-      method: form.method, due: form.due, status: 'Pending', avatar: form.avatar,
-    })
+    setSaving(true)
+    setSaveError('')
+    try {
+      await onSave({
+        id: 'INV-', memberId: form.memberId, member: form.memberName, memberName: form.memberName,
+        plan: form.plan, amount: +form.amount, paid: 0, paidOn: null,
+        method: form.method, due: form.due, status: 'Pending', avatar: form.avatar,
+      })
+    } catch (e) {
+      setSaveError(e?.message || 'Save failed. Check your connection.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const inputStyle = (key) => ({
@@ -384,9 +400,12 @@ function NewInvoiceModal({ onSave, onClose, members, plans }) {
               {METHODS.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
+          {saveError && <p style={{ color:'var(--red)', fontSize:12, margin:0, textAlign:'center' }}>{saveError}</p>}
           <div style={{ display:'flex', gap:8, marginTop:4 }}>
-            <button className="btn btn-ghost" onClick={onClose} style={{ flex:1 }}>Cancel</button>
-            <button className="btn btn-primary" onClick={handleSave} style={{ flex:2 }}>Generate Invoice</button>
+            <button className="btn btn-ghost" onClick={onClose} style={{ flex:1 }} disabled={saving}>Cancel</button>
+            <button className="btn btn-primary" onClick={handleSave} style={{ flex:2 }} disabled={saving}>
+              {saving ? 'Saving…' : 'Generate Invoice'}
+            </button>
           </div>
         </div>
       </div>
@@ -758,6 +777,7 @@ export default function Payments({ search = '' }) {
       setShowNew(false)
     } catch (error) {
       console.error('Error adding payment:', error)
+      throw error
     }
   }
 

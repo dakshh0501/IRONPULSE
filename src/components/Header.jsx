@@ -25,10 +25,22 @@ const PAGE_TITLES = {
   security:      'Security',
   license:       'License Keys',
   devices:       'Registered Devices',
+  reception:     'Reception Mode',
+  subscription:  'My Subscription',
+  platformSettings: 'Platform Settings',
+  gymSubscription:  'Gym Subscription',
+  checkout:         'Checkout',
+  paymentStatus:    'Payment Status',
+  deviceManagement: 'Device Management',
+  approvalRequests: 'Approval Requests',
 }
 
 const PAGE_BREADCRUMBS = {
   dashboard:     { primary: 'Dashboard', secondary: 'Overview' },
+  gymOwners:     { primary: 'Gym Owners', secondary: 'Platform Management' },
+  subscriptions: { primary: 'Subscriptions', secondary: 'Plan Management' },
+  pending:       { primary: 'Approval Requests', secondary: 'Pending Approvals' },
+  support:       { primary: 'Support', secondary: 'Help & Tickets' },
   members:       { primary: 'Members', secondary: 'Member Management' },
   trainers:      { primary: 'Trainers', secondary: 'Trainer Management' },
   payments:      { primary: 'Payments', secondary: 'Billing & Invoices' },
@@ -41,6 +53,12 @@ const PAGE_BREADCRUMBS = {
   notifications: { primary: 'Notifications', secondary: 'Alerts & Updates' },
   subscription:  { primary: 'Subscription', secondary: 'Plan & Billing' },
   devices:       { primary: 'Devices', secondary: 'Registered Devices' },
+  reception:     { primary: 'Reception', secondary: 'Check-in Mode' },
+  whatsapp:      { primary: 'WhatsApp', secondary: 'Reminders' },
+  analytics:     { primary: 'Analytics', secondary: 'Usage Insights' },
+  revenue:       { primary: 'Revenue', secondary: 'Platform Earnings' },
+  security:      { primary: 'Security', secondary: 'Access Control' },
+  license:       { primary: 'License Keys', secondary: 'Key Management' },
 }
 
 export default function Header({ currentPage, setPage, search, setSearch, setMobileOpen }) {

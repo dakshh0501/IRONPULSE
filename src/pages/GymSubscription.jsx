@@ -1,5 +1,8 @@
 import { useState, useMemo } from 'react'
 import { useApp } from '../context/AppContext'
+import { useAuth } from '../context/AuthContext'
+import { openSupportWhatsApp } from '../utils/whatsappSupport'
+import { PLAN_AMOUNTS } from '../constants/plans'
 
 const subStyles = document.createElement('style')
 subStyles.textContent = `
@@ -28,7 +31,6 @@ subStyles.textContent = `
 document.head.appendChild(subStyles)
 
 const PLAN_OPTIONS = ['Trial', 'Standard', 'Premium', 'Quarterly', 'Annual', 'Lifetime']
-const PLAN_AMOUNTS = { 'Trial': 0, 'Standard': 4999, 'Premium': 9999, 'Quarterly': 14999, 'Annual': 49999, 'Lifetime': 99999 }
 const defaultAmount = 9999
 function getAmount(plan) { return PLAN_AMOUNTS[plan] || defaultAmount }
 
@@ -45,8 +47,9 @@ export default function GymSubscription() {
   const {
     currentSubscription: sub, subscriptionHistory,
     renewSubscription, upgradeSubscription,
-    activateSubscription, extendSubscription,
+    activateSubscription, extendSubscription, gymSettings,
   } = useApp()
+  const { currentUser } = useAuth()
   const [showRenew, setShowRenew] = useState(false)
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [showExtend, setShowExtend] = useState(false)
@@ -191,7 +194,7 @@ export default function GymSubscription() {
                 )}
                 <button className="sub-btn-secondary" onClick={() => setShowUpgrade(true)}>⬆ Upgrade Plan</button>
                 <button className="sub-btn-secondary" onClick={() => setShowExtend(true)}>📅 Extend</button>
-                <button className="sub-btn-secondary">📞 Contact Support</button>
+                <button className="sub-btn-secondary" onClick={() => openSupportWhatsApp({ user: currentUser, gym: { ...gymSettings, plan: sub?.planName || sub?.planType }, page: 'Subscription', issue: 'Subscription Renewal' })}>📞 Contact Support</button>
               </div>
             )}
 

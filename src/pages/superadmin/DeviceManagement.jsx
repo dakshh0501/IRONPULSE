@@ -6,8 +6,10 @@ import {
 } from '../../services/deviceService'
 import { addLicenseHistory } from '../../services/licenseHistoryService'
 
-const devStyles = document.createElement('style')
-devStyles.textContent = `
+if (!document.getElementById('dev-styles')) {
+  const devStyles = document.createElement('style')
+  devStyles.id = 'dev-styles'
+  devStyles.textContent = `
   @keyframes dev-fade-up {
     0% { opacity: 0; transform: translateY(16px); }
     100% { opacity: 1; transform: translateY(0); }
@@ -315,7 +317,8 @@ devStyles.textContent = `
     .dev-stat-card .dev-stat-icon { width: 36px; height: 36px; font-size: 16px; }
   }
 `
-document.head.appendChild(devStyles)
+  document.head.appendChild(devStyles)
+}
 
 const ROWS_PER_PAGE = 10
 const STATUS_COLORS = { active: '#22c55e', online: '#22c55e', suspended: '#f59e0b', revoked: '#ef4444', blocked: '#ef4444', offline: '#506080' }
@@ -532,6 +535,7 @@ export default function SuperAdminDeviceManagement() {
   }
 
   const handleRevoke = async (dev) => {
+    if (!window.confirm(`Revoke device "${dev.deviceName || dev.deviceId}"? This will prevent it from accessing the platform.`)) return
     setLoading(true)
     try {
       await revokeDevice(dev.id)
@@ -547,6 +551,7 @@ export default function SuperAdminDeviceManagement() {
   }
 
   const handleSuspend = async (dev) => {
+    if (!window.confirm(`Suspend device "${dev.deviceName || dev.deviceId}"? It can be reactivated later.`)) return
     setLoading(true)
     try {
       await suspendDevice(dev.id)
@@ -562,6 +567,7 @@ export default function SuperAdminDeviceManagement() {
   }
 
   const handleActivateDev = async (dev) => {
+    if (!window.confirm(`Activate device "${dev.deviceName || dev.deviceId}"?`)) return
     setLoading(true)
     try {
       await activateDevice(dev.id)

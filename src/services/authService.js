@@ -60,6 +60,10 @@ export async function signUp({ name, email, password, gymData, role }) {
       message: e.message,
       error: e,
     })
+    // Rollback: delete the orphaned Auth user
+    try { await authUser.delete() } catch (cleanupErr) {
+      console.error('[SIGNUP ROLLBACK] Failed to delete orphaned Auth user:', cleanupErr)
+    }
     throw e
   }
 
@@ -75,6 +79,13 @@ export async function signUp({ name, email, password, gymData, role }) {
         message: e.message,
         error: e,
       })
+      // Rollback: delete the orphaned Auth user and users/{uid} doc
+      try { await authUser.delete() } catch (cleanupErr) {
+        console.error('[SIGNUP ROLLBACK] Failed to delete orphaned Auth user:', cleanupErr)
+      }
+      try { await deleteDoc(doc(db, 'users', authUser.uid)) } catch (cleanupErr) {
+        console.error('[SIGNUP ROLLBACK] Failed to delete orphaned users doc:', cleanupErr)
+      }
       throw e
     }
   }
@@ -117,7 +128,7 @@ export async function signIn(email, password) {
     // 3. If pending, gym_owner_pending, or rejected, immediately sign out
     if (role === 'pending' || role === 'gym_owner_pending' || role === 'rejected') {
       await signOut(auth)
-      throw new Error('pending')
+      throw new Error(role) // distinct error per role
     }
 
     return { user, role }
