@@ -35,12 +35,11 @@ export default function LicenseGuard({ children }) {
     }
 
     let cancelled = false
+    const sub = currentSubscription
 
     async function check() {
       setLicenseState('loading')
 
-      // 1. Subscription status
-      const sub = currentSubscription
       if (!sub || !sub.status) {
         if (!cancelled) { setLicenseState('blocked'); setReason('No active subscription found.'); addAudit('Validation Failed - No Subscription') }
         return
@@ -96,7 +95,9 @@ export default function LicenseGuard({ children }) {
           performedBy: 'system',
           deviceId: getOrCreateDeviceId(),
         })
-      } catch {}
+      } catch (e) {
+        console.error('[LicenseGuard] Audit write failed:', e)
+      }
     }
 
     check()

@@ -165,6 +165,14 @@ function PaymentStatusContent() {
         pollRef.current = null
         return
       }
+
+      // Stop polling if the payment window has expired
+      if (data.expiresAt && new Date(data.expiresAt) <= new Date()) {
+        setStatus('cancelled')
+        setAttempt(data)
+        clearInterval(pollRef.current)
+        pollRef.current = null
+      }
     }, POLL_INTERVAL)
 
     return () => {

@@ -10,6 +10,8 @@ import {
 import { useAuth } from './AuthContext'
 import {
   subscribeToMembers,
+  subscribeToMyMember,
+  subscribeToMyPayments,
   addMember as addMemberToFirestore,
   updateMember as updateMemberInFirestore,
   deleteMember as deleteMemberFromFirestore,
@@ -65,7 +67,7 @@ import {
   refreshPaymentStatus as refreshPaymentStatusService,
   cleanupExpiredPaymentAttempts,
 } from '../services/paymentService'
-import { doc, getDoc, updateDoc, query, where, getDocs, collection } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, query, where, getDocs, collection, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase'
 import {
   subscribeToNotifications,
@@ -77,6 +79,7 @@ import {
 } from '../services/notificationService'
 import { buildNotification } from '../utils/notificationTypes'
 import { canSubscribe } from '../utils/rbac'
+import { generateUniqueLicenseKey } from '../utils/license'
 import {
   subscribeToGymSubscription,
   subscribeToSubscriptionHistory,
@@ -120,7 +123,9 @@ export function AppProvider({ children }) {
   const [workoutPlans,  setWorkoutPlans]  = useState([])
   const [gyms,          setGyms]          = useState([])
   const [supportTickets, setSupportTickets] = useState([])
+  const [supportTicketsLoading, setSupportTicketsLoading] = useState(true)
   const [featureRequests, setFeatureRequests] = useState([])
+  const [featureRequestsLoading, setFeatureRequestsLoading] = useState(true)
   const [subscriptions, setSubscriptions] = useState([])
   const [currentSubscription, setCurrentSubscription] = useState(null)
   const [subscriptionHistory, setSubscriptionHistory] = useState([])
@@ -197,7 +202,6 @@ export function AppProvider({ children }) {
         const planLower = (newSubscription || 'Trial').toLowerCase()
         const daysMap = { trial: 7, monthly: 30, quarterly: 90, yearly: 365, annual: 365, lifetime: 9999 }
         initExpiry.setDate(initExpiry.getDate() + (daysMap[planLower] || 7))
-        const seg = () => { const a = new Uint8Array(4); crypto.getRandomValues(a); return Array.from(a, b => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[b % 36]).join('') }
         await updateDoc(doc(db, 'gyms', gymId), {
           'subscription.plan': newSubscription,
           'subscription.planType': planLower,
@@ -209,7 +213,7 @@ export function AppProvider({ children }) {
           'subscription.amount': newSubscription === 'Trial' ? 0 : 0,
           'subscription.currency': 'INR',
           'subscription.deviceLimit': planLower === 'trial' ? 1 : 2,
-          'subscription.licenseKey': `IRP-${seg()}-${seg()}-${seg()}`,
+          'subscription.licenseKey': await generateUniqueLicenseKey(),
           'subscription.licenseStatus': 'active',
           'subscription.generatedAt': initNow.toISOString(),
           'subscription.updatedAt': initNow.toISOString(),
@@ -313,7 +317,8 @@ export function AppProvider({ children }) {
 
   const initiatePayment = async (params) => {
     try {
-      return await initiatePaymentService({ ...params, gymId })
+      const effectiveGymId = (gymId && gymId !== 'default') ? gymId : params.gymId
+      return await initiatePaymentService({ ...params, gymId: effectiveGymId })
     } catch (error) {
       console.error('Error initiating payment:', error)
       return { attemptId: null, redirectUrl: null, error: error.message }
@@ -340,7 +345,7 @@ export function AppProvider({ children }) {
   // ── Gym Subscription listener (gym_admin/gym_owner) ───
   useEffect(() => {
     if (authLoading || !currentUser || !gymId) return
-    if (effectiveRole !== 'gym_admin' && effectiveRole !== 'gym_owner') return
+    if (effectiveRole !== 'gym_admin') return
     const unsub = subscribeToGymSubscription(gymId, (sub) => {
       if (sub) {
         const checked = checkAutoExpiry(sub)
@@ -358,25 +363,27 @@ export function AppProvider({ children }) {
   // ── Subscription History listener (gym_admin) ──────────
   useEffect(() => {
     if (authLoading || !currentUser || !gymId) return
-    if (effectiveRole !== 'gym_admin' && effectiveRole !== 'gym_owner' && effectiveRole !== 'super_admin') return
+    if (effectiveRole !== 'gym_admin' && effectiveRole !== 'super_admin') return
     const subGymId = effectiveRole === 'super_admin' ? null : gymId
     const unsub = subscribeToSubscriptionHistory(subGymId, setSubscriptionHistory)
     return unsub
   }, [currentUser, authLoading, effectiveRole, gymId])
 
-  // ── Payment Attempts listener — SUPER_ADMIN ONLY ──────
+  // ── Payment Attempts listener — all admin roles ──────
   useEffect(() => {
     if (authLoading || !currentUser) return
-    if (effectiveRole !== 'super_admin') return
-    const unsubscribe = subscribeToPaymentAttempts((data) => setPaymentAttempts(data), queryGymId, reportSnapshotError)
+    if (effectiveRole !== 'super_admin' && effectiveRole !== 'gym_admin') return
+    const subGymId = effectiveRole === 'super_admin' ? null : gymId
+    const unsubscribe = subscribeToPaymentAttempts((data) => setPaymentAttempts(data), subGymId, reportSnapshotError)
     return unsubscribe
-  }, [currentUser, authLoading, effectiveRole, queryGymId])
+  }, [currentUser, authLoading, effectiveRole, gymId])
 
   // ── Cleanup expired payment attempts on mount ────────
   useEffect(() => {
     if (authLoading || !currentUser) return
+    if (effectiveRole !== 'super_admin' && effectiveRole !== 'gym_admin') return
     cleanupExpiredPaymentAttempts().catch(err => console.error('[AppContext]', err))
-  }, [authLoading, currentUser])
+  }, [authLoading, currentUser, effectiveRole])
 
   // ── Notifications listener (deferred) ─────────────────
   useEffect(() => {
@@ -416,7 +423,7 @@ export function AppProvider({ children }) {
     }
   }
 
-  // ── Members listener ───────────────────────────────────
+  // ── Members listener (admin/trainer) ───────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'members')) return
@@ -429,13 +436,36 @@ export function AppProvider({ children }) {
     return unsubscribe
   }, [currentUser, authLoading, effectiveRole, queryGymId])
 
-  // ── Payments listener ──────────────────────────────────
+  // ── Member self-subscription (member role — own record) ──
+  useEffect(() => {
+    if (authLoading || !currentUser || effectiveRole !== 'member') return
+    const unsubscribe = subscribeToMyMember(
+      currentUser.uid,
+      (data) => { setMembers(data) },
+      reportSnapshotError
+    )
+    return unsubscribe
+  }, [currentUser, authLoading, effectiveRole])
+
+  // ── Payments listener (admin) ──────────────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'payments')) return
     const unsubscribe = subscribeToPayments((data) => setPayments(data), queryGymId, reportSnapshotError)
     return unsubscribe
   }, [currentUser, authLoading, effectiveRole, queryGymId])
+
+  // ── Member self-payments (member role — own records) ───
+  useEffect(() => {
+    if (authLoading || !currentUser || effectiveRole !== 'member') return
+    const unsubscribe = subscribeToMyPayments(
+      currentUser.uid,
+      (data) => { setPayments(data) },
+      gymId,
+      reportSnapshotError
+    )
+    return unsubscribe
+  }, [currentUser, authLoading, effectiveRole, gymId])
 
   // ── Trainers listener ──────────────────────────────────
   useEffect(() => {
@@ -515,7 +545,7 @@ export function AppProvider({ children }) {
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'supportTickets')) return
-    const unsubscribe = subscribeToSupportTickets((data) => setSupportTickets(data), queryGymId, reportSnapshotError)
+    const unsubscribe = subscribeToSupportTickets((data) => { setSupportTickets(data); setSupportTicketsLoading(false) }, queryGymId, reportSnapshotError)
     return unsubscribe
   }, [currentUser, authLoading, effectiveRole, queryGymId])
 
@@ -523,7 +553,7 @@ export function AppProvider({ children }) {
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'featureRequests')) return
-    const unsubscribe = subscribeToFeatureRequests((data) => setFeatureRequests(data), queryGymId, reportSnapshotError)
+    const unsubscribe = subscribeToFeatureRequests((data) => { setFeatureRequests(data); setFeatureRequestsLoading(false) }, queryGymId, reportSnapshotError)
     return unsubscribe
   }, [currentUser, authLoading, effectiveRole, queryGymId])
 
@@ -795,9 +825,9 @@ export function AppProvider({ children }) {
           relatedDocumentId: paymentId || '',
           actionUrl: '/payments',
         }).catch(err => console.error('[AppContext]', err))
-        if (paymentData.memberId) {
+        if (paymentData.authUid) {
           fireNotif('payment_received', {
-            userId: paymentData.memberId,
+            userId: paymentData.authUid,
             title: 'Payment Confirmed',
             message: `Your payment of ₹${Number(paymentData.amount).toLocaleString('en-IN')} has been received.`,
             relatedDocumentId: paymentId || '',
@@ -961,7 +991,7 @@ export function AppProvider({ children }) {
   // ── Support Tickets CRUD ─────────────────────────────────
   const addSupportTicket = async (ticketData) => {
     try {
-      const ticketId = await addSupportTicketToFirestore({ ...ticketData, gymId })
+      const ticketId = await addSupportTicketToFirestore({ ...ticketData, gymId, createdBy: currentUser?.uid || '' })
       fireNotif('ticket_opened', {
         userId: currentUser?.uid || '',
         title: 'Support Ticket Created',
@@ -979,8 +1009,8 @@ export function AppProvider({ children }) {
   // ── Feature Requests CRUD ────────────────────────────────
   const addFeatureRequest = async (requestData) => {
     try {
-      const requestId = await addFeatureRequestToFirestore({ ...requestData, gymId })
-      fireNotif('system_login', {
+      const requestId = await addFeatureRequestToFirestore({ ...requestData, gymId, createdBy: currentUser?.uid || '' })
+      fireNotif('ticket_opened', {
         userId: currentUser?.uid || '',
         title: 'Feature Request Submitted',
         message: 'Your feature request has been submitted for review.',
@@ -1195,6 +1225,7 @@ export function AppProvider({ children }) {
       newExpiry.setDate(newExpiry.getDate() + billingInterval)
       await updateDoc(doc(db, 'gyms', gymId), {
         'subscription.status': 'active',
+        'subscription.licenseStatus': 'active',
         'subscription.expiryDate': newExpiry.toISOString(),
         'subscription.cancelledAt': null,
         'subscription.updatedAt': serverTimestamp(),
@@ -1269,8 +1300,8 @@ export function AppProvider({ children }) {
       paymentAttempts, addPaymentAttempt, updatePaymentAttemptStatus, snapshotErrors,
       initiatePayment, refreshPaymentStatus,
       approveGymOwner, rejectGymOwner,
-      supportTickets, addSupportTicket,
-      featureRequests, addFeatureRequest,
+      supportTickets, supportTicketsLoading, addSupportTicket,
+      featureRequests, featureRequestsLoading, addFeatureRequest,
     }}>
       {children}
     </AppContext.Provider>

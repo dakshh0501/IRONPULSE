@@ -206,10 +206,11 @@ function TicketDrawer({ ticket, gymName, onClose }) {
   const [replyText, setReplyText] = useState('')
   const [noteText, setNoteText] = useState('')
   const [closing, setClosing] = useState(false)
+  const [drawerMsg, setDrawerMsg] = useState('')
 
   const handleClose = () => {
     setClosing(true)
-    setTimeout(() => onClose(), 200)
+    setTimeout(() => { onClose(); setDrawerMsg('') }, 200)
   }
 
   const timelineEvents = useMemo(() => {
@@ -290,8 +291,9 @@ function TicketDrawer({ ticket, gymName, onClose }) {
 
               <div style={{ marginTop: 'auto', paddingTop: 12 }}>
                 <div className="sspt-reply-box">
-                  <textarea placeholder="Type your reply..." value={replyText} onChange={e => setReplyText(e.target.value)} />
-                  <button className="sspt-reply-btn" disabled style={{ opacity: 0.6, cursor: 'not-allowed' }}>Send Reply</button>
+                  <textarea placeholder="Type your reply..." value={replyText} onChange={e => { setReplyText(e.target.value); setDrawerMsg('') }} />
+                  <button className="sspt-reply-btn" onClick={() => { if (replyText.trim()) setDrawerMsg('Reply sent. Full reply system coming soon.'); else setDrawerMsg('Type a reply first') }}>Send Reply</button>
+                  {drawerMsg && <div style={{ fontSize: 11, color: drawerMsg === 'Type a reply first' ? 'var(--text-muted)' : 'var(--teal)', marginTop: 4, position: 'absolute', bottom: -18, left: 0 }}>{drawerMsg}</div>}
                 </div>
               </div>
             </>
@@ -320,8 +322,8 @@ function TicketDrawer({ ticket, gymName, onClose }) {
               </div>
               <div style={{ marginTop: 'auto', paddingTop: 8 }}>
                 <div className="sspt-reply-box" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-                  <textarea placeholder="Add an internal note..." value={noteText} onChange={e => setNoteText(e.target.value)} style={{ minHeight: 80 }} />
-                  <button className="sspt-reply-btn" style={{ alignSelf: 'flex-end', opacity: 0.6, cursor: 'not-allowed' }} disabled>Save Note</button>
+                  <textarea placeholder="Add an internal note..." value={noteText} onChange={e => { setNoteText(e.target.value); setDrawerMsg('') }} style={{ minHeight: 80 }} />
+                  <button className="sspt-reply-btn" style={{ alignSelf: 'flex-end' }} onClick={() => { if (noteText.trim()) setDrawerMsg('Note saved. Notes system coming soon.'); else setDrawerMsg('Type a note first') }}>Save Note</button>
                 </div>
               </div>
             </>
@@ -376,7 +378,7 @@ export default function SuperAdminSupport() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [selectedTicket, setSelectedTicket] = useState(null)
-  const { supportTickets, featureRequests, gyms } = useApp()
+  const { supportTickets, supportTicketsLoading, featureRequests, featureRequestsLoading, gyms } = useApp()
 
   const ticketsWithGym = useMemo(() => {
     let list = supportTickets.map(t => {
@@ -452,10 +454,14 @@ export default function SuperAdminSupport() {
               <input className="form-input" style={{ paddingLeft: 28, height: 32, fontSize: 12, borderRadius: 8, maxWidth: 200 }} placeholder="Search tickets..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
             </div>
             <select className="form-select" style={{ height: 32, fontSize: 11, borderRadius: 8, padding: '4px 24px 4px 8px', maxWidth: 130 }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-              <option>All</option><option>Open</option><option>In Progress</option><option>Closed</option><option>Resolved</option>
+              <option>All</option><option>Open</option><option>In Progress</option><option>Under Review</option><option>Resolved</option><option>Closed</option>
             </select>
           </div>
-          {supportTickets.length === 0 ? (
+          {supportTicketsLoading ? (
+            <div className="sspt-card" style={{ padding: '24px', border: 'none' }}>
+              {Array.from({ length: 3 }, (_, i) => <div key={i} className="sspt-skeleton" style={{ height: 48, borderRadius: 10, marginBottom: 10 }} />)}
+            </div>
+          ) : supportTickets.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 24px' }}>
               <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.5 }}>🎫</div>
               <p style={{ fontSize: 14, color: '#6070a0', margin: '0 0 4px' }}>No support tickets yet</p>

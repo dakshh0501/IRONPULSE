@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import { openSupportWhatsApp } from '../utils/whatsappSupport'
@@ -30,7 +30,7 @@ subStyles.textContent = `
 `
 document.head.appendChild(subStyles)
 
-const PLAN_OPTIONS = ['Trial', 'Standard', 'Premium', 'Quarterly', 'Annual', 'Lifetime']
+const PLAN_OPTIONS = ['Standard', 'Premium', 'Quarterly', 'Annual', 'Lifetime']
 const defaultAmount = 9999
 function getAmount(plan) { return PLAN_AMOUNTS[plan] || defaultAmount }
 
@@ -65,21 +65,44 @@ export default function GymSubscription() {
     return colors[sub?.status] || '#6b7280'
   }, [sub?.status])
 
+  const [saving, setSaving] = useState('')
+  const [actionError, setActionError] = useState('')
+
   const handleRenew = async () => {
-    await renewSubscription(selectedPlan, selectedPlan === 'Trial' ? 'trial' : selectedPlan.toLowerCase(), getAmount(selectedPlan))
-    setShowRenew(false)
+    setActionError(''); setSaving('renew')
+    try {
+      await renewSubscription(selectedPlan, selectedPlan.toLowerCase(), getAmount(selectedPlan))
+      setShowRenew(false)
+    } catch (err) {
+      setActionError('Renewal failed. Please try again.')
+    } finally { setSaving('') }
   }
   const handleUpgrade = async () => {
-    await upgradeSubscription(selectedPlan, selectedPlan.toLowerCase(), getAmount(selectedPlan))
-    setShowUpgrade(false)
+    setActionError(''); setSaving('upgrade')
+    try {
+      await upgradeSubscription(selectedPlan, selectedPlan.toLowerCase(), getAmount(selectedPlan))
+      setShowUpgrade(false)
+    } catch (err) {
+      setActionError('Upgrade failed. Please try again.')
+    } finally { setSaving('') }
   }
   const handleExtend = async () => {
-    const d = new Date(); d.setDate(d.getDate() + extendDays)
-    await extendSubscription(d.toISOString())
-    setShowExtend(false)
+    setActionError(''); setSaving('extend')
+    try {
+      const d = new Date(); d.setDate(d.getDate() + extendDays)
+      await extendSubscription(d.toISOString())
+      setShowExtend(false)
+    } catch (err) {
+      setActionError('Extension failed. Please try again.')
+    } finally { setSaving('') }
   }
   const handleActivate = async () => {
-    await activateSubscription('Standard', 'monthly', getAmount('Standard'))
+    setActionError(''); setSaving('activate')
+    try {
+      await activateSubscription(sub?.planName || 'Standard', sub?.planType || 'monthly', getAmount(sub?.planName || 'Standard'))
+    } catch (err) {
+      setActionError('Activation failed. Please try again.')
+    } finally { setSaving('') }
   }
 
   return (
@@ -182,7 +205,7 @@ export default function GymSubscription() {
                     Some features may be limited. Renew or reactivate to restore full access.
                   </p>
                 </div>
-                <button onClick={handleActivate} className="sub-btn-primary" style={{ flexShrink: 0 }}>Reactivate</button>
+                <button onClick={handleActivate} className="sub-btn-primary" style={{ flexShrink: 0 }} disabled={saving}>{saving === 'activate' ? 'Activating...' : 'Reactivate'}</button>
               </div>
             )}
 
@@ -196,6 +219,13 @@ export default function GymSubscription() {
                 <button className="sub-btn-secondary" onClick={() => setShowExtend(true)}>📅 Extend</button>
                 <button className="sub-btn-secondary" onClick={() => openSupportWhatsApp({ user: currentUser, gym: { ...gymSettings, plan: sub?.planName || sub?.planType }, page: 'Subscription', issue: 'Subscription Renewal' })}>📞 Contact Support</button>
               </div>
+            )}
+            {actionError && (
+              <div style={{
+                background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)',
+                borderRadius: 10, padding: '10px 14px', marginBottom: 16,
+                fontSize: 13, color: '#f87171', textAlign: 'center'
+              }}>{actionError}</div>
             )}
 
             {/* Benefits */}
@@ -267,7 +297,7 @@ export default function GymSubscription() {
             </select>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="btn btn-ghost" onClick={() => setShowRenew(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleRenew}>Confirm Renew</button>
+              <button className="btn btn-primary" onClick={handleRenew} disabled={saving}>{saving === 'renew' ? 'Processing...' : 'Confirm Renew'}</button>
             </div>
           </div>
         </div>
@@ -282,7 +312,7 @@ export default function GymSubscription() {
             </select>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="btn btn-ghost" onClick={() => setShowUpgrade(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleUpgrade}>Confirm Upgrade</button>
+              <button className="btn btn-primary" onClick={handleUpgrade} disabled={saving}>{saving === 'upgrade' ? 'Processing...' : 'Confirm Upgrade'}</button>
             </div>
           </div>
         </div>
@@ -295,7 +325,7 @@ export default function GymSubscription() {
             <input className="form-input" type="number" value={extendDays} onChange={e => setExtendDays(Math.max(1, Number(e.target.value)))} style={{ marginBottom: 16 }} />
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="btn btn-ghost" onClick={() => setShowExtend(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleExtend}>Confirm Extend</button>
+              <button className="btn btn-primary" onClick={handleExtend} disabled={saving}>{saving === 'extend' ? 'Processing...' : 'Confirm Extend'}</button>
             </div>
           </div>
         </div>

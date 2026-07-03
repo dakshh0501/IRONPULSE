@@ -59,25 +59,6 @@ export function AuthProvider({ children }) {
   }, [])
 
   // ─────────────────────────────────────────────────────────────
-  // Gym owner approval check: block pending gym owners from accessing app
-  // ─────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (authLoading) return
-    if (!currentUser || !userProfile) return
-
-      // Check if user is a pending gym owner
-    if (userProfile.role === 'gym_owner_pending') {
-      // Block access to the application
-      setCurrentUser(null)
-      setUserProfile(null)
-      setRole(null)
-      setIsSuperAdmin(false)
-      setAuthError('Your gym ownership application is pending admin approval.')
-      setAuthLoading(false)
-    }
-  }, [currentUser, authLoading, userProfile])
-
-  // ─────────────────────────────────────────────────────────────
   // SUBSCRIPTION: Listen to Firebase Auth state
   // ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -107,7 +88,7 @@ export function AuthProvider({ children }) {
         let profileError = null
         for (let attempt = 1; attempt <= 3; attempt++) {
           try {
-            profile = await getUserProfile(firebaseUser.uid)
+            profile = await getUserProfile(firebaseUser.uid, firebaseUser.email)
             profileError = null
             break
           } catch (err) {
@@ -247,7 +228,7 @@ export function AuthProvider({ children }) {
       const { user, role: userRole } = await signIn(email, password)
       let profile
       try {
-        profile = await getUserProfile(user.uid)
+        profile = await getUserProfile(user.uid, user.email)
       } catch (profileErr) {
         await logOut()
         setAuthError('Unable to load profile. Check your network connection.')
@@ -407,7 +388,7 @@ export function AuthProvider({ children }) {
     authLoading,
     authError,
     userGymId,
-    isLoggedIn:     !!currentUser && role !== 'pending',
+    isLoggedIn:     !!currentUser && role !== 'pending' && role !== 'rejected',
     isAdmin:        role === 'admin',
     isSuperAdmin,
     isGymAdmin:     effectiveRole === 'gym_admin',

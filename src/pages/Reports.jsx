@@ -414,7 +414,17 @@ function FinancialReport({ payments, members, attendance }) {
 }
 
 // ─── ATTENDANCE TAB ──────────────────────────────────────────
-function AttendanceReport({ members, attendance }) {
+function AttendanceReport({ members, attendance, dateRange = 'month' }) {
+  const weeksInRange = useMemo(() => {
+    switch (dateRange) {
+      case 'today': return 1
+      case 'week':  return 1
+      case 'month': return 4
+      case 'quarter': return 13
+      case 'year':  return 52
+      default:      return 4
+    }
+  }, [dateRange])
   const totalCheckins = attendance.length
   const avgPerMember = members.length > 0 ? (attendance.length / members.length).toFixed(1) : 0
 
@@ -507,7 +517,7 @@ function AttendanceReport({ members, attendance }) {
         <div className="rpt-table-header"><p className="rpt-chart-title" style={{ margin:0 }}>Most Active Members</p></div>
         <div style={{ overflowX:'auto' }}>
           <table className="rpt-table">
-            <thead><tr>{['Rank','Member','Plan','Trainer','Check-ins','Frequency'].map(h=><th key={h}>{h}</th>)}</tr></thead>
+            <thead><tr>{['Rank','Member','Plan','Trainer','Check-ins','/wk'].map(h=><th key={h}>{h}</th>)}</tr></thead>
             <tbody>
               {topMembers.map((m, i) => (
                 <tr key={m.id}>
@@ -516,7 +526,7 @@ function AttendanceReport({ members, attendance }) {
                   <td><span className={`badge ${m.plan==='Premium'?'badge-orange':m.plan==='Trial'?'badge-amber':'badge-teal'}`}>{m.plan}</span></td>
                   <td style={{ fontSize:12, color:'var(--text-dim)' }}>{m.trainerName||m.trainer||'—'}</td>
                   <td style={{ fontWeight:700, color:'var(--teal)' }}>{m.realCheckins}</td>
-                  <td><div style={{ display:'flex', alignItems:'center', gap:8 }}><div className="progress-bar-wrap" style={{ flex:1, height:5 }}><div className="progress-bar" style={{ width:`${Math.min(m.realCheckins/350*100,100)}%`, background:'var(--orange)' }}/></div><span style={{ fontSize:11, color:'var(--text-muted)', minWidth:30 }}>{Math.round(m.realCheckins/26)}/wk</span></div></td>
+                  <td><div style={{ display:'flex', alignItems:'center', gap:8 }}><div className="progress-bar-wrap" style={{ flex:1, height:5 }}><div className="progress-bar" style={{ width:`${Math.min(m.realCheckins/350*100,100)}%`, background:'var(--orange)' }}/></div><span style={{ fontSize:11, color:'var(--text-muted)', minWidth:30 }}>{Math.round(m.realCheckins / Math.max(1, weeksInRange))}/wk</span></div></td>
                 </tr>
               ))}
             </tbody>
@@ -753,49 +763,49 @@ export default function Reports({ search: _search } = {}) {
     title('IRONPULSE — Report',20)
     subtitle(`Generated on ${dateStr}`); hr()
     title('Summary')
-    const act = members.filter(m=>m.status==='Active').length; const exp = members.filter(m=>m.status==='Expired').length
-    stat('Total Members',members.length); stat('Active Members',act); stat('Expired',exp); stat('Trainers',trainers.length); stat('Total Check-ins',attendance.length); hr()
+    const act = filteredMembers.filter(m=>m.status==='Active').length; const exp = filteredMembers.filter(m=>m.status==='Expired').length
+    stat('Total Members',filteredMembers.length); stat('Active Members',act); stat('Expired',exp); stat('Trainers',trainers.length); stat('Total Check-ins',filteredAttendance.length); hr()
     title('Revenue')
-    const paid = payments.filter(p=>hasStatus(p,'paid')); const pend = payments.filter(p=>hasStatus(p,'pending')||hasStatus(p,'overdue'))
+    const paid = filteredPayments.filter(p=>hasStatus(p,'paid')); const pend = filteredPayments.filter(p=>hasStatus(p,'pending')||hasStatus(p,'overdue'))
     stat('Total Collected',`₹${paid.reduce((s,p)=>s+Number(p.paid||0),0).toLocaleString('en-IN')}`)
     stat('Pending / Overdue',`₹${pend.reduce((s,p)=>s+Number(p.amount||0),0).toLocaleString('en-IN')}`)
-    stat('Total Invoices',payments.length); hr()
+    stat('Total Invoices',filteredPayments.length); hr()
     title('Attendance')
     const todayStr = formatDate(new Date())
-    stat('Total Check-ins',attendance.length); stat("Today's Check-ins",attendance.filter(a=>a.date===todayStr).length)
-    stat('Avg per Member',members.length>0 ? (attendance.length/members.length).toFixed(1) : '—'); hr()
+    stat('Total Check-ins',filteredAttendance.length); stat("Today's Check-ins",filteredAttendance.filter(a=>a.date===todayStr).length)
+    stat('Avg per Member',filteredMembers.length>0 ? (filteredAttendance.length/filteredMembers.length).toFixed(1) : '—'); hr()
     title('Membership')
     stat('Active Members',act); stat('Expired',exp)
-    stat('Trial',members.filter(m=>m.status==='Trial').length)
-    stat('Churn Rate',`${members.length>0 ? ((exp/members.length)*100).toFixed(1) : '0.0'}%`); hr()
+    stat('Trial',filteredMembers.filter(m=>m.status==='Trial').length)
+    stat('Churn Rate',`${filteredMembers.length>0 ? ((exp/filteredMembers.length)*100).toFixed(1) : '0.0'}%`); hr()
     title('Trainers'); stat('Active Trainers',trainers.length)
-    stat('Clients Assigned',trainers.reduce((s,t)=>s+members.filter(m=>m.trainerId===t.id).length,0))
+    stat('Clients Assigned',trainers.reduce((s,t)=>s+filteredMembers.filter(m=>m.trainerId===t.id).length,0))
     doc.save('ironpulse-report.pdf')
   }
 
   const exportCSV = () => {
     const rows = [['Section','Metric','Value']]
-    const act = members.filter(m=>m.status==='Active').length; const exp = members.filter(m=>m.status==='Expired').length
-    const paid = payments.filter(p=>hasStatus(p,'paid')); const totalCollected = paid.reduce((s,p)=>s+Number(p.paid||0),0)
-    rows.push(['Summary','Total Members',members.length]); rows.push(['Summary','Active',act]); rows.push(['Summary','Expired',exp])
-    rows.push(['Summary','Trainers',trainers.length]); rows.push(['Summary','Total Check-ins',attendance.length])
-    rows.push(['Revenue','Total Collected',totalCollected]); rows.push(['Revenue','Total Invoices',payments.length])
-    rows.push(['Attendance','Total Check-ins',attendance.length]); rows.push(['Membership','Churn Rate',`${((exp/members.length)*100||0).toFixed(1)}%`])
+    const act = filteredMembers.filter(m=>m.status==='Active').length; const exp = filteredMembers.filter(m=>m.status==='Expired').length
+    const paid = filteredPayments.filter(p=>hasStatus(p,'paid')); const totalCollected = paid.reduce((s,p)=>s+Number(p.paid||0),0)
+    rows.push(['Summary','Total Members',filteredMembers.length]); rows.push(['Summary','Active',act]); rows.push(['Summary','Expired',exp])
+    rows.push(['Summary','Trainers',trainers.length]); rows.push(['Summary','Total Check-ins',filteredAttendance.length])
+    rows.push(['Revenue','Total Collected',totalCollected]); rows.push(['Revenue','Total Invoices',filteredPayments.length])
+    rows.push(['Attendance','Total Check-ins',filteredAttendance.length]); rows.push(['Membership','Churn Rate',`${((exp/filteredMembers.length)*100||0).toFixed(1)}%`])
     rows.push(['Trainers','Active Trainers',trainers.length])
     const csv = rows.map(r=>r.join(',')).join('\n'); const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}); const link = document.createElement('a'); link.href=URL.createObjectURL(blob); link.download='ironpulse-report.csv'; link.click(); URL.revokeObjectURL(link.href)
   }
 
   const exportExcel = () => {
     const rows = [['Section','Metric','Value']]
-    const act = members.filter(m=>m.status==='Active').length; const exp = members.filter(m=>m.status==='Expired').length
-    const paid = payments.filter(p=>hasStatus(p,'paid')); const totalCollected = paid.reduce((s,p)=>s+Number(p.paid||0),0)
-    const pending = payments.filter(p=>hasStatus(p,'pending')||hasStatus(p,'overdue')); const totalPending = pending.reduce((s,p)=>s+Number(p.amount||0),0)
-    rows.push(['Summary','Total Members',members.length]); rows.push(['Summary','Active Members',act]); rows.push(['Summary','Expired Members',exp])
-    rows.push(['Summary','Trial Members',members.filter(m=>m.status==='Trial').length]); rows.push(['Summary','Trainers',trainers.length]); rows.push(['Summary','Total Check-ins',attendance.length])
-    rows.push(['Revenue','Total Collected',totalCollected]); rows.push(['Revenue','Pending / Overdue',totalPending]); rows.push(['Revenue','Total Invoices',payments.length])
-    rows.push(['Attendance',"Today's Check-ins",attendance.filter(a=>a.date===formatDate(new Date())).length]); rows.push(['Membership','Churn Rate',`${((exp/members.length)*100||0).toFixed(1)}%`])
-    rows.push(['Trainers','Clients Assigned',trainers.reduce((s,t)=>s+members.filter(m=>m.trainerId===t.id).length,0)])
-    const tab='\t'; const tsv=rows.map(r=>r.join(tab)).join('\n'); const blob = new Blob(['\uFEFF'+tsv],{type:'text/tab-separated-values;charset=utf-8;'}); const link = document.createElement('a'); link.href=URL.createObjectURL(blob); link.download='ironpulse-report.xls'; link.click(); URL.revokeObjectURL(link.href)
+    const act = filteredMembers.filter(m=>m.status==='Active').length; const exp = filteredMembers.filter(m=>m.status==='Expired').length
+    const paid = filteredPayments.filter(p=>hasStatus(p,'paid')); const totalCollected = paid.reduce((s,p)=>s+Number(p.paid||0),0)
+    const pending = filteredPayments.filter(p=>hasStatus(p,'pending')||hasStatus(p,'overdue')); const totalPending = pending.reduce((s,p)=>s+Number(p.amount||0),0)
+    rows.push(['Summary','Total Members',filteredMembers.length]); rows.push(['Summary','Active Members',act]); rows.push(['Summary','Expired Members',exp])
+    rows.push(['Summary','Trial Members',filteredMembers.filter(m=>m.status==='Trial').length]); rows.push(['Summary','Trainers',trainers.length]); rows.push(['Summary','Total Check-ins',filteredAttendance.length])
+    rows.push(['Revenue','Total Collected',totalCollected]); rows.push(['Revenue','Pending / Overdue',totalPending]); rows.push(['Revenue','Total Invoices',filteredPayments.length])
+    rows.push(['Attendance',"Today's Check-ins",filteredAttendance.filter(a=>a.date===formatDate(new Date())).length]); rows.push(['Membership','Churn Rate',`${((exp/filteredMembers.length)*100||0).toFixed(1)}%`])
+    rows.push(['Trainers','Clients Assigned',trainers.reduce((s,t)=>s+filteredMembers.filter(m=>m.trainerId===t.id).length,0)])
+    const tab='\t'; const tsv=rows.map(r=>r.join(tab)).join('\n'); const blob = new Blob(['\uFEFF'+tsv],{type:'text/tab-separated-values;charset=utf-8;'}); const link = document.createElement('a'); link.href=URL.createObjectURL(blob); link.download='ironpulse-report.tsv'; link.click(); URL.revokeObjectURL(link.href)
   }
 
   const exportPrint = () => window.print()
@@ -826,7 +836,7 @@ export default function Reports({ search: _search } = {}) {
       </div>
 
       {/* ═══════════════ BUSINESS INSIGHTS ═══════════════ */}
-      <BusinessInsights members={filteredMembers} payments={filteredPayments} trainers={trainers} attendance={filteredAttendance} />
+      <BusinessInsights members={members} payments={filteredPayments} trainers={trainers} attendance={filteredAttendance} />
 
       {/* ═══════════════ TABS ═══════════════ */}
       <div className="rpt-tabs">
@@ -845,12 +855,12 @@ export default function Reports({ search: _search } = {}) {
 
       {/* ═══════════════ TAB CONTENT ═══════════════ */}
       <div className="rpt-content">
-        {activeTab === 'Dashboard'  && <DashboardReport  members={filteredMembers} payments={filteredPayments} trainers={trainers} attendance={filteredAttendance} />}
-        {activeTab === 'Members'    && <MembersReport    members={filteredMembers} />}
-        {activeTab === 'Financial'  && <FinancialReport  payments={filteredPayments} members={filteredMembers} attendance={filteredAttendance} />}
-        {activeTab === 'Attendance' && <AttendanceReport members={filteredMembers} attendance={filteredAttendance} />}
-        {activeTab === 'Membership' && <MembershipReport members={filteredMembers} />}
-        {activeTab === 'Trainers'   && <TrainerReport    members={filteredMembers} trainers={trainers} />}
+        {activeTab === 'Dashboard'  && <DashboardReport  members={members} payments={filteredPayments} trainers={trainers} attendance={filteredAttendance} />}
+        {activeTab === 'Members'    && <MembersReport    members={members} />}
+        {activeTab === 'Financial'  && <FinancialReport  payments={filteredPayments} members={members} attendance={filteredAttendance} />}
+        {activeTab === 'Attendance' && <AttendanceReport members={members} attendance={filteredAttendance} dateRange={dateRange} />}
+        {activeTab === 'Membership' && <MembershipReport members={members} />}
+        {activeTab === 'Trainers'   && <TrainerReport    members={members} trainers={trainers} />}
       </div>
     </div>
   )

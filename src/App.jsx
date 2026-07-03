@@ -139,7 +139,7 @@ function AppShell() {
   const swipeState = useRef({ startX: 0, startY: 0, swiping: false })
 
   const isExpired = currentSubscription?.status === 'expired'
-  const isGymAdmin = effectiveRole === 'gym_admin' || effectiveRole === 'gym_owner'
+  const isGymAdmin = effectiveRole === 'gym_admin'
 
   useEffect(() => {
     sessionStorage.setItem('ironpulse-page', page)
@@ -343,12 +343,11 @@ function ProtectedRoute({ children, allowedRoles }) {
   }, [authLoading, exiting])
 
   if (!authLoading && exiting) {
+    if (userProfile?.role === 'rejected') {
+      return <Navigate to="/rejected" replace />
+    }
     if (!isLoggedIn) {
       const target = isLocalhost() ? '/auth' : '/'
-      return <Navigate to={target} replace />
-    }
-    if (userProfile?.role === 'rejected') {
-      const target = isLocalhost() ? '/' : '/rejected'
       return <Navigate to={target} replace />
     }
     if (userProfile?.role === 'pending') return <Navigate to="/" replace />
@@ -387,10 +386,10 @@ function RouterTree() {
       <Routes>
         <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
         <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
-        <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','gym_owner','trainer','member']}><AppShell /></ProtectedRoute>} />
-        <Route path="/reception" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','gym_owner','trainer']}><ReceptionMode /></ProtectedRoute>} />
-        <Route path="/payment-status" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','gym_owner','trainer','member']}><PaymentStatus /></ProtectedRoute>} />
-        <Route path="/checkout" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','gym_owner','trainer','member']}><Checkout /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']}><AppShell /></ProtectedRoute>} />
+        <Route path="/reception" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer']}><ReceptionMode /></ProtectedRoute>} />
+        <Route path="/payment-status" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']}><PaymentStatus /></ProtectedRoute>} />
+        <Route path="/checkout" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']}><Checkout /></ProtectedRoute>} />
         <Route path="/rejected" element={<Rejected />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

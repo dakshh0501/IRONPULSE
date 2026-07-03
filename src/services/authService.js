@@ -245,7 +245,7 @@ export async function recoverUserProfile(uid, email) {
   }
 }
 
-export async function getUserProfile(uid) {
+export async function getUserProfile(uid, email) {
   try {
     const ref = doc(db, 'users', uid)
     const snap = await getDoc(ref)
@@ -253,7 +253,7 @@ export async function getUserProfile(uid) {
       return snap.data()
     }
 
-    const recovered = await recoverUserProfile(uid, null)
+    const recovered = await recoverUserProfile(uid, email || null)
     return recovered
   } catch (err) {
     // Firestore error (network unavailable, permission denied, etc.)

@@ -10,7 +10,7 @@ function generateUUID() {
 import {
   doc, getDoc, getDocs, updateDoc, deleteDoc,
   collection, addDoc, query, where, onSnapshot,
-  serverTimestamp, writeBatch
+  serverTimestamp, writeBatch, limit
 } from 'firebase/firestore'
 import { db } from '../firebase'
 
@@ -62,7 +62,7 @@ export function subscribeToDevices(gymId, callback, statusFilter) {
 }
 
 export function subscribeToAllDevices(callback) {
-  const q = query(collection(db, DEVICES_COLLECTION))
+  const q = query(collection(db, DEVICES_COLLECTION), limit(5000))
   return onSnapshot(q, (snap) => {
     callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
   })
@@ -78,6 +78,10 @@ export async function registerDevice(gymId, licenseKey) {
     where('gymId', '==', gymId)
   ))
 
+  const gymSnap = await getDoc(doc(db, 'gyms', gymId))
+  const sub = gymSnap.exists() ? gymSnap.data().subscription : null
+  const deviceLimit = sub?.deviceLimit || 0
+
   if (!existing.empty) {
     const dev = existing.docs[0]
     const ref = doc(db, DEVICES_COLLECTION, dev.id)
@@ -90,6 +94,13 @@ export async function registerDevice(gymId, licenseKey) {
       updatedAt: serverTimestamp(),
     })
     return { action: 'updated', deviceId, docId: dev.id }
+  }
+
+  if (deviceLimit !== 9999) {
+    const currentCount = await getDeviceCount(gymId)
+    if (currentCount >= deviceLimit) {
+      throw new Error(`Device limit reached (${currentCount}/${deviceLimit}). Remove an existing device or contact your administrator.`)
+    }
   }
 
   await addDoc(collection(db, DEVICES_COLLECTION), {
@@ -162,6 +173,10 @@ export async function validateDeviceRegistration(gymId) {
   const sub = gymSnap.data().subscription
   if (!sub) return { valid: false, reason: 'No subscription found' }
 
+  if (!sub.licenseKey) {
+    return { valid: false, reason: 'No license key assigned' }
+  }
+
   if (sub.status === 'expired' || sub.status === 'suspended') {
     return { valid: false, reason: `Subscription is ${sub.status}` }
   }
@@ -173,8 +188,8 @@ export async function validateDeviceRegistration(gymId) {
     return { valid: false, reason: 'License suspended' }
   }
 
-  if (!sub.licenseKey) {
-    return { valid: false, reason: 'No license key assigned' }
+  if (sub.licenseStatus !== 'active') {
+    return { valid: false, reason: 'License is not active' }
   }
 
   const deviceLimit = sub.deviceLimit || 0

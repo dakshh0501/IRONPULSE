@@ -1,7 +1,10 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
-import { updateDoc, doc, deleteDoc } from 'firebase/firestore'
+import { updateDoc, doc, deleteDoc, serverTimestamp, writeBatch, collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '../../firebase'
 import { useApp } from '../../context/AppContext'
+import { generateUniqueLicenseKey } from '../../utils/license'
+import { addLicenseHistory } from '../../services/licenseHistoryService'
+import { resetAllDevices } from '../../services/deviceService'
 
 if (!document.getElementById('go-styles')) {
   const goStyles = document.createElement('style')
@@ -334,21 +337,48 @@ export default function SuperAdminGymOwners({ search: parentSearch }) {
     setConfirmAction(null)
   }
   const handleDelete = async (gym) => {
-    await deleteDoc(doc(db, 'gyms', gym.id))
-    if (fireNotif) fireNotif('gym_deleted', { gymId: gym.id, userId: gym.ownerUid, title:'Gym Deleted', message:`${gym.gymName || gym.name} has been removed.` }).catch(() => {})
-    setConfirmAction(null)
-    if (drawerGym?.id === gym.id) setDrawerGym(null)
+    setLoading(true)
+    try {
+      const batch = writeBatch(db)
+      const devicesSnap = await getDocs(query(collection(db, 'licensedDevices'), where('gymId', '==', gym.id)))
+      devicesSnap.docs.forEach(d => batch.delete(d.ref))
+      const historySnap = await getDocs(query(collection(db, 'licenseHistory'), where('gymId', '==', gym.id)))
+      historySnap.docs.forEach(d => batch.delete(d.ref))
+      await batch.commit()
+      await deleteDoc(doc(db, 'gyms', gym.id))
+      if (fireNotif) fireNotif('gym_deleted', { gymId: gym.id, userId: gym.ownerUid, title:'Gym Deleted', message:`${gym.gymName || gym.name} has been removed.` }).catch(() => {})
+      setConfirmAction(null)
+      if (drawerGym?.id === gym.id) setDrawerGym(null)
+    } catch (err) {
+      console.error('Gym deletion failed:', err)
+    } finally {
+      setLoading(false)
+    }
   }
   const handleResetLicense = async (gym) => {
-    const seg = () => { const a = new Uint8Array(4); crypto.getRandomValues(a); return Array.from(a, b => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[b % 36]).join('') }
-    const newKey = `IRP-${seg()}-${seg()}-${seg()}`
-    await updateDoc(doc(db, 'gyms', gym.id), {
-      'subscription.licenseKey': newKey,
-      'subscription.licenseStatus': 'active',
-      'subscription.updatedAt': new Date(),
-    })
-    if (fireNotif) fireNotif('license_reset', { gymId: gym.id, userId: gym.ownerUid, title:'License Reset', message:`License key reset for ${gym.gymName || gym.name}.` }).catch(() => {})
-    setConfirmAction(null)
+    setLoading(true)
+    try {
+      const newKey = await generateUniqueLicenseKey()
+      await updateDoc(doc(db, 'gyms', gym.id), {
+        'subscription.licenseKey': newKey,
+        'subscription.licenseStatus': 'active',
+        'subscription.updatedAt': serverTimestamp(),
+      })
+      await resetAllDevices(gym.id)
+      await addLicenseHistory({
+        gymId: gym.id,
+        licenseKey: newKey,
+        action: 'License Reset',
+        performedBy: 'super_admin',
+        deviceId: 'all',
+      })
+      if (fireNotif) fireNotif('license_reset', { gymId: gym.id, userId: gym.ownerUid, title:'License Reset', message:`License key reset for ${gym.gymName || gym.name}.` }).catch(() => {})
+      setConfirmAction(null)
+    } catch (err) {
+      console.error('License reset failed:', err)
+    } finally {
+      setLoading(false)
+    }
   }
   const handleEdit = async (gym, field, value) => {
     await updateDoc(doc(db, 'gyms', gym.id), { [field]: value })

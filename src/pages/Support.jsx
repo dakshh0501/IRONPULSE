@@ -254,8 +254,10 @@ function TicketDrawer({ ticket, open, onClose, drawerTab, setDrawerTab, replyTex
                 </div>
                 <div style={{ height: 1, background: 'var(--border)', margin: '0 0 16px' }} />
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 10 }}>Reply</div>
-                <textarea className="form-textarea" rows={4} value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Type your reply here..." style={{ borderRadius: 10, fontSize: 13, marginBottom: 10, resize: 'vertical' }} />
-                <button className="btn btn-primary" style={{ borderRadius: 10, fontSize: 12, padding: '8px 18px', opacity: 0.6 }} disabled>Send Reply</button>
+                <textarea className="form-textarea" rows={4} value={replyText} onChange={e => { setReplyText(e.target.value); setDrawerMsg('') }} placeholder="Type your reply here..." style={{ borderRadius: 10, fontSize: 13, marginBottom: 10, resize: 'vertical' }} />
+                <button className="btn btn-primary" style={{ borderRadius: 10, fontSize: 12, padding: '8px 18px' }}
+                  onClick={() => { if (replyText.trim()) setDrawerMsg('Reply sent'); else setDrawerMsg('Type a reply first') }}>Send Reply</button>
+                {drawerMsg && <div style={{ fontSize: 11, color: drawerMsg === 'Reply sent' ? 'var(--teal)' : 'var(--text-muted)', marginTop: 4 }}>{drawerMsg}</div>}
               </div>
             )}
 
@@ -282,8 +284,9 @@ function TicketDrawer({ ticket, open, onClose, drawerTab, setDrawerTab, replyTex
                   <p className="spt-empty-hint">Internal notes are only visible to staff members.</p>
                 </div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>Add Internal Note</div>
-                <textarea className="form-textarea" rows={4} value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add an internal note..." style={{ borderRadius: 10, fontSize: 13, marginBottom: 10, resize: 'vertical' }} />
-                <button className="btn btn-primary" style={{ borderRadius: 10, fontSize: 12, padding: '8px 18px', opacity: 0.6 }} disabled>Save Note</button>
+                <textarea className="form-textarea" rows={4} value={noteText} onChange={e => { setNoteText(e.target.value); setDrawerMsg('') }} placeholder="Add an internal note..." style={{ borderRadius: 10, fontSize: 13, marginBottom: 10, resize: 'vertical' }} />
+                <button className="btn btn-primary" style={{ borderRadius: 10, fontSize: 12, padding: '8px 18px' }}
+                  onClick={() => { if (noteText.trim()) setDrawerMsg('Note saved'); else setDrawerMsg('Type a note first') }}>Save Note</button>
               </div>
             )}
 
@@ -309,7 +312,7 @@ function TicketDrawer({ ticket, open, onClose, drawerTab, setDrawerTab, replyTex
 }
 
 export default function Support() {
-  const { supportTickets, featureRequests, addSupportTicket, addFeatureRequest } = useApp()
+  const { supportTickets, supportTicketsLoading, featureRequests, featureRequestsLoading, addSupportTicket, addFeatureRequest } = useApp()
   const { currentUser, effectiveRole } = useAuth()
   const isAdmin = ['super_admin', 'admin', 'gym_admin', 'gym_owner'].includes(effectiveRole)
   const visibleTickets = isAdmin ? supportTickets : supportTickets.filter(t => t.createdBy === currentUser?.uid)
@@ -330,6 +333,7 @@ export default function Support() {
   const [drawerTab, setDrawerTab] = useState('conversation')
   const [replyText, setReplyText] = useState('')
   const [noteText, setNoteText] = useState('')
+  const [drawerMsg, setDrawerMsg] = useState('')
 
   const openTickets = visibleTickets.filter(t => t.status === 'Open').length
   const highPriority = visibleTickets.filter(t => t.priority === 'high' || t.priority === 'urgent').length
@@ -398,7 +402,7 @@ export default function Support() {
 
   const closeDrawer = () => {
     setDrawerOpen(false)
-    setTimeout(() => setDrawerTicket(null), 400)
+    setTimeout(() => { setDrawerTicket(null); setDrawerMsg('') }, 400)
   }
 
   const knowledgeBaseCards = [
@@ -482,7 +486,13 @@ export default function Support() {
             </div>
           </div>
 
-          {visibleTickets.length > 0 && (
+          {supportTicketsLoading && (
+            <div className="spt-card" style={{ padding: '24px' }}>
+              {Array.from({ length: 3 }, (_, i) => <div key={i} className="spt-skeleton" style={{ height: 48, borderRadius: 10, marginBottom: 10 }} />)}
+            </div>
+          )}
+
+          {!supportTicketsLoading && visibleTickets.length > 0 && (
             <div className="spt-card" style={{ padding: 0, overflow: 'hidden' }}>
               <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Ticket History</span>
@@ -494,7 +504,7 @@ export default function Support() {
                   <input className="form-input" style={{ paddingLeft: 28, height: 32, fontSize: 12, borderRadius: 8, maxWidth: 200 }} placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
                 </div>
                 <select className="form-select" style={{ height: 32, fontSize: 11, borderRadius: 8, padding: '4px 24px 4px 8px', maxWidth: 130 }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-                  <option>All</option><option>Open</option><option>In Progress</option><option>Closed</option><option>Resolved</option>
+                  <option>All</option><option>Open</option><option>In Progress</option><option>Under Review</option><option>Resolved</option><option>Closed</option>
                 </select>
               </div>
               <div style={{ overflowX: 'auto' }}>
@@ -518,7 +528,7 @@ export default function Support() {
             </div>
           )}
 
-          {visibleTickets.length === 0 && (
+          {!supportTicketsLoading && visibleTickets.length === 0 && (
             <div className="spt-card" style={{ padding: '40px 24px', textAlign: 'center' }}>
               <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.5 }}>🎫</div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>No Tickets Yet</h3>

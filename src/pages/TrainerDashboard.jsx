@@ -23,10 +23,7 @@ export default function TrainerDashboard() {
     const belongsToTrainer = myMembers.some(m =>
       a.memberId === m.id ||
       a.memberId === m.uid ||
-      a.memberId === m.authUid ||
-      a.memberUid === m.id ||
-      a.memberUid === m.uid ||
-      a.memberUid === m.authUid
+      a.memberId === m.authUid
     )
 
     return isToday && belongsToTrainer

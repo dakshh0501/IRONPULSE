@@ -1,5 +1,6 @@
-import { doc, getDoc, updateDoc, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, runTransaction } from 'firebase/firestore'
 import { db } from '../firebase'
+import { generateLicenseKey } from '../utils/license'
 
 const HISTORY_COLLECTION = 'subscriptionHistory'
 
@@ -40,39 +41,38 @@ async function updateGymSubscription(gymId, updates) {
   if (!gymId) throw new Error('gymId required')
   const gymRef = doc(db, 'gyms', gymId)
 
-  // Auto-provision a license key when a subscription first becomes active
-  // or trial, but never overwrite an existing key (preserved across renewals,
-  // upgrades, downgrades, reactivations, and extensions).
-  if (updates.status === 'active' || updates.status === 'trial') {
-    const snap = await getDoc(gymRef)
-    const existing = snap.data()?.subscription
-    if (existing && !existing.licenseKey) {
-      const seg = () => { const a = new Uint8Array(4); crypto.getRandomValues(a); return Array.from(a, b => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[b % 36]).join('') }
-      updates.licenseKey = `IRP-${seg()}-${seg()}-${seg()}`
-      updates.licenseStatus = 'active'
-      updates.generatedAt = new Date().toISOString()
+  // Use a transaction for the auto-provisioning read-then-write to
+  // eliminate the race condition between getDoc and updateDoc.
+  await runTransaction(db, async (transaction) => {
+    // Auto-provision a license key when a subscription first becomes active
+    // or trial, but never overwrite an existing key (preserved across renewals,
+    // upgrades, downgrades, reactivations, and extensions).
+    if (updates.status === 'active' || updates.status === 'trial') {
+      const snap = await transaction.get(gymRef)
+      const existing = snap.data()?.subscription
+      if (existing && !existing.licenseKey) {
+        updates.licenseKey = generateLicenseKey()
+        updates.licenseStatus = 'active'
+        updates.generatedAt = new Date().toISOString()
+      }
     }
-  }
 
-  // Use dot-notation field paths for atomic partial updates.
-  // This avoids the read-then-write race condition: updateDoc only
-  // touches the specified fields; all other subscription fields are
-  // preserved server-side (no stale spread from a prior getDoc).
-  const fieldUpdates = {}
-  if (updates.planType) {
-    fieldUpdates['subscription.deviceLimit'] = getDeviceLimit(updates.planType)
-  }
-  for (const [key, value] of Object.entries(updates)) {
-    fieldUpdates[`subscription.${key}`] = value
-  }
-  fieldUpdates['subscription.updatedAt'] = serverTimestamp()
-  fieldUpdates.subscriptionId = gymId
-  if (updates.status) {
-    fieldUpdates.subscriptionStatus = updates.status
-  }
-  fieldUpdates.updatedAt = serverTimestamp()
+    const fieldUpdates = {}
+    if (updates.planType) {
+      fieldUpdates['subscription.deviceLimit'] = getDeviceLimit(updates.planType)
+    }
+    for (const [key, value] of Object.entries(updates)) {
+      fieldUpdates[`subscription.${key}`] = value
+    }
+    fieldUpdates['subscription.updatedAt'] = serverTimestamp()
+    fieldUpdates.subscriptionId = gymId
+    if (updates.status) {
+      fieldUpdates.subscriptionStatus = updates.status
+    }
+    fieldUpdates.updatedAt = serverTimestamp()
 
-  await updateDoc(gymRef, fieldUpdates)
+    transaction.update(gymRef, fieldUpdates)
+  })
 }
 
 async function addHistoryRecord(record) {

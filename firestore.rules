@@ -74,9 +74,7 @@ service cloud.firestore {
     }
 
     function isOwnAttendance(resourceMemberId) {
-      return isMember() &&
-        exists(/databases/$(database)/documents/members/$(resourceMemberId)) &&
-        get(/databases/$(database)/documents/members/$(resourceMemberId)).data.authUid == request.auth.uid;
+      return isMember() && resourceMemberId == request.auth.uid;
     }
 
     function isOwnMemberDoc(resourceMemberId) {
@@ -264,7 +262,7 @@ service cloud.firestore {
     match /settings/{docId} {
 
       allow read: if (isAdminOrOwner() && inCallersGym()) || (
-        isApproved() &&
+        isApproved() && inCallersGym() &&
         (docId == 'gym' || docId.matches('.*:gym$') || docId == 'theme' || docId.matches('.*:theme$'))
       );
       allow create: if isAdminOrOwner() && inCallersGymCreate();
@@ -282,7 +280,7 @@ service cloud.firestore {
         isAuthed() &&
         request.resource.data.ownerUid == request.auth.uid
       );
-      allow update: if isAdminOrOwner();
+      allow update: if isAdminOrOwner() && inCallersGym();
       allow delete: if isSuperAdmin();
     }
 
@@ -349,7 +347,7 @@ service cloud.firestore {
         isGymAdmin() && resource.data.gymId == getCallerGymId()
       );
 
-      allow create: if isAuthed();
+      allow create: if isStaff();
 
       allow update: if isSuperAdmin();
 
@@ -368,7 +366,7 @@ service cloud.firestore {
       );
 
       allow create: if isAuthed() && (
-        isSuperAdmin() || (
+        isSuperAdmin() || isGymAdmin() || (
           request.resource.data.userId == request.auth.uid &&
           request.resource.data.gymId == getCallerGymId()
         )

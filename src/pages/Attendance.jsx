@@ -433,11 +433,11 @@ export default function Attendance({ search = '' }) {
     setTimeout(() => setScanResult(null), 4000)
   }
 
-  const handleScanSuccess = (decodedText) => {
+  const handleScanSuccess = async (decodedText) => {
     const scannedId = String(decodedText).trim()
     const member = members.find(m => String(m.authUid||m.uid||m.id) === scannedId)
     if (!member) { alert(`Member not found.\nScanned ID: ${scannedId.slice(0,16)}…\n\nMake sure the member's QR is from their dashboard and authUid is stored in Firestore.`); return }
-    handleQRCheckIn(member)
+    await handleQRCheckIn(member)
   }
 
   return (

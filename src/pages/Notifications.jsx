@@ -125,10 +125,10 @@ function getTimeGroup(createdAt) {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
   const yesterday = today - 86400000
   const weekAgo = today - 7 * 86400000
-  if (ts.getTime() >= today) return 'Newest'
+  if (ts.getTime() >= today) return 'Today'
   if (ts.getTime() >= yesterday) return 'Yesterday'
-  if (ts.getTime() >= weekAgo) return 'Earlier Today'
-  return 'This Week'
+  if (ts.getTime() >= weekAgo) return 'This Week'
+  return 'Earlier'
 }
 
 export default function Notifications({ search: propSearch = '' }) {
@@ -177,7 +177,7 @@ export default function Notifications({ search: propSearch = '' }) {
     return groups
   }, [filtered])
 
-  const groupOrder = ['Newest', 'Earlier Today', 'Yesterday', 'This Week', 'Earlier']
+  const groupOrder = ['Today', 'Yesterday', 'This Week', 'Earlier']
 
   const handleMarkRead = async (id) => { await markNotifRead(id) }
   const handleMarkUnread = async (id) => {
@@ -245,7 +245,7 @@ export default function Notifications({ search: propSearch = '' }) {
               { key: 'payment', label: 'Payments', icon: '💳' },
               { key: 'member', label: 'Members', icon: '👤' },
               { key: 'subscription', label: 'Subscriptions', icon: '🔄' },
-              { key: 'security', label: 'Security', icon: '🔒' },
+
               { key: 'system', label: 'System', icon: '⚙️' },
               { key: 'support', label: 'Support', icon: '🎫' },
             ].map(f => {
@@ -269,7 +269,7 @@ export default function Notifications({ search: propSearch = '' }) {
             <select className="form-select" style={{ height: 32, fontSize: 11, borderRadius: 8, padding: '4px 24px 4px 8px' }}
               value={priorityFilter} onChange={e => setPriorityFilter(e.target.value)}>
               <option value="all">All Priority</option>
-              <option value="urgent">Urgent</option>
+
               <option value="high">High</option>
               <option value="normal">Normal</option>
               <option value="low">Low</option>

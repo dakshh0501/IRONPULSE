@@ -29,7 +29,7 @@ export default function MemberQR({
       >
 
         <QRCode
-          value={member.id}
+          value={member.authUid || member.id}
           size={size}
           bgColor="#FFFFFF"
           fgColor="#000000"

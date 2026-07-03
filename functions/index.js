@@ -173,15 +173,11 @@ async function fulfillSubscriptionPayment(attempt, phonePeTransactionId) {
 async function createPaymentRecordInTransaction(transaction, attempt, phonePeTransactionId) {
   if (!attempt.paymentId) return
 
-  // Duplicate prevention: check if a payment record already exists for this attempt
-  const existing = await db.collection('payments')
-    .where('paymentId', '==', attempt.paymentId)
-    .limit(1)
-    .get()
-
-  if (!existing.empty) {
-    return
-  }
+  // Use paymentId as the document key for natural idempotency:
+  // if two callers race, the second transaction.set overwrites with the same data.
+  const paymentRef = db.collection('payments').doc(attempt.paymentId)
+  const existing = await transaction.get(paymentRef)
+  if (existing.exists) return
 
   // Look up gym name for display
   let gymName = ''
@@ -225,7 +221,6 @@ async function createPaymentRecordInTransaction(transaction, attempt, phonePeTra
     createdAt: new Date().toISOString(),
   }
 
-  const paymentRef = db.collection('payments').doc()
   transaction.set(paymentRef, paymentRecord)
 
 }

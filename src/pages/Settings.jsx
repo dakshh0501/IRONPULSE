@@ -50,7 +50,7 @@ const SETTINGS_NAV = [
   { key:'plans',         icon:'💳', title:'Plans',         desc:'Membership pricing',    adminOnly:false },
   { key:'notifications', icon:'🔔', title:'Notifications', desc:'SMS / Email',           adminOnly:false },
   { key:'appearance',    icon:'🎨', title:'Appearance',    desc:'Theme & branding',      adminOnly:false },
-  { key:'billing',       icon:'💰', title:'Billing',       desc:'Taxes & invoices',      adminOnly:false },
+  { key:'billing',       icon:'💰', title:'Billing',       desc:'Taxes & invoices',      adminOnly:true },
   { key:'security',      icon:'🔒', title:'Security',      desc:'Password & access',     adminOnly:true },
   { key:'support',       icon:'🆘', title:'Support',       desc:'Help & feedback',       adminOnly:false },
 ]
@@ -83,12 +83,14 @@ export default function Settings() {
   const [logoProgress, setLogoProgress] = useState(0)
   const [logoError, setLogoError] = useState('')
   const fileInputRef = useRef(null)
+  const gymSavedRef = useRef(null)
   const setGym = (k, v) => setGymForm(p => ({ ...p, [k]: v }))
 
   useEffect(() => {
     getSettings('gym', gymId)
       .then(data => {
         if (data) { setGymForm(prev => ({ ...prev, ...data })); if (data.primaryColor) applyAccentColor(data.primaryColor) }
+        gymSavedRef.current = data ? { ...DEFAULT_GYM, ...data } : null
       })
       .catch(err => console.error('Failed to load gym settings:', err))
       .finally(() => setGymLoading(false))
@@ -126,20 +128,24 @@ export default function Settings() {
     } catch { setGymError('Save failed. Check your connection.'); setTimeout(() => setGymError(''), 3000) }
   }
 
-  const resetGym = () => setGymForm(DEFAULT_GYM)
+  const resetGym = () => setGymForm(gymSavedRef.current || DEFAULT_GYM)
 
   // ── Billing Settings ────────────────────────────────────
   const [billingForm, setBillingForm] = useState(DEFAULT_BILLING)
   const [billingSaved, setBillingSaved] = useState(false)
   const [billingError, setBillingError] = useState('')
   const [billingLoading, setBillingLoading] = useState(true)
+  const billingSavedRef = useRef(null)
   const setBilling = (k, v) => setBillingForm(p => ({ ...p, [k]: v }))
 
   useEffect(() => {
-    getSettings('billing').then(data => { if (data) setBillingForm(prev => ({ ...prev, ...data })) })
+    if (activeTab !== 'billing') return
+    getSettings('billing').then(data => {
+      if (data) { setBillingForm(prev => ({ ...prev, ...data })); billingSavedRef.current = { ...DEFAULT_BILLING, ...data } }
+    })
       .catch(err => console.error('Failed to load billing settings:', err))
       .finally(() => setBillingLoading(false))
-  }, [])
+  }, [activeTab])
 
   const saveBilling = async () => {
     setBillingError('')
@@ -156,19 +162,23 @@ export default function Settings() {
     } catch { setBillingError('Save failed. Check your connection.'); setTimeout(() => setBillingError(''), 3000) }
   }
 
-  const resetBilling = () => setBillingForm(DEFAULT_BILLING)
+  const resetBilling = () => setBillingForm(billingSavedRef.current || DEFAULT_BILLING)
 
   // ── Profile ─────────────────────────────────────────────
   const [profile, setProfileState] = useState({ name:'', email:currentUser?.email||'', phone:'', bio:'' })
   const [profileSaved, setProfileSaved] = useState(false)
   const [profileError, setProfileError] = useState('')
   const [profileLoading, setProfileLoading] = useState(true)
+  const profileSavedRef = useRef(null)
   const setProf = (k, v) => setProfileState(p => ({ ...p, [k]: v }))
 
   useEffect(() => {
     if (!currentUser?.uid) return
     getSettings(`profile_${currentUser.uid}`)
-      .then(data => { if (data) setProfileState(prev => ({ ...prev, ...data })); else setProfileState(prev => ({ ...prev, name: currentUser?.displayName||'' })) })
+      .then(data => {
+        if (data) { setProfileState(prev => ({ ...prev, ...data })); profileSavedRef.current = data }
+        else { setProfileState(prev => ({ ...prev, name: currentUser?.displayName||'' })); profileSavedRef.current = { name: currentUser?.displayName||'', email: currentUser?.email||'', phone:'', bio:'' } }
+      })
       .catch(err => console.error('Failed to load profile:', err))
       .finally(() => setProfileLoading(false))
   }, [currentUser?.uid])
@@ -185,18 +195,21 @@ export default function Settings() {
     } catch { setProfileError('Save failed. Check your connection.'); setTimeout(() => setProfileError(''), 3000) }
   }
 
-  const resetProfile = () => setProfileState({ name:currentUser?.displayName||'', email:currentUser?.email||'', phone:'', bio:'' })
+  const resetProfile = () => setProfileState(profileSavedRef.current || { name:currentUser?.displayName||'', email:currentUser?.email||'', phone:'', bio:'' })
 
   // ── Password ────────────────────────────────────────────
   const [pwForm, setPwForm] = useState({ current:'', newPw:'', confirm:'' })
   const [pwError, setPwError] = useState('')
   const [pwSaved, setPwSaved] = useState(false)
+  const [pwSaving, setPwSaving] = useState(false)
   const setPw = (k, v) => { setPwForm(p => ({ ...p, [k]: v })); setPwError('') }
 
   const savePassword = async () => {
     if (!pwForm.current) { setPwError('Enter current password'); return }
     if (pwForm.newPw.length < 6) { setPwError('New password must be at least 6 characters'); return }
     if (pwForm.newPw !== pwForm.confirm) { setPwError('Passwords do not match'); return }
+    if (!currentUser.email) { setPwError('No email on this account. Set an email first.'); return }
+    setPwSaving(true)
     try {
       const { EmailAuthProvider, reauthenticateWithCredential, updatePassword } = await import('firebase/auth')
       const credential = EmailAuthProvider.credential(currentUser.email, pwForm.current)
@@ -204,10 +217,11 @@ export default function Settings() {
       await updatePassword(currentUser, pwForm.newPw)
       setPwSaved(true); setPwForm({ current:'', newPw:'', confirm:'' }); setTimeout(() => setPwSaved(false), 2500)
     } catch (err) { setPwError(err.code === 'auth/wrong-password' ? 'Current password is incorrect' : 'Failed to update password') }
+    finally { setPwSaving(false) }
   }
 
   // ── Plans ───────────────────────────────────────────────
-  const { plans, addPlan, updatePlan, deletePlan } = useApp()
+  const { plans, addPlan, updatePlan, deletePlan, members } = useApp()
   const [planModal, setPlanModal] = useState(null)
   const [planForm, setPlanForm] = useState({ name:'', price:'', duration:'', durationDays:30, description:'', active:true })
   const [planSaving, setPlanSaving] = useState(false)
@@ -268,14 +282,18 @@ export default function Settings() {
 
   useEffect(() => {
     getSettings('theme', gymId)
-      .then(data => { if (data?.accentColor) { setAccentColor(data.accentColor); applyAccentColor(data.accentColor) } })
+      .then(data => {
+        if (data?.accentColor) { setAccentColor(data.accentColor); applyAccentColor(data.accentColor) }
+        if (data?.compactMode !== undefined) setCompactMode(data.compactMode)
+        if (data?.animations !== undefined) setAnimations(data.animations)
+      })
       .catch(err => console.error('Failed to load theme:', err))
       .finally(() => setThemeLoading(false))
   }, [gymId])
 
   const saveTheme = async () => {
     setThemeError('')
-    try { await saveSettings('theme', { accentColor }, gymId); applyAccentColor(accentColor); setThemeSaved(true); setTimeout(() => setThemeSaved(false), 2500) }
+    try { await saveSettings('theme', { accentColor, compactMode, animations }, gymId); applyAccentColor(accentColor); setThemeSaved(true); setTimeout(() => setThemeSaved(false), 2500) }
     catch { setThemeError('Save failed. Check your connection.'); setTimeout(() => setThemeError(''), 3000) }
   }
 
@@ -460,7 +478,7 @@ export default function Settings() {
                 {pwError && <p className="settings-field-error">⚠ {pwError}</p>}
                 <div className="settings-section-actions">
                   {pwSaved && <span className="save-success">✓ Password updated</span>}
-                  <button className="btn btn-primary" onClick={savePassword}>Update Password</button>
+                  <button className="btn btn-primary" onClick={savePassword} disabled={pwSaving}>{pwSaving ? 'Updating...' : 'Update Password'}</button>
                 </div>
               </Section>
             </>
@@ -621,7 +639,7 @@ export default function Settings() {
                           <td><span style={{ fontWeight:600 }}>{plan.name}</span></td>
                           <td>₹{plan.price}</td>
                           <td>{plan.duration}</td>
-                          <td>{plan.memberCount||0}</td>
+                          <td>{members?.filter(m => m.plan === plan.name || m.membershipPlan === plan.name).length || 0}</td>
                           <td>{plan.active===false ? <span className="badge badge-red">Inactive</span> : <span className="badge badge-green">Active</span>}</td>
                           <td>
                             <div className="action-group">
@@ -792,17 +810,11 @@ export default function Settings() {
                         <input className="form-input" value={billingForm.invoicePrefix} onChange={e => setBilling('invoicePrefix', e.target.value)} placeholder="INV" />
                       </div>
                     </div>
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label className="form-label">Currency</label>
-                        <select className="form-select" value={billingForm.currency} onChange={e => setBilling('currency', e.target.value)}>
-                          <option value="INR">INR (₹)</option><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option>
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">Tax %</label>
-                        <input className="form-input" type="number" value={billingForm.gstPercent} onChange={e => setBilling('gstPercent', e.target.value)} placeholder="18" />
-                      </div>
+                    <div className="form-group">
+                      <label className="form-label">Currency</label>
+                      <select className="form-select" value={billingForm.currency} onChange={e => setBilling('currency', e.target.value)}>
+                        <option value="INR">INR (₹)</option><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option>
+                      </select>
                     </div>
                     <div className="form-group">
                       <label className="form-label">Receipt Footer</label>
@@ -827,7 +839,7 @@ export default function Settings() {
                           <p className="setting-row-label">Auto Invoice</p>
                           <p className="setting-row-desc">Automatically generate invoices on payment</p>
                         </div>
-                        <Toggle on={true} onChange={() => {}} />
+                        <span style={{ fontSize: 11, color: 'var(--text-dim)', padding: '2px 8px', background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 10 }}>Coming Soon</span>
                       </div>
                     </div>
 
@@ -878,16 +890,19 @@ export default function Settings() {
             <>
               <Section icon="🔒" title="Security" desc="Password, sessions, and access control">
                 <SettingRow label="Two-Factor Authentication" desc="Add extra security with OTP on login">
-                  <Toggle on={false} onChange={() => alert('2FA requires additional backend setup.')} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Toggle on={false} onChange={() => {}} />
+                    <span style={{ fontSize: 11, color: 'var(--text-dim)', padding: '2px 8px', background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 10 }}>Coming Soon</span>
+                  </div>
                 </SettingRow>
                 <SettingRow label="Session Timeout" desc="Auto log out after inactivity">
-                  <select className="form-select" style={{ width:160 }}><option>30 minutes</option><option>1 hour</option><option>4 hours</option><option>Never</option></select>
+                  <select className="form-select" style={{ width:160, opacity: 0.6, cursor: 'not-allowed' }} disabled><option>30 minutes</option><option>1 hour</option><option>4 hours</option><option>Never</option></select>
                 </SettingRow>
                 <SettingRow label="Active Sessions" desc="View and manage active login sessions">
-                  <button className="btn btn-ghost btn-sm" onClick={() => alert('Session management requires Firebase Auth admin setup.')}>View Sessions</button>
+                  <span className="btn btn-ghost btn-sm" style={{ opacity: 0.5, cursor: 'not-allowed' }}>View Sessions <span style={{ fontSize: 10, background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 8, padding: '1px 6px', marginLeft: 4 }}>Coming Soon</span></span>
                 </SettingRow>
                 <SettingRow label="Login History" desc="Review recent login activity">
-                  <button className="btn btn-ghost btn-sm" onClick={() => alert('Login history requires Firebase audit log setup.')}>View Logs</button>
+                  <span className="btn btn-ghost btn-sm" style={{ opacity: 0.5, cursor: 'not-allowed' }}>View Logs <span style={{ fontSize: 10, background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 8, padding: '1px 6px', marginLeft: 4 }}>Coming Soon</span></span>
                 </SettingRow>
               </Section>
 

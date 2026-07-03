@@ -24,6 +24,7 @@ export default function DeviceManagement() {
   const { gymId, currentSubscription } = useApp()
   const [devices, setDevices] = useState([])
   const [loading, setLoading] = useState(false)
+  const [actionError, setActionError] = useState('')
   const canManage = effectiveRole === 'gym_admin' || effectiveRole === 'admin' || effectiveRole === 'super_admin'
 
   useEffect(() => {
@@ -34,6 +35,7 @@ export default function DeviceManagement() {
 
   const deviceLimit = currentSubscription?.deviceLimit || 0
   const currentCount = devices.length
+  const activeCount = devices.filter(d => d.status === 'active').length
 
   const stats = useMemo(() => ({
     registered: currentCount,
@@ -52,7 +54,7 @@ export default function DeviceManagement() {
         performedBy: effectiveRole || 'gym_admin',
         deviceId: dev.deviceId,
       })
-    } catch (err) { console.error(err) }
+    } catch (err) { console.error(err); setActionError('Failed to remove device') }
     finally { setLoading(false) }
   }
 
@@ -67,7 +69,7 @@ export default function DeviceManagement() {
         performedBy: effectiveRole || 'gym_admin',
         deviceId: dev.deviceId,
       })
-    } catch (err) { console.error(err) }
+    } catch (err) { console.error(err); setActionError('Failed to revoke device') }
     finally { setLoading(false) }
   }
 
@@ -82,7 +84,7 @@ export default function DeviceManagement() {
         performedBy: effectiveRole || 'gym_admin',
         deviceId: dev.deviceId,
       })
-    } catch (err) { console.error(err) }
+    } catch (err) { console.error(err); setActionError('Failed to suspend device') }
     finally { setLoading(false) }
   }
 
@@ -97,7 +99,7 @@ export default function DeviceManagement() {
         performedBy: effectiveRole || 'gym_admin',
         deviceId: dev.deviceId,
       })
-    } catch (err) { console.error(err) }
+    } catch (err) { console.error(err); setActionError('Failed to activate device') }
     finally { setLoading(false) }
   }
 
@@ -110,6 +112,12 @@ export default function DeviceManagement() {
         </div>
       </div>
 
+      {actionError && (
+        <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:10, padding:'10px 14px', marginBottom:16, fontSize:13, color:'#f87171', textAlign:'center', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+          <span>✗ {actionError}</span>
+          <button onClick={() => setActionError('')} style={{ background:'none', border:'none', color:'#f87171', cursor:'pointer', fontSize:14, padding:'0 4px' }}>✕</button>
+        </div>
+      )}
       <div className="stats-grid" style={{ marginBottom:24 }}>
         <StatCard label="Active Devices" value={stats.registered} icon="📱" color="var(--green)" />
         <StatCard label="Device Limit" value={stats.limit} icon="🔒" color="var(--blue)" />
@@ -119,16 +127,25 @@ export default function DeviceManagement() {
       <div className="card" style={{ overflowX:'auto' }}>
         <table className="data-table">
           <thead>
-            <tr><th>Device Name</th><th>Platform</th><th>App Version</th><th>Registered</th><th>Last Seen</th><th>Actions</th></tr>
+            <tr><th>Device Name</th><th>Platform</th><th>App Version</th><th>Status</th><th>Registered</th><th>Last Seen</th><th>Actions</th></tr>
           </thead>
           <tbody>
             {devices.length === 0 ? (
-              <tr><td colSpan={6} style={{ textAlign:'center', padding:32, color:'var(--text-muted)' }}>No devices registered yet</td></tr>
+              <tr><td colSpan={7} style={{ textAlign:'center', padding:32, color:'var(--text-muted)' }}>No devices registered yet</td></tr>
             ) : devices.map((dev, i) => (
               <tr key={dev.id || i}>
                 <td style={{ fontWeight:600 }}>{dev.deviceName || '—'}</td>
                 <td style={{ fontSize:12 }}>{dev.platform || '—'}</td>
                 <td style={{ fontSize:12 }}>{dev.appVersion || '—'}</td>
+                <td>
+                  <span style={{
+                    display:'inline-block', padding:'2px 8px', borderRadius:10, fontSize:11, fontWeight:600,
+                    background: dev.status === 'active' ? '#22c55e14' : dev.status === 'suspended' ? '#f59e0b14' : dev.status === 'revoked' ? '#ef444414' : '#38486014',
+                    color: dev.status === 'active' ? '#22c55e' : dev.status === 'suspended' ? '#f59e0b' : dev.status === 'revoked' ? '#ef4444' : '#384860',
+                  }}>
+                    {dev.status || 'unknown'}
+                  </span>
+                </td>
                 <td style={{ fontSize:12, color:'var(--text-muted)' }}>
                   {dev.registeredAt?.seconds ? new Date(dev.registeredAt.seconds * 1000).toLocaleDateString() : '—'}
                 </td>

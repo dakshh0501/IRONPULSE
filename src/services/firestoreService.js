@@ -122,6 +122,40 @@ export function subscribeToMembers(callback, gymId, onError) {
   )
 }
 
+// Member self-subscription (member role - own record only)
+export function subscribeToMyMember(authUid, callback, onError) {
+  if (!authUid) return () => {}
+  const q = query(collection(db, 'members'), where('authUid', '==', authUid))
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const members = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      callback(members)
+    },
+    (error) => {
+      console.error(`[Firestore] Subscription error (myMember):`, error.message); if (onError) onError(error, 'myMember')
+    }
+  )
+}
+
+// Member self-payments subscription (member role - own records only)
+export function subscribeToMyPayments(authUid, callback, gymId, onError) {
+  if (!authUid) return () => {}
+  const q = gymId
+    ? query(collection(db, 'payments'), where('gymId', '==', gymId), where('authUid', '==', authUid))
+    : query(collection(db, 'payments'), where('authUid', '==', authUid))
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const payments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      callback(payments)
+    },
+    (error) => {
+      console.error(`[Firestore] Subscription error (myPayments):`, error.message); if (onError) onError(error, 'myPayments')
+    }
+  )
+}
+
 // Update member
 export async function updateMember(
   memberId,
@@ -166,6 +200,8 @@ export async function deleteMember(memberId) {
   const authUid =
     memberData.authUid
 
+  const memberName = memberData.name
+
   // Clean up Storage photo if present
   if (memberData.storagePath) {
     try {
@@ -178,6 +214,61 @@ export async function deleteMember(memberId) {
       await deleteMemberPhoto(`members/${memberId}/profile.webp`)
     } catch (_) {}
   }
+
+  // Clean up orphaned documents in related collections
+  const cleanupQueries = []
+  if (authUid) {
+    // Attendance records use memberId = authUid
+    cleanupQueries.push(
+      getDocs(query(collection(db, 'attendance'), where('memberId', '==', authUid)))
+        .then(snap => Promise.allSettled(snap.docs.map(d => deleteDoc(d.ref))))
+        .catch(() => {})
+    )
+    // Notifications use userId = authUid
+    cleanupQueries.push(
+      getDocs(query(collection(db, 'notifications'), where('userId', '==', authUid)))
+        .then(snap => Promise.allSettled(snap.docs.map(d => deleteDoc(d.ref))))
+        .catch(() => {})
+    )
+  }
+  // Payments use memberId = doc ID or authUid; match both
+  cleanupQueries.push(
+    getDocs(query(collection(db, 'payments'), where('memberId', '==', memberId)))
+      .then(snap => Promise.allSettled(snap.docs.map(d => deleteDoc(d.ref))))
+      .catch(() => {})
+  )
+  // ProgressLogs use memberId = doc ID
+  cleanupQueries.push(
+    getDocs(query(collection(db, 'progressLogs'), where('memberId', '==', memberId)))
+      .then(snap => Promise.allSettled(snap.docs.map(d => deleteDoc(d.ref))))
+      .catch(() => {})
+  )
+  // DietPlans use memberId = doc ID
+  cleanupQueries.push(
+    getDocs(query(collection(db, 'dietPlans'), where('memberId', '==', memberId)))
+      .then(snap => Promise.allSettled(snap.docs.map(d => deleteDoc(d.ref))))
+      .catch(() => {})
+  )
+  // WorkoutPlans use memberId = doc ID
+  cleanupQueries.push(
+    getDocs(query(collection(db, 'workoutPlans'), where('memberId', '==', memberId)))
+      .then(snap => Promise.allSettled(snap.docs.map(d => deleteDoc(d.ref))))
+      .catch(() => {})
+  )
+  // Also match by memberName as fallback
+  if (memberName) {
+    cleanupQueries.push(
+      getDocs(query(collection(db, 'dietPlans'), where('assignedMember', '==', memberName)))
+        .then(snap => Promise.allSettled(snap.docs.map(d => deleteDoc(d.ref))))
+        .catch(() => {})
+    )
+    cleanupQueries.push(
+      getDocs(query(collection(db, 'workoutPlans'), where('assignedMember', '==', memberName)))
+        .then(snap => Promise.allSettled(snap.docs.map(d => deleteDoc(d.ref))))
+        .catch(() => {})
+    )
+  }
+  await Promise.allSettled(cleanupQueries)
 
   await deleteDoc(memberRef)
 
@@ -410,6 +501,47 @@ export async function deleteTrainer(
     console.error('deleteTrainer: failed to cleanup member trainer refs:', mErr)
   }
 
+  // Nullify trainer references on diet plans (matched by trainer name)
+  if (trainerData.name) {
+    try {
+      const dietQ = query(collection(db, 'dietPlans'), where('assignedTrainer', '==', trainerData.name))
+      const dietSnap = await getDocs(dietQ)
+      const dietUpdates = dietSnap.docs.map(d => updateDoc(doc(db, 'dietPlans', d.id), { assignedTrainer: '' }))
+      if (dietUpdates.length > 0) await Promise.allSettled(dietUpdates)
+    } catch (dErr) {
+      console.error('deleteTrainer: failed to cleanup diet plan refs:', dErr)
+    }
+
+    try {
+      const workoutQ = query(collection(db, 'workoutPlans'), where('trainer', '==', trainerData.name))
+      const workoutSnap = await getDocs(workoutQ)
+      const workoutUpdates = workoutSnap.docs.map(d => updateDoc(doc(db, 'workoutPlans', d.id), { trainer: '' }))
+      if (workoutUpdates.length > 0) await Promise.allSettled(workoutUpdates)
+    } catch (wErr) {
+      console.error('deleteTrainer: failed to cleanup workout plan refs:', wErr)
+    }
+  }
+
+  // Nullify trainer references on attendance records
+  try {
+    const attQ = query(collection(db, 'attendance'), where('trainerId', '==', trainerId))
+    const attSnap = await getDocs(attQ)
+    const attUpdates = attSnap.docs.map(d => updateDoc(doc(db, 'attendance', d.id), { trainerId: '', trainerName: '' }))
+    if (attUpdates.length > 0) await Promise.allSettled(attUpdates)
+  } catch (aErr) {
+    console.error('deleteTrainer: failed to cleanup attendance refs:', aErr)
+  }
+
+  // Nullify trainer references on progress logs
+  try {
+    const progQ = query(collection(db, 'progressLogs'), where('trainerId', '==', trainerId))
+    const progSnap = await getDocs(progQ)
+    const progUpdates = progSnap.docs.map(d => updateDoc(doc(db, 'progressLogs', d.id), { trainerId: '', trainerName: '' }))
+    if (progUpdates.length > 0) await Promise.allSettled(progUpdates)
+  } catch (pErr) {
+    console.error('deleteTrainer: failed to cleanup progress log refs:', pErr)
+  }
+
   await deleteDoc(trainerRef)
 
   if (authUid) {
@@ -444,6 +576,7 @@ export async function addSupportTicket(ticketData) {
     {
       ...ticketData,
       gymId: ticketData.gymId || DEFAULT_GYM_ID,
+      createdBy: ticketData.createdBy || '',
       status: ticketData.status || 'Open',
       createdAt: serverTimestamp(),
     }
@@ -474,6 +607,7 @@ export async function addFeatureRequest(requestData) {
     {
       ...requestData,
       gymId: requestData.gymId || DEFAULT_GYM_ID,
+      createdBy: requestData.createdBy || '',
       status: requestData.status || 'Under Review',
       createdAt: serverTimestamp(),
     }

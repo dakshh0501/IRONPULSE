@@ -1,9 +1,10 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
-import { updateDoc, doc } from 'firebase/firestore'
+import { updateDoc, doc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../firebase'
-import { resetAllDevices } from '../../services/deviceService'
-import { addLicenseHistory } from '../../services/licenseHistoryService'
+import { resetAllDevices, subscribeToDevices } from '../../services/deviceService'
+import { addLicenseHistory, subscribeToLicenseHistory } from '../../services/licenseHistoryService'
+import { generateUniqueLicenseKey } from '../../utils/license'
 
 if (!document.getElementById('lic-styles')) {
   const licStyles = document.createElement('style')
@@ -436,15 +437,6 @@ function formatDate(d) {
   return isNaN(date.getTime()) ? '—' : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-function generateKey() {
-  const seg = () => {
-    const a = new Uint8Array(4)
-    crypto.getRandomValues(a)
-    return Array.from(a, b => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[b % 36]).join('')
-  }
-  return `IRP-${seg()}-${seg()}-${seg()}`
-}
-
 const ACTION_STYLE_MAP = {
   generate: { bg: '#22c55e', label: 'Generate' },
   regenerate: { bg: '#f59e0b', label: 'Regenerate' },
@@ -457,6 +449,7 @@ export default function LicenseKeys() {
   const [showGenerate, setShowGenerate] = useState(null)
   const [showRegen, setShowRegen] = useState(null)
   const [generating, setGenerating] = useState(false)
+  const [actionError, setActionError] = useState('')
   const [localSearch, setLocalSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [sortBy, setSortBy] = useState('Gym A-Z')
@@ -464,6 +457,8 @@ export default function LicenseKeys() {
   const [drawerGym, setDrawerGym] = useState(null)
   const [drawerTab, setDrawerTab] = useState('overview')
   const [initLoading, setInitLoading] = useState(true)
+  const [licenseHistory, setLicenseHistory] = useState([])
+  const [drawerDevices, setDrawerDevices] = useState([])
 
   useEffect(() => {
     if (gyms.length > 0) {
@@ -473,6 +468,24 @@ export default function LicenseKeys() {
     const t = setTimeout(() => setInitLoading(false), 2000)
     return () => clearTimeout(t)
   }, [gyms])
+
+  useEffect(() => {
+    if (!drawerGym?.gymId) {
+      setLicenseHistory([])
+      return
+    }
+    const unsub = subscribeToLicenseHistory(drawerGym.gymId, setLicenseHistory)
+    return () => { unsub(); setLicenseHistory([]) }
+  }, [drawerGym?.gymId])
+
+  useEffect(() => {
+    if (!drawerGym?.gymId) {
+      setDrawerDevices([])
+      return
+    }
+    const unsub = subscribeToDevices(drawerGym.gymId, setDrawerDevices)
+    return () => { unsub(); setDrawerDevices([]) }
+  }, [drawerGym?.gymId])
 
   const licenseGyms = useMemo(() =>
     (gyms || [])
@@ -485,6 +498,7 @@ export default function LicenseKeys() {
         plan: g.subscription.plan || g.plan || '—',
         expires: g.subscription.expiryDate || '',
         deviceLimit: g.subscription.deviceLimit || 0,
+        createdAt: g.createdAt || g.subscription?.generatedAt || '',
       }))
       .sort((a, b) => a.gymName.localeCompare(b.gymName)),
     [gyms]
@@ -551,12 +565,13 @@ export default function LicenseKeys() {
   const handleGenerate = async (gymId) => {
     setGenerating(true)
     try {
-      const newKey = generateKey()
+      const newKey = await generateUniqueLicenseKey()
+      if (!newKey) { setActionError('Failed to generate license key'); setGenerating(false); return }
       const gymRef = doc(db, 'gyms', gymId)
       await updateDoc(gymRef, {
         'subscription.licenseKey': newKey,
         'subscription.licenseStatus': 'active',
-        'subscription.updatedAt': new Date(),
+        'subscription.updatedAt': serverTimestamp(),
       })
       await addLicenseHistory({
         gymId,
@@ -567,7 +582,7 @@ export default function LicenseKeys() {
       })
       setShowGenerate(null)
     } catch (err) {
-      console.error('Generate failed:', err)
+      console.error('Generate failed:', err); setActionError('Failed to generate license key')
     } finally {
       setGenerating(false)
     }
@@ -576,13 +591,14 @@ export default function LicenseKeys() {
   const handleRegenerate = async (gymId) => {
     setGenerating(true)
     try {
-      const newKey = generateKey()
+      const newKey = await generateUniqueLicenseKey()
+      if (!newKey) { setActionError('Failed to generate license key'); setGenerating(false); return }
       const oldKey = licenseGyms.find(g => g.gymId === gymId)?.key || ''
       const gymRef = doc(db, 'gyms', gymId)
       await updateDoc(gymRef, {
         'subscription.licenseKey': newKey,
         'subscription.licenseStatus': 'active',
-        'subscription.updatedAt': new Date(),
+        'subscription.updatedAt': serverTimestamp(),
       })
       await resetAllDevices(gymId)
       await addLicenseHistory({
@@ -601,7 +617,7 @@ export default function LicenseKeys() {
       })
       setShowRegen(null)
     } catch (err) {
-      console.error('Regenerate failed:', err)
+      console.error('Regenerate failed:', err); setActionError('Failed to regenerate license key')
     } finally {
       setGenerating(false)
     }
@@ -613,17 +629,18 @@ export default function LicenseKeys() {
       const gymRef = doc(db, 'gyms', gymId)
       await updateDoc(gymRef, {
         'subscription.licenseStatus': 'revoked',
-        'subscription.updatedAt': new Date(),
+        'subscription.updatedAt': serverTimestamp(),
       })
+      await resetAllDevices(gymId)
       await addLicenseHistory({
         gymId,
         licenseKey: oldKey,
         action: 'Revoked',
         performedBy: 'super_admin',
-        deviceId: 'system',
+        deviceId: 'all',
       })
     } catch (err) {
-      console.error('Revoke failed:', err)
+      console.error('Revoke failed:', err); setActionError('Failed to revoke license')
     } finally {
       setGenerating(false)
     }
@@ -635,7 +652,7 @@ export default function LicenseKeys() {
       const gymRef = doc(db, 'gyms', gymId)
       await updateDoc(gymRef, {
         'subscription.licenseStatus': 'active',
-        'subscription.updatedAt': new Date(),
+        'subscription.updatedAt': serverTimestamp(),
       })
       await addLicenseHistory({
         gymId,
@@ -645,7 +662,29 @@ export default function LicenseKeys() {
         deviceId: 'system',
       })
     } catch (err) {
-      console.error('Activate failed:', err)
+      console.error('Activate failed:', err); setActionError('Failed to activate license')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const handleSuspend = async (gymId, licenseKey) => {
+    setGenerating(true)
+    try {
+      const gymRef = doc(db, 'gyms', gymId)
+      await updateDoc(gymRef, {
+        'subscription.licenseStatus': 'suspended',
+        'subscription.updatedAt': serverTimestamp(),
+      })
+      await addLicenseHistory({
+        gymId,
+        licenseKey: licenseKey || '',
+        action: 'Suspended',
+        performedBy: 'super_admin',
+        deviceId: 'system',
+      })
+    } catch (err) {
+      console.error('Suspend failed:', err); setActionError('Failed to suspend license')
     } finally {
       setGenerating(false)
     }
@@ -663,6 +702,13 @@ export default function LicenseKeys() {
   return (
     <div className="page-container">
       <style>{licStyles.textContent}</style>
+
+      {actionError && (
+        <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:10, padding:'10px 14px', marginBottom:16, fontSize:13, color:'#f87171', textAlign:'center', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+          <span>✗ {actionError}</span>
+          <button onClick={() => setActionError('')} style={{ background:'none', border:'none', color:'#f87171', cursor:'pointer', fontSize:14, padding:'0 4px' }}>✕</button>
+        </div>
+      )}
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
@@ -824,7 +870,7 @@ export default function LicenseKeys() {
                     {[
                       ['🔑', 'License Key', drawerGym.key || '—'],
                       ['📊', 'Status', drawerGym.status || '—'],
-                      ['📅', 'Created', '—'],
+                      ['📅', 'Created', drawerGym.createdAt ? (drawerGym.createdAt.seconds ? new Date(drawerGym.createdAt.seconds * 1000).toLocaleDateString() : drawerGym.createdAt) : '—'],
                       ['⏰', 'Expiry', formatDate(drawerGym.expires)],
                       ['📱', 'Device Limit', String(drawerGym.deviceLimit || '—')],
                       ['📈', 'Current Usage', '—'],
@@ -843,32 +889,61 @@ export default function LicenseKeys() {
                 {/* Devices */}
                 <div style={{ display: section('devices') }}>
                   <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 16px' }}>Registered Devices</h3>
-                  <div className="empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
-                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.5 }}>
-                      <rect x="2" y="2" width="20" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/>
-                    </svg>
-                    <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 4px' }}>No devices registered</p>
-                    <p style={{ fontSize: 11, color: 'var(--text-dim)', margin: 0 }}>Devices appear when gyms activate this license.</p>
-                  </div>
+                  {drawerDevices.length === 0 ? (
+                    <div className="empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
+                      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.5 }}>
+                        <rect x="2" y="2" width="20" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/>
+                      </svg>
+                      <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 4px' }}>No devices registered</p>
+                      <p style={{ fontSize: 11, color: 'var(--text-dim)', margin: 0 }}>Devices appear when gyms activate this license.</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {drawerDevices.map(dev => (
+                        <div key={dev.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--surface)', borderRadius: 10, fontSize: 13 }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ flexShrink: 0 }}>
+                            <rect x="2" y="2" width="20" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/>
+                          </svg>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, color: 'var(--text)' }}>{dev.deviceName || dev.deviceId?.substring(0, 16) || 'Unknown Device'}</div>
+                            <div style={{ fontSize: 10, color: 'var(--text-dim)', fontFamily: "'JetBrains Mono', monospace", marginTop: 1 }}>
+                              {dev.deviceId?.substring(0, 20)}{dev.platform ? ` · ${dev.platform}` : ''}
+                            </div>
+                          </div>
+                          <span className={`badge badge-${dev.status === 'active' ? 'success' : dev.status === 'suspended' ? 'warning' : 'error'}`} style={{ fontSize: 10, padding: '2px 8px' }}>
+                            {dev.status || 'unknown'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* History */}
                 <div style={{ display: section('history') }}>
                   <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 16px' }}>License Timeline</h3>
                   <div className="lic-timeline">
-                    {[
-                      { action: 'License Generated', date: null, color: '#3b82f6', icon: '✦' },
-                      { action: 'Activated', date: null, color: '#22c55e', icon: '●' },
-                      { action: 'Current Status: ' + (drawerGym.status || '—'), date: null, color: drawerGym.status === 'active' ? '#22c55e' : drawerGym.status === 'expired' ? '#ef4444' : '#a855f7', icon: '◆' },
-                    ].map((e, i) => (
-                      <div key={i} className="lic-timeline-item">
-                        <div className="lic-timeline-dot" style={{ borderColor: e.color, color: e.color, fontSize: 9 }}>{e.icon}</div>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>{e.action}</div>
-                          {e.date && <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>{formatDate(e.date)}</div>}
+                    {licenseHistory.length === 0 ? (
+                      <div style={{ fontSize: 12, color: 'var(--text-dim)', padding: '20px 0', textAlign: 'center' }}>No license history records yet.</div>
+                    ) : licenseHistory.slice(0, 20).map((entry, i) => {
+                      const actionColor = entry.action?.toLowerCase().includes('fail') || entry.action?.toLowerCase().includes('revoke') || entry.action?.toLowerCase().includes('suspend') ? '#ef4444' : entry.action?.toLowerCase().includes('active') || entry.action?.toLowerCase().includes('register') || entry.action?.toLowerCase().includes('generat') ? '#22c55e' : '#3b82f6'
+                      return (
+                        <div key={entry.id || i} className="lic-timeline-item">
+                          <div className="lic-timeline-dot" style={{ borderColor: actionColor, color: actionColor, fontSize: 9 }}>●</div>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>{entry.action}</div>
+                            {entry.createdAt?.seconds && (
+                              <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>{formatDate(entry.createdAt)}</div>
+                            )}
+                            {entry.deviceId && entry.deviceId !== 'system' && entry.deviceId !== 'all' && (
+                              <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 1, fontFamily: "'JetBrains Mono', monospace" }}>
+                                Device: {entry.deviceId.substring(0, 12)}...
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
 
@@ -885,23 +960,21 @@ export default function LicenseKeys() {
                       { key: 'suspend', disabled: drawerGym.status === 'suspended' || drawerGym.status === 'revoked', bg: '#a855f7', label: 'Suspend License' },
                       { key: 'revoke', disabled: drawerGym.status === 'revoked', bg: '#ef4444', label: 'Revoke License' },
                       { key: 'reset', disabled: false, bg: '#dc2626', label: 'Reset All Devices' },
-                    ].map(({ key, disabled, bg, label }) => (
-                      <button key={key} disabled={disabled}
+                      ].map(({ key, disabled, bg, label }) => (
+                        <button key={key}
+                          disabled={disabled || generating}
                         onClick={() => {
                           if (key === 'regenerate') setShowRegen(drawerGym.gymId)
                           else if (key === 'reset') {
                             if (window.confirm(`Reset all devices for ${drawerGym.gymName}?`)) {
+                              setGenerating(true)
                               resetAllDevices(drawerGym.gymId).then(() => {
-                                addLicenseHistory({ gymId: drawerGym.gymId, licenseKey: drawerGym.key, action: 'Device Reset', performedBy: 'super_admin', deviceId: 'all' }).catch(err => console.error('license history failed:', err))
-                              }).catch(err => console.error('reset devices failed:', err))
+                                addLicenseHistory({ gymId: drawerGym.gymId, licenseKey: drawerGym.key, action: 'Device Reset', performedBy: 'super_admin', deviceId: 'all' }).catch(err => console.error('[LicenseKeys] history write failed:', err))
+                              }).catch(err => { console.error('[LicenseKeys] reset devices failed:', err); setActionError('Reset failed') }).finally(() => setGenerating(false))
                             }
                           } else if (key === 'activate') handleActivate(drawerGym.gymId, drawerGym.key)
                           else if (key === 'revoke') handleRevoke(drawerGym.gymId, drawerGym.key)
-                          else if (key === 'suspend') {
-                            updateDoc(doc(db, 'gyms', drawerGym.gymId), { 'subscription.licenseStatus': 'suspended', 'subscription.updatedAt': new Date() }).then(() => {
-                              addLicenseHistory({ gymId: drawerGym.gymId, licenseKey: drawerGym.key, action: 'Suspended', performedBy: 'super_admin', deviceId: 'system' }).catch(err => console.error('license history failed:', err))
-                            }).catch(err => console.error('suspend failed:', err))
-                          }
+                          else if (key === 'suspend') handleSuspend(drawerGym.gymId, drawerGym.key)
                         }}
                         style={{
                           display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',

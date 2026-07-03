@@ -118,11 +118,6 @@ export const PAGE_ROUTES = {
     'attendance','reception','workouts','diet',
     'progress','reports','notifications','whatsapp','settings','support','subscription','devices',
   ],
-  gym_owner: [
-    'dashboard','members','trainers','payments',
-    'attendance','reception','workouts','diet',
-    'progress','reports','notifications','whatsapp','settings','support','subscription','devices',
-  ],
   trainer: [
     'dashboard','members','workouts','diet',
     'progress','attendance','reception','notifications',
@@ -138,7 +133,7 @@ export const PAGE_ROUTES = {
 export function canSubscribe(role, collection) {
   const gate = {
     members:     ['super_admin','gym_admin','trainer'],
-    trainers:    ['super_admin','gym_admin'],
+    trainers:    ['super_admin','gym_admin','trainer'],
     payments:    ['super_admin','gym_admin'],
     plans:       ['super_admin','gym_admin','trainer'],
     progressLogs:['super_admin','gym_admin','trainer','member'],
@@ -147,7 +142,7 @@ export function canSubscribe(role, collection) {
     attendance:  ['super_admin','gym_admin','trainer'],
     settings:    ['super_admin','gym_admin','trainer'],
     subscriptions:    ['super_admin'],
-    paymentAttempts:  ['super_admin'],
+    paymentAttempts:  ['super_admin', 'gym_admin'],
     gyms:             ['super_admin'],
     notifications:    ['super_admin','gym_admin','trainer','member'],
     supportTickets:   ['super_admin','gym_admin'],

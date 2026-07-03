@@ -1,7 +1,9 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
 import { useAuth } from '../../context/AuthContext'
-import { updateSubscription, updateGym } from '../../services/firestoreService'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '../../firebase'
+import { updateSubscription } from '../../services/firestoreService'
 import {
   activateSubscription as activateSubForGym,
   assignTrial as assignTrialForGym,
@@ -13,6 +15,7 @@ import {
   extendExpiry as extendExpiryForGym,
   changePlan as changePlanForGym,
 } from '../../services/subscriptionService'
+import { PLAN_AMOUNTS } from '../../constants/plans'
 
 const PLAN_OPTIONS = ['Trial', 'Standard', 'Premium', 'Quarterly', 'Annual', 'Lifetime', 'Day Pass']
 const ROWS_PER_PAGE = 10
@@ -466,7 +469,11 @@ const ACTION_STYLES = {
 export default function SuperAdminSubscriptions({ search: globalSearch }) {
   const { currentUser } = useAuth()
   const { subscriptions, gyms } = useApp()
-  const [selectedSub, setSelectedSub] = useState(null)
+  const [selectedSubId, setSelectedSubId] = useState(null)
+  const selectedSub = useMemo(() => {
+    if (!selectedSubId) return null
+    return subscriptions.find(s => s.id === selectedSubId) || null
+  }, [selectedSubId, subscriptions])
   const [actionType, setActionType] = useState(null)
   const [formPlan, setFormPlan] = useState('Standard')
   const [formDays, setFormDays] = useState(30)
@@ -603,34 +610,25 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
     try {
       const gymId = selectedSub.gymId
       const now = new Date()
-      const nowStr = now.toISOString().split('T')[0]
-      const expiryStr = new Date(now.getTime() + formDays * 86400000).toISOString().split('T')[0]
-
-      await updateSubscription(selectedSub.id, {
-        status: action === 'suspend' ? 'suspended' : action === 'expire' ? 'expired' : 'active',
-        paymentStatus: action === 'trial' || action === 'activate' ? 'paid' : undefined,
-        plan: formPlan,
-        planType: formPlan === 'Trial' ? 'trial' : formPlan.toLowerCase(),
-        startDate: action === 'activate' || action === 'trial' || action === 'renew' ? nowStr : undefined,
-        expiryDate: ['renew', 'upgrade', 'downgrade', 'change', 'extend', 'trial', 'activate'].includes(action) ? expiryStr : undefined,
-      })
+      const realAmount = selectedSub.amount || PLAN_AMOUNTS[formPlan] || 0
 
       if (gymId) {
+        const expiryStr = now.toISOString()
         switch (action) {
           case 'activate':
-            await activateSubForGym(gymId, 'Standard', 'monthly', 0, currentUser?.uid)
+            await activateSubForGym(gymId, formPlan, formPlan === 'Trial' ? 'trial' : formPlan.toLowerCase(), realAmount, currentUser?.uid)
             break
           case 'trial':
             await assignTrialForGym(gymId, formDays, currentUser?.uid)
             break
           case 'renew':
-            await renewSubForGym(gymId, formPlan, formPlan === 'Trial' ? 'trial' : formPlan.toLowerCase(), 0, currentUser?.uid)
+            await renewSubForGym(gymId, formPlan, formPlan === 'Trial' ? 'trial' : formPlan.toLowerCase(), realAmount, currentUser?.uid)
             break
           case 'upgrade':
-            await upgradePlanForGym(gymId, formPlan, formPlan.toLowerCase(), 0, currentUser?.uid)
+            await upgradePlanForGym(gymId, formPlan, formPlan.toLowerCase(), realAmount, currentUser?.uid)
             break
           case 'downgrade':
-            await downgradePlanForGym(gymId, formPlan, formPlan.toLowerCase(), 0, currentUser?.uid)
+            await downgradePlanForGym(gymId, formPlan, formPlan.toLowerCase(), realAmount, currentUser?.uid)
             break
           case 'suspend':
             await suspendSubForGym(gymId, currentUser?.uid)
@@ -642,10 +640,25 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
             await extendExpiryForGym(gymId, expiryStr, currentUser?.uid)
             break
           case 'change':
-            await changePlanForGym(gymId, formPlan, formPlan.toLowerCase(), 0, currentUser?.uid)
+            await changePlanForGym(gymId, formPlan, formPlan.toLowerCase(), realAmount, currentUser?.uid)
             break
           default:
             break
+        }
+
+        // Mirror to subscriptions collection for consistency
+        const gymSnap = await getDoc(doc(db, 'gyms', gymId))
+        if (gymSnap.exists()) {
+          const subData = gymSnap.data().subscription || {}
+          await updateSubscription(selectedSub.id, {
+            status: subData.status,
+            plan: subData.planName,
+            planType: subData.planType,
+            paymentStatus: subData.paymentStatus,
+            startDate: subData.startDate,
+            expiryDate: subData.expiryDate,
+            amount: subData.amount,
+          })
         }
       }
 
@@ -803,7 +816,7 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
                 const endDate = s.endDate?.seconds ? new Date(s.endDate.seconds * 1000) : s.endDate ? new Date(s.endDate) : null
                 const daysRemaining = endDate ? Math.ceil((endDate.getTime() - Date.now()) / 86400000) : null
                 return (
-                  <tr key={s.id} onClick={() => { setSelectedSub(s); setDrawerTab('overview') }}>
+                  <tr key={s.id} onClick={() => { setSelectedSubId(s.id); setDrawerTab('overview') }}>
                     <td style={{ fontWeight: 600, color: 'var(--text)' }}>{gym?.gymName || s.gymId || '—'}</td>
                     <td><Pill color={PLAN_COLORS[s.plan] || '#6070a0'}>{s.plan || '—'}</Pill></td>
                     <td><StatusBadge status={s.status || s.paymentStatus || 'pending'} /></td>
@@ -830,15 +843,15 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
                     <td onClick={e => e.stopPropagation()}>
                       <div style={{ display: 'flex', gap: 4 }}>
                         <button className="sub-btn-secondary" style={{ padding: '4px 10px', fontSize: 11 }}
-                          onClick={() => { setSelectedSub(s); setActionType('renew'); setFormPlan(s.plan || 'Standard') }}>
+                          onClick={() => { setSelectedSubId(s.id); setActionType('renew'); setFormPlan(s.plan || 'Standard'); setFormDays(30) }}>
                           Renew
                         </button>
                         <button className="sub-btn-secondary" style={{ padding: '4px 10px', fontSize: 11, color: '#e8420a' }}
-                          onClick={() => { setSelectedSub(s); setActionType('upgrade'); setFormPlan(s.plan || 'Standard') }}>
+                          onClick={() => { setSelectedSubId(s.id); setActionType('upgrade'); setFormPlan(s.plan || 'Standard'); setFormDays(30) }}>
                           Upgrade
                         </button>
                         <button className="sub-btn-secondary" style={{ padding: '4px 10px', fontSize: 11, color: '#a855f7' }}
-                          onClick={() => { setSelectedSub(s); setActionType('change'); setFormPlan(s.plan || 'Standard') }}>
+                          onClick={() => { setSelectedSubId(s.id); setActionType('change'); setFormPlan(s.plan || 'Standard'); setFormDays(30) }}>
                           Change
                         </button>
                       </div>
@@ -892,11 +905,11 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
 
       {selectedSub && !actionType && (
         <>
-          <div style={{ position: 'fixed', inset: 0, zIndex: 99, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => setSelectedSub(null)} />
+          <div style={{ position: 'fixed', inset: 0, zIndex: 99, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => setSelectedSubId(null)} />
           <div className="sub-drawer" ref={drawerRef}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <button className="sub-btn-secondary" style={{ padding: '6px 10px', fontSize: 11 }} onClick={() => setSelectedSub(null)}>
+                <button className="sub-btn-secondary" style={{ padding: '6px 10px', fontSize: 11 }} onClick={() => setSelectedSubId(null)}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
                 </button>
                 <div>
@@ -1067,10 +1080,11 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
                         if (key === 'activate' || key === 'trial' || key === 'suspend' || key === 'expire') {
                           setConfirmAction({ type: key })
                         } else if (key === 'extend') {
-                          setActionType('extend')
+                          setActionType('extend'); setFormDays(30)
                         } else {
                           setActionType(key)
                           setFormPlan(selectedSub.plan || 'Standard')
+                          setFormDays(30)
                         }
                       }}
                       style={{

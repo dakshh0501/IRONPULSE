@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../firebase'
-import { addPayment, updateMember as updateMemberService } from '../services/firestoreService'
+import { updateMember as updateMemberService } from '../services/firestoreService'
 import { uploadMemberPhoto } from '../services/storageService'
 import MemberQR from '../components/MemberQR'
 import MemberAvatar from '../components/MemberAvatar'
@@ -220,7 +220,7 @@ function MemberModal({ member, trainers, onSave, onClose, plans }) {
                 <label className="form-label">Plan</label>
                 <select className="form-select" value={form.plan} onChange={e => { set('plan', e.target.value); const p = activePlans.find(pl => pl.name === e.target.value); if (p) set('planPrice', p.price) }}>
                   {activePlans.length > 0 ? activePlans.map(p => <option key={p.id || p.name} value={p.name}>{p.name} (₹{p.price.toLocaleString('en-IN')})</option>)
-                  : <option>No plans configured</option>}
+                  : <option value="">No plans configured — create plans in Settings first</option>}
                 </select>
               </div>
               <div className="form-group" style={{ margin:0 }}>
@@ -279,6 +279,8 @@ function MemberModal({ member, trainers, onSave, onClose, plans }) {
 //  DELETE CONFIRM
 // ─────────────────────────────────────────────────────────────
 function DeleteConfirm({ member, onConfirm, onClose }) {
+  const [deleting, setDeleting] = useState(false)
+  const [delError, setDelError] = useState('')
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal modal-sm">
@@ -289,10 +291,15 @@ function DeleteConfirm({ member, onConfirm, onClose }) {
             Are you sure you want to delete <strong style={{ color:'var(--text)' }}>{member.name}</strong>?<br/>
             This action cannot be undone.
           </p>
+          {delError && <p style={{ fontSize:12, color:'var(--red)', marginTop:8 }}>⚠ {delError}</p>}
         </div>
         <div className="modal-footer">
-          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-red" onClick={() => { onConfirm(); onClose() }}>Delete</button>
+          <button className="btn btn-ghost" onClick={onClose} disabled={deleting}>Cancel</button>
+          <button className="btn btn-red" disabled={deleting} onClick={async () => {
+            setDeleting(true); setDelError('')
+            try { await onConfirm(); onClose() }
+            catch (e) { setDelError(e?.message || 'Deletion failed. Please try again.'); setDeleting(false) }
+          }}>{deleting ? 'Deleting…' : 'Delete'}</button>
         </div>
       </div>
     </div>
@@ -381,7 +388,7 @@ function MemberDrawer({ member, onClose, onEdit, onCheckIn, onRenew, isAdmin, is
             <div className="member-drawer-grid">
               <div className="member-drawer-field"><span className="member-drawer-field-label">Plan</span><span className={`badge ${PLAN_COLORS[member.plan]||'badge-teal'}`}>{member.plan}</span></div>
               <div className="member-drawer-field"><span className="member-drawer-field-label">Status</span><span className={STATUS_BADGE[member.status] || 'badge badge-teal'}>{member.status}</span></div>
-              <div className="member-drawer-field"><span className="member-drawer-field-label">Plan Price</span><span>₹{Number(member.planPrice).toLocaleString('en-IN')}/mo</span></div>
+              <div className="member-drawer-field"><span className="member-drawer-field-label">Plan Price</span><span>₹{Number(member.planPrice).toLocaleString('en-IN')}{member.plan?.toLowerCase().includes('annual') ? '/yr' : member.plan?.toLowerCase().includes('quarter') ? '/quarter' : member.plan?.toLowerCase().includes('day') ? '/day' : '/mo'}</span></div>
               <div className="member-drawer-field"><span className="member-drawer-field-label">Trainer</span><span>{member.trainerName || 'Unassigned'}</span></div>
               <div className="member-drawer-field"><span className="member-drawer-field-label">Join Date</span><span>{member.join || '—'}</span></div>
               <div className="member-drawer-field"><span className="member-drawer-field-label">Expiry Date</span><span>{member.expiry || '—'}</span></div>
@@ -518,7 +525,7 @@ function MemberDrawer({ member, onClose, onEdit, onCheckIn, onRenew, isAdmin, is
             <button className="btn btn-primary btn-sm" onClick={() => { onEdit(member); onClose() }}>✏️ Edit</button>
           )}
           {(isAdmin || isTrainer) && (
-            <button className="btn btn-outline btn-sm" onClick={() => { onCheckIn(member) }}>✅ Check In</button>
+            <button className="btn btn-outline btn-sm" onClick={async () => { try { await onCheckIn(member) } catch (e) { alert(e?.message || 'Check-in failed') } }}>✅ Check In</button>
           )}
           {isAdmin && onRenew && (
             <button className="btn btn-ghost btn-sm" onClick={() => onRenew(member)}>🔄 Renew</button>
@@ -534,12 +541,12 @@ function MemberDrawer({ member, onClose, onEdit, onCheckIn, onRenew, isAdmin, is
 //  MAIN PAGE
 // ─────────────────────────────────────────────────────────────
 export default function Members({ search: propSearch }) {
-  const { members, trainers, plans, addMember, updateMember, deleteMember, checkInMember, attendance, payments, progressLogs, dietPlans, workoutPlans } = useApp()
+  const { members, trainers, plans, addMember, updateMember, deleteMember, checkInMember, attendance, payments, progressLogs, dietPlans, workoutPlans, addPayment } = useApp()
   const { effectiveRole, currentUser } = useAuth()
   const isAdmin   = effectiveRole === 'super_admin' || effectiveRole === 'gym_admin'
   const isTrainer = effectiveRole === 'trainer'
 
-  const [loading, setLoading] = useState(true)
+  const [dataLoaded, setDataLoaded] = useState(false)
   const [filter,     setFilter]     = useState('All')
   const [modalOpen,  setModalOpen]  = useState(false)
   const [editMember, setEditMember] = useState(null)
@@ -551,10 +558,11 @@ export default function Members({ search: propSearch }) {
   const [sortBy,     setSortBy]     = useState('name')
 
   useEffect(() => {
-    if (members.length > 0) setLoading(false)
-    const timer = setTimeout(() => setLoading(false), 3000)
+    if (members.length > 0) { setDataLoaded(true); return }
+    if (members.length === 0 && dataLoaded) return
+    const timer = setTimeout(() => setDataLoaded(true), 3000)
     return () => clearTimeout(timer)
-  }, [members.length])
+  }, [members.length, dataLoaded])
   const pageSize = 15
 
   const statuses = ['All', 'Active', 'Expired', 'Trial']
@@ -603,12 +611,12 @@ export default function Members({ search: propSearch }) {
   // Summary KPIs
   const summary = useMemo(() => ({
     total: members.length,
-    active: members.filter(m => m.status === 'Active').length,
-    expiringSoon: members.filter(m => { if (!m.expiry) return false; const d = Math.ceil((new Date(m.expiry) - new Date())/(1000*60*60*24)); return d >= 0 && d <= 7 }).length,
-    expired: members.filter(m => m.status === 'Expired' || (m.expiry && new Date(m.expiry) < new Date())).length,
-    trial: members.filter(m => m.status === 'Trial').length,
-    newThisMonth: members.filter(m => { if (!m.join) return false; const jd = new Date(m.join); const now = new Date(); return jd.getMonth() === now.getMonth() && jd.getFullYear() === now.getFullYear() }).length,
-  }), [members])
+    active: normalizedMembers.filter(m => m.status === 'Active').length,
+    expiringSoon: normalizedMembers.filter(m => { if (!m.expiry) return false; const d = Math.ceil((new Date(m.expiry) - new Date())/(1000*60*60*24)); return d >= 0 && d <= 7 }).length,
+    expired: normalizedMembers.filter(m => m.status === 'Expired').length,
+    trial: normalizedMembers.filter(m => m.status === 'Trial').length,
+    newThisMonth: normalizedMembers.filter(m => { if (!m.join) return false; const jd = new Date(m.join); const now = new Date(); return jd.getMonth() === now.getMonth() && jd.getFullYear() === now.getFullYear() }).length,
+  }), [normalizedMembers])
 
   const handleExportCSV = useCallback(() => {
     const headers = ['Name','Email','Phone','Plan','Goal','Trainer','Status','Joined','Expiry','Check-ins']
@@ -751,7 +759,7 @@ export default function Members({ search: propSearch }) {
       </div>
 
       {/* ═══════════════════ TABLE ═══════════════════ */}
-      {loading && members.length === 0 ? (
+      {!dataLoaded && members.length === 0 ? (
         <div className="skeleton-table" style={{ background:'var(--card)', borderRadius:18, padding:16 }}>
           {[1,2,3,4,5].map(i => <div key={i} className="skeleton-row" style={{ height:48, marginBottom:8, borderRadius:8 }} />)}
         </div>
@@ -910,7 +918,7 @@ const MemberRow = memo(({ member, selectedIds, toggleSelect, isAdmin, isTrainer,
           <button className="btn-ico" title="View Profile" aria-label="View profile" onClick={() => setViewMember(m)}>👁</button>
           {isAdmin && <button className="btn-ico" title="Edit" aria-label="Edit member" onClick={() => { setEditMember(m); setModalOpen(true) }}>✏️</button>}
           {isAdmin && <button className="btn-ico" title="Collect Payment" aria-label="Collect payment" onClick={async () => { if (!window.confirm(`Create payment for ${m.name}?`)) return; try { const today = new Date(); await addPayment({ memberId: m.id, memberName: m.name, amount: m.planPrice || 1499, status:'Pending', plan: m.plan, date: today.toISOString().split('T')[0], authUid: m.authUid || '' }) } catch (err) { console.error('collect payment failed:', err) } }}>💰</button>}
-          {(isAdmin || isTrainer) && <button className="btn-ico" title="Check In" aria-label="Check in" onClick={() => checkInMember(m)}>✅</button>}
+          {(isAdmin || isTrainer) && <button className="btn-ico" title="Check In" aria-label="Check in" onClick={async () => { try { await checkInMember(m) } catch (e) { alert(e?.message || 'Check-in failed') } }}>✅</button>}
           {isAdmin && <button className="btn-ico" title="Renew" aria-label="Renew membership" onClick={async () => { if (!window.confirm(`Renew ${m.name}'s membership?`)) return; try { const today = new Date(); const matchedPlan = plans.find(p => p.name === m.plan); const planPrice = matchedPlan?.price || m.planPrice || 1499; const durationDays = matchedPlan?.durationDays || 30; const nextDate = new Date(); nextDate.setDate(today.getDate() + durationDays); const expiry = nextDate.toISOString().split('T')[0]; await updateMember(m.id, { status:'Active', expiry, planPrice }); await addPayment({ memberId: m.id, memberName: m.name, amount: planPrice, status:'Paid', plan: m.plan, date: today.toISOString().split('T')[0], authUid: m.authUid || '' }) } catch (err) { console.error('renew member failed:', err) } }}>🔄</button>}
           {isAdmin && <button className="btn-ico btn-ico-danger" title="Delete" aria-label="Delete member" onClick={() => setDelMember(m)}>🗑</button>}
         </div>

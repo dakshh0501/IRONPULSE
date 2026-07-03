@@ -262,21 +262,22 @@ export default function MemberDashboard() {
   userProfile
 } = useAuth()
 
-  const me = userProfile
-
   const myMember = useMemo(
     () => members.find(m => m.authUid === currentUser?.uid),
     [members, currentUser?.uid]
   )
 
+  // Use member doc for plan/expiry/name, fall back to userProfile
+  const me = myMember || userProfile
+
   const myAttendance = useMemo(
-    () => myMember ? attendance.filter(a => a.memberId === myMember.id) : [],
-    [attendance, myMember]
+    () => attendance.filter(a => a.memberId === currentUser?.uid),
+    [attendance, currentUser?.uid]
   )
 
   const myPayments = useMemo(
-    () => myMember ? payments.filter(p => p.memberId === myMember.id) : [],
-    [payments, myMember]
+    () => payments.filter(p => p.authUid === currentUser?.uid),
+    [payments, currentUser?.uid]
   )
 
   // ── derived stats

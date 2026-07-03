@@ -276,6 +276,7 @@ function TrainerFormModal({ trainer, onSave, onClose }) {
   const isEdit = Boolean(trainer)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [createdPassword, setCreatedPassword] = useState('')
   const [form, setForm] = useState(trainer ? { ...EMPTY_TRAINER, ...trainer, exp: getExp(trainer), salary: getSalary(trainer) } : { ...EMPTY_TRAINER })
   const [errors, setErrors] = useState({})
 
@@ -301,9 +302,10 @@ function TrainerFormModal({ trainer, onSave, onClose }) {
     try {
       const result = await onSave({ ...form, avatar, exp: Number(form.exp), salary: Number(form.salary) || 0 })
       if (result?.password) {
-        alert(`Trainer created successfully!\n\nTemporary password: ${result.password}\n\nPlease share this with the trainer and ask them to change it on first login.`)
+        setCreatedPassword(result.password)
+      } else {
+        onClose()
       }
-      onClose()
     } catch (err) {
       setSaveError(err?.message || 'Save failed. Check your connection.')
     } finally {
@@ -325,11 +327,28 @@ function TrainerFormModal({ trainer, onSave, onClose }) {
         <div className="modal-header">
           <div>
             <h3>{isEdit ? 'Edit Trainer' : 'Add New Trainer'}</h3>
-            <p>{isEdit ? 'Update trainer profile and details' : 'Fill in trainer details below'}</p>
+            <p>{isEdit ? 'Update trainer profile and details' : createdPassword ? 'Trainer account created' : 'Fill in trainer details below'}</p>
           </div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
+        {createdPassword ? (
+          <div style={{ padding:'0 24px 24px', textAlign:'center' }}>
+            <div style={{fontSize:48,marginBottom:12}}>✅</div>
+            <h3 style={{fontSize:18,fontWeight:700,marginBottom:8}}>Trainer Created Successfully!</h3>
+            <p style={{fontSize:13,color:'var(--text-muted)',marginTop:8}}>Share this temporary password with the trainer.</p>
+            <div style={{
+              background:'var(--bg2)', borderRadius:8, padding:'12px 16px',
+              margin:'16px 0', fontFamily:'monospace', fontSize:18,
+              display:'flex', alignItems:'center', justifyContent:'center', gap:8
+            }}>
+              <span>{createdPassword}</span>
+              <button className="btn btn-sm btn-ghost" onClick={() => {navigator.clipboard.writeText(createdPassword)}} title="Copy password">📋</button>
+            </div>
+            <p style={{fontSize:11,color:'var(--text-muted)',marginBottom:16}}>Ask the trainer to change it on first login.</p>
+            <button className="btn btn-primary" onClick={onClose}>Done</button>
+          </div>
+        ) : (
         <div style={{ padding:'0 24px 24px', display:'flex', flexDirection:'column', gap:16 }}>
           <div>
             <p className="tr-form-section-title">Personal Information</p>
@@ -337,8 +356,9 @@ function TrainerFormModal({ trainer, onSave, onClose }) {
               <Field label="Full Name *" error={errors.name}>
                 <input className="form-input" placeholder="e.g. Amit Kumar" value={form.name} onChange={e => set('name', e.target.value)} />
               </Field>
-              <Field label="Email Address *" error={errors.email}>
-                <input className="form-input" type="email" placeholder="trainer@ironpulse.app" value={form.email} onChange={e => set('email', e.target.value)} />
+              <Field label="Email Address *" error={isEdit ? null : errors.email}>
+                <input className="form-input" type="email" placeholder="trainer@ironpulse.app" value={form.email} onChange={e => set('email', e.target.value)} disabled={isEdit} />
+                {isEdit && <p style={{fontSize:11,color:'var(--text-muted)',marginTop:3}}>Email cannot be changed after creation.</p>}
               </Field>
             </div>
             <div className="form-row">
@@ -403,7 +423,8 @@ function TrainerFormModal({ trainer, onSave, onClose }) {
               {saving ? 'Saving…' : isEdit ? '💾 Save Changes' : '+ Add Trainer'}
             </button>
           </div>
-        </div>
+        </div>)}
+
       </div>
     </div>
   )
@@ -411,6 +432,21 @@ function TrainerFormModal({ trainer, onSave, onClose }) {
 
 // ─── Delete Confirm ──────────────────────────────────────────
 function DeleteModal({ trainer, onConfirm, onClose }) {
+  const [deleting, setDeleting] = useState(false)
+  const [delError, setDelError] = useState('')
+
+  const handleDelete = async () => {
+    setDeleting(true)
+    setDelError('')
+    try {
+      await onConfirm(trainer.id)
+      onClose()
+    } catch (err) {
+      setDelError(err?.message || 'Failed to delete trainer.')
+      setDeleting(false)
+    }
+  }
+
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal modal-sm">
@@ -422,10 +458,13 @@ function DeleteModal({ trainer, onConfirm, onClose }) {
             <strong style={{ color:'var(--text)' }}>{trainer.name}</strong>?<br />
             Their client assignments will not be deleted.
           </p>
+          {delError && <p style={{ color:'var(--red)', fontSize:12, marginTop:12 }}>{delError}</p>}
         </div>
         <div className="modal-footer">
-          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-red" onClick={() => { onConfirm(trainer.id); onClose() }}>Remove Trainer</button>
+          <button className="btn btn-ghost" onClick={onClose} disabled={deleting}>Cancel</button>
+          <button className="btn btn-red" onClick={handleDelete} disabled={deleting}>
+            {deleting ? 'Removing…' : 'Remove Trainer'}
+          </button>
         </div>
       </div>
     </div>
@@ -448,8 +487,6 @@ export default function Trainers({ search = '' }) {
 
   useEffect(() => {
     if (trainers.length > 0) setLoading(false)
-    const timer = setTimeout(() => setLoading(false), 3000)
-    return () => clearTimeout(timer)
   }, [trainers.length])
   const pageSize = 10
   const searchTerm = (search || localSearch).toLowerCase()
@@ -474,7 +511,7 @@ export default function Trainers({ search = '' }) {
   const stats = useMemo(() => {
     const total = trainers.length
     const active = trainers.filter(t => (t.status || 'Active') === 'Active').length
-    const busy = active - trainers.filter(t => members.some(m => m.trainerId === t.id)).length
+    const busy = trainers.filter(t => members.some(m => m.trainerId === t.id)).length
     const top = [...trainers].sort((a, b) => {
       const aClients = members.filter(m => m.trainerId === a.id).length
       const bClients = members.filter(m => m.trainerId === b.id).length

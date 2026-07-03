@@ -440,6 +440,7 @@ export default function SuperAdminDeviceManagement() {
   const [drawerDev, setDrawerDev] = useState(null)
   const [drawerTab, setDrawerTab] = useState('overview')
   const [initLoading, setInitLoading] = useState(true)
+  const [actionError, setActionError] = useState('')
 
   useEffect(() => {
     const unsub = subscribeToAllDevices((devices) => {
@@ -530,7 +531,7 @@ export default function SuperAdminDeviceManagement() {
         deviceId: dev.deviceId,
       })
       if (drawerDev?.id === dev.id) setDrawerDev(null)
-    } catch (err) { console.error(err) }
+    } catch (err) { console.error(err); setActionError('Failed to remove device') }
     finally { setLoading(false) }
   }
 
@@ -546,7 +547,7 @@ export default function SuperAdminDeviceManagement() {
         performedBy: 'super_admin',
         deviceId: dev.deviceId,
       })
-    } catch (err) { console.error(err) }
+    } catch (err) { console.error(err); setActionError('Failed to revoke device') }
     finally { setLoading(false) }
   }
 
@@ -562,7 +563,7 @@ export default function SuperAdminDeviceManagement() {
         performedBy: 'super_admin',
         deviceId: dev.deviceId,
       })
-    } catch (err) { console.error(err) }
+    } catch (err) { console.error(err); setActionError('Failed to suspend device') }
     finally { setLoading(false) }
   }
 
@@ -578,7 +579,7 @@ export default function SuperAdminDeviceManagement() {
         performedBy: 'super_admin',
         deviceId: dev.deviceId,
       })
-    } catch (err) { console.error(err) }
+    } catch (err) { console.error(err); setActionError('Failed to activate device') }
     finally { setLoading(false) }
   }
 
@@ -586,15 +587,17 @@ export default function SuperAdminDeviceManagement() {
     setLoading(true)
     try {
       await resetAllDevices(gymId)
+      const gymData = gyms.find(g => g.id === gymId)
+      const gymLicenseKey = gymData?.subscription?.licenseKey || ''
       await addLicenseHistory({
         gymId,
-        licenseKey: '',
+        licenseKey: gymLicenseKey,
         action: 'Device Reset',
         performedBy: 'super_admin',
         deviceId: 'all',
       })
       setConfirmReset(null)
-    } catch (err) { console.error(err) }
+    } catch (err) { console.error(err); setActionError('Failed to reset devices') }
     finally { setLoading(false) }
   }
 
@@ -626,6 +629,13 @@ export default function SuperAdminDeviceManagement() {
   return (
     <div className="page-container">
       <style>{devStyles.textContent}</style>
+
+      {actionError && (
+        <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:10, padding:'10px 14px', marginBottom:16, fontSize:13, color:'#f87171', textAlign:'center', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+          <span>✗ {actionError}</span>
+          <button onClick={() => setActionError('')} style={{ background:'none', border:'none', color:'#f87171', cursor:'pointer', fontSize:14, padding:'0 4px' }}>✕</button>
+        </div>
+      )}
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
