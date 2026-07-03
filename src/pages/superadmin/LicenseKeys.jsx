@@ -6,10 +6,9 @@ import { resetAllDevices, subscribeToDevices } from '../../services/deviceServic
 import { addLicenseHistory, subscribeToLicenseHistory } from '../../services/licenseHistoryService'
 import { generateUniqueLicenseKey } from '../../utils/license'
 
-if (!document.getElementById('lic-styles')) {
-  const licStyles = document.createElement('style')
-  licStyles.id = 'lic-styles'
-  licStyles.textContent = `
+const licStyles = document.createElement('style')
+licStyles.id = 'lic-styles'
+licStyles.textContent = `
   @keyframes lic-fade-up {
     0% { opacity: 0; transform: translateY(16px); }
     100% { opacity: 1; transform: translateY(0); }
@@ -328,6 +327,7 @@ if (!document.getElementById('lic-styles')) {
     .lic-stat-card .lic-stat-icon { width: 36px; height: 36px; font-size: 16px; }
   }
 `
+if (!document.getElementById('lic-styles')) {
   document.head.appendChild(licStyles)
 }
 

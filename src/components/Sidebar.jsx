@@ -19,7 +19,7 @@ const SECTION_ICONS = {
   Other: '🔧',
 }
 
-export default function Sidebar({ currentPage, setPage, collapsed, setCollapsed }) {
+export default function Sidebar({ currentPage, setPage, collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
   const { currentUser, logout, userProfile, effectiveRole } = useAuth()
   const { unreadCount, pendingCount, payments } = useApp()
   const navigate = useNavigate()
@@ -42,6 +42,7 @@ export default function Sidebar({ currentPage, setPage, collapsed, setCollapsed 
   const handleNav = (key) => {
     setPage(key)
     navigate('/dashboard')
+    if (setMobileOpen) setMobileOpen(false)
   }
 
   const avatarColors = ['av-orange','av-teal','av-green','av-purple','av-amber']
@@ -64,7 +65,7 @@ export default function Sidebar({ currentPage, setPage, collapsed, setCollapsed 
 
   return (
     <>
-      <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
+      <aside className={`sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' open' : ''}`}>
         {/* Logo */}
         <div className="sidebar-logo" onClick={() => handleNav('dashboard')}>
           <div className="sidebar-logo-icon">

@@ -1,7 +1,7 @@
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { useMemo } from 'react'
+import { useMemo, useCallback } from 'react'
 
 export default function AdminDashboard({ setPage }) {
 
@@ -22,21 +22,23 @@ export default function AdminDashboard({ setPage }) {
 
   // ── Existing KPIs ──
   const totalMembers = members.length
-  const activeToday = attendance.filter(a => a.date === todayStr).length
-  const activeMembers = members.filter(m => m.expiry && new Date(m.expiry) >= todayDate).length
+  const activeToday = useMemo(() => attendance.filter(a => a.date === todayStr).length, [attendance, todayStr])
+  const activeMembers = useMemo(() => members.filter(m => m.expiry && new Date(m.expiry) >= todayDate).length, [members, todayDate])
 
-  const expiringSoon = members.filter(m => {
+  const expiringSoon = useMemo(() => members.filter(m => {
     if (!m.expiry) return false
     const diffDays = Math.ceil((new Date(m.expiry) - todayDate) / (1000 * 60 * 60 * 24))
     return diffDays >= 0 && diffDays <= 7
-  })
+  }), [members, todayDate])
 
   // ── Revenue (from payments) ──
-  const todayRevenue = payments
+  const todayRevenue = useMemo(() => payments
     .filter(p => p.date === todayStr && (p.status === 'paid' || p.paid > 0))
-    .reduce((sum, p) => sum + (Number(p.paid) || 0), 0)
+    .reduce((sum, p) => sum + (Number(p.paid) || 0), 0), [payments, todayStr])
 
-  const pendingPayments = payments.filter(p => p.status === 'pending' || p.status === 'unpaid').length
+  // ── Merged: compute outstandingPayments once, derive pendingPayments ──
+  const outstandingPayments = useMemo(() => payments.filter(p => p.status === 'pending' || p.status === 'unpaid'), [payments])
+  const pendingPayments = outstandingPayments.length
 
   const monthlyPaymentRevenue = useMemo(() => {
     const rev = {}
@@ -104,14 +106,8 @@ export default function AdminDashboard({ setPage }) {
     [...notifications].reverse().slice(0, 5),
   [notifications])
 
-  // ── Quick Overview ──
-  const upcomingRenewals = members.filter(m => {
-    if (!m.expiry) return false
-    const diff = Math.ceil((new Date(m.expiry) - todayDate) / (1000 * 60 * 60 * 24))
-    return diff >= 0 && diff <= 7
-  })
-
-  const outstandingPayments = payments.filter(p => p.status === 'pending' || p.status === 'unpaid')
+  // ── Quick Overview (referencing merged computations above) ──
+  const upcomingRenewals = expiringSoon
 
   const upcomingBirthdays = useMemo(() => {
     const today = todayDate
@@ -152,7 +148,11 @@ export default function AdminDashboard({ setPage }) {
   }, [subscriptions, todayDate])
 
   // ── Quick Action ──
-  const handleQuickAction = (page) => { if (isAdmin) setPage(page) }
+  const handleQuickAction = useCallback((page) => { if (isAdmin) setPage(page) }, [isAdmin, setPage])
+  const goToMembers = useCallback(() => handleQuickAction('members'), [handleQuickAction])
+  const goToPayments = useCallback(() => handleQuickAction('payments'), [handleQuickAction])
+  const goToAttendance = useCallback(() => handleQuickAction('attendance'), [handleQuickAction])
+  const goToReports = useCallback(() => handleQuickAction('reports'), [handleQuickAction])
 
   // ── Helpers ──
   function formatCurrency(v) {
@@ -169,28 +169,28 @@ export default function AdminDashboard({ setPage }) {
     return { icon: '→ 0%', cls: '' }
   }
 
-  const prevMonthMembers = members.filter(m => {
+  const prevMonthMembers = useMemo(() => members.filter(m => {
     if (!m.createdAt) return false
     const cd = m.createdAt?.seconds ? new Date(m.createdAt.seconds * 1000) : new Date(m.createdAt)
     return cd.getMonth() === (todayDate.getMonth() - 1 + 12) % 12 && cd.getFullYear() === (todayDate.getMonth() === 0 ? todayDate.getFullYear() - 1 : todayDate.getFullYear())
-  }).length
+  }).length, [members, todayDate])
   const memberTrend = trendIcon(totalMembers, prevMonthMembers)
 
-  const prevMonthAttendance = attendance.filter(a => {
+  const prevMonthAttendance = useMemo(() => attendance.filter(a => {
     if (!a.date) return false
     const ad = new Date(a.date)
     return ad.getMonth() === (todayDate.getMonth() - 1 + 12) % 12 && ad.getFullYear() === (todayDate.getMonth() === 0 ? todayDate.getFullYear() - 1 : todayDate.getFullYear())
-  }).length
+  }).length, [attendance, todayDate])
   const attendanceTrend = trendIcon(activeToday, prevMonthAttendance)
 
-  const yesterdayRevenue = payments
+  const yesterdayRevenue = useMemo(() => payments
     .filter(p => {
       const yd = new Date(todayDate)
       yd.setDate(yd.getDate() - 1)
       const ys = yd.toLocaleDateString('en-CA')
       return p.date === ys && (p.status === 'paid' || p.paid > 0)
     })
-    .reduce((sum, p) => sum + (Number(p.paid) || 0), 0)
+    .reduce((sum, p) => sum + (Number(p.paid) || 0), 0), [payments, todayDate])
   const revenueTrend = trendIcon(todayRevenue, yesterdayRevenue)
 
   return (
@@ -206,16 +206,16 @@ export default function AdminDashboard({ setPage }) {
           <p className="dash-hero-sub">{gymName} — Your gym is performing well today.</p>
         </div>
         <div className="dash-hero-right">
-          <button className="btn btn-primary btn-sm" onClick={() => handleQuickAction('members')}>+ Add Member</button>
-          <button className="btn btn-outline btn-sm" onClick={() => handleQuickAction('payments')}>💰 Collect Payment</button>
-          <button className="btn btn-outline btn-sm" onClick={() => handleQuickAction('attendance')}>📋 Mark Attendance</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => handleQuickAction('reports')}>📊 Generate Report</button>
+          <button className="btn btn-primary btn-sm" onClick={goToMembers}>+ Add Member</button>
+          <button className="btn btn-outline btn-sm" onClick={goToPayments}>💰 Collect Payment</button>
+          <button className="btn btn-outline btn-sm" onClick={goToAttendance}>📋 Mark Attendance</button>
+          <button className="btn btn-ghost btn-sm" onClick={goToReports}>📊 Generate Report</button>
         </div>
       </div>
 
       {/* ═══════════════════ KPI CARDS ═══════════════════ */}
       <div className="dash-kpi-grid">
-        <div className="dash-kpi-card" onClick={() => handleQuickAction('members')} style={{ cursor:'pointer' }}>
+        <div className="dash-kpi-card" onClick={goToMembers} style={{ cursor:'pointer' }}>
           <div className="dash-kpi-top">
             <span className="dash-kpi-icon dash-kpi-icon-orange">👥</span>
             <span className={`dash-kpi-trend ${memberTrend.cls}`}>{memberTrend.icon}</span>
@@ -224,7 +224,7 @@ export default function AdminDashboard({ setPage }) {
           <span className="dash-kpi-label">Total Members</span>
         </div>
 
-        <div className="dash-kpi-card" onClick={() => handleQuickAction('members')} style={{ cursor:'pointer' }}>
+        <div className="dash-kpi-card" onClick={goToMembers} style={{ cursor:'pointer' }}>
           <div className="dash-kpi-top">
             <span className="dash-kpi-icon dash-kpi-icon-teal">💪</span>
             <span className="dash-kpi-trend dash-trend-up">↑ {totalMembers > 0 ? ((activeMembers/totalMembers)*100).toFixed(0) : 0}%</span>
@@ -251,7 +251,7 @@ export default function AdminDashboard({ setPage }) {
           <span className="dash-kpi-label">Today's Revenue</span>
         </div>
 
-        <div className="dash-kpi-card" onClick={() => handleQuickAction('payments')} style={{ cursor:'pointer' }}>
+        <div className="dash-kpi-card" onClick={goToPayments} style={{ cursor:'pointer' }}>
           <div className="dash-kpi-top">
             <span className="dash-kpi-icon dash-kpi-icon-red">⏳</span>
             <span className="dash-kpi-trend">{pendingPayments > 0 ? `${pendingPayments} pending` : '—'}</span>
@@ -260,7 +260,7 @@ export default function AdminDashboard({ setPage }) {
           <span className="dash-kpi-label">Pending Payments</span>
         </div>
 
-        <div className="dash-kpi-card" onClick={() => handleQuickAction('members')} style={{ cursor:'pointer' }}>
+        <div className="dash-kpi-card" onClick={goToMembers} style={{ cursor:'pointer' }}>
           <div className="dash-kpi-top">
             <span className="dash-kpi-icon dash-kpi-icon-purple">⏰</span>
             <span className="dash-kpi-trend">{expiringSoon.length > 0 ? `${expiringSoon.length} at risk` : '—'}</span>
@@ -410,7 +410,7 @@ export default function AdminDashboard({ setPage }) {
                 <div className="dash-empty">No payments yet</div>
               ) : (
                 recentPayments.map((p, i) => (
-                  <div key={p.id || i} className="dash-activity-row" onClick={() => handleQuickAction('payments')} style={{ cursor:'pointer' }}>
+                  <div key={p.id || i} className="dash-activity-row" onClick={goToPayments} style={{ cursor:'pointer' }}>
                     <div className="dash-activity-avatar av-orange" style={{ width:32, height:32, fontSize:12, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, flexShrink:0 }}>
                       {(p.memberName||'?')[0]}
                     </div>
@@ -441,7 +441,7 @@ export default function AdminDashboard({ setPage }) {
                 <div className="dash-empty">No members yet</div>
               ) : (
                 latestMembers.map((m, i) => (
-                  <div key={m.id || i} className="dash-activity-row" onClick={() => handleQuickAction('members')} style={{ cursor:'pointer' }}>
+                  <div key={m.id || i} className="dash-activity-row" onClick={goToMembers} style={{ cursor:'pointer' }}>
                     <div className="dash-activity-avatar" style={{ width:32, height:32, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, flexShrink:0, background:`${m.color||'var(--orange)'}22`, color:m.color||'var(--orange)' }}>
                       {(m.name||'?')[0]}
                     </div>
@@ -574,19 +574,19 @@ export default function AdminDashboard({ setPage }) {
             </div>
           </div>
           <div className="dash-quick-grid">
-            <button className="dash-quick-btn" onClick={() => handleQuickAction('members')}>
+            <button className="dash-quick-btn" onClick={goToMembers}>
               <span className="dash-quick-btn-icon">+</span>
               <span className="dash-quick-btn-label">Add Member</span>
             </button>
-            <button className="dash-quick-btn" onClick={() => handleQuickAction('payments')}>
+            <button className="dash-quick-btn" onClick={goToPayments}>
               <span className="dash-quick-btn-icon">💰</span>
               <span className="dash-quick-btn-label">Collect Payment</span>
             </button>
-            <button className="dash-quick-btn" onClick={() => handleQuickAction('attendance')}>
+            <button className="dash-quick-btn" onClick={goToAttendance}>
               <span className="dash-quick-btn-icon">📋</span>
               <span className="dash-quick-btn-label">Mark Attendance</span>
             </button>
-            <button className="dash-quick-btn" onClick={() => handleQuickAction('reports')}>
+            <button className="dash-quick-btn" onClick={goToReports}>
               <span className="dash-quick-btn-icon">📊</span>
               <span className="dash-quick-btn-label">Generate Report</span>
             </button>

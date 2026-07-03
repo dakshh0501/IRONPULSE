@@ -257,12 +257,12 @@ const pageContent =
 
       if (!mobileOpenRef.current && deltaX > 40) {
         // Edge-swipe right → open sidebar
-        e.preventDefault()
+        if (e.cancelable) e.preventDefault()
         setMobileOpen(true)
         s.swiping = false
       } else if (mobileOpenRef.current && deltaX < -40) {
         // Swipe left on open sidebar → close
-        e.preventDefault()
+        if (e.cancelable) e.preventDefault()
         setMobileOpen(false)
         s.swiping = false
       }

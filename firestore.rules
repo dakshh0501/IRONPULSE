@@ -361,8 +361,7 @@ service cloud.firestore {
 
       allow read: if isSuperAdmin() || (
         isAuthed() &&
-        resource.data.userId == request.auth.uid &&
-        (isSuperAdmin() || resource.data.gymId == getCallerGymId())
+        resource.data.userId == request.auth.uid
       );
 
       allow create: if isAuthed() && (

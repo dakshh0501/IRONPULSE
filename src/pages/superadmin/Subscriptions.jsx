@@ -35,10 +35,9 @@ const PLAN_COLORS = {
 const BILLING_CYCLES = ['All', 'Monthly', 'Quarterly', 'Annual', 'One-time']
 const SORT_OPTIONS = ['Newest', 'Oldest', 'Gym A-Z', 'Gym Z-A', 'Amount High', 'Amount Low', 'Expiry Soon', 'Expiry Far']
 
-if (!document.getElementById('sub-styles')) {
-  const subStyles = document.createElement('style')
-  subStyles.id = 'sub-styles'
-  subStyles.textContent = `
+const subStyles = document.createElement('style')
+subStyles.id = 'sub-styles'
+subStyles.textContent = `
   @keyframes sub-fade-up {
     0% { opacity: 0; transform: translateY(16px); }
     100% { opacity: 1; transform: translateY(0); }
@@ -341,6 +340,7 @@ if (!document.getElementById('sub-styles')) {
     .sub-stat-card .sub-stat-icon { width: 36px; height: 36px; font-size: 16px; }
   }
 `
+if (!document.getElementById('sub-styles')) {
   document.head.appendChild(subStyles)
 }
 

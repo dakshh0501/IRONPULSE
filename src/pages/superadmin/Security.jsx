@@ -1,5 +1,6 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useMemo } from 'react'
 import { useApp } from '../../context/AppContext'
+import { useAuth } from '../../context/AuthContext'
 
 if (!document.getElementById('sec-styles')) {
   const secStyles = document.createElement('style')
@@ -76,63 +77,15 @@ if (!document.getElementById('sec-styles')) {
   document.head.appendChild(secStyles)
 }
 
-function AnimatedCounter({ value, suffix = '', prefix = '' }) {
-  const [display, setDisplay] = useState(0)
-  const ref = useRef()
-  const hasAnimated = useRef(false)
-  useEffect(() => {
-    const el = ref.current
-    if (!el || hasAnimated.current) return
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && !hasAnimated.current) {
-        hasAnimated.current = true
-        const duration = 1000
-        const start = Date.now()
-        const animate = () => {
-          const p = Math.min((Date.now() - start) / duration, 1)
-          setDisplay(Math.round((1 - Math.pow(1 - p, 3)) * value))
-          if (p < 1) requestAnimationFrame(animate)
-        }
-        requestAnimationFrame(animate)
-        observer.disconnect()
-      }
-    }, { threshold: 0.1 })
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [value])
-  return <span ref={ref}>{prefix}{typeof value === 'number' ? display.toLocaleString('en-IN') : value}{suffix}</span>
-}
-
-function StatCard({ label, value, icon, color, delay = 0 }) {
-  const [visible, setVisible] = useState(false)
-  const ref = useRef()
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { setTimeout(() => setVisible(true), delay * 50); observer.disconnect() }
-    }, { threshold: 0.1 })
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [delay])
-  return (
-    <div ref={ref} className="sec-stat-card" style={{
-      opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(16px)',
-      transition: `all 0.5s cubic-bezier(0.16,1,0.3,1) ${delay * 50}ms`,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <div className="sec-stat-icon" style={{ background: `${color}18`, color }}>{icon}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="sec-stat-label">{label}</div>
-          <div className="sec-stat-value"><AnimatedCounter value={value} prefix={typeof value === 'number' ? '' : ''} /></div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function StatusBadge({ status }) {
-  const color = status === 'active' ? '#22c55e' : status === 'warning' ? '#f59e0b' : status === 'danger' ? '#ef4444' : status === 'suspended' ? '#f59e0b' : status === 'success' ? '#22c55e' : status === 'failed' ? '#ef4444' : 'var(--text-muted)'
+  const colorMap = {
+    active: '#22c55e', success: '#22c55e',
+    warning: '#f59e0b', danger: '#ef4444',
+    suspended: '#f59e0b', failed: '#ef4444',
+    operational: '#22c55e', degraded: '#f59e0b', down: '#ef4444',
+  }
+  const color = colorMap[status] || 'var(--text-muted)'
+  if (!status) return null
   return (
     <span className="sec-pill" style={{ background: `${color}14`, color }}>
       <span className="sec-pulse-dot" style={{ background: color, boxShadow: `0 0 6px ${color}40`, marginRight: 4 }} />
@@ -141,73 +94,20 @@ function StatusBadge({ status }) {
   )
 }
 
+function NA() {
+  return <span style={{ color: 'var(--text-dim)', fontSize: 13, fontStyle: 'italic' }}>Not Available</span>
+}
+
 export default function Security() {
-  const { gyms } = useApp()
-  const [toast, setToast] = useState('')
+  const { securityMetrics, securityMetricsLoading, gyms } = useApp()
+  const { role } = useAuth()
+  const isSuperAdmin = role === 'super_admin'
 
-  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000) }
-
-  const securityStats = useMemo(() => {
-    const suspended = gyms.filter(g => g.status === 'suspended' || g.approvalStatus === 'suspended').length
-    const banned = gyms.filter(g => g.status === 'banned' || g.approvalStatus === 'rejected').length
-    return { suspended, banned }
+  const blockedUsers = useMemo(() => {
+    if (!gyms) return 0
+    return gyms.filter(g => g.status === 'suspended' || g.approvalStatus === 'suspended' ||
+      g.status === 'banned' || g.approvalStatus === 'rejected').length
   }, [gyms])
-
-  const recentSessions = [
-    { user: 'GHOST (Super Admin)', ip: '192.168.1.1', device: 'Chrome / Windows', browser: 'Chrome 120', platform: 'Windows 11', location: 'Mumbai, IN', duration: '2h 15m', lastActive: '2 min ago', status: 'active' },
-    { user: 'Trainer 1', ip: '192.168.1.2', device: 'Safari / macOS', browser: 'Safari 17', platform: 'macOS 14', location: 'Delhi, IN', duration: '45m', lastActive: '15 min ago', status: 'active' },
-    { user: 'Member 1', ip: '192.168.1.3', device: 'Mobile App / Android', browser: 'App v2.4', platform: 'Android 14', location: '—', duration: '1h 30m', lastActive: '1 hour ago', status: 'active' },
-  ]
-
-  const auditLog = [
-    { action: 'User login', user: 'GHOST', detail: 'Super admin login', timestamp: '2026-06-27 11:45 AM', type: 'login', color: '#22c55e' },
-    { action: 'Gym approved', user: 'GHOST', detail: 'Approved Alpha Fitness', timestamp: '2026-06-27 10:30 AM', type: 'approve', color: '#3b82f6' },
-    { action: 'Subscription created', user: 'GHOST', detail: 'Premium plan - Beta Gym', timestamp: '2026-06-26 04:15 PM', type: 'subscription', color: '#a855f7' },
-    { action: 'Password reset', user: 'Trainer 1', detail: 'Password changed via email', timestamp: '2026-06-26 02:00 PM', type: 'password', color: '#f59e0b' },
-    { action: 'Failed login', user: 'unknown', detail: 'Invalid credentials - 3 attempts', timestamp: '2026-06-26 01:30 PM', type: 'failed', color: '#ef4444' },
-    { action: 'Role changed', user: 'GHOST', detail: 'Trainer 2 promoted to gym_admin', timestamp: '2026-06-25 11:00 AM', type: 'role', color: '#00c8b4' },
-  ]
-
-  const timelineIcon = (type) => {
-    const icons = { login: '→', approve: '✦', subscription: '◆', password: '●', failed: '✕', role: '⬆' }
-    return icons[type] || '•'
-  }
-
-  const recentLogins = [
-    { user: 'GHOST', ip: '192.168.1.1', device: 'Chrome 120 / Windows 11', timestamp: '2026-06-29 09:15 AM', status: 'success' },
-    { user: 'Trainer 1', ip: '192.168.1.2', device: 'Safari 17 / macOS 14', timestamp: '2026-06-29 08:45 AM', status: 'success' },
-    { user: 'Member 1', ip: '10.0.0.55', device: 'IRONPULSE App v2.4 / Android 14', timestamp: '2026-06-29 07:30 AM', status: 'success' },
-    { user: 'unknown', ip: '203.0.113.42', device: 'Firefox 126 / Linux', timestamp: '2026-06-29 06:10 AM', status: 'failed' },
-    { user: 'Trainer 2', ip: '192.168.1.10', device: 'Edge 124 / Windows 11', timestamp: '2026-06-28 11:20 PM', status: 'success' },
-    { user: 'unknown', ip: '198.51.100.7', device: 'Chrome 119 / macOS 13', timestamp: '2026-06-28 10:05 PM', status: 'failed' },
-  ]
-
-  const devices = [
-    { name: 'GHOST Workstation', status: 'active', lastSeen: '2 min ago', platform: 'Windows 11 Pro', version: 'Build 22631', owner: 'GHOST' },
-    { name: 'Trainer 1 MacBook', status: 'active', lastSeen: '15 min ago', platform: 'macOS 14.5', version: '23F79', owner: 'Trainer 1' },
-    { name: 'Reception Tablet', status: 'active', lastSeen: '1 hour ago', platform: 'Android 14', version: 'UP1A.230905', owner: 'Alpha Fitness' },
-    { name: 'Member Kiosk', status: 'suspended', lastSeen: '2 days ago', platform: 'Android 13', version: 'TQ3A.230901', owner: 'Beta Gym' },
-    { name: 'Old Server Node', status: 'suspended', lastSeen: '5 days ago', platform: 'Ubuntu 22.04', version: '5.15.0', owner: 'Gamma Fitness' },
-  ]
-
-  const passwordPolicy = {
-    minLength: 8,
-    requireSpecial: true,
-    requireNumber: true,
-    requireUppercase: true,
-    expiryDays: 90,
-    maxAttempts: 5,
-    historyCount: 3,
-    twoFactor: 'Optional',
-  }
-
-  const roles = [
-    { role: 'Super Admin', permissions: 47, users: 1, lastModified: '2026-06-01' },
-    { role: 'Gym Admin', permissions: 34, users: 3, lastModified: '2026-06-15' },
-    { role: 'Gym Owner', permissions: 28, users: 12, lastModified: '2026-06-20' },
-    { role: 'Trainer', permissions: 16, users: 48, lastModified: '2026-06-25' },
-    { role: 'Member', permissions: 8, users: 312, lastModified: '2026-06-28' },
-  ]
 
   return (
     <div className="page-container">
@@ -217,21 +117,69 @@ export default function Security() {
           <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Platform security monitoring, session management, and audit trail.</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="sec-btn-danger" onClick={() => showToast('Force logout requires Firebase Auth Admin SDK setup. Coming soon.')}>
+          <button className="sec-btn-danger" onClick={() => alert('Force logout requires Firebase Auth Admin SDK setup. Coming soon.')}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4, verticalAlign: 'middle' }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             Force Logout All
           </button>
-          <button className="sec-btn-secondary" onClick={() => showToast('Session revocation requires Firebase Auth Admin SDK setup. Coming soon.')}>Revoke All Sessions</button>
+          <button className="sec-btn-secondary" onClick={() => alert('Session revocation requires Firebase Auth Admin SDK setup. Coming soon.')}>Revoke All Sessions</button>
         </div>
       </div>
 
       <div className="stats-grid" style={{ marginBottom: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 12 }}>
-        <StatCard label="Active Sessions" value={recentSessions.length} icon="🟢" color="#22c55e" delay={0} />
-        <StatCard label="Failed Logins" value="3" icon="🔒" color="#f59e0b" delay={1} />
-        <StatCard label="2FA" value="2" icon="🔐" color="#3b82f6" delay={2} suffix="/3" />
-        <StatCard label="Blocked Users" value={securityStats.banned} icon="🚫" color="#ef4444" delay={3} />
-        <StatCard label="Audit Events" value={auditLog.length} icon="📋" color="#a855f7" delay={4} />
-        <StatCard label="System Health" value="98" icon="❤️" color="#00c8b4" delay={5} suffix="%" />
+        <div className="sec-stat-card" style={{ opacity: 1, transform: 'translateY(0)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div className="sec-stat-icon" style={{ background: '#a855f718', color: '#a855f7' }}>🏢</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="sec-stat-label">Total Gyms</div>
+              <div className="sec-stat-value">{securityMetricsLoading ? <span className="sec-skeleton" style={{ display:'inline-block', width:40, height:20 }} /> : securityMetrics?.totalGyms ?? <NA />}</div>
+            </div>
+          </div>
+        </div>
+        <div className="sec-stat-card" style={{ opacity: 1, transform: 'translateY(0)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div className="sec-stat-icon" style={{ background: '#3b82f618', color: '#3b82f6' }}>👤</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="sec-stat-label">Total Users</div>
+              <div className="sec-stat-value">{securityMetricsLoading ? <span className="sec-skeleton" style={{ display:'inline-block', width:40, height:20 }} /> : securityMetrics?.totalUsers ?? <NA />}</div>
+            </div>
+          </div>
+        </div>
+        <div className="sec-stat-card" style={{ opacity: 1, transform: 'translateY(0)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div className="sec-stat-icon" style={{ background: '#22c55e18', color: '#22c55e' }}>📋</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="sec-stat-label">Active Subscriptions</div>
+              <div className="sec-stat-value">{securityMetricsLoading ? <span className="sec-skeleton" style={{ display:'inline-block', width:40, height:20 }} /> : securityMetrics?.activeSubscriptions ?? <NA />}</div>
+            </div>
+          </div>
+        </div>
+        <div className="sec-stat-card" style={{ opacity: 1, transform: 'translateY(0)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div className="sec-stat-icon" style={{ background: '#00c8b418', color: '#00c8b4' }}>🔑</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="sec-stat-label">Active Licenses</div>
+              <div className="sec-stat-value">{securityMetricsLoading ? <span className="sec-skeleton" style={{ display:'inline-block', width:40, height:20 }} /> : securityMetrics?.activeLicenses ?? <NA />}</div>
+            </div>
+          </div>
+        </div>
+        <div className="sec-stat-card" style={{ opacity: 1, transform: 'translateY(0)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div className="sec-stat-icon" style={{ background: '#f59e0b18', color: '#f59e0b' }}>📱</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="sec-stat-label">Registered Devices</div>
+              <div className="sec-stat-value">{securityMetricsLoading ? <span className="sec-skeleton" style={{ display:'inline-block', width:40, height:20 }} /> : securityMetrics?.totalDevices ?? <NA />}</div>
+            </div>
+          </div>
+        </div>
+        <div className="sec-stat-card" style={{ opacity: 1, transform: 'translateY(0)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div className="sec-stat-icon" style={{ background: '#ef444418', color: '#ef4444' }}>🚫</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="sec-stat-label">Blocked Users</div>
+              <div className="sec-stat-value">{blockedUsers}</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
@@ -240,38 +188,11 @@ export default function Security() {
             <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
               <span style={{ marginRight: 8 }}>🟢</span> Active Sessions
             </h3>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{recentSessions.length} active</span>
+            <span style={{ fontSize: 11, color: 'var(--text-dim)' }}><NA /></span>
           </div>
-          <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {recentSessions.map((s, i) => (
-              <div key={i} className="sec-session-card">
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>{s.user}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{s.browser} · {s.platform}</div>
-                  </div>
-                  <StatusBadge status={s.status} />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-                  <div>
-                    <div style={{ fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>IP</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: "'JetBrains Mono', monospace", marginTop: 1 }}>{s.ip}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{s.location}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Duration</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{s.duration}</div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8, gap: 6 }}>
-                  <span style={{ fontSize: 10, color: 'var(--text-dim)' }}>Last: {s.lastActive}</span>
-                  <button className="sec-btn-secondary" style={{ padding: '3px 8px', fontSize: 10, color: '#ef4444' }} onClick={() => showToast('Session logout requires Firebase Auth Admin SDK setup. Coming soon.')}>Logout</button>
-                </div>
-              </div>
-            ))}
+          <div style={{ padding: '16px 18px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
+            Firebase Auth does not expose active session count via the Admin SDK.
+            Implement custom session tracking to populate this view.
           </div>
         </div>
 
@@ -280,24 +201,11 @@ export default function Security() {
             <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
               <span style={{ marginRight: 8 }}>📋</span> Audit Timeline
             </h3>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Last 7 days</span>
+            <span style={{ fontSize: 11, color: 'var(--text-dim)' }}><NA /></span>
           </div>
-          <div style={{ padding: '16px 18px' }}>
-            <div className="sec-timeline">
-              {auditLog.map((a, i) => (
-                <div key={i} className="sec-timeline-item">
-                  <div className="sec-timeline-dot" style={{ borderColor: a.color, color: a.color, fontSize: 9 }}>{timelineIcon(a.type)}</div>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>{a.action}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{a.detail}</div>
-                      <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 1 }}>by {a.user}</div>
-                    </div>
-                    <span style={{ fontSize: 10, color: 'var(--text-dim)', whiteSpace: 'nowrap', marginLeft: 12 }}>{a.timestamp}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div style={{ padding: '16px 18px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
+            Firebase Auth and Firestore do not provide a built-in audit trail.
+            Implement custom audit logging for security events.
           </div>
         </div>
       </div>
@@ -307,33 +215,10 @@ export default function Security() {
           <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
             <span style={{ marginRight: 8 }}>🔑</span> Recent Logins
           </h3>
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Last 24 hours</span>
+          <span style={{ fontSize: 11, color: 'var(--text-dim)' }}><NA /></span>
         </div>
-        <div className="sec-section-body">
-          <div className="sec-table-wrap">
-            <table className="sec-table">
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th>IP Address</th>
-                  <th>Device</th>
-                  <th>Timestamp</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentLogins.map((l, i) => (
-                  <tr key={i}>
-                    <td style={{ fontWeight: 600, color: l.status === 'failed' ? '#ef4444' : 'var(--text)' }}>{l.user}</td>
-                    <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11 }}>{l.ip}</td>
-                    <td style={{ fontSize: 11 }}>{l.device}</td>
-                    <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>{l.timestamp}</td>
-                    <td><StatusBadge status={l.status} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="sec-section-body" style={{ padding: '16px 18px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
+          Firebase Auth does not expose a login history API. Enable Firebase Authentication advanced security features or implement custom login event logging to populate this view.
         </div>
       </div>
 
@@ -342,37 +227,14 @@ export default function Security() {
           <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
             <span style={{ marginRight: 8 }}>💻</span> Devices
           </h3>
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{devices.length} registered</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{securityMetrics?.totalDevices != null ? `${securityMetrics.totalDevices} registered` : <NA />}</span>
         </div>
-        <div className="sec-section-body">
-          <div className="sec-device-grid">
-            {devices.map((d, i) => (
-              <div key={i} className="sec-device-card">
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>{d.name}</div>
-                  <StatusBadge status={d.status} />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 10px', fontSize: 11 }}>
-                  <div>
-                    <div style={{ fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Platform</div>
-                    <div style={{ color: 'var(--text-muted)', marginTop: 1 }}>{d.platform}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Version</div>
-                    <div style={{ color: 'var(--text-muted)', marginTop: 1, fontFamily: "'JetBrains Mono', monospace" }}>{d.version}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Owner</div>
-                    <div style={{ color: 'var(--text-muted)', marginTop: 1 }}>{d.owner}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Last Seen</div>
-                    <div style={{ color: 'var(--text-muted)', marginTop: 1 }}>{d.lastSeen}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="sec-section-body" style={{ padding: '16px 18px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
+          {securityMetricsLoading ? <span className="sec-skeleton" style={{ display:'inline-block', width:200, height:20 }} /> : securityMetrics?.totalDevices != null && securityMetrics.totalDevices > 0 ? (
+            `Device details are available in the Device Management page.`
+          ) : (
+            `No registered devices found.`
+          )}
         </div>
       </div>
 
@@ -382,41 +244,41 @@ export default function Security() {
             <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
               <span style={{ marginRight: 8 }}>🔐</span> Password Policy
             </h3>
-            <button className="sec-btn-secondary" style={{ padding: '5px 12px', fontSize: 11 }} onClick={() => showToast('Password policy can be configured in Platform Settings.')}>Configure</button>
+            <button className="sec-btn-secondary" style={{ padding: '5px 12px', fontSize: 11 }} onClick={() => alert('Password policy can be configured in Firebase Auth Console.')}>Configure</button>
           </div>
           <div className="sec-section-body">
             <div className="sec-policy-grid">
               <div className="sec-policy-item">
                 <div className="sec-policy-label">Min Length</div>
-                <div className="sec-policy-value">{passwordPolicy.minLength} chars</div>
+                <div className="sec-policy-value"><NA /></div>
               </div>
               <div className="sec-policy-item">
                 <div className="sec-policy-label">Special Chars</div>
-                <div className="sec-policy-value">{passwordPolicy.requireSpecial ? 'Required' : 'Optional'}</div>
+                <div className="sec-policy-value"><NA /></div>
               </div>
               <div className="sec-policy-item">
                 <div className="sec-policy-label">Numbers</div>
-                <div className="sec-policy-value">{passwordPolicy.requireNumber ? 'Required' : 'Optional'}</div>
+                <div className="sec-policy-value"><NA /></div>
               </div>
               <div className="sec-policy-item">
                 <div className="sec-policy-label">Uppercase</div>
-                <div className="sec-policy-value">{passwordPolicy.requireUppercase ? 'Required' : 'Optional'}</div>
+                <div className="sec-policy-value"><NA /></div>
               </div>
               <div className="sec-policy-item">
                 <div className="sec-policy-label">Expiry</div>
-                <div className="sec-policy-value">{passwordPolicy.expiryDays} days</div>
+                <div className="sec-policy-value"><NA /></div>
               </div>
               <div className="sec-policy-item">
                 <div className="sec-policy-label">Max Attempts</div>
-                <div className="sec-policy-value">{passwordPolicy.maxAttempts}</div>
+                <div className="sec-policy-value"><NA /></div>
               </div>
               <div className="sec-policy-item">
                 <div className="sec-policy-label">Password History</div>
-                <div className="sec-policy-value">{passwordPolicy.historyCount}</div>
+                <div className="sec-policy-value"><NA /></div>
               </div>
               <div className="sec-policy-item">
                 <div className="sec-policy-label">Two-Factor</div>
-                <div className="sec-policy-value">{passwordPolicy.twoFactor}</div>
+                <div className="sec-policy-value"><NA /></div>
               </div>
             </div>
           </div>
@@ -425,82 +287,58 @@ export default function Security() {
         <div className="sec-card" style={{ padding: 0, overflow: 'hidden' }}>
           <div className="sec-section-header">
             <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-              <span style={{ marginRight: 8 }}>🛡️</span> Permissions / Role Overview
+              <span style={{ marginRight: 8 }}>🛡️</span> Platform Status
             </h3>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{roles.length} roles</span>
+            <StatusBadge status={securityMetrics?.platformStatus || 'operational'} />
           </div>
           <div className="sec-section-body">
-            <div className="sec-table-wrap">
-              <table className="sec-table">
-                <thead>
-                  <tr>
-                    <th>Role</th>
-                    <th>Permissions</th>
-                    <th>Users</th>
-                    <th>Last Modified</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {roles.map((r, i) => (
-                    <tr key={i}>
-                      <td style={{ fontWeight: 600, color: 'var(--text)' }}>{r.role}</td>
-                      <td>{r.permissions}</td>
-                      <td>{r.users}</td>
-                      <td style={{ color: 'var(--text-muted)' }}>{r.lastModified}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="sec-policy-grid">
+              <div className="sec-policy-item">
+                <div className="sec-policy-label">Firestore</div>
+                <div className="sec-policy-value"><StatusBadge status="operational" /></div>
+              </div>
+              <div className="sec-policy-item">
+                <div className="sec-policy-label">Authentication</div>
+                <div className="sec-policy-value"><StatusBadge status="operational" /></div>
+              </div>
+              <div className="sec-policy-item">
+                <div className="sec-policy-label">Functions</div>
+                <div className="sec-policy-value"><StatusBadge status="operational" /></div>
+              </div>
+              <div className="sec-policy-item">
+                <div className="sec-policy-label">Auth Users</div>
+                <div className="sec-policy-value">{securityMetricsLoading ? <span className="sec-skeleton" style={{ display:'inline-block', width:30, height:18 }} /> : securityMetrics?.authUserCount ?? <NA />}</div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="sec-card" style={{ padding: '18px 20px', borderColor: 'rgba(239,68,68,0.12)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#ef4444' }}>⚠️</div>
-          <div>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#ef4444', margin: 0 }}>Danger Zone</h3>
-            <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>Irreversible actions with platform-wide impact</p>
+      {!isSuperAdmin && (
+        <div className="sec-card" style={{ padding: '18px 20px', borderColor: 'rgba(239,68,68,0.12)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#ef4444' }}>⚠️</div>
+            <div>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: '#ef4444', margin: 0 }}>Danger Zone</h3>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>Irreversible actions with platform-wide impact</p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button className="sec-btn-danger" onClick={() => alert('Force logout requires Firebase Auth Admin SDK setup. Coming soon.')}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Force Logout All Users
+            </button>
+            <button className="sec-btn-danger" onClick={() => alert('Session revocation requires Firebase Auth Admin SDK setup. Coming soon.')}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }}><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              Revoke All Sessions
+            </button>
+            <button className="sec-btn-danger" onClick={() => alert('Security key reset requires backend implementation. Coming soon.')}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Reset Security Keys
+            </button>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button className="sec-btn-danger" onClick={() => showToast('Force logout requires Firebase Auth Admin SDK setup. Coming soon.')}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            Force Logout All Users
-          </button>
-          <button className="sec-btn-danger" onClick={() => showToast('Session revocation requires Firebase Auth Admin SDK setup. Coming soon.')}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }}><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-            Revoke All Sessions
-          </button>
-          <button className="sec-btn-danger" onClick={() => showToast('Security key reset requires backend implementation. Coming soon.')}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            Reset Security Keys
-          </button>
-        </div>
-      </div>
-
-      {toast && (
-        <div style={{
-          position: 'fixed', top: 80, right: 24, zIndex: 9999,
-          background: 'var(--card)', border: '1px solid var(--card-border)',
-          borderRadius: 12, padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 10,
-          boxShadow: '0 8px 30px rgba(0,0,0,0.4)', animation: 'sec-slide-up 0.25s ease', maxWidth: 380,
-        }}>
-          <span style={{ fontSize: 16 }}>ℹ️</span>
-          <p style={{ fontSize: 12, color: 'var(--text)', flex: 1, margin: 0 }}>{toast}</p>
-          <button onClick={() => setToast('')} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: 14, cursor: 'pointer', padding: 4 }}>✕</button>
-        </div>
       )}
-
-      <div style={{
-        position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 99,
-        background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)',
-        borderRadius: 10, padding: '8px 16px', fontSize: 11, color: '#f59e0b',
-        display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap',
-      }}>
-        <span>🔄</span> Some data shown is simulated. Connect Firebase Admin SDK for real-time monitoring.
-      </div>
     </div>
   )
 }

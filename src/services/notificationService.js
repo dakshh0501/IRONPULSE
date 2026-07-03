@@ -1,8 +1,3 @@
-// Required Firestore composite indexes:
-// 1. Collection: notifications, Fields: targetUserId (ASC), createdAt (DESC)
-// 2. Collection: notifications, Fields: gymId (ASC), createdAt (DESC)
-// 3. Collection: notifications, Fields: type (ASC), createdAt (DESC)
-
 import {
   collection,
   addDoc,
@@ -11,9 +6,7 @@ import {
   doc,
   query,
   where,
-  orderBy,
-  limit as firestoreLimit,
-  startAfter,
+  limit,
   onSnapshot,
   getDocs,
   serverTimestamp,
@@ -29,12 +22,16 @@ export function subscribeToNotifications(userId, callback, gymId, onError) {
   if (gymId) {
     constraints.push(where('gymId', '==', gymId))
   }
-  constraints.push(orderBy('createdAt', 'desc'))
-  constraints.push(firestoreLimit(PAGE_SIZE))
+  constraints.push(limit(PAGE_SIZE))
   const q = query(collection(db, COLLECTION), ...constraints)
   return onSnapshot(q, (snapshot) => {
     const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-    callback(list)
+    list.sort((a, b) => {
+      const aTime = a.createdAt?.seconds || a.createdAt || 0
+      const bTime = b.createdAt?.seconds || b.createdAt || 0
+      return bTime - aTime
+    })
+    callback(list.slice(0, PAGE_SIZE))
   }, (err) => {
     console.error('subscribeToNotifications error:', err); if (onError) onError(err, 'notifications')
     callback([])
@@ -46,12 +43,16 @@ export async function loadMoreNotifications(userId, lastVisible, gymId) {
   if (gymId) {
     constraints.push(where('gymId', '==', gymId))
   }
-  constraints.push(orderBy('createdAt', 'desc'))
-  if (lastVisible) constraints.push(startAfter(lastVisible))
-  constraints.push(firestoreLimit(PAGE_SIZE))
+  constraints.push(limit(PAGE_SIZE * 2))
   const q = query(collection(db, COLLECTION), ...constraints)
   const snapshot = await getDocs(q)
-  return snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+  const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+  list.sort((a, b) => {
+    const aTime = a.createdAt?.seconds || a.createdAt || 0
+    const bTime = b.createdAt?.seconds || b.createdAt || 0
+    return bTime - aTime
+  })
+  return list.slice(0, PAGE_SIZE)
 }
 
 export async function addNotification(data) {
@@ -73,13 +74,15 @@ export async function markNotifAsUnread(notifId) {
 }
 
 export async function markAllNotifsAsRead(userId, gymId) {
-  const constraints = [where('userId', '==', userId), where('read', '==', false)]
+  const constraints = [where('userId', '==', userId)]
   if (gymId) {
     constraints.push(where('gymId', '==', gymId))
   }
   const q = query(collection(db, COLLECTION), ...constraints)
   const snapshot = await getDocs(q)
-  const updates = snapshot.docs.map(d => updateDoc(d.ref, { read: true }))
+  const updates = snapshot.docs
+    .filter(d => d.data().read === false)
+    .map(d => updateDoc(d.ref, { read: true }))
   await Promise.allSettled(updates)
 }
 

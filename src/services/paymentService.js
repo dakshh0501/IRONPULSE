@@ -336,23 +336,25 @@ export async function getPendingAttemptsForSubscription(subscriptionId, gymId) {
  * Cleanup expired payment attempts (30-min TTL).
  * Sets status to 'expired' for any pending attempts where expiresAt < now.
  * Recommended: call on app mount and/or via periodic Cloud Function.
- * Requires a composite index on paymentAttempts: status ASC, expiresAt ASC.
+ * Filters client-side to avoid requiring a composite index.
  */
 export async function cleanupExpiredPaymentAttempts() {
   const now = new Date()
   const q = query(
     collection(db, COLLECTION),
-    where('status', '==', 'pending'),
-    where('expiresAt', '<', now.toISOString())
+    where('status', '==', 'pending')
   )
   const snap = await getDocs(q)
   const batch = []
   snap.docs.forEach(d => {
-    batch.push(updateDoc(doc(db, COLLECTION, d.id), {
-      status: 'expired',
-      updatedAt: serverTimestamp(),
-    }))
+    const data = d.data()
+    if (data.expiresAt && data.expiresAt < now.toISOString()) {
+      batch.push(updateDoc(doc(db, COLLECTION, d.id), {
+        status: 'expired',
+        updatedAt: serverTimestamp(),
+      }))
+    }
   })
   await Promise.allSettled(batch)
-  return snap.size
+  return batch.length
 }

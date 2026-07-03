@@ -85,12 +85,6 @@ export default function LoadingScreen({ onReady, ready = true }) {
             style={{ animation: 'ls-ring-dash 1.8s ease-in-out infinite' }}
           />
         </svg>
-        <defs>
-          <linearGradient id="ls-ring-grad" x1="0" y1="0" x2="96" y2="96">
-            <stop offset="0%" stopColor="#e8420a" />
-            <stop offset="100%" stopColor="#ff6a2a" />
-          </linearGradient>
-        </defs>
 
         {/* Logo */}
         <div style={{ animation: 'ls-logo-in 0.5s ease-out forwards' }}>

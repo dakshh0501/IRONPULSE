@@ -82,12 +82,15 @@ const fmt = n => n ? `₹${Number(n).toLocaleString('en-IN')}` : '₹0'
 
 // ─── Business Insights ───────────────────────────────────────
 function BusinessInsights({ members, payments, trainers, attendance }) {
-  const today = new Date(); const todayStr = formatDate(today)
-  const active = members.filter(m => m.status === 'Active').length
-  const totalPaid = payments.filter(p => hasStatus(p, 'paid')).reduce((s,p) => s + (Number(p.paid||p.amount||0)), 0)
-  const totalPending = payments.filter(p => hasStatus(p, 'pending')).reduce((s,p) => s + (Number(p.paid||p.amount||0)), 0)
-  const totalInvoiced = payments.reduce((s,p) => s + (Number(p.amount||0)), 0) || 1
-  const renewalRate = totalInvoiced > 0 ? Math.round((totalPaid / totalInvoiced) * 100) : 0
+  const today = useMemo(() => new Date(), [])
+  const todayStr = useMemo(() => formatDate(today), [today])
+  const { active, totalPaid, totalPending, totalInvoiced, renewalRate } = useMemo(() => {
+    const a = members.filter(m => m.status === 'Active').length
+    const tp = payments.filter(p => hasStatus(p, 'paid')).reduce((s,p) => s + (Number(p.paid||p.amount||0)), 0)
+    const tpn = payments.filter(p => hasStatus(p, 'pending')).reduce((s,p) => s + (Number(p.paid||p.amount||0)), 0)
+    const ti = payments.reduce((s,p) => s + (Number(p.amount||0)), 0) || 1
+    return { active: a, totalPaid: tp, totalPending: tpn, totalInvoiced: ti, renewalRate: ti > 0 ? Math.round((tp / ti) * 100) : 0 }
+  }, [members, payments])
 
   const monthly = useMemo(() => {
     const m = { now: 0, prev: 0 }; const now = new Date()

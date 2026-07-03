@@ -6,10 +6,9 @@ import {
 } from '../../services/deviceService'
 import { addLicenseHistory } from '../../services/licenseHistoryService'
 
-if (!document.getElementById('dev-styles')) {
-  const devStyles = document.createElement('style')
-  devStyles.id = 'dev-styles'
-  devStyles.textContent = `
+const devStyles = document.createElement('style')
+devStyles.id = 'dev-styles'
+devStyles.textContent = `
   @keyframes dev-fade-up {
     0% { opacity: 0; transform: translateY(16px); }
     100% { opacity: 1; transform: translateY(0); }
@@ -317,6 +316,7 @@ if (!document.getElementById('dev-styles')) {
     .dev-stat-card .dev-stat-icon { width: 36px; height: 36px; font-size: 16px; }
   }
 `
+if (!document.getElementById('dev-styles')) {
   document.head.appendChild(devStyles)
 }
 

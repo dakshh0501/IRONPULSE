@@ -3,7 +3,7 @@
 // Firebase Cloud Functions for IRONPULSE PhonePe payment integration.
 // All sensitive operations (checksum generation, PhonePe API calls) happen here — never in the browser.
 
-const { onCall, onRequest } = require('firebase-functions/v2/https')
+const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https')
 const { initializeApp } = require('firebase-admin/app')
 const { getFirestore } = require('firebase-admin/firestore')
 const { getAuth } = require('firebase-admin/auth')
@@ -1047,5 +1047,66 @@ exports.deleteAuthUser = onCall({
       return { success: true, error: null }
     }
     return { success: false, error: err.message }
+  }
+})
+
+// ─────────────────────────────────────────────
+// SECURITY METRICS (Admin SDK)
+// ─────────────────────────────────────────────
+
+exports.getSecurityMetrics = onCall(async (request) => {
+  try {
+    if (!request.auth) {
+      return { error: 'Authentication required', metrics: null }
+    }
+
+    const callerDoc = await db.collection('users').doc(request.auth.uid).get()
+    if (!callerDoc.exists) {
+      return { error: 'Caller profile not found', metrics: null }
+    }
+    const caller = callerDoc.data()
+    const role = caller.role
+    const isSuperAdmin = role === 'super_admin' || (role === 'admin' && caller.isSuperAdmin)
+    if (!isSuperAdmin) {
+      return { error: 'Insufficient permissions: super_admin only', metrics: null }
+    }
+
+    const [
+      gymsSnap,
+      usersSnap,
+      activeSubsSnap,
+      activeLicensesSnap,
+      devicesSnap,
+    ] = await Promise.all([
+      db.collection('gyms').get(),
+      db.collection('users').get(),
+      db.collection('gyms').where('subscription.status', '==', 'active').get(),
+      db.collection('gyms').where('subscription.licenseStatus', '==', 'active').get(),
+      db.collection('licensedDevices').get(),
+    ])
+
+    let authUserCount = 0
+    try {
+      const listResult = await getAuth().listUsers(1000)
+      authUserCount = listResult.users.length
+    } catch (err) {
+      console.error('getSecurityMetrics: listUsers failed', err.message)
+    }
+
+    return {
+      error: null,
+      metrics: {
+        totalGyms: gymsSnap.size,
+        totalUsers: usersSnap.size,
+        activeSubscriptions: activeSubsSnap.size,
+        activeLicenses: activeLicensesSnap.size,
+        totalDevices: devicesSnap.size,
+        authUserCount,
+        platformStatus: 'operational',
+      },
+    }
+  } catch (err) {
+    console.error('getSecurityMetrics: unhandled error', err)
+    return { error: err.message || 'Internal server error', metrics: null }
   }
 })

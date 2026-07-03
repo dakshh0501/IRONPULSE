@@ -94,6 +94,7 @@ import {
   changePlan as changePlanService,
   checkAutoExpiry,
 } from '../services/subscriptionService'
+import { fetchSecurityMetrics as fetchSecurityMetricsFromService } from '../services/securityService'
 
 const AppContext = createContext()
 
@@ -116,6 +117,7 @@ export function AppProvider({ children }) {
   const [attendance,    setAttendance]    = useState([])
   const [oldPendingCount, setOldPendingCount] = useState(0)
   const [gymOwnersPending, setGymOwnersPending] = useState([])
+  const [checkinLog, setCheckinLog] = useState([])
   const pendingCount = useMemo(() => oldPendingCount + gymOwnersPending.length, [oldPendingCount, gymOwnersPending])
   const [gymSettings,   setGymSettings]   = useState({ name: 'IronForge Gym' })
   const [progressLogs,  setProgressLogs]  = useState([])
@@ -389,7 +391,7 @@ export function AppProvider({ children }) {
   useEffect(() => {
     if (authLoading || !currentUser?.uid) return
     setNotifLoading(true)
-    let unsub
+    let unsub; let timerId
     const schedule = () => {
       unsub = subscribeToNotifications(currentUser.uid, (data) => {
         setNotifications(data)
@@ -397,15 +399,36 @@ export function AppProvider({ children }) {
       }, gymId, reportSnapshotError)
     }
     if ('requestIdleCallback' in window) {
-      requestIdleCallback(schedule, { timeout: 300 })
+      timerId = requestIdleCallback(schedule, { timeout: 300 })
     } else {
-      setTimeout(schedule, 0)
+      timerId = setTimeout(schedule, 0)
     }
     return () => {
+      if (timerId != null) {
+        if (typeof timerId === 'number') clearTimeout(timerId)
+        else cancelIdleCallback(timerId)
+      }
       if (unsub) unsub()
       setNotifLoading(false)
     }
   }, [currentUser, authLoading, gymId])
+
+  // ── Security Metrics (super_admin only) ────────────────
+  const [securityMetrics, setSecurityMetrics] = useState(null)
+  const [securityMetricsLoading, setSecurityMetricsLoading] = useState(false)
+
+  useEffect(() => {
+    if (authLoading || !currentUser) return
+    if (effectiveRole !== 'super_admin') return
+    setSecurityMetricsLoading(true)
+    fetchSecurityMetricsFromService().then(metrics => {
+      setSecurityMetrics(metrics)
+      setSecurityMetricsLoading(false)
+    }).catch(err => {
+      console.error('[AppContext] fetchSecurityMetrics error:', err)
+      setSecurityMetricsLoading(false)
+    })
+  }, [authLoading, currentUser, effectiveRole])
 
   // ── Notification helpers ───────────────────────────────
   const fireNotif = async (notifKey, data) => {
@@ -497,7 +520,7 @@ export function AppProvider({ children }) {
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'progressLogs')) return
-    let unsub
+    let unsub; let timerId
     const schedule = () => {
       if (effectiveRole === 'member' && currentUser?.uid) {
         unsub = subscribeToMyProgressLogs((data) => setProgressLogs(data), currentUser.uid, reportSnapshotError)
@@ -506,39 +529,57 @@ export function AppProvider({ children }) {
       }
     }
     if ('requestIdleCallback' in window) {
-      requestIdleCallback(schedule, { timeout: 300 })
+      timerId = requestIdleCallback(schedule, { timeout: 300 })
     } else {
-      setTimeout(schedule, 0)
+      timerId = setTimeout(schedule, 0)
     }
-    return () => { if (unsub) unsub() }
+    return () => {
+      if (timerId != null) {
+        if (typeof timerId === 'number') clearTimeout(timerId)
+        else cancelIdleCallback(timerId)
+      }
+      if (unsub) unsub()
+    }
   }, [currentUser, authLoading, effectiveRole, queryGymId])
 
   // ── Diet Plans listener (deferred) ─────────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'dietPlans')) return
-    let unsub
+    let unsub; let timerId
     const schedule = () => { unsub = subscribeToDietPlans((data) => setDietPlans(data), queryGymId, reportSnapshotError) }
     if ('requestIdleCallback' in window) {
-      requestIdleCallback(schedule, { timeout: 300 })
+      timerId = requestIdleCallback(schedule, { timeout: 300 })
     } else {
-      setTimeout(schedule, 0)
+      timerId = setTimeout(schedule, 0)
     }
-    return () => { if (unsub) unsub() }
+    return () => {
+      if (timerId != null) {
+        if (typeof timerId === 'number') clearTimeout(timerId)
+        else cancelIdleCallback(timerId)
+      }
+      if (unsub) unsub()
+    }
   }, [currentUser, authLoading, effectiveRole, queryGymId])
 
   // ── Workout Plans listener (deferred) ──────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'workoutPlans')) return
-    let unsub
+    let unsub; let timerId
     const schedule = () => { unsub = subscribeToWorkoutPlans((data) => setWorkoutPlans(data), queryGymId, reportSnapshotError) }
     if ('requestIdleCallback' in window) {
-      requestIdleCallback(schedule, { timeout: 300 })
+      timerId = requestIdleCallback(schedule, { timeout: 300 })
     } else {
-      setTimeout(schedule, 0)
+      timerId = setTimeout(schedule, 0)
     }
-    return () => { if (unsub) unsub() }
+    return () => {
+      if (timerId != null) {
+        if (typeof timerId === 'number') clearTimeout(timerId)
+        else cancelIdleCallback(timerId)
+      }
+      if (unsub) unsub()
+    }
   }, [currentUser, authLoading, effectiveRole, queryGymId])
 
   // ── Support Tickets listener ──────────────────────────
@@ -590,6 +631,9 @@ export function AppProvider({ children }) {
       clearInterval(interval)
     }
   }, [currentUser, authLoading, effectiveRole])
+
+  // ── Stable actions ref (prevents context value recreation on every render) ──
+  const actionsRef = useRef({})
 
   // ── Auto-sync member payment fields ───────────────────
   // M34: Track previous payments to only update affected members (avoid O(n) writes)
@@ -643,7 +687,7 @@ export function AppProvider({ children }) {
     if (updates.length > 0) {
       Promise.allSettled(updates)
     }
-  }, [payments, members, currentUser, authLoading, userProfile, effectiveRole])
+  }, [payments, members, currentUser, authLoading, effectiveRole])
 
   // ── Persist dark mode ──────────────────────────────────
   // FIX: also save to localStorage whenever darkMode changes
@@ -1277,32 +1321,54 @@ export function AppProvider({ children }) {
     }
   }
 
+  // ── Stable actions ref (always has latest functions, stable identity) ──
+  actionsRef.current = {
+    setDarkMode,
+    addMember, updateMember, deleteMember,
+    addTrainer, updateTrainer, deleteTrainer,
+    addPayment, updatePayment, deletePayment,
+    addPlan, updatePlan, deletePlan,
+    addProgressLog, updateProgressLog, deleteProgressLog,
+    addDietPlan, updateDietPlan, deleteDietPlan,
+    addWorkoutPlan, updateWorkoutPlan, deleteWorkoutPlan,
+    markAllNotifsRead, markNotifRead, markNotifUnread, deleteNotif, fireNotif,
+    checkInMember,
+    activateSubscription, suspendSubscription, expireSubscription,
+    renewSubscription, upgradeSubscription, downgradeSubscription, reactivateSubscription,
+    assignTrialToGym, extendSubscription, changeSubscriptionPlan,
+    addPaymentAttempt, updatePaymentAttemptStatus, initiatePayment, refreshPaymentStatus,
+    approveGymOwner, rejectGymOwner,
+    addSupportTicket, addFeatureRequest,
+    addGym, updateGym, deleteGym,
+  }
+
+  const contextValue = useMemo(() => ({
+    darkMode, gymId,
+    members, trainers, payments, plans,
+    progressLogs, dietPlans, workoutPlans,
+    notifications, attendance,
+    pendingCount, gymSettings,
+    gyms, subscriptions, currentSubscription, subscriptionHistory,
+    paymentAttempts, snapshotErrors,
+    supportTickets, supportTicketsLoading,
+    featureRequests, featureRequestsLoading, notifLoading,
+    securityMetrics, securityMetricsLoading, unreadCount,
+    ...actionsRef.current,
+  }), [
+    darkMode, gymId,
+    members, trainers, payments, plans,
+    progressLogs, dietPlans, workoutPlans,
+    notifications, attendance,
+    pendingCount, gymSettings,
+    gyms, subscriptions, currentSubscription, subscriptionHistory,
+    paymentAttempts, snapshotErrors,
+    supportTickets, supportTicketsLoading,
+    featureRequests, featureRequestsLoading, notifLoading,
+    securityMetrics, securityMetricsLoading, unreadCount,
+  ])
+
   return (
-    <AppContext.Provider value={{
-      darkMode, setDarkMode,
-      gymId,
-      members,  addMember,  updateMember,  deleteMember,
-      trainers, addTrainer, updateTrainer, deleteTrainer,
-      payments, addPayment, updatePayment, deletePayment,
-      plans,    addPlan,    updatePlan,    deletePlan,
-      progressLogs, addProgressLog, updateProgressLog, deleteProgressLog,
-      dietPlans, addDietPlan, updateDietPlan, deleteDietPlan,
-      workoutPlans, addWorkoutPlan, updateWorkoutPlan, deleteWorkoutPlan,
-      notifications, markAllNotifsRead, markNotifRead, markNotifUnread, deleteNotif, unreadCount, notifLoading, fireNotif,
-      attendance, checkInMember,
-      pendingCount,
-      gymSettings,
-      gyms, subscriptions,
-      currentSubscription, subscriptionHistory,
-      activateSubscription, suspendSubscription, expireSubscription,
-      renewSubscription, upgradeSubscription, downgradeSubscription, reactivateSubscription,
-      assignTrialToGym, extendSubscription, changeSubscriptionPlan,
-      paymentAttempts, addPaymentAttempt, updatePaymentAttemptStatus, snapshotErrors,
-      initiatePayment, refreshPaymentStatus,
-      approveGymOwner, rejectGymOwner,
-      supportTickets, supportTicketsLoading, addSupportTicket,
-      featureRequests, featureRequestsLoading, addFeatureRequest,
-    }}>
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   )

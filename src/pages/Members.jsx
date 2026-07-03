@@ -597,11 +597,11 @@ export default function Members({ search: propSearch }) {
   const totalPages = Math.ceil(filtered.length / pageSize)
   const pagedMembers = filtered.slice((page - 1) * pageSize, page * pageSize)
 
-  const toggleSelect = (id) => {
+  const toggleSelect = useCallback((id) => {
     const next = new Set(selectedIds)
     if (next.has(id)) next.delete(id); else next.add(id)
     setSelectedIds(next)
-  }
+  }, [selectedIds])
 
   const selectAll = () => {
     if (selectedIds.size === pagedMembers.length) { setSelectedIds(new Set()) }

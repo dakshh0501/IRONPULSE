@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback, memo } from 'react'
 import { useApp }            from '../context/AppContext'
 import { addAttendance as addAttendanceService } from '../services/attendanceService'
 import QRScanner             from '../components/QRScanner'
@@ -12,12 +12,14 @@ function fmtDate(ds, todayStr) {
 
 // ─── 7-Day Heatmap ──────────────────────────────────────────
 function WeekHeatmap({ logs, todayStr }) {
-  const days = Array.from({ length:7 }, (_, i) => {
-    const d = new Date()
-    d.setDate(d.getDate() - (6 - i))
-    const ds = d.toISOString().split('T')[0]
-    return { label: d.toLocaleDateString('en-IN', { weekday:'short' }), date: ds, count: logs.filter(l => l.date === ds).length }
-  })
+  const days = useMemo(() => {
+    return Array.from({ length:7 }, (_, i) => {
+      const d = new Date()
+      d.setDate(d.getDate() - (6 - i))
+      const ds = d.toISOString().split('T')[0]
+      return { label: d.toLocaleDateString('en-IN', { weekday:'short' }), date: ds, count: logs.filter(l => l.date === ds).length }
+    })
+  }, [logs])
   const max = Math.max(...days.map(d => d.count), 1)
 
   return (
@@ -44,7 +46,7 @@ function WeekHeatmap({ logs, todayStr }) {
 }
 
 // ─── Member Streak Row ──────────────────────────────────────
-function MemberStreakRow({ member, logs, todayStr }) {
+const MemberStreakRow = memo(({ member, logs, todayStr }) => {
   const uid = member.authUid || member.uid || member.id
   const memberLogs = logs.filter(l => l.memberId === uid)
   const days = new Set(memberLogs.map(l => l.date))
@@ -87,8 +89,7 @@ function MemberStreakRow({ member, logs, todayStr }) {
       </div>
     </div>
   )
-}
-
+}) // end MemberStreakRow
 // ─── Peak Hours Bar ─────────────────────────────────────────
 function PeakHoursChart({ logs }) {
   const hours = useMemo(() => {
@@ -387,13 +388,15 @@ export default function Attendance({ search = '' }) {
   const absent = members.filter(m => !checkedInIds.has(m.authUid||m.uid||m.id)).length
   const late = todayLogs.filter(l => l.time && l.time >= '10:00').length
 
-  const weekdays = Array.from({ length:7 }, (_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - (6 - i))
-    return attendance.filter(l => l.date === d.toISOString().split('T')[0]).length
-  })
+  const weekdays = useMemo(() => {
+    return Array.from({ length:7 }, (_, i) => {
+      const d = new Date(); d.setDate(d.getDate() - (6 - i))
+      return attendance.filter(l => l.date === d.toISOString().split('T')[0]).length
+    })
+  }, [attendance])
   const weeklyAvg = Math.round(weekdays.reduce((s, v) => s + v, 0) / 7)
 
-  const handleCheckIn = async (member) => {
+  const handleCheckIn = useCallback(async (member) => {
     const uid = member.authUid || member.uid || member.id
     const alreadyCheckedIn = attendance.some(item => item.memberId === uid && item.date === todayStr)
     if (alreadyCheckedIn) { alert(`${member.name} is already checked in today.`); return }
@@ -411,9 +414,9 @@ export default function Attendance({ search = '' }) {
     } catch (err) { console.error('Failed to record attendance:', err); alert('Failed to check in. Please try again.'); return }
     setScanResult({ member, time })
     setTimeout(() => setScanResult(null), 4000)
-  }
+  }, [attendance, todayStr, gymId])
 
-  const handleQRCheckIn = async (member) => {
+  const handleQRCheckIn = useCallback(async (member) => {
     const uid = member.authUid || member.uid || member.id
     const alreadyCheckedIn = attendance.some(item => item.memberId === uid && item.date === todayStr)
     if (alreadyCheckedIn) { alert(`${member.name} is already checked in today.`); return }
@@ -431,14 +434,19 @@ export default function Attendance({ search = '' }) {
     } catch (err) { console.error('Failed to record attendance:', err); alert('Failed to check in. Please try again.'); return }
     setScanResult({ member, time })
     setTimeout(() => setScanResult(null), 4000)
-  }
+  }, [attendance, todayStr, gymId])
 
-  const handleScanSuccess = async (decodedText) => {
+  const handleScanSuccess = useCallback(async (decodedText) => {
     const scannedId = String(decodedText).trim()
     const member = members.find(m => String(m.authUid||m.uid||m.id) === scannedId)
     if (!member) { alert(`Member not found.\nScanned ID: ${scannedId.slice(0,16)}…\n\nMake sure the member's QR is from their dashboard and authUid is stored in Firestore.`); return }
     await handleQRCheckIn(member)
-  }
+  }, [members, handleQRCheckIn])
+
+  const onScanSuccessCb = useCallback((text) => {
+    handleScanSuccess(text)
+    setShowScanner(false)
+  }, [handleScanSuccess])
 
   return (
     <div className="page-container">
@@ -512,7 +520,7 @@ export default function Attendance({ search = '' }) {
               <button className="modal-close" onClick={() => setShowScanner(false)}>✕</button>
             </div>
             <div style={{ padding:'0 24px 24px' }}>
-              <QRScanner onScanSuccess={(text) => { handleScanSuccess(text); setShowScanner(false) }} />
+              <QRScanner onScanSuccess={onScanSuccessCb} />
               {scanResult && (
                 <div className="att-scan-success">
                   <span style={{ fontSize:24 }}>✅</span>

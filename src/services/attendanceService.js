@@ -74,9 +74,9 @@ export async function getAttendanceByDate(date, gymId) {
  *   }, [user])
  */
 export function subscribeAttendance(callback, gymId) {
-  // Require gymId to prevent cross-gym data exposure
-  if (!gymId) { console.error('[attendanceService] gymId required for subscribeAttendance'); return () => {} }
-  const q = query(collection(db, COLLECTION), where('gymId', '==', gymId))
+  const q = gymId
+    ? query(collection(db, COLLECTION), where('gymId', '==', gymId))
+    : query(collection(db, COLLECTION))
   return onSnapshot(
     q,
     (snap) => {

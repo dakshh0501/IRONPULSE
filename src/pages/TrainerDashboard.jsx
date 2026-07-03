@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 
@@ -9,36 +10,63 @@ export default function TrainerDashboard() {
   // ─────────────────────────────
   // Assigned members
   // ─────────────────────────────
-  const myTrainer = trainers.find(t => t.authUid === currentUser?.uid)
-  const myMembers = members.filter(m => m.trainerId === myTrainer?.id)
+  const myTrainer = useMemo(
+    () => trainers.find(t => t.authUid === currentUser?.uid),
+    [trainers, currentUser?.uid]
+  )
+
+  const myMembers = useMemo(
+    () => members.filter(m => m.trainerId === myTrainer?.id),
+    [members, myTrainer?.id]
+  )
 
   // ─────────────────────────────
   // Attendance today
   // ─────────────────────────────
-  const todayStr = new Date().toLocaleDateString('en-CA')  // 'YYYY-MM-DD' — same format as a.date
+  const todayStr = useMemo(
+    () => new Date().toLocaleDateString('en-CA'),
+    []
+  )
 
-  const todayAttendance = attendance.filter(a => {
-    const isToday = a.date === todayStr   // direct string compare, no parsing needed
+  const todayAttendance = useMemo(() => {
+    return attendance.filter(a => {
+      const isToday = a.date === todayStr
 
-    const belongsToTrainer = myMembers.some(m =>
-      a.memberId === m.id ||
-      a.memberId === m.uid ||
-      a.memberId === m.authUid
-    )
+      const belongsToTrainer = myMembers.some(m =>
+        a.memberId === m.id ||
+        a.memberId === m.uid ||
+        a.memberId === m.authUid
+      )
 
-    return isToday && belongsToTrainer
-  })
+      return isToday && belongsToTrainer
+    })
+  }, [attendance, todayStr, myMembers])
 
   // ─────────────────────────────
   // Expiring members
   // ─────────────────────────────
-  const expiringSoon = myMembers.filter(m => {
-    if (!m.expiry) return false
-    const expiryDate = new Date(m.expiry)
-    const today = new Date()
-    const daysUntilExpiry = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24))
-    return daysUntilExpiry <= 7 && daysUntilExpiry > 0
-  })
+  const expiringSoon = useMemo(() => {
+    return myMembers.filter(m => {
+      if (!m.expiry) return false
+      const expiryDate = new Date(m.expiry)
+      const today = new Date()
+      const daysUntilExpiry = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24))
+      return daysUntilExpiry <= 7 && daysUntilExpiry > 0
+    })
+  }, [myMembers])
+
+  // ─────────────────────────────
+  // Member lookup map (avoids O(n²) .find inside .map)
+  // ─────────────────────────────
+  const memberMap = useMemo(() => {
+    const map = {}
+    myMembers.forEach(m => {
+      map[m.id] = m
+      if (m.uid) map[m.uid] = m
+      if (m.authUid) map[m.authUid] = m
+    })
+    return map
+  }, [myMembers])
 
   return (
     <div className="dashboard-page">
@@ -96,11 +124,7 @@ export default function TrainerDashboard() {
           <p className="muted">No attendance today.</p>
         ) : (
           todayAttendance.slice(0, 5).map(item => {
-            const member = myMembers.find(m =>
-              m.id === item.memberId ||
-              m.uid === item.memberId ||
-              m.authUid === item.memberId
-            )
+            const member = memberMap[item.memberId]
             return (
               <div key={item.id} className="activity-item">
                 <div>✅ {member?.name || 'Member'} checked in</div>
