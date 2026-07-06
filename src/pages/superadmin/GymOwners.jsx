@@ -394,11 +394,6 @@ export default function SuperAdminGymOwners({ search: parentSearch }) {
   ], [])
 
   const renderDocuments = useCallback((g, gId) => {
-    const docSearch = ''
-    const docFilter = 'all'
-    const docPreview = null
-    const setDocPreview = () => {}
-
     const hasGst = !!(g.gst || g.gstin)
 
     const docStatuses = {
@@ -414,11 +409,7 @@ export default function SuperAdminGymOwners({ search: parentSearch }) {
       gst: hasGst ? { uploadDate: null, verifiedBy: null, notes: null, expiry: null } : null,
     }
 
-    const filteredTypes = DOCUMENT_TYPES.filter(d => {
-      if (docFilter !== 'all' && docStatuses[d.id] !== docFilter) return false
-      if (docSearch && !d.label.toLowerCase().includes(docSearch.toLowerCase())) return false
-      return true
-    })
+    const filteredTypes = DOCUMENT_TYPES
 
     const statusCounts = { verified: 0, pending: 0, rejected: 0, missing: 0 }
     Object.values(docStatuses).forEach(s => { if (statusCounts[s] !== undefined) statusCounts[s]++ })
@@ -493,12 +484,12 @@ export default function SuperAdminGymOwners({ search: parentSearch }) {
                     <span className="go-pill" style={{ background: meta.bg, color: meta.color, fontSize:10, padding:'2px 8px' }}>{meta.label}</span>
                     {st === 'pending' && (
                       <>
-                        <button className="go-btn-primary" style={{ padding:'4px 10px', fontSize:10 }} onClick={e => { e.stopPropagation(); alert('Approve: ' + d.label) }}>✓</button>
-                        <button className="go-btn-secondary" style={{ padding:'4px 10px', fontSize:10, color:'#ef4444' }} onClick={e => { e.stopPropagation(); alert('Reject: ' + d.label) }}>✕</button>
+                        <button className="go-btn-primary" style={{ padding:'4px 10px', fontSize:10 }} onClick={e => { e.stopPropagation(); updateDoc(doc(db, 'gyms', gId), { [`documents.${d.id}.status`]: 'approved', [`documents.${d.id}.reviewedAt`]: serverTimestamp() }) }}>✓</button>
+                        <button className="go-btn-secondary" style={{ padding:'4px 10px', fontSize:10, color:'#ef4444' }} onClick={e => { e.stopPropagation(); updateDoc(doc(db, 'gyms', gId), { [`documents.${d.id}.status`]: 'rejected', [`documents.${d.id}.reviewedAt`]: serverTimestamp() }) }}>✕</button>
                       </>
                     )}
                     {st === 'verified' && (
-                      <button className="go-btn-secondary" style={{ padding:'4px 10px', fontSize:10 }} onClick={e => { e.stopPropagation(); alert('Download: ' + d.label) }}>⬇</button>
+                      <button className="go-btn-secondary" style={{ padding:'4px 10px', fontSize:10 }} onClick={e => { e.stopPropagation(); const b = new Blob([`${d.label} for ${g.gymName || g.name} — generated ${new Date().toISOString()}`], {type:'text/plain'}); const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = `${d.id}.txt`; a.click(); URL.revokeObjectURL(u) }}>⬇</button>
                     )}
                   </div>
                 </div>
@@ -513,7 +504,7 @@ export default function SuperAdminGymOwners({ search: parentSearch }) {
             <div style={{ fontSize:28, marginBottom:8 }}>📄</div>
             <div style={{ fontSize:13, fontWeight:600, color:'#6070a0', marginBottom:4 }}>No documents uploaded</div>
             <div style={{ fontSize:11, color:'#384860', marginBottom:12 }}>Gym owners can upload documents for verification in their settings.</div>
-            <button className="go-btn-secondary" style={{ fontSize:11 }} onClick={() => alert('Notify owner to upload documents')}>
+            <button className="go-btn-secondary" style={{ fontSize:11 }} onClick={() => { if (fireNotif) fireNotif('document_reminder', { gymId: gId, userId: g.ownerUid, title: 'Documents Required', message: 'Please upload your gym documents for verification.' }).catch(() => {}) }}>
               🔔 Notify Owner
             </button>
           </div>
@@ -651,9 +642,9 @@ export default function SuperAdminGymOwners({ search: parentSearch }) {
                     </div>
                   </div>
                   <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-                    <button className="go-btn-primary" onClick={() => alert('Upgrade: ' + g.gymName)}>⬆ Upgrade</button>
-                    <button className="go-btn-secondary" onClick={() => alert('Downgrade: ' + g.gymName)}>⬇ Downgrade</button>
-                    <button className="go-btn-secondary" onClick={() => alert('Renew: ' + g.gymName)}>🔄 Renew</button>
+                    <button className="go-btn-primary" onClick={() => alert(`To upgrade ${g.gymName || g.name}, go to Settings → Gym Subscription and select a higher plan.`)}>⬆ Upgrade</button>
+                    <button className="go-btn-secondary" onClick={() => alert(`To downgrade ${g.gymName || g.name}, go to Settings → Gym Subscription and select a lower plan.`)}>⬇ Downgrade</button>
+                    <button className="go-btn-secondary" onClick={() => alert(`To renew ${g.gymName || g.name}, go to Settings → Gym Subscription and process the renewal.`)}>🔄 Renew</button>
                   </div>
                 </>
               ) : (

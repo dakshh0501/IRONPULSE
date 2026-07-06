@@ -91,8 +91,12 @@ function StatCard({ label, value, icon, color, delay = 0 }) {
 }
 
 export default function SuperAdminNotifications() {
-  const { notifications, markAllNotifsRead, markNotifRead, deleteNotif } = useApp()
+  const { notifications, markAllNotifsRead, markNotifRead, deleteNotif, addNotifToFirestore } = useApp()
   const [filter, setFilter] = useState('all')
+  const [showBroadcast, setShowBroadcast] = useState(false)
+  const [broadcastTitle, setBroadcastTitle] = useState('')
+  const [broadcastMsg, setBroadcastMsg] = useState('')
+  const [broadcastSending, setBroadcastSending] = useState(false)
 
   const typeCounts = useMemo(() => {
     const counts = {}
@@ -136,7 +140,8 @@ export default function SuperAdminNotifications() {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4, verticalAlign: 'middle' }}><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
             Mark All Read
           </button>
-          <button className="btn btn-sm" style={{ background: 'linear-gradient(135deg,#e8420a,#ff5520)', border: 'none', borderRadius: 10, color: '#fff', padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+          <button className="btn btn-sm" style={{ background: 'linear-gradient(135deg,#e8420a,#ff5520)', border: 'none', borderRadius: 10, color: '#fff', padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+            onClick={() => setShowBroadcast(true)}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4, verticalAlign: 'middle' }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Broadcast
           </button>
@@ -210,6 +215,53 @@ export default function SuperAdminNotifications() {
           </div>
         )}
       </div>
+
+      {/* ── Broadcast Modal ── */}
+      {showBroadcast && (
+        <div className="modal-overlay" onClick={() => !broadcastSending && setShowBroadcast(false)}>
+          <div className="modal" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">📢 Send Broadcast</h3>
+              <button className="modal-close" onClick={() => setShowBroadcast(false)} disabled={broadcastSending}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ marginBottom: 14 }}>
+                <label className="form-label">Title</label>
+                <input className="form-input" value={broadcastTitle} onChange={e => setBroadcastTitle(e.target.value)} placeholder="Announcement title" disabled={broadcastSending} />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label className="form-label">Message</label>
+                <textarea className="form-textarea" value={broadcastMsg} onChange={e => setBroadcastMsg(e.target.value)} placeholder="Write your broadcast message..." rows={4} disabled={broadcastSending} />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-outline" onClick={() => setShowBroadcast(false)} disabled={broadcastSending}>Cancel</button>
+              <button className="btn btn-primary" disabled={!broadcastTitle.trim() || !broadcastMsg.trim() || broadcastSending}
+                onClick={async () => {
+                  setBroadcastSending(true)
+                  try {
+                    await addNotifToFirestore({
+                      type: 'announcement',
+                      title: broadcastTitle.trim(),
+                      message: broadcastMsg.trim(),
+                      icon: '📢',
+                      createdAt: new Date().toISOString(),
+                    })
+                    setShowBroadcast(false)
+                    setBroadcastTitle('')
+                    setBroadcastMsg('')
+                  } catch (e) {
+                    console.error('Broadcast failed:', e)
+                  } finally {
+                    setBroadcastSending(false)
+                  }
+                }}>
+                {broadcastSending ? 'Sending...' : 'Send Broadcast'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

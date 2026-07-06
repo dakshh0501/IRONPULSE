@@ -11,7 +11,8 @@ import {
   logOut,
   resetPassword,
   getUserProfile,
-  checkPendingGymOwnerRegistration,
+  reloadUser,
+  resendVerificationEmail,
 } from '../services/authService'
 import { getSettings } from '../services/firestoreService'
 import { applyAccentColor, DEFAULT_ACCENT } from '../utils/theme'
@@ -35,7 +36,7 @@ async function loadAndApplyAccent(gymId) {
     const theme = await getSettings('theme', gymId)
     applyAccentColor(theme?.accentColor || DEFAULT_ACCENT)
   } catch (err) {
-    console.error('Failed to load theme:', err)
+    console.error('AuthContext: Failed to load theme:', err)
     applyAccentColor(DEFAULT_ACCENT)
   }
 }
@@ -47,6 +48,7 @@ export function AuthProvider({ children }) {
   const [authLoading, setAuthLoading] = useState(true)
   const [authError, setAuthError] = useState('')
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+  const [needsVerification, setNeedsVerification] = useState(false)
   const signingUpRef = useRef(false)
 
   // ─────────────────────────────────────────────────────────────
@@ -172,13 +174,15 @@ export function AuthProvider({ children }) {
         setUserProfile(profile)
         setRole(profile.role)
         setAuthError('')
+        if (firebaseUser.emailVerified) setNeedsVerification(false)
 
         // Super admin check: stored directly on the user doc as isSuperAdmin.
         setIsSuperAdmin(profile.role === 'admin' && profile.isSuperAdmin === true)
 
         // Load on login / load on refresh — gym-wide accent applies
         // to admin, trainer, and member alike.
-        await loadAndApplyAccent(profile?.gymId)
+        // Only attempt Firestore read when gymId is available (super_admin has none)
+        if (profile?.gymId) await loadAndApplyAccent(profile.gymId)
       } catch (err) {
         // Catch-all: unexpected error in the handler itself (not Firestore).
         // Do NOT sign out — keep state and log.
@@ -196,20 +200,11 @@ export function AuthProvider({ children }) {
   async function register({ name, email, password, gymName, phone }) {
     setAuthError('')
 
-    // Duplicate pending registration check
-    if (gymName) {
-      const exists = await checkPendingGymOwnerRegistration(email)
-      if (exists) {
-        setAuthError('This email already has a pending approval request.')
-        throw new Error('This email already has a pending approval request.')
-      }
-    }
-
     signingUpRef.current = true
     try {
       const gymData = { gymName, ownerName: name, email, phone }
       await signUp({ name, email, password, gymData, role: 'gym_owner_pending' })
-      return 'gym_owner_pending'
+      return { email }
     } catch (err) {
       const msg = friendlyError(err.code || err.message)
       setAuthError(msg)
@@ -249,6 +244,11 @@ export function AuthProvider({ children }) {
 
       return userRole
     } catch (err) {
+      if (err.message === 'email-not-verified') {
+        setNeedsVerification(true)
+        setAuthError('Please verify your email before signing in.')
+        throw err
+      }
       const msg = err.message === 'pending' || err.message === 'gym_owner_pending'
         ? 'Your account is awaiting admin approval.'
         : err.message === 'rejected'
@@ -270,6 +270,7 @@ export function AuthProvider({ children }) {
       setUserProfile(null)
       setRole(null)
       setIsSuperAdmin(false)
+      setNeedsVerification(false)
       setAuthError('')
       applyAccentColor(DEFAULT_ACCENT) // reset to default on sign-out
     }
@@ -283,9 +284,32 @@ export function AuthProvider({ children }) {
     try {
       await resetPassword(email)
     } catch (err) {
+      if (err.code === 'auth/user-not-found') return
       const msg = friendlyError(err.code)
       setAuthError(msg)
       throw err
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // EMAIL VERIFICATION HELPERS
+  // ─────────────────────────────────────────────────────────────
+  async function sendVerificationEmail(user) {
+    try {
+      await resendVerificationEmail(user)
+    } catch (err) {
+      const msg = friendlyError(err.code)
+      setAuthError(msg)
+      throw err
+    }
+  }
+
+  async function refreshEmailStatus(user) {
+    try {
+      return await reloadUser(user)
+    } catch (err) {
+      console.error('Failed to refresh email status:', err)
+      return false
     }
   }
 
@@ -306,9 +330,9 @@ export function AuthProvider({ children }) {
       'auth/invalid-credential':                'Incorrect email or password.',
       'auth/email-already-in-use':              'This email is already registered.',
       'auth/weak-password':                     'Password must be at least 6 characters.',
-      'auth/invalid-email':                     'Please enter a valid email.',
-      'auth/too-many-requests':                 'Too many attempts. Please wait.',
-      'auth/network-request-failed':            'Network error. Check your connection.',
+      'auth/invalid-email':                     'Enter a valid email address.',
+      'auth/too-many-requests':                 'Too many attempts. Please try again later.',
+      'auth/network-request-failed':            'Check your internet connection.',
       'auth/operation-not-allowed':             'This sign-in method is not enabled. Contact support.',
       'auth/user-disabled':                     'This account has been disabled. Contact support.',
       'auth/internal-error':                    'Authentication service error. Please try again.',
@@ -387,8 +411,9 @@ export function AuthProvider({ children }) {
     effectiveRole,
     authLoading,
     authError,
+    needsVerification,
     userGymId,
-    isLoggedIn:     !!currentUser && role !== 'pending' && role !== 'rejected',
+    isLoggedIn:     !!currentUser && role !== 'pending' && role !== 'rejected' && currentUser.emailVerified,
     isAdmin:        role === 'admin',
     isSuperAdmin,
     isGymAdmin:     effectiveRole === 'gym_admin',
@@ -398,6 +423,8 @@ export function AuthProvider({ children }) {
     register,
     logout,
     sendPasswordReset,
+    sendVerificationEmail,
+    refreshEmailStatus,
     setAuthError,
     updateUserProfile,
   }

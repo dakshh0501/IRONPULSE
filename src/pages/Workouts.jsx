@@ -1022,7 +1022,7 @@ export default function Workouts({ search = '' }) {
       {delPlan && (
         <DeleteModal
           plan={delPlan}
-          onConfirm={async (id) => { try { await deleteWorkoutPlan(id) } catch (e) { console.error(e) } setDelPlan(null) }}
+          onConfirm={async (id) => { try { await deleteWorkoutPlan(id) } catch (e) { console.error('Failed to delete workout plan:', e) } setDelPlan(null) }}
           onClose={() => setDelPlan(null)}
         />
       )}

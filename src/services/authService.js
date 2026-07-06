@@ -8,7 +8,9 @@ import {
   signInWithEmailAndPassword,
   signOut,
   sendPasswordResetEmail,
+  sendEmailVerification,
   onAuthStateChanged,
+  reload,
 } from 'firebase/auth'
 import { serverTimestamp } from 'firebase/firestore'
 import {
@@ -37,6 +39,18 @@ export async function signUp({ name, email, password, gymData, role }) {
   } catch (e) {
     console.error('[SIGNUP AUTH] createUserWithEmailAndPassword', '', e.code, e.message, e)
     throw e
+  }
+
+  // ───── Step 1.5: sendEmailVerification ─────
+  try {
+    const actionCodeSettings = {
+      url: `${window.location.origin}/auth?verified=true`,
+      handleCodeInApp: true,
+    }
+    await sendEmailVerification(authUser, actionCodeSettings)
+  } catch (e) {
+    // Non-fatal: email verification is best-effort. Auth account exists.
+    console.error('[SIGNUP AUTH] sendEmailVerification failed:', e.code, e.message)
   }
 
   // ───── Step 2: setDoc(users/{uid}) ─────
@@ -70,7 +84,9 @@ export async function signUp({ name, email, password, gymData, role }) {
   // ───── Step 3: addDoc(gyms) via addGym() ─────
   if (role === 'gym_owner_pending') {
     try {
-      await addGym(gymData, authUser.uid)
+      const gymDocId = await addGym(gymData, authUser.uid)
+      // Update user doc with actual gym ID
+      await updateDoc(doc(db, 'users', authUser.uid), { gymId: gymDocId })
     } catch (e) {
       console.error('[SIGNUP FIRESTORE] addGym FAILED', {
         operation: 'addDoc',
@@ -129,6 +145,11 @@ export async function signIn(email, password) {
     if (role === 'pending' || role === 'gym_owner_pending' || role === 'rejected') {
       await signOut(auth)
       throw new Error(role) // distinct error per role
+    }
+
+    // 4. Verify email — all approved roles must have a verified email
+    if (!user.emailVerified) {
+      throw new Error('email-not-verified')
     }
 
     return { user, role }
@@ -267,6 +288,19 @@ export function subscribeToAuthState(callback) {
   return onAuthStateChanged(auth, callback)
 }
 
+export async function reloadUser(user) {
+  await reload(user)
+  return user.emailVerified
+}
+
+export async function resendVerificationEmail(user) {
+  const actionCodeSettings = {
+    url: `${window.location.origin}/auth?verified=true`,
+    handleCodeInApp: true,
+  }
+  await sendEmailVerification(user, actionCodeSettings)
+}
+
 export async function approveUser(uid, newRole) {
   try {
     if (!['member', 'trainer'].includes(newRole)) {
@@ -377,36 +411,6 @@ export async function getGymOwnerPending() {
   } catch (err) {
     console.error('getGymOwnerPending error:', err)
     return []
-  }
-}
-
-/**
- * Check if an email already has a pending gym owner registration.
- * Queries both users and gyms collections. Returns true if a pending
- * registration exists, false otherwise.
- */
-export async function checkPendingGymOwnerRegistration(email) {
-  try {
-    // Check users collection for gym_owner_pending with this email
-    const usersSnap = await getDocs(query(
-      collection(db, 'users'),
-      where('role', '==', 'gym_owner_pending'),
-      where('email', '==', email)
-    ))
-    if (!usersSnap.empty) return true
-
-    // Check gyms collection for pending approval with this email
-    const gymsSnap = await getDocs(query(
-      collection(db, 'gyms'),
-      where('approvalStatus', '==', 'pending'),
-      where('email', '==', email)
-    ))
-    if (!gymsSnap.empty) return true
-
-    return false
-  } catch (err) {
-    console.error('checkPendingGymOwnerRegistration error:', err)
-    return true
   }
 }
 

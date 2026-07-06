@@ -487,6 +487,7 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
   const [page, setPage] = useState(1)
   const [drawerTab, setDrawerTab] = useState('overview')
   const [confirmAction, setConfirmAction] = useState(null)
+  const [actionError, setActionError] = useState('')
   const drawerRef = useRef(null)
 
   useEffect(() => {
@@ -561,14 +562,13 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
       }); break
       case 'Gym A-Z': {
         const gymMap = {}
-        gyms.forEach(g => { gymMap[g.id] = (g.gymName || g.name || '').toLowerCase() })
-        gymMap[g.gymId || ''] = gymMap[g.gymId || ''] || ''
+        gyms.forEach(gym => { gymMap[gym.id] = (gym.gymName || gym.name || '').toLowerCase() })
         list.sort((a, b) => (gymMap[a.gymId] || '').localeCompare(gymMap[b.gymId] || ''))
         break
       }
       case 'Gym Z-A': {
         const gymMap = {}
-        gyms.forEach(g => { gymMap[g.id] = (g.gymName || g.name || '').toLowerCase() })
+        gyms.forEach(gym => { gymMap[gym.id] = (gym.gymName || gym.name || '').toLowerCase() })
         list.sort((a, b) => (gymMap[b.gymId] || '').localeCompare(gymMap[a.gymId] || ''))
         break
       }
@@ -664,8 +664,10 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
 
       setActionType(null)
       setConfirmAction(null)
+      setActionError('')
     } catch (err) {
       console.error('Action failed:', err)
+      setActionError(err?.message || 'Action failed. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -984,21 +986,18 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 8 }}>
                     <div style={{ padding: '10px 12px', background: 'var(--bg3)', borderRadius: 10 }}>
-                      <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>Invoices</div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-muted)', fontFamily: "'Barlow Condensed', sans-serif" }}>—</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>Plan</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', fontFamily: "'Barlow Condensed', sans-serif" }}>{selectedSub?.plan || '—'}</div>
                     </div>
                     <div style={{ padding: '10px 12px', background: 'var(--bg3)', borderRadius: 10 }}>
-                      <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>Discounts</div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-muted)', fontFamily: "'Barlow Condensed', sans-serif" }}>—</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>Amount</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', fontFamily: "'Barlow Condensed', sans-serif" }}>{selectedSub?.amount ? `₹${(selectedSub.amount/100).toLocaleString()}` : '—'}</div>
                     </div>
                     <div style={{ padding: '10px 12px', background: 'var(--bg3)', borderRadius: 10 }}>
-                      <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>Refunds</div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-muted)', fontFamily: "'Barlow Condensed', sans-serif" }}>—</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>Payment</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', fontFamily: "'Barlow Condensed', sans-serif" }}>{selectedSub?.paymentMethod || selectedSub?.paymentStatus || '—'}</div>
                     </div>
                   </div>
-                  <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '12px 0 0', fontStyle: 'italic' }}>
-                    Detailed billing data appears after invoice records are synced.
-                  </p>
                 </div>
 
                 {/* History */}
@@ -1039,23 +1038,20 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
                   <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 16px' }}>Usage Overview</h3>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
                     {[
-                      { label: 'Members', value: '—', color: '#3b82f6', icon: '👥' },
-                      { label: 'Storage', value: '—', color: '#22c55e', icon: '💾' },
-                      { label: 'Devices', value: '—', color: '#f59e0b', icon: '📱' },
-                      { label: 'Reports', value: '—', color: '#a855f7', icon: '📊' },
-                      { label: 'Attendance', value: '—', color: '#00c8b4', icon: '📋' },
-                      { label: 'Payments', value: '—', color: '#e8420a', icon: '💳' },
+                      { label: 'Gym Name', value: selectedGymName || selectedSub?.gymId || '—', color: '#3b82f6', icon: '🏢' },
+                      { label: 'Plan', value: selectedSub?.plan || '—', color: '#22c55e', icon: '📋' },
+                      { label: 'Status', value: selectedSub?.status || '—', color: '#f59e0b', icon: selectedSub?.status === 'active' ? '✅' : selectedSub?.status === 'expired' ? '❌' : '⏳' },
+                      { label: 'Plan Type', value: selectedSub?.planType || '—', color: '#a855f7', icon: '📊' },
+                      { label: 'Start Date', value: selectedSub?.startDate ? formatDate(selectedSub.startDate) : '—', color: '#00c8b4', icon: '📅' },
+                      { label: 'End Date', value: selectedSub?.endDate ? formatDate(selectedSub.endDate) : '—', color: '#e8420a', icon: '⏰' },
                     ].map((item, i) => (
                       <div key={i} style={{ padding: '12px', background: 'var(--bg3)', borderRadius: 10, textAlign: 'center' }}>
                         <div style={{ fontSize: 20, marginBottom: 4 }}>{item.icon}</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: item.color, fontFamily: "'Barlow Condensed', sans-serif" }}>{item.value}</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: item.color, fontFamily: "'Barlow Condensed', sans-serif", wordBreak: 'break-word' }}>{item.value}</div>
                         <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>{item.label}</div>
                       </div>
                     ))}
                   </div>
-                  <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '12px 0 0', fontStyle: 'italic' }}>
-                    Usage metrics sync with gym activity data.
-                  </p>
                 </div>
 
                 {/* Actions */}
@@ -1142,7 +1138,7 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
       )}
 
       {actionType && ['renew', 'upgrade', 'downgrade', 'change'].includes(actionType) && (
-        <div className="modal-overlay" onClick={() => setActionType(null)}>
+        <div className="modal-overlay" onClick={() => { setActionType(null); setActionError('') }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>
               {ACTION_STYLES[actionType]?.label || 'Action'}
@@ -1153,8 +1149,9 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
             </select>
             <label className="form-label">Duration (days)</label>
             <input className="form-input" type="number" value={formDays} onChange={e => setFormDays(Math.max(1, Number(e.target.value)))} style={{ marginBottom: 16 }} />
+            {actionError && <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, padding:'8px 12px', marginBottom:12, fontSize:12, color:'#f87171' }}>{actionError}</div>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className="sub-btn-secondary" onClick={() => setActionType(null)} disabled={loading}>Cancel</button>
+              <button className="sub-btn-secondary" onClick={() => { setActionType(null); setActionError('') }} disabled={loading}>Cancel</button>
               <button className="sub-btn-primary" onClick={() => handleAction(actionType)} disabled={loading}>
                 {loading ? 'Processing...' : 'Confirm'}
               </button>
@@ -1169,8 +1166,9 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
             <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Extend Expiry</h3>
             <label className="form-label">Extend by (days)</label>
             <input className="form-input" type="number" value={formDays} onChange={e => setFormDays(Math.max(1, Number(e.target.value)))} style={{ marginBottom: 16 }} />
+            {actionError && <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, padding:'8px 12px', marginBottom:12, fontSize:12, color:'#f87171' }}>{actionError}</div>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className="sub-btn-secondary" onClick={() => setActionType(null)} disabled={loading}>Cancel</button>
+              <button className="sub-btn-secondary" onClick={() => { setActionType(null); setActionError('') }} disabled={loading}>Cancel</button>
               <button className="sub-btn-primary" onClick={() => handleAction('extend')} disabled={loading}>{loading ? 'Processing...' : 'Confirm'}</button>
             </div>
           </div>
@@ -1178,12 +1176,13 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
       )}
 
       {actionType === 'activate' && (
-        <div className="modal-overlay" onClick={() => setActionType(null)}>
+        <div className="modal-overlay" onClick={() => { setActionType(null); setActionError('') }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h3 style={{ marginBottom: 16, color: '#22c55e', fontSize: 16 }}>Activate Subscription</h3>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>Activate this subscription for the gym. This will set status to active and payment to paid.</p>
+            {actionError && <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, padding:'8px 12px', marginBottom:12, fontSize:12, color:'#f87171' }}>{actionError}</div>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className="sub-btn-secondary" onClick={() => setActionType(null)} disabled={loading}>Cancel</button>
+              <button className="sub-btn-secondary" onClick={() => { setActionType(null); setActionError('') }} disabled={loading}>Cancel</button>
               <button className="sub-btn-primary" style={{ background: '#22c55e' }} onClick={() => handleAction('activate')} disabled={loading}>{loading ? 'Processing...' : 'Activate'}</button>
             </div>
           </div>
@@ -1191,12 +1190,13 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
       )}
 
       {actionType === 'suspend' && (
-        <div className="modal-overlay" onClick={() => setActionType(null)}>
+        <div className="modal-overlay" onClick={() => { setActionType(null); setActionError('') }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h3 style={{ marginBottom: 16, color: '#a855f7', fontSize: 16 }}>Suspend Subscription</h3>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>Suspending will restrict gym access. This action can be reversed by activating again.</p>
+            {actionError && <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, padding:'8px 12px', marginBottom:12, fontSize:12, color:'#f87171' }}>{actionError}</div>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className="sub-btn-secondary" onClick={() => setActionType(null)} disabled={loading}>Cancel</button>
+              <button className="sub-btn-secondary" onClick={() => { setActionType(null); setActionError('') }} disabled={loading}>Cancel</button>
               <button className="sub-btn-primary" style={{ background: '#a855f7' }} onClick={() => handleAction('suspend')} disabled={loading}>{loading ? 'Processing...' : 'Suspend'}</button>
             </div>
           </div>
@@ -1204,12 +1204,13 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
       )}
 
       {actionType === 'expire' && (
-        <div className="modal-overlay" onClick={() => setActionType(null)}>
+        <div className="modal-overlay" onClick={() => { setActionType(null); setActionError('') }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h3 style={{ marginBottom: 16, color: '#ef4444', fontSize: 16 }}>Expire Subscription</h3>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>Mark this subscription as expired. The gym will lose access to premium features.</p>
+            {actionError && <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, padding:'8px 12px', marginBottom:12, fontSize:12, color:'#f87171' }}>{actionError}</div>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className="sub-btn-secondary" onClick={() => setActionType(null)} disabled={loading}>Cancel</button>
+              <button className="sub-btn-secondary" onClick={() => { setActionType(null); setActionError('') }} disabled={loading}>Cancel</button>
               <button className="sub-btn-primary" style={{ background: '#ef4444' }} onClick={() => handleAction('expire')} disabled={loading}>{loading ? 'Processing...' : 'Expire'}</button>
             </div>
           </div>
@@ -1222,8 +1223,9 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
             <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Assign Trial</h3>
             <label className="form-label">Trial Days</label>
             <input className="form-input" type="number" value={formDays} onChange={e => setFormDays(Math.max(1, Number(e.target.value)))} style={{ marginBottom: 16 }} />
+            {actionError && <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, padding:'8px 12px', marginBottom:12, fontSize:12, color:'#f87171' }}>{actionError}</div>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className="sub-btn-secondary" onClick={() => setActionType(null)} disabled={loading}>Cancel</button>
+              <button className="sub-btn-secondary" onClick={() => { setActionType(null); setActionError('') }} disabled={loading}>Cancel</button>
               <button className="sub-btn-primary" onClick={() => handleAction('trial')} disabled={loading}>{loading ? 'Processing...' : 'Confirm'}</button>
             </div>
           </div>

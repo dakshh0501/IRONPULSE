@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
+import { subscribeToContactMessages, updateContactMessage } from '../../services/firestoreService'
 
 const ssptStyles = document.createElement('style')
 ssptStyles.textContent = `
@@ -379,6 +380,16 @@ export default function SuperAdminSupport() {
   const [statusFilter, setStatusFilter] = useState('All')
   const [selectedTicket, setSelectedTicket] = useState(null)
   const { supportTickets, supportTicketsLoading, featureRequests, featureRequestsLoading, gyms } = useApp()
+  const [contactMessages, setContactMessages] = useState([])
+  const [contactMessagesLoading, setContactMessagesLoading] = useState(true)
+
+  useEffect(() => {
+    const unsub = subscribeToContactMessages((data) => {
+      setContactMessages(data)
+      setContactMessagesLoading(false)
+    })
+    return unsub
+  }, [])
 
   const ticketsWithGym = useMemo(() => {
     let list = supportTickets.map(t => {
@@ -404,6 +415,7 @@ export default function SuperAdminSupport() {
     { key: 'tickets', label: 'Tickets', icon: '🎫', count: supportTickets.length },
     { key: 'knowledge', label: 'Knowledge Base', icon: '📚', count: null },
     { key: 'features', label: 'Features', icon: '💡', count: featureCount },
+    { key: 'messages', label: 'Messages', icon: '✉️', count: contactMessages.length },
   ]
 
   const selectedGymName = useMemo(() => {
@@ -522,6 +534,51 @@ export default function SuperAdminSupport() {
                       </tr>
                     )
                   })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'messages' && (
+        <div className="sspt-card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--border)' }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#e4e8f0' }}>Landing Page Contact Messages</span>
+            <span style={{ fontSize: 11, color: '#6070a0', marginLeft: 6 }}>({contactMessages.length})</span>
+          </div>
+          {contactMessagesLoading ? (
+            <div className="sspt-card" style={{ padding: '24px', border: 'none' }}>
+              {Array.from({ length: 3 }, (_, i) => <div key={i} className="sspt-skeleton" style={{ height: 48, borderRadius: 10, marginBottom: 10 }} />)}
+            </div>
+          ) : contactMessages.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 24px' }}>
+              <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.5 }}>✉️</div>
+              <p style={{ fontSize: 14, color: '#6070a0', margin: '0 0 4px' }}>No contact messages yet</p>
+              <p style={{ fontSize: 12, color: '#384860', margin: 0 }}>Messages submitted from the landing page contact form will appear here.</p>
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="data-table">
+                <thead><tr><th>Date</th><th>Name</th><th>Email</th><th>Phone</th><th>Message</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody>
+                  {[...contactMessages].reverse().map(m => (
+                    <tr key={m.id}>
+                      <td style={{ color: '#6070a0', fontSize: 12, whiteSpace: 'nowrap' }}>{m.createdAt?.seconds ? new Date(m.createdAt.seconds * 1000).toLocaleDateString() : '—'}</td>
+                      <td style={{ fontWeight: 600, color: '#e4e8f0' }}>{m.name || '—'}</td>
+                      <td style={{ color: '#a0aac0' }}>{m.email || '—'}</td>
+                      <td style={{ color: '#6070a0' }}>{m.phone || '—'}</td>
+                      <td style={{ color: '#6070a0', maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={m.message}>{m.message || '—'}</td>
+                      <td><StatusBadge status={m.status || 'New'} /></td>
+                      <td>
+                        {m.status === 'New' ? (
+                          <button className="btn btn-outline" style={{ fontSize: 11, padding: '3px 10px' }} onClick={async () => { try { await updateContactMessage(m.id, { status: 'Read' }) } catch (e) { console.error('Failed to mark as read:', e) } }}>Mark Read</button>
+                        ) : (
+                          <span style={{ fontSize: 11, color: '#384860' }}>✓ Read</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

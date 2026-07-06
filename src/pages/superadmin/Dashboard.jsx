@@ -202,7 +202,7 @@ function GymTable({ gyms, subscriptions, gymMemberCount, gymRevenue, setPage }) 
                   <td><span className={`badge ${status==='Active'?'badge-green':status==='Pending'?'badge-amber':'badge-red'}`} style={{ fontSize:9 }}>{status}</span></td>
                   <td><div style={{ display:'flex', gap:2 }}>
                     <button className="sa-action-btn" title="View" onClick={() => setPage?.('gymOwners')}>👁️</button>
-                    <button className="sa-action-btn" title="Settings" onClick={() => setPage?.('gymOwners')}>⚙️</button>
+                    <button className="sa-action-btn" title="Settings" onClick={() => setPage?.('platformSettings')}>⚙️</button>
                   </div></td>
                 </tr>
               )
@@ -355,7 +355,7 @@ export default function PlatformDashboard({ setPage }) {
           <p>Platform overview and business health.</p>
         </div>
         <div className="page-header-actions">
-          <button className="btn btn-outline btn-sm" onClick={() => setPage?.('pending')}>📢 Announcements</button>
+          <button className="btn btn-outline btn-sm" onClick={() => setPage?.('notifications')}>📢 Announcements</button>
           <button className="btn btn-ghost btn-sm" onClick={handleExport}>📥 Export</button>
           <button className="btn btn-ghost btn-sm" onClick={() => window.location.reload()}>🔄 Refresh</button>
         </div>
@@ -384,7 +384,7 @@ export default function PlatformDashboard({ setPage }) {
         <div className="sa-actions-grid">
           <button className="btn btn-primary btn-sm" onClick={() => setPage?.('pending')}>✅ Approve Gym</button>
           <button className="btn btn-outline btn-sm" onClick={() => setPage?.('subscriptions')}>📋 Create Plan</button>
-          <button className="btn btn-outline btn-sm" onClick={() => setPage?.('settings')}>📢 Announcements</button>
+          <button className="btn btn-outline btn-sm" onClick={() => setPage?.('notifications')}>📢 Announcements</button>
           <button className="btn btn-outline btn-sm" onClick={() => setPage?.('settings')}>⚙️ Platform Settings</button>
           <button className="btn btn-outline btn-sm" onClick={() => setPage?.('support')}>🎫 Support</button>
           <button className="btn btn-outline btn-sm" onClick={() => setPage?.('reports')}>📊 Revenue Report</button>

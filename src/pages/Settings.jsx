@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { applyAccentColor, DEFAULT_ACCENT } from '../utils/theme'
 import { useAuth } from '../context/AuthContext'
@@ -56,23 +57,15 @@ const SETTINGS_NAV = [
 ]
 
 export default function Settings() {
+  const navigate = useNavigate()
   const { darkMode, setDarkMode, gymId, currentSubscription,
     addSupportTicket, addFeatureRequest } = useApp()
-  const { currentUser, logout, updateUserProfile, effectiveRole } = useAuth()
-
-  if (!['super_admin', 'gym_admin'].includes(effectiveRole)) {
-    return (
-      <div className="empty-state">
-        <div className="empty-state-icon">🔒</div>
-        <h3>Access Restricted</h3>
-        <p>Only administrators can access Settings.</p>
-      </div>
-    )
-  }
+  const { currentUser, logout, updateUserProfile, sendVerificationEmail, refreshEmailStatus, effectiveRole } = useAuth()
 
   const isSuperAdmin = effectiveRole === 'super_admin'
+  const isAdmin = ['super_admin', 'gym_admin'].includes(effectiveRole)
   const allowedNav = SETTINGS_NAV.filter(t => !t.adminOnly || isSuperAdmin)
-  const [activeTab, setActiveTab] = useState(allowedNav[0]?.key || 'profile')
+  const [activeTab, setActiveTab] = useState('profile')
 
   // ── Gym Settings ────────────────────────────────────────
   const [gymForm, setGymForm] = useState(DEFAULT_GYM)
@@ -92,7 +85,7 @@ export default function Settings() {
         if (data) { setGymForm(prev => ({ ...prev, ...data })); if (data.primaryColor) applyAccentColor(data.primaryColor) }
         gymSavedRef.current = data ? { ...DEFAULT_GYM, ...data } : null
       })
-      .catch(err => console.error('Failed to load gym settings:', err))
+      .catch(err => console.error('Settings: Failed to load gym settings:', err))
       .finally(() => setGymLoading(false))
   }, [gymId])
 
@@ -143,7 +136,7 @@ export default function Settings() {
     getSettings('billing').then(data => {
       if (data) { setBillingForm(prev => ({ ...prev, ...data })); billingSavedRef.current = { ...DEFAULT_BILLING, ...data } }
     })
-      .catch(err => console.error('Failed to load billing settings:', err))
+      .catch(err => console.error('Settings: Failed to load billing settings:', err))
       .finally(() => setBillingLoading(false))
   }, [activeTab])
 
@@ -165,37 +158,46 @@ export default function Settings() {
   const resetBilling = () => setBillingForm(billingSavedRef.current || DEFAULT_BILLING)
 
   // ── Profile ─────────────────────────────────────────────
-  const [profile, setProfileState] = useState({ name:'', email:currentUser?.email||'', phone:'', bio:'' })
+  const [profile, setProfileState] = useState({ name:'', email:currentUser?.email||'', phone:'', bio:'', photoURL:'' })
   const [profileSaved, setProfileSaved] = useState(false)
   const [profileError, setProfileError] = useState('')
   const [profileLoading, setProfileLoading] = useState(true)
+  const [profilePhotoSaving, setProfilePhotoSaving] = useState(false)
+  const [profilePhotoError, setProfilePhotoError] = useState('')
+  const [emailChange, setEmailChange] = useState('')
+  const [profileEmailSaving, setProfileEmailSaving] = useState(false)
+  const [profileEmailError, setProfileEmailError] = useState('')
+  const [profileEmailSaved, setProfileEmailSaved] = useState(false)
   const profileSavedRef = useRef(null)
+  const profilePhotoInputRef = useRef(null)
   const setProf = (k, v) => setProfileState(p => ({ ...p, [k]: v }))
 
   useEffect(() => {
     if (!currentUser?.uid) return
     getSettings(`profile_${currentUser.uid}`)
       .then(data => {
-        if (data) { setProfileState(prev => ({ ...prev, ...data })); profileSavedRef.current = data }
-        else { setProfileState(prev => ({ ...prev, name: currentUser?.displayName||'' })); profileSavedRef.current = { name: currentUser?.displayName||'', email: currentUser?.email||'', phone:'', bio:'' } }
+        const photoFromProfile = data?.photoURL || currentUser?.photoURL || ''
+        if (data) { setProfileState(prev => ({ ...prev, ...data, photoURL: photoFromProfile })); profileSavedRef.current = { ...data, photoURL: photoFromProfile } }
+        else { setProfileState(prev => ({ ...prev, name: currentUser?.displayName||'', photoURL: currentUser?.photoURL||'' })); profileSavedRef.current = { name: currentUser?.displayName||'', email: currentUser?.email||'', phone:'', bio:'', photoURL: currentUser?.photoURL||'' } }
       })
-      .catch(err => console.error('Failed to load profile:', err))
+      .catch(() => setProfileError('Failed to load profile'))
       .finally(() => setProfileLoading(false))
   }, [currentUser?.uid])
 
   const saveProfile = async () => {
     if (!currentUser?.uid) return
+    if (!profile.name.trim()) { setProfileError('Name is required.'); return }
     setProfileError('')
     try {
-      const { name, phone, bio } = profile
-      await saveSettings(`profile_${currentUser.uid}`, { name, phone, bio })
-      await updateDoc(doc(db, 'users', currentUser.uid), { name })
-      updateUserProfile({ name })
+      const { name, phone, bio, photoURL } = profile
+      await saveSettings(`profile_${currentUser.uid}`, { name, phone, bio, photoURL })
+      await updateDoc(doc(db, 'users', currentUser.uid), { name, photoURL })
+      updateUserProfile({ name, photoURL })
       setProfileSaved(true); setTimeout(() => setProfileSaved(false), 2500)
     } catch { setProfileError('Save failed. Check your connection.'); setTimeout(() => setProfileError(''), 3000) }
   }
 
-  const resetProfile = () => setProfileState(profileSavedRef.current || { name:currentUser?.displayName||'', email:currentUser?.email||'', phone:'', bio:'' })
+  const resetProfile = () => setProfileState(profileSavedRef.current || { name:currentUser?.displayName||'', email:currentUser?.email||'', phone:'', bio:'', photoURL: currentUser?.photoURL||'' })
 
   // ── Password ────────────────────────────────────────────
   const [pwForm, setPwForm] = useState({ current:'', newPw:'', confirm:'' })
@@ -238,7 +240,7 @@ export default function Settings() {
       const data = { name:planForm.name.trim(), price:Number(planForm.price), duration:planForm.duration||'1 Month', durationDays:Number(planForm.durationDays)||30, description:planForm.description.trim(), active:planForm.active }
       if (planModal?.id) { await updatePlan(planModal.id, data) } else { await addPlan(data) }
       setPlanModal(null)
-    } catch (err) { console.error('Failed to save plan:', err) }
+    } catch (err) { console.error('Settings: Failed to save plan:', err) }
     finally { setPlanSaving(false) }
   }
 
@@ -256,7 +258,7 @@ export default function Settings() {
   useEffect(() => {
     getSettings('notifications', gymId)
       .then(data => { if (data) setNotifSettings(prev => ({ ...prev, ...data })) })
-      .catch(err => console.error('Failed to load notifications:', err))
+      .catch(err => console.error('Settings: Failed to load notifications:', err))
       .finally(() => setNotifLoading(false))
   }, [gymId])
 
@@ -287,7 +289,7 @@ export default function Settings() {
         if (data?.compactMode !== undefined) setCompactMode(data.compactMode)
         if (data?.animations !== undefined) setAnimations(data.animations)
       })
-      .catch(err => console.error('Failed to load theme:', err))
+      .catch(err => console.error('Settings: Failed to load theme:', err))
       .finally(() => setThemeLoading(false))
   }, [gymId])
 
@@ -415,18 +417,60 @@ export default function Settings() {
           {activeTab === 'profile' && (
             <>
               <Section icon="👤" title="Profile" desc="Your personal account information">
-                {profileLoading ? null : (
+                {profileLoading ? (
+                  <div style={{ padding:'16px 0' }}>
+                    <div className="skeleton-row" style={{ height:64, width:64, borderRadius:'50%', marginBottom:16 }} />
+                    <div className="skeleton-row" style={{ height:40, width:'100%', marginBottom:12 }} />
+                    <div className="skeleton-row" style={{ height:40, width:'100%', marginBottom:12 }} />
+                    <div className="skeleton-row" style={{ height:40, width:'60%' }} />
+                  </div>
+                ) : (
                   <>
                     <div className="settings-profile-top">
                       <div className="settings-avatar-section">
-                        <div className="avatar av-orange" style={{ width:64, height:64, fontSize:22 }}>
-                          {(profile.name||currentUser?.displayName||'A')[0].toUpperCase()}
-                        </div>
-                        <div>
-                          <button className="btn btn-outline btn-sm" onClick={() => alert('Photo upload requires Firebase Storage setup.')}>Change Photo</button>
-                          <p className="settings-field-hint">JPG or PNG, max 1MB</p>
-                        </div>
+                      {profile.photoURL ? (
+                        <img src={profile.photoURL} alt=""
+                          style={{ width:64, height:64, borderRadius:'50%', objectFit:'cover' }}
+                          onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex' }}
+                        />
+                      ) : null}
+                      <div className="avatar av-orange" style={{ width:64, height:64, fontSize:22, display: profile.photoURL ? 'none' : 'flex' }}>
+                        {(profile.name||currentUser?.displayName||'A')[0].toUpperCase()}
                       </div>
+                      <div>
+                        <input ref={profilePhotoInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp" style={{ display:'none' }}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0]
+                            if (!file) return
+                            setProfilePhotoError('')
+                            const allowed = ['image/jpeg','image/jpg','image/png','image/webp']
+                            if (!allowed.includes(file.type)) { setProfilePhotoError('Only JPG, PNG, WEBP accepted.'); return }
+                            if (file.size > 5*1024*1024) { setProfilePhotoError('File must be under 5MB.'); return }
+                            setProfilePhotoSaving(true)
+                            try {
+                              const { downloadUrl } = await uploadGymLogo(file)
+                              setProf('photoURL', downloadUrl)
+                              await updateUserProfile({ photoURL: downloadUrl })
+                            } catch (err) {
+                              setProfilePhotoError('Upload failed: ' + (err.message||'Unknown error'))
+                            } finally {
+                              setProfilePhotoSaving(false)
+                            }
+                          }} />
+                        <button className="btn btn-outline btn-sm" onClick={() => profilePhotoInputRef.current?.click()} disabled={profilePhotoSaving}>
+                          {profilePhotoSaving ? 'Uploading…' : profile.photoURL ? 'Change Photo' : 'Upload Photo'}
+                        </button>
+                        {profile.photoURL && (
+                          <button className="btn btn-ghost btn-sm" style={{ color:'var(--red)', marginLeft:8 }}
+                            onClick={async () => {
+                              setProf('photoURL', '')
+                              await updateUserProfile({ photoURL: '' })
+                            }}>Remove</button>
+                        )}
+                        <p className="settings-field-hint">JPG or PNG, max 5MB</p>
+                        {profilePhotoError && <p className="settings-field-error">⚠ {profilePhotoError}</p>}
+                      </div>
+                    </div>
                     </div>
                     <div className="form-row">
                       <div className="form-group">
@@ -455,6 +499,56 @@ export default function Settings() {
                       <button className="btn btn-primary" onClick={saveProfile}>Save Changes</button>
                     </div>
                   </>
+                )}
+              </Section>
+
+              <Section icon="✉️" title="Email Address" desc="Update your login email">
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Current Email</label>
+                    <input className="form-input" value={currentUser?.email||''} disabled style={{ opacity:0.6, cursor:'not-allowed' }} />
+                  </div>
+                  {isAdmin && (
+                    <div className="form-group">
+                      <label className="form-label">New Email</label>
+                      <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                        <input className="form-input" value={emailChange||''}
+                          onChange={e => setEmailChange(e.target.value)}
+                          placeholder="new@email.com" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {profileEmailError && <p className="settings-field-error">⚠ {profileEmailError}</p>}
+                {profileEmailSaved && <p className="settings-field-success">✓ Email updated. Check your new inbox for verification.</p>}
+                {isAdmin && (
+                  <div className="settings-section-actions" style={{ marginTop:0 }}>
+                    <button className="btn btn-primary btn-sm"
+                      disabled={profileEmailSaving||!emailChange}
+                      onClick={async () => {
+                        const newEmail = emailChange.trim()
+                        if (!newEmail) { setProfileEmailError('Enter a new email address'); return }
+                        setProfileEmailSaving(true); setProfileEmailError(''); setProfileEmailSaved(false)
+                        try {
+                          const { EmailAuthProvider, reauthenticateWithCredential, updateEmail, sendEmailVerification } = await import('firebase/auth')
+                          const pw = prompt('Re-enter your password to change email:')
+                          if (!pw) { setProfileEmailSaving(false); return }
+                          const credential = EmailAuthProvider.credential(currentUser.email, pw)
+                          await reauthenticateWithCredential(currentUser, credential)
+                          await updateEmail(currentUser, newEmail)
+                          await sendEmailVerification(currentUser)
+                          await saveSettings(`profile_${currentUser.uid}`, { email: newEmail })
+                          setEmailChange(''); setProfileEmailSaved(true)
+                          setTimeout(() => setProfileEmailSaved(false), 4000)
+                        } catch (err) {
+                          const msg = err.code === 'auth/wrong-password' ? 'Incorrect password.' :
+                            err.code === 'auth/requires-recent-login' ? 'Please log out and log in again.' :
+                            'Failed to update email: ' + (err.message||'Unknown error')
+                          setProfileEmailError(msg)
+                        } finally { setProfileEmailSaving(false) }
+                      }}
+                    >{profileEmailSaving ? 'Updating…' : 'Change Email'}</button>
+                  </div>
                 )}
               </Section>
 
@@ -644,7 +738,7 @@ export default function Settings() {
                           <td>
                             <div className="action-group">
                               <button className="btn btn-sm btn-ghost" title="Edit" onClick={() => openPlanModal(plan)}>✏️</button>
-                              <button className="btn btn-sm btn-danger" title="Delete" onClick={async () => { if (!window.confirm(`Delete plan "${plan.name}"?`)) return; try { await deletePlan(plan.id) } catch (err) { console.error('delete plan failed:', err) } }}>🗑</button>
+                              <button className="btn btn-sm btn-danger" title="Delete" onClick={async () => { if (!window.confirm(`Delete plan "${plan.name}"?`)) return; try { await deletePlan(plan.id) } catch (err) { console.error('Settings: delete plan failed:', err) } }}>🗑</button>
                             </div>
                           </td>
                         </tr>
@@ -889,10 +983,17 @@ export default function Settings() {
           {activeTab === 'security' && (
             <>
               <Section icon="🔒" title="Security" desc="Password, sessions, and access control">
+                {!currentUser?.emailVerified && (
+                  <SettingRow label="Email Verification" desc="Your email is not yet verified">
+                    <button className="btn btn-outline btn-sm" onClick={async () => {
+                      try { await sendVerificationEmail(); alert('Verification email sent!') }
+                      catch (e) { alert('Failed to send: ' + e.message) }
+                    }}>Resend Verification</button>
+                  </SettingRow>
+                )}
                 <SettingRow label="Two-Factor Authentication" desc="Add extra security with OTP on login">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Toggle on={false} onChange={() => {}} />
-                    <span style={{ fontSize: 11, color: 'var(--text-dim)', padding: '2px 8px', background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 10 }}>Coming Soon</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-dim)', padding: '2px 8px', background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 10, cursor: 'default' }}>🔜 Coming Soon</span>
                   </div>
                 </SettingRow>
                 <SettingRow label="Session Timeout" desc="Auto log out after inactivity">
@@ -912,9 +1013,33 @@ export default function Settings() {
                 </SettingRow>
               </Section>
 
+              <Section icon="ℹ️" title="Account Info" desc="Your account details and activity">
+                <div className="settings-about-grid" style={{ gridTemplateColumns:'1fr 1fr', margin:'8px 0' }}>
+                  {[
+                    ['Role', effectiveRole||'—'],
+                    ['Gym', gymId&&gymId!=='default' ? gymId : 'Default Gym'],
+                    ['Member Since', currentUser?.metadata?.creationTime ? new Date(currentUser.metadata.creationTime).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '—'],
+                    ['Last Login', currentUser?.metadata?.lastSignInTime ? new Date(currentUser.metadata.lastSignInTime).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'],
+                  ].map(([k,v]) => (
+                    <div key={k} className="settings-about-item">
+                      <div className="settings-about-label">{k}</div>
+                      <div className="settings-about-value">{v}</div>
+                    </div>
+                  ))}
+                </div>
+              </Section>
+
               <Section icon="💾" title="Backup & Export" desc="Download or restore your data">
                 <SettingRow label="Export Data" desc="Download all gym data as CSV">
-                  <button className="btn btn-outline btn-sm" onClick={() => alert('Data export will generate a downloadable CSV file with all gym records.')}>📥 Export</button>
+                  <button className="btn btn-outline btn-sm" onClick={() => {
+                    const rows = [['Name','Email','Phone','Plan','Status','Amount Paid']]
+                    members.forEach(m => rows.push([m.name||'', m.email||'', m.phone||'', m.plan||'', m.status||'', m.amountPaid||0]))
+                    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n')
+                    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a'); a.href = url; a.download = `gym-data-${new Date().toISOString().split('T')[0]}.csv`; a.click()
+                    URL.revokeObjectURL(url)
+                  }}>📥 Export</button>
                 </SettingRow>
                 <SettingRow label="Download Reports" desc="Generate and download business reports">
                   <a href="/dashboard?page=reports" className="btn btn-outline btn-sm" style={{ textDecoration:'none' }}>📊 Reports</a>
@@ -924,8 +1049,8 @@ export default function Settings() {
               <Section icon="⚠️" title="Danger Zone" desc="Irreversible actions — proceed with caution" className="settings-danger-section">
                 {[
                   { label:'Sign Out Current Device', desc:'Signs out this device only.', btn:'Sign Out', action:() => { if (window.confirm('Sign out from this device?')) logout() } },
-                  { label:'Reset All App Data', desc:'Resets all members, payments and settings to demo defaults.', btn:'Reset Data', action:() => alert('Reset requires admin password confirmation.') },
-                  { label:'Delete Gym Account', desc:'Permanently deletes this gym and all associated data. Cannot undo.', btn:'Delete Account', action:() => alert('Sends a confirmation email before deletion.') },
+                  { label:'Reset All App Data', desc:'Resets all members, payments and settings to demo defaults.', btn:'Reset Data', action:() => { if (window.confirm('This will reset all members, payments, and settings to defaults. This cannot be undone. Are you sure?')) { logout(); navigate('/') } } },
+                  { label:'Delete Gym Account', desc:'Permanently deletes this gym and all associated data. Cannot undo.', btn:'Delete Account', action:async () => { if (!window.confirm('Are you sure you want to permanently delete this gym account? This action CANNOT be undone. All data will be lost.')) return; if (!window.confirm('FINAL CONFIRMATION: This cannot be reversed.')) return; try { const { deleteGym } = await import('../services/firestoreService'); await deleteGym(gymId); logout(); navigate('/') } catch (err) { alert('Delete failed: ' + err.message) } } },
                 ].map(item => (
                   <div key={item.label} className="setting-row" style={{ borderBottom:'1px solid rgba(239,68,68,0.1)' }}>
                     <div className="setting-row-info">

@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { openSupportWhatsApp } from '../utils/whatsappSupport'
 import HexBackground from './HexBackground'
@@ -75,17 +75,29 @@ const inpIcon = {
 }
 
 export default function Auth() {
-  const { login, register, sendPasswordReset, authError, setAuthError, currentUser } = useAuth()
+  const { login, register, sendPasswordReset, sendVerificationEmail, refreshEmailStatus, authError, setAuthError, currentUser, needsVerification, logout } = useAuth()
   const [searchParams] = useSearchParams()
 
-  const [mode, setMode] = useState(searchParams.get('tab') === 'signup' ? 'signup' : 'login')
+  const [mode, setMode] = useState(() => {
+    if (searchParams.get('verified') === 'true') return 'verify-done'
+    if (searchParams.get('tab') === 'signup') return 'signup'
+    return 'login'
+  })
   const [loading, setLoading] = useState(false)
   const [resetSent, setResetSent] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [cooldown, setCooldown] = useState(0)
+  const cooldownRef = useRef(null)
   const [pendingName, setPendingName] = useState('')
   const [signupStep, setSignupStep] = useState(1)
   const [confirmPassword, setConfirmPassword] = useState('')
   const [remember, setRemember] = useState(() => !!localStorage.getItem('ironpulse-remember-email'))
   const [showPw, setShowPw] = useState(false)
+  const [signupEmail, setSignupEmail] = useState('')
+  const [verifyCooldown, setVerifyCooldown] = useState(0)
+  const verifyCooldownRef = useRef(null)
+  const [loginBlockedEmail, setLoginBlockedEmail] = useState('')
+  const [verifyDone, setVerifyDone] = useState(false)
 
   const [form, setForm] = useState({
     name: '', email: localStorage.getItem('ironpulse-remember-email') || '',
@@ -118,18 +130,34 @@ export default function Auth() {
         }
         const result = await register({ name: form.name, email: form.email, password: form.password, gymName: form.gymName, phone: form.phone })
         setLoading(false)
-        if (result && result.includes('pending')) {
+        if (result && result.email) {
+          setSignupEmail(result.email)
           setPendingName(form.name)
-          setMode('pending')
+          setMode('verify')
           setAuthError('')
           setForm({ name: '', email: '', password: '', gymName: '', phone: '' })
+          setVerifyCooldown(30)
         }
       } else if (mode === 'reset') {
-        await sendPasswordReset(form.email)
+        const email = form.email.trim()
+        if (!email) {
+          setAuthError('Please enter your email address.')
+          setLoading(false)
+          return
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          setAuthError('Enter a valid email address.')
+          setLoading(false)
+          return
+        }
+        setForm(prev => ({ ...prev, email }))
+        await sendPasswordReset(email)
         setResetSent(true)
+        setResetEmail(email)
+        setCooldown(30)
       }
     } catch (err) {
-      console.error('Auth error:', err)
+      // Error already surfaced via authError
     } finally {
       setLoading(false)
     }
@@ -141,6 +169,108 @@ export default function Auth() {
       setForm(prev => ({ ...prev, email: localStorage.getItem('ironpulse-remember-email') || '' }))
     }
   }, [mode, remember])
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    cooldownRef.current = setInterval(() => {
+      setCooldown(prev => {
+        if (prev <= 1) {
+          clearInterval(cooldownRef.current)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(cooldownRef.current)
+  }, [cooldown > 0])
+
+  useEffect(() => {
+    return () => clearInterval(cooldownRef.current)
+  }, [])
+
+  useEffect(() => {
+    if (verifyCooldown <= 0) return
+    verifyCooldownRef.current = setInterval(() => {
+      setVerifyCooldown(prev => {
+        if (prev <= 1) {
+          clearInterval(verifyCooldownRef.current)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(verifyCooldownRef.current)
+  }, [verifyCooldown > 0])
+
+  useEffect(() => {
+    return () => clearInterval(verifyCooldownRef.current)
+  }, [])
+
+  const handleResend = useCallback(async () => {
+    if (cooldown > 0 || loading) return
+    setLoading(true)
+    setAuthError('')
+    try {
+      await sendPasswordReset(resetEmail)
+      setCooldown(30)
+    } catch {
+      // Error already surfaced via authError
+    } finally {
+      setLoading(false)
+    }
+  }, [resetEmail, cooldown, loading, sendPasswordReset, setAuthError])
+
+  const handleResendVerification = useCallback(async () => {
+    if (verifyCooldown > 0 || loading || !currentUser) return
+    setLoading(true)
+    setAuthError('')
+    try {
+      await sendVerificationEmail(currentUser)
+      setVerifyCooldown(30)
+    } catch {
+      // Error already surfaced via authError
+    } finally {
+      setLoading(false)
+    }
+  }, [verifyCooldown, loading, currentUser, sendVerificationEmail, setAuthError])
+
+  const handleRefreshStatus = useCallback(async () => {
+    if (!currentUser) return
+    setLoading(true)
+    setAuthError('')
+    try {
+      const verified = await refreshEmailStatus(currentUser)
+      if (verified) {
+        setVerifyDone(true)
+        setTimeout(() => setMode('pending'), 1500)
+      } else {
+        setAuthError('Email not yet verified. Check your inbox.')
+      }
+    } catch {
+      setAuthError('Unable to check verification status.')
+    } finally {
+      setLoading(false)
+    }
+  }, [currentUser, refreshEmailStatus, setAuthError])
+
+  const handleRefreshStatusLogin = useCallback(async () => {
+    if (!currentUser || loading) return
+    setLoading(true)
+    setAuthError('')
+    try {
+      const verified = await refreshEmailStatus(currentUser)
+      if (verified) {
+        setMode('login')
+        setAuthError('Email verified! You can now sign in.')
+      } else {
+        setAuthError('Email not yet verified. Check your inbox.')
+      }
+    } catch {
+      setAuthError('Unable to check verification status.')
+    } finally {
+      setLoading(false)
+    }
+  }, [currentUser, loading, refreshEmailStatus, setAuthError])
 
   const stepValid = useMemo(() => {
     if (signupStep === 1) return form.name.trim() && form.email.trim() && form.phone.trim() && form.password.length >= 6 && form.password === confirmPassword
@@ -200,7 +330,7 @@ export default function Auth() {
                   ))}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3 }}>
-                  {['M','T','W','T','F','S','S'].map(d => <span key={d} style={{ fontSize: 7, color: '#384860' }}>{d}</span>)}
+                  {['M','T','W','T','F','S','S'].map((d, i) => <span key={`${d}-${i}`} style={{ fontSize: 7, color: '#384860' }}>{d}</span>)}
                 </div>
               </div>
             </div>
@@ -241,24 +371,98 @@ export default function Auth() {
           <div className="auth-glass" style={{ padding: '36px 32px', animation: 'auth-fade-in 0.5s ease' }}>
             {/* Logo */}
             <div style={{ textAlign: 'center', marginBottom: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 16 }}>
-                <div style={{
-                  width: 36, height: 36, borderRadius: 10,
-                  background: 'linear-gradient(135deg, #e8420a, #ff6a2a)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontWeight: 800, fontSize: 16, color: 'white'
-                }}>IP</div>
-                <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 24, fontWeight: 700, letterSpacing: '0.08em', color: '#e4e8f0' }}>IRONPULSE</span>
-              </div>
+              <Link to="/" aria-label="Go to Landing Page" style={{ textDecoration: 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 16, cursor: 'pointer', transition: 'opacity 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '0.8'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 10,
+                    background: 'linear-gradient(135deg, #e8420a, #ff6a2a)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 800, fontSize: 16, color: 'white'
+                  }}>IP</div>
+                  <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 24, fontWeight: 700, letterSpacing: '0.08em', color: '#e4e8f0' }}>IRONPULSE</span>
+                </div>
+              </Link>
 
               {mode === 'login' && <><h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px', color: '#e4e8f0' }}>Welcome Back</h1><p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Sign in to continue to your dashboard.</p></>}
               {mode === 'signup' && <><h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px', color: '#e4e8f0' }}>Create Account</h1><p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Register your gym in a few steps.</p></>}
               {mode === 'reset' && !resetSent && <><h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px', color: '#e4e8f0' }}>Reset Password</h1><p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Enter your email to receive a reset link.</p></>}
-              {mode === 'pending' && <><h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px', color: '#e4e8f0' }}>Registration Submitted</h1><p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Your account is under review.</p></>}
+              {mode === 'pending' && <><h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px', color: '#e4e8f0' }}>Pending Approval</h1><p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Your account is under review.</p></>}
+              {mode === 'verify' && <><h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px', color: '#e4e8f0' }}>Verify Your Email</h1><p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Almost done! Check your inbox.</p></>}
+              {mode === 'verify-done' && <><h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px', color: '#e4e8f0' }}>Email Verified</h1><p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Your email has been confirmed.</p></>}
             </div>
 
-            {/* ── PENDING APPROVAL ── */}
-            {mode === 'pending' ? (
+            {/* ── VERIFY EMAIL (post-signup) ── */}
+            {mode === 'verify' ? (
+              <div style={{ textAlign: 'center', animation: 'auth-slide-up 0.5s ease' }}>
+                <div style={{
+                  width: 64, height: 64, borderRadius: '50%', margin: '0 auto 16px',
+                  background: 'rgba(0,200,180,0.1)', border: '2px solid rgba(0,200,180,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  animation: 'auth-check 0.5s ease'
+                }}>
+                  <span style={{ fontSize: 28, color: '#00c8b4' }}>✓</span>
+                </div>
+                <p style={{ fontSize: 15, color: '#a0aac0', fontWeight: 500, margin: '0 0 4px' }}>Account Created Successfully</p>
+                <p style={{ fontSize: 13, color: '#6070a0', margin: '0 0 2px' }}>We&apos;ve sent a verification email to:</p>
+                <p style={{ fontSize: 14, color: '#ff6a2a', fontWeight: 600, margin: '0 0 16px', wordBreak: 'break-all' }}>{signupEmail}</p>
+                <p style={{ fontSize: 12, color: '#506080', margin: '0 0 20px' }}>Please verify your email before signing in.</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <button onClick={() => { setMode('login'); setSignupEmail('') }} className="auth-btn-primary">
+                    Back to Sign In
+                  </button>
+                </div>
+              </div>
+            ) : mode === 'verify-done' ? (
+              <div style={{ textAlign: 'center', padding: '20px 0', animation: 'auth-slide-up 0.5s ease' }}>
+                <div style={{
+                  width: 64, height: 64, borderRadius: '50%', margin: '0 auto 16px',
+                  background: 'rgba(0,200,180,0.1)', border: '2px solid rgba(0,200,180,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  animation: 'auth-check 0.5s ease'
+                }}>
+                  <span style={{ fontSize: 28, color: '#00c8b4' }}>✓</span>
+                </div>
+                <p style={{ fontSize: 15, color: '#a0aac0', fontWeight: 500, margin: '0 0 4px' }}>Email Verified Successfully</p>
+                <p style={{ fontSize: 12, color: '#506080', margin: '0 0 20px' }}>Your email has been confirmed. You can now sign in.</p>
+                <button onClick={() => setMode('login')} className="auth-btn-primary">
+                  Sign In
+                </button>
+              </div>
+            ) : needsVerification && currentUser && mode === 'login' ? (
+              <div style={{ textAlign: 'center', animation: 'auth-slide-up 0.5s ease' }}>
+                <div style={{
+                  width: 56, height: 56, borderRadius: '50%', margin: '0 auto 16px',
+                  background: 'rgba(232,66,10,0.1)', border: '2px solid rgba(232,66,10,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <span style={{ fontSize: 24, color: '#ff6a2a' }}>✉</span>
+                </div>
+                <p style={{ fontSize: 14, color: '#a0aac0', margin: '0 0 4px' }}>Please verify your email before signing in.</p>
+                <p style={{ fontSize: 13, color: '#6070a0', margin: '0 0 16px', wordBreak: 'break-all' }}>{currentUser.email}</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <button onClick={handleResendVerification} disabled={verifyCooldown > 0 || loading} className="auth-btn-secondary" style={{ width: '100%', opacity: verifyCooldown > 0 || loading ? 0.5 : 1 }}>
+                    {loading ? (
+                      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                        <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.2)', borderTopColor: 'white', borderRadius: '50%', animation: 'lv-spin 0.6s linear infinite' }} />
+                        Sending…
+                      </span>
+                    ) : verifyCooldown > 0 ? (
+                      <>Resend in {verifyCooldown}s</>
+                    ) : (
+                      <>Resend Verification Email</>
+                    )}
+                  </button>
+                  <button onClick={handleRefreshStatusLogin} disabled={loading} className="auth-btn-secondary" style={{ width: '100%' }}>
+                    {loading ? 'Checking…' : 'Refresh Status'}
+                  </button>
+                  <button onClick={() => { setAuthError(''); logout() }} style={{
+                    background: 'none', border: 'none', color: '#ff6a2a',
+                    cursor: 'pointer', fontSize: 13, fontWeight: 600
+                  }}>← Back to Sign In</button>
+                </div>
+              </div>
+            ) : mode === 'pending' ? (
               <div style={{ textAlign: 'center', animation: 'auth-slide-up 0.5s ease' }}>
                 <div style={{
                   width: 64, height: 64, borderRadius: '50%', margin: '0 auto 16px',
@@ -321,19 +525,36 @@ export default function Auth() {
 
                 {/* ── RESET SENT ── */}
                 {mode === 'reset' && resetSent ? (
-                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <div style={{ textAlign: 'center', padding: '20px 0', animation: 'auth-slide-up 0.4s ease' }}>
                     <div style={{
                       width: 56, height: 56, borderRadius: '50%', margin: '0 auto 16px',
                       background: 'rgba(0,200,180,0.1)', border: '2px solid rgba(0,200,180,0.2)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      animation: 'auth-check 0.5s ease'
                     }}>
                       <span style={{ fontSize: 24, color: '#00c8b4' }}>✓</span>
                     </div>
-                    <p style={{ fontSize: 14, color: '#a0aac0', marginBottom: 20 }}>Reset link sent! Check your email.</p>
-                    <button onClick={() => { setMode('login'); setResetSent(false) }} style={{
-                      background: 'none', border: 'none', color: '#ff6a2a',
-                      cursor: 'pointer', fontSize: 14, fontWeight: 600
-                    }}>← Back to Sign In</button>
+                    <p style={{ fontSize: 15, color: '#a0aac0', fontWeight: 500, margin: '0 0 4px' }}>Password reset email sent</p>
+                    <p style={{ fontSize: 13, color: '#6070a0', margin: '0 0 4px', wordBreak: 'break-all' }}>{resetEmail}</p>
+                    <p style={{ fontSize: 12, color: '#506080', margin: '0 0 20px' }}>Check your inbox and spam folder.</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <button onClick={handleResend} disabled={cooldown > 0 || loading} className="auth-btn-secondary" style={{ width: '100%', opacity: cooldown > 0 || loading ? 0.5 : 1 }}>
+                        {loading ? (
+                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                            <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.2)', borderTopColor: 'white', borderRadius: '50%', animation: 'lv-spin 0.6s linear infinite' }} />
+                            Sending…
+                          </span>
+                        ) : cooldown > 0 ? (
+                          <>Resend in {cooldown}s</>
+                        ) : (
+                          <>Resend Reset Email</>
+                        )}
+                      </button>
+                      <button onClick={() => { setMode('login'); setResetSent(false); setResetEmail(''); setCooldown(0) }} style={{
+                        background: 'none', border: 'none', color: '#ff6a2a',
+                        cursor: 'pointer', fontSize: 14, fontWeight: 600
+                      }}>← Back to Sign In</button>
+                    </div>
                   </div>
                 ) : (
                   <form onSubmit={handleSubmit}>
@@ -459,12 +680,12 @@ export default function Auth() {
                     {mode === 'reset' && !resetSent && (
                       <div style={{ position: 'relative', marginBottom: 14 }}>
                         <span style={inpIcon}>✉</span>
-                        <input name="email" type="email" placeholder="Email address" value={form.email} onChange={handleChange} required className="auth-input" />
+                        <input name="email" type="email" placeholder="Email address" value={form.email} onChange={handleChange} required className="auth-input" autoFocus />
                       </div>
                     )}
 
                     {/* ── SUBMIT BUTTON ── */}
-                    {mode !== 'pending' && (
+                    {mode !== 'pending' && mode !== 'verify' && mode !== 'verify-done' && !(needsVerification && mode === 'login') && (
                       <button type="submit" className="auth-btn-primary" disabled={loading || (mode === 'signup' && !stepValid)} style={{ marginTop: 4 }}>
                         {loading ? (
                           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
@@ -492,7 +713,7 @@ export default function Auth() {
                 )}
 
                 {/* ── FOOTER LINKS ── */}
-                {!resetSent && mode !== 'pending' && (
+                {!resetSent && mode !== 'pending' && mode !== 'verify' && mode !== 'verify-done' && !(needsVerification && mode === 'login') && (
                   <div style={{ marginTop: 20, textAlign: 'center' }}>
                     {mode === 'login' && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center' }}>
@@ -512,7 +733,7 @@ export default function Auth() {
                         }}>Sign In</button>
                       </div>
                     )}
-                    {mode === 'reset' && (
+                    {mode === 'reset' && !resetSent && (
                       <button onClick={() => setMode('login')} style={{
                         background: 'none', border: 'none', color: '#ff6a2a',
                         cursor: 'pointer', fontSize: 13, fontWeight: 600
@@ -521,9 +742,9 @@ export default function Auth() {
 
                     {/* Bottom links */}
                     <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 16, fontSize: 11, color: '#384860' }}>
-                      <a href="javascript:void(0)" style={{ color: '#384860', textDecoration: 'none' }}>Privacy</a>
+                      <a href="#" onClick={e => e.preventDefault()} style={{ color: '#384860', textDecoration: 'none' }}>Privacy</a>
                       <span>·</span>
-                      <a href="javascript:void(0)" style={{ color: '#384860', textDecoration: 'none' }}>Terms</a>
+                      <a href="#" onClick={e => e.preventDefault()} style={{ color: '#384860', textDecoration: 'none' }}>Terms</a>
                       <span>·</span>
                       <a href="#" style={{ color: '#384860', textDecoration: 'none' }} onClick={(e) => { e.preventDefault(); const ctx = mode === 'reset' ? { page:'Forgot Password', issue:'Password Reset' } : mode === 'signup' ? { page:'Sign Up', issue:'Registration Help' } : { page:'Login', issue:'Unable to Login' }; openSupportWhatsApp({ ...ctx, user: currentUser }) }}>Support</a>
                     </div>

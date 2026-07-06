@@ -823,7 +823,7 @@ export default function Reports({ search: _search } = {}) {
         </div>
         <div className="page-header-actions">
           <button className="btn btn-ghost btn-sm" onClick={exportCSV}>📥 CSV</button>
-          <button className="btn btn-ghost btn-sm" onClick={exportExcel}>📊 Excel</button>
+          <button className="btn btn-ghost btn-sm" onClick={exportExcel}>📊 TSV (Excel)</button>
           <button className="btn btn-ghost btn-sm" onClick={exportPDF}>📄 PDF</button>
           <button className="btn btn-ghost btn-sm" onClick={exportPrint}>🖨️ Print</button>
         </div>

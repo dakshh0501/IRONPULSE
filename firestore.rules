@@ -13,7 +13,8 @@ service cloud.firestore {
     // ── HELPERS ───────────────────────────────────────────
 
     function getRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(userPath) ? get(userPath).data.role : null;
     }
 
     function isAuthed() {
@@ -70,7 +71,8 @@ service cloud.firestore {
     }
 
     function getCallerGymId() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.gymId;
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(userPath) ? get(userPath).data.gymId : null;
     }
 
     function isOwnAttendance(resourceMemberId) {
@@ -85,13 +87,20 @@ service cloud.firestore {
     }
 
     // Helper: check if the resource belongs to the caller's gym (super_admin bypasses)
+    // Null-safe: non-existent docs (resource == null) are denied here, 
+    // so callers must handle them via doc ID prefix checks where applicable.
     function inCallersGym() {
-      return isSuperAdmin() || resource.data.gymId == getCallerGymId();
+      return isSuperAdmin() || (
+        resource != null && resource.data != null && resource.data.gymId == getCallerGymId()
+      );
     }
 
     // Helper: check if the incoming data belongs to the caller's gym (for create)
     function inCallersGymCreate() {
-      return isSuperAdmin() || request.resource.data.gymId == getCallerGymId();
+      return isSuperAdmin() || (
+        request.resource != null && request.resource.data != null &&
+        request.resource.data.gymId == getCallerGymId()
+      );
     }
 
     // ════════════════════════════════════════════════════════
@@ -258,12 +267,26 @@ service cloud.firestore {
 
     // ════════════════════════════════════════════════════════
     //  SETTINGS (gym-scoped via composite key pattern)
+    //  Doc IDs use pattern: `${gymId}:${docId}` (e.g. "default:theme")
+    //  Global docs (no prefix): "billing"
     // ════════════════════════════════════════════════════════
     match /settings/{docId} {
 
-      allow read: if (isAdminOrOwner() && inCallersGym()) || (
-        isApproved() && inCallersGym() &&
-        (docId == 'gym' || docId.matches('.*:gym$') || docId == 'theme' || docId.matches('.*:theme$'))
+      // Helper: check doc ID prefix or data field for gym ownership
+      // Single-expression form (CEL restrictions: no if/return in functions).
+      function inSettingsGym() {
+        return isSuperAdmin() ||
+          (resource != null && resource.data != null && resource.data.gymId == getCallerGymId()) ||
+          (getCallerGymId() != null && docId.matches('^' + getCallerGymId() + ':'));
+      }
+
+      allow read: if (isAdminOrOwner() && inSettingsGym()) || (
+        isApproved() && (
+          isSuperAdmin() ||
+          docId == getCallerGymId() + ':gym' ||
+          docId == getCallerGymId() + ':theme' ||
+          docId == 'gym' || docId == 'theme'
+        )
       );
       allow create: if isAdminOrOwner() && inCallersGymCreate();
       allow update: if isAdminOrOwner() && inCallersGym();
@@ -355,6 +378,16 @@ service cloud.firestore {
     }
 
     // ════════════════════════════════════════════════════════
+    //  CONTACT MESSAGES (Landing page — unauthenticated create)
+    // ════════════════════════════════════════════════════════
+    match /contactMessages/{msgId} {
+
+      allow create: if true; // anyone can submit a contact form
+
+      allow read, update, delete: if isSuperAdmin();
+    }
+
+    // ════════════════════════════════════════════════════════
     //  NOTIFICATIONS (user-scoped with gymId field)
     // ════════════════════════════════════════════════════════
     match /notifications/{notifId} {
@@ -369,6 +402,10 @@ service cloud.firestore {
           request.resource.data.userId == request.auth.uid &&
           request.resource.data.gymId == getCallerGymId()
         )
+      ) || (
+        !isAuthed() &&
+        request.resource.data.targetRole == 'super_admin' &&
+        request.resource.data.type == 'contact'
       );
 
       allow update: if isSuperAdmin() || (

@@ -1,6 +1,8 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
+import { doc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore'
+import { db } from '../firebase'
 
 if (!document.getElementById('spt-styles')) {
   const sptStyles = document.createElement('style')
@@ -190,7 +192,7 @@ function PriorityBadge({ priority }) {
   return <span className="spt-pill" style={{ background: `${color}14`, color }}>{priority || 'Normal'}</span>
 }
 
-function TicketDrawer({ ticket, open, onClose, drawerTab, setDrawerTab, replyText, setReplyText, noteText, setNoteText }) {
+function TicketDrawer({ ticket, open, onClose, drawerTab, setDrawerTab, replyText, setReplyText, noteText, setNoteText, onSendReply, onSaveNote, onFileAttach }) {
   useEffect(() => {
     if (!open) return
     const handler = (e) => { if (e.key === 'Escape') onClose() }
@@ -256,7 +258,7 @@ function TicketDrawer({ ticket, open, onClose, drawerTab, setDrawerTab, replyTex
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 10 }}>Reply</div>
                 <textarea className="form-textarea" rows={4} value={replyText} onChange={e => { setReplyText(e.target.value); setDrawerMsg('') }} placeholder="Type your reply here..." style={{ borderRadius: 10, fontSize: 13, marginBottom: 10, resize: 'vertical' }} />
                 <button className="btn btn-primary" style={{ borderRadius: 10, fontSize: 12, padding: '8px 18px' }}
-                  onClick={() => { if (replyText.trim()) setDrawerMsg('Reply sent'); else setDrawerMsg('Type a reply first') }}>Send Reply</button>
+                  onClick={() => { if (replyText.trim()) { onSendReply?.(replyText.trim()); setDrawerMsg('Reply sent'); setReplyText('') } else setDrawerMsg('Type a reply first') }}>Send Reply</button>
                 {drawerMsg && <div style={{ fontSize: 11, color: drawerMsg === 'Reply sent' ? 'var(--teal)' : 'var(--text-muted)', marginTop: 4 }}>{drawerMsg}</div>}
               </div>
             )}
@@ -286,7 +288,7 @@ function TicketDrawer({ ticket, open, onClose, drawerTab, setDrawerTab, replyTex
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>Add Internal Note</div>
                 <textarea className="form-textarea" rows={4} value={noteText} onChange={e => { setNoteText(e.target.value); setDrawerMsg('') }} placeholder="Add an internal note..." style={{ borderRadius: 10, fontSize: 13, marginBottom: 10, resize: 'vertical' }} />
                 <button className="btn btn-primary" style={{ borderRadius: 10, fontSize: 12, padding: '8px 18px' }}
-                  onClick={() => { if (noteText.trim()) setDrawerMsg('Note saved'); else setDrawerMsg('Type a note first') }}>Save Note</button>
+                  onClick={() => { if (noteText.trim()) { onSaveNote?.(noteText.trim()); setDrawerMsg('Note saved'); setNoteText('') } else setDrawerMsg('Type a note first') }}>Save Note</button>
               </div>
             )}
 
@@ -297,7 +299,8 @@ function TicketDrawer({ ticket, open, onClose, drawerTab, setDrawerTab, replyTex
                   <p className="spt-empty-text">No attachments uploaded</p>
                   <p className="spt-empty-hint">Attach screenshots, logs, or other files to this ticket.</p>
                 </div>
-                <div className="spt-drop-hint">
+                <input type="file" id="ticket-file-input" style={{ display:'none' }} onChange={(e) => { const file = e.target.files?.[0]; if (file) onFileAttach?.(file); e.target.value = '' }} />
+                <div className="spt-drop-hint" onClick={() => document.getElementById('ticket-file-input')?.click()} style={{ cursor:'pointer' }}>
                   <span className="spt-drop-icon">📂</span>
                   <p className="spt-drop-text">Drop files here or click to browse</p>
                   <p style={{ fontSize: 10, color: 'var(--text-dim)', margin: '4px 0 0' }}>Max file size: 10MB</p>
@@ -698,6 +701,40 @@ export default function Support() {
         setReplyText={setReplyText}
         noteText={noteText}
         setNoteText={setNoteText}
+        onSendReply={async (text) => {
+          if (!drawerTicket?.id) return
+          try {
+            const ref = doc(db, 'supportTickets', drawerTicket.id)
+            await updateDoc(ref, {
+              replies: arrayUnion({ text, by: currentUser?.uid, at: new Date().toISOString() }),
+              updatedAt: serverTimestamp(),
+            })
+          } catch (e) { console.error('Failed to save reply:', e) }
+        }}
+        onSaveNote={async (text) => {
+          if (!drawerTicket?.id) return
+          try {
+            const ref = doc(db, 'supportTickets', drawerTicket.id)
+            await updateDoc(ref, {
+              internalNotes: arrayUnion({ text, by: currentUser?.uid, at: new Date().toISOString() }),
+              updatedAt: serverTimestamp(),
+            })
+          } catch (e) { console.error('Failed to save note:', e) }
+        }}
+        onFileAttach={async (file) => {
+          if (!drawerTicket?.id) return
+          try {
+            const ref = doc(db, 'supportTickets', drawerTicket.id)
+            const reader = new FileReader()
+            reader.onload = async () => {
+              await updateDoc(ref, {
+                attachments: arrayUnion({ name: file.name, size: file.size, type: file.type }),
+                updatedAt: serverTimestamp(),
+              })
+            }
+            reader.readAsDataURL(file)
+          } catch (e) { console.error('Failed to attach file:', e) }
+        }}
       />
     </div>
   )

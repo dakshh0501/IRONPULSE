@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useApp } from '../../context/AppContext'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 
 function Widget({ label, value, icon, color }) {
   return (
@@ -34,6 +35,33 @@ export default function PlatformRevenue() {
     return { monthly, yearly, pendingPay, renewals }
   }, [payments])
 
+  const revenueChart = useMemo(() => {
+    const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    const map = {}
+    payments.forEach(p => {
+      const d = p.paidOn || p.date || p.due; if (!d) return
+      const dt = new Date(d); if (isNaN(dt)) return
+      const key = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`
+      if (!map[key]) map[key] = { key, month: MONTH_NAMES[dt.getMonth()], revenue: 0 }
+      map[key].revenue += Number(p.paid || p.amount || 0)
+    })
+    return Object.values(map).sort((a, b) => a.key.localeCompare(b.key)).slice(-12)
+  }, [payments])
+
+  const recentPayments = useMemo(() => {
+    return [...payments]
+      .sort((a, b) => {
+        const da = a.paidOn || a.date || a.due || 0
+        const db = b.paidOn || b.date || b.due || 0
+        return new Date(db) - new Date(da)
+      })
+      .slice(0, 20)
+      .map(p => {
+        const gym = gyms.find(g => g.id === p.gymId || g.gymId === p.gymId)
+        return { ...p, gymName: gym?.gymName || gym?.name || p.gymId || 'Unknown' }
+      })
+  }, [payments, gyms])
+
   const topGyms = useMemo(() => {
     const map = {}
     payments.forEach(p => {
@@ -66,9 +94,21 @@ export default function PlatformRevenue() {
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
         <div className="card">
           <h3 style={{ fontSize:16, fontWeight:700, marginBottom:12 }}>Revenue Growth</h3>
-          <div style={{ height:200, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-muted)', fontSize:13 }}>
-            Revenue chart coming soon
-          </div>
+          {revenueChart.length === 0 ? (
+            <div style={{ height:200, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-muted)', fontSize:13 }}>
+              No revenue data yet
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={revenueChart} margin={{ top:5, right:10, bottom:0, left:-15 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+                <XAxis dataKey="month" tick={{ fill:'var(--text-muted)', fontSize:10 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill:'var(--text-muted)', fontSize:10 }} axisLine={false} tickLine={false} tickFormatter={v => `₹${(v/1000).toFixed(0)}K`} />
+                <Tooltip formatter={v => [`₹${Number(v).toLocaleString('en-IN')}`, 'Revenue']} />
+                <Line type="monotone" dataKey="revenue" stroke="var(--green)" strokeWidth={2} dot={{ r:3, fill:'var(--green)' }} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
         <div className="card">
           <h3 style={{ fontSize:16, fontWeight:700, marginBottom:12 }}>Top Paying Gyms</h3>
@@ -89,9 +129,40 @@ export default function PlatformRevenue() {
 
       <div className="card" style={{ marginTop:20 }}>
         <h3 style={{ fontSize:16, fontWeight:700, marginBottom:12 }}>Payment History</h3>
-        <div style={{ height:200, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-muted)', fontSize:13 }}>
-          Full payment history table coming soon
-        </div>
+        {recentPayments.length === 0 ? (
+          <div style={{ height:200, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-muted)', fontSize:13 }}>
+            No payment data yet
+          </div>
+        ) : (
+          <div className="sa-table-scroll">
+            <table className="sa-table">
+              <thead>
+                <tr>
+                  <th style={{ fontSize:11, color:'var(--text-muted)' }}>Gym</th>
+                  <th style={{ fontSize:11, color:'var(--text-muted)' }}>Amount</th>
+                  <th style={{ fontSize:11, color:'var(--text-muted)' }}>Date</th>
+                  <th style={{ fontSize:11, color:'var(--text-muted)' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentPayments.map((p, i) => {
+                  const dateStr = p.paidOn || p.date || p.due
+                  const formatted = dateStr ? new Date(dateStr).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—'
+                  const status = p.status || 'Completed'
+                  const statusColor = status === 'Completed' || status === 'paid' || status === 'success' ? 'var(--green)' : status === 'Pending' || status === 'pending' ? 'var(--amber)' : 'var(--red)'
+                  return (
+                    <tr key={i}>
+                      <td style={{ fontSize:12, fontWeight:600 }}>{p.gymName}</td>
+                      <td style={{ fontSize:12, fontWeight:600 }}>₹{(p.paid || p.amount || 0).toLocaleString('en-IN')}</td>
+                      <td style={{ fontSize:11, color:'var(--text-dim)' }}>{formatted}</td>
+                      <td><span className={`badge ${status === 'Completed' || status === 'paid' || status === 'success' ? 'badge-green' : status === 'Pending' || status === 'pending' ? 'badge-amber' : 'badge-red'}`} style={{ fontSize:9 }}>{status}</span></td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   )

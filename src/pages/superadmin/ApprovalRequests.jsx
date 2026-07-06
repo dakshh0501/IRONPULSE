@@ -35,7 +35,8 @@ export default function ApprovalRequests({ search }) {
   const handleApprove = async (gymId) => {
     setActionLoading(gymId)
     try {
-      await approveGymOwner(gymId)
+      await approveGymOwner(gymId, 'Trial', remarks[gymId] || '')
+      setRemarks(r => { const next = { ...r }; delete next[gymId]; return next })
     } catch (err) {
       console.error('approve failed:', err)
     }
@@ -45,7 +46,8 @@ export default function ApprovalRequests({ search }) {
   const handleReject = async (gymId) => {
     setActionLoading(gymId)
     try {
-      await rejectGymOwner(gymId)
+      await rejectGymOwner(gymId, remarks[gymId] || '')
+      setRemarks(r => { const next = { ...r }; delete next[gymId]; return next })
     } catch (err) {
       console.error('reject failed:', err)
     }

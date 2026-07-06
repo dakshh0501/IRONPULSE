@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Bell, Search, Sun, Moon, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
@@ -62,6 +63,7 @@ const PAGE_BREADCRUMBS = {
 }
 
 export default function Header({ currentPage, setPage, search, setSearch, setMobileOpen }) {
+  const navigate = useNavigate()
   const { darkMode, setDarkMode, unreadCount, notifications, markAllNotifsRead, markNotifRead, gymSettings } = useApp()
   const { userProfile, effectiveRole } = useAuth()
   const [notifOpen, setNotifOpen] = useState(false)
@@ -210,7 +212,9 @@ export default function Header({ currentPage, setPage, search, setSearch, setMob
               notifications.slice(0, 50).map(n => (
                 <div key={n.id} className={`notif-item ${!n.read ? 'unread' : ''}`}
                   onClick={() => {
-                    if (!n.read) markNotifRead(n.id).catch(() => {})
+                    if (!n.read) markNotifRead(n.id).catch(err => console.error('Failed to mark notification read:', err))
+                    if (n.actionUrl) navigate(n.actionUrl)
+                    else if (n.page) navigate(`/${n.page}${n.tab ? `?tab=${n.tab}` : ''}`)
                   }}>
                   {!n.read && <div className="notif-dot-sm" />}
                   {n.read && <div style={{ width:8 }} />}

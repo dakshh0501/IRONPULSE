@@ -67,7 +67,7 @@ import {
   refreshPaymentStatus as refreshPaymentStatusService,
   cleanupExpiredPaymentAttempts,
 } from '../services/paymentService'
-import { doc, getDoc, updateDoc, query, where, getDocs, collection, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, deleteDoc, query, where, getDocs, collection, serverTimestamp, onSnapshot } from 'firebase/firestore'
 import { db } from '../firebase'
 import {
   subscribeToNotifications,
@@ -166,26 +166,30 @@ export function AppProvider({ children }) {
   }, [currentUser, authLoading, effectiveRole])
 
   // ── Admins: approve gym owner (single source of truth) ──
-  const approveGymOwner = async (gymId, newSubscription = 'Trial') => {
+  const approveGymOwner = async (gymId, newSubscription = 'Trial', remarks = '') => {
+    let stepsCompleted = []
     try {
-      // 1. Read gym doc to get ownerUid
       const gymSnap = await getDoc(doc(db, 'gyms', gymId))
       if (!gymSnap.exists()) throw new Error('Gym not found')
       const gymData = gymSnap.data()
       const ownerUid = gymData.ownerUid
+      let userRoleWasUpdated = false
 
-      // 2. Update gym approvalStatus
-      await updateGym(gymId, { approvalStatus: 'approved' })
+      await updateGym(gymId, {
+        approvalStatus: 'approved',
+        ...(remarks ? { approvalRemarks: remarks } : {}),
+      })
+      stepsCompleted.push('gym_approved')
 
-      // 3. Update user role (if ownerUid exists and role is still pending)
       if (ownerUid) {
         const userSnap = await getDoc(doc(db, 'users', ownerUid))
         if (userSnap.exists() && userSnap.data().role === 'gym_owner_pending') {
           await updateDoc(doc(db, 'users', ownerUid), { role: 'gym_owner' })
+          userRoleWasUpdated = true
+          stepsCompleted.push('user_role_updated')
         }
       }
 
-      // 4. Defensive: only create subscription if one doesn't already exist
       const existingSub = await getSubscriptionByGymId(gymId)
       if (!existingSub) {
         await addSubscription({
@@ -196,9 +200,8 @@ export function AppProvider({ children }) {
           paymentMethod: 'Not Set',
           autoRenew: false,
         })
+        stepsCompleted.push('subscription_created')
 
-        // Initialize gyms/{gymId}.subscription — the runtime source of truth
-        // that subscribeToGymSubscription, LicenseGuard, and AppShell all read.
         const initNow = new Date()
         const initExpiry = new Date(initNow)
         const planLower = (newSubscription || 'Trial').toLowerCase()
@@ -220,9 +223,9 @@ export function AppProvider({ children }) {
           'subscription.generatedAt': initNow.toISOString(),
           'subscription.updatedAt': initNow.toISOString(),
         })
+        stepsCompleted.push('gym_subscription_inited')
       }
 
-      // 5. Notify the gym owner
       if (ownerUid) {
         fireNotif('gym_approved', {
           userId: ownerUid,
@@ -234,12 +237,32 @@ export function AppProvider({ children }) {
       }
     } catch (err) {
       console.error('Failed to approve gym owner:', err)
+      // Rollback completed steps in reverse order
+      const rollbackSteps = stepsCompleted.reverse()
+      for (const step of rollbackSteps) {
+        try {
+          if (step === 'gym_subscription_inited') {
+            await updateDoc(doc(db, 'gyms', gymId), { subscription: {} })
+          } else if (step === 'subscription_created') {
+            const existingSub = await getSubscriptionByGymId(gymId)
+            if (existingSub?.id) await deleteDoc(doc(db, 'subscriptions', existingSub.id))
+          } else if (step === 'user_role_updated') {
+            const gymSnap = await getDoc(doc(db, 'gyms', gymId))
+            const ownerUid = gymSnap.data()?.ownerUid
+            if (ownerUid) await updateDoc(doc(db, 'users', ownerUid), { role: 'gym_owner_pending' })
+          } else if (step === 'gym_approved') {
+            await updateGym(gymId, { approvalStatus: 'pending' })
+          }
+        } catch (rollbackErr) {
+          console.error(`[ROLLBACK] Failed to revert step "${step}":`, rollbackErr)
+        }
+      }
       throw err
     }
   }
 
   // ── Admins: reject gym owner (single source of truth) ──
-  const rejectGymOwner = async (gymId) => {
+  const rejectGymOwner = async (gymId, remarks = '') => {
     try {
       // 1. Read gym doc to get ownerUid
       const gymSnap = await getDoc(doc(db, 'gyms', gymId))
@@ -248,7 +271,10 @@ export function AppProvider({ children }) {
       const ownerUid = gymData.ownerUid
 
       // 2. Update gym approvalStatus
-      await updateGym(gymId, { approvalStatus: 'rejected' })
+      await updateGym(gymId, {
+        approvalStatus: 'rejected',
+        ...(remarks ? { approvalRemarks: remarks } : {}),
+      })
 
       // 3. Update user role (if ownerUid exists and role is still pending)
       if (ownerUid) {
@@ -391,12 +417,37 @@ export function AppProvider({ children }) {
   useEffect(() => {
     if (authLoading || !currentUser?.uid) return
     setNotifLoading(true)
-    let unsub; let timerId
+    let unsubs = []
+    let timerId
     const schedule = () => {
-      unsub = subscribeToNotifications(currentUser.uid, (data) => {
+      const unsub1 = subscribeToNotifications(currentUser.uid, (data) => {
         setNotifications(data)
         setNotifLoading(false)
       }, gymId, reportSnapshotError)
+      unsubs.push(unsub1)
+
+      if (effectiveRole === 'super_admin') {
+        const notifQuery = query(
+          collection(db, 'notifications'),
+          where('targetRole', '==', 'super_admin')
+        )
+        const unsub2 = onSnapshot(notifQuery, (snapshot) => {
+          const roleNotifs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+          setNotifications(prev => {
+            const merged = [...roleNotifs, ...prev.filter(n => !roleNotifs.some(rn => rn.id === n.id))]
+            merged.sort((a, b) => {
+              const aTime = a.createdAt?.seconds || a.createdAt || 0
+              const bTime = b.createdAt?.seconds || b.createdAt || 0
+              return bTime - aTime
+            })
+            return merged
+          })
+        }, (err) => {
+          console.error('[AppContext] Role-based notif subscription error:', err.message)
+          reportSnapshotError(err, 'notifications')
+        })
+        unsubs.push(unsub2)
+      }
     }
     if ('requestIdleCallback' in window) {
       timerId = requestIdleCallback(schedule, { timeout: 300 })
@@ -408,10 +459,11 @@ export function AppProvider({ children }) {
         if (typeof timerId === 'number') clearTimeout(timerId)
         else cancelIdleCallback(timerId)
       }
-      if (unsub) unsub()
+      unsubs.forEach(u => u())
+      unsubs = []
       setNotifLoading(false)
     }
-  }, [currentUser, authLoading, gymId])
+  }, [currentUser, authLoading, gymId, effectiveRole])
 
   // ── Security Metrics (super_admin only) ────────────────
   const [securityMetrics, setSecurityMetrics] = useState(null)
@@ -621,7 +673,7 @@ export function AppProvider({ children }) {
         const pending = await getPendingUsers()
         if (mounted) setOldPendingCount(pending.length)
       } catch (e) {
-        console.error('Failed to load pending count:', e)
+        console.error('AppContext: Failed to load pending count:', e)
       }
     }
     loadPendingCount()
@@ -708,7 +760,7 @@ export function AppProvider({ children }) {
           setGymSettings(prev => ({ ...prev, ...data }))
         }
       })
-      .catch(err => console.error('Failed to load gym settings:', err))
+      .catch(err => console.error('AppContext: Failed to load gym settings:', err))
     
     return () => { mounted = false }
   }, [currentUser, authLoading, effectiveRole, queryGymId])
@@ -1331,7 +1383,7 @@ export function AppProvider({ children }) {
     addProgressLog, updateProgressLog, deleteProgressLog,
     addDietPlan, updateDietPlan, deleteDietPlan,
     addWorkoutPlan, updateWorkoutPlan, deleteWorkoutPlan,
-    markAllNotifsRead, markNotifRead, markNotifUnread, deleteNotif, fireNotif,
+    markAllNotifsRead, markNotifRead, markNotifUnread, deleteNotif, fireNotif, addNotifToFirestore,
     checkInMember,
     activateSubscription, suspendSubscription, expireSubscription,
     renewSubscription, upgradeSubscription, downgradeSubscription, reactivateSubscription,

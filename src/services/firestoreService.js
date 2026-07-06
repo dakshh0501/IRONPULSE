@@ -15,7 +15,8 @@ import {
 } from 'firebase/firestore'
 import {
   createUserWithEmailAndPassword,
-  signOut
+  signOut,
+  sendEmailVerification,
 } from 'firebase/auth'
 import {
   setDoc
@@ -57,7 +58,12 @@ export async function addMember(memberData) {
           password
         )
       user = authResult.user
-      await secondaryAuth.signOut()
+      try { await sendEmailVerification(user) } catch (e) {
+        console.warn('sendEmailVerification non-fatal:', e)
+      }
+      try { await secondaryAuth.signOut() } catch (e) {
+        console.warn('secondaryAuth signOut non-fatal:', e)
+      }
 
       await setDoc(
         doc(db, 'users', user.uid),
@@ -89,6 +95,9 @@ export async function addMember(memberData) {
     return { id: docRef.id, authUid: user?.uid || null }
   } catch (error) {
     if (user) {
+      try { await deleteDoc(doc(db, 'users', user.uid)) } catch (cleanupErr) {
+        console.error('Failed to cleanup users doc:', cleanupErr)
+      }
       try { await user.delete() } catch (cleanupErr) {
         console.error('Failed to cleanup auth user:', cleanupErr)
       }
@@ -374,8 +383,13 @@ export async function deletePayment(paymentId) {
 // Add trainer
 export async function addTrainer(trainerData) {
 
-  const p = Math.random().toString(36).slice(2, 8)
-  const s = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')[Math.floor(Math.random() * 26)]
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  const array = new Uint32Array(8)
+  crypto.getRandomValues(array)
+  let p = ''
+  for (let i = 0; i < 8; i++) p += chars[array[i] % chars.length]
+  const s = upper[array[0] % upper.length]
   const password = p + s + '1!'
 
   let user
@@ -390,7 +404,12 @@ export async function addTrainer(trainerData) {
 
     user = authResult.user
 
-    await secondaryAuth.signOut()
+    try { await sendEmailVerification(user) } catch (e) {
+      console.warn('sendEmailVerification non-fatal:', e)
+    }
+    try { await secondaryAuth.signOut() } catch (e) {
+      console.warn('secondaryAuth signOut non-fatal:', e)
+    }
 
     await setDoc(
       doc(db, 'users', user.uid),
@@ -416,11 +435,11 @@ export async function addTrainer(trainerData) {
 
     return { id: docRef.id, password }
   } catch (error) {
-    // Cleanup: delete the auth user if Firestore write failed
     if (user) {
-      try {
-        await user.delete()
-      } catch (cleanupErr) {
+      try { await deleteDoc(doc(db, 'users', user.uid)) } catch (cleanupErr) {
+        console.error('Failed to cleanup users doc:', cleanupErr)
+      }
+      try { await user.delete() } catch (cleanupErr) {
         console.error('Failed to cleanup auth user:', cleanupErr)
       }
     }
@@ -595,6 +614,60 @@ export function subscribeToSupportTickets(callback, gymId, onError) {
   }, (error) => {
     console.error(`[Firestore] Subscription error (supportTickets):`, error.message); if (onError) onError(error, 'supportTickets')
   })
+}
+
+// ─────────────────────────────────────────────
+// CONTACT MESSAGES (Landing page)
+// ─────────────────────────────────────────────
+
+export async function addContactMessage(msgData) {
+  const docRef = await addDoc(
+    collection(db, 'contactMessages'),
+    {
+      ...msgData,
+      status: 'New',
+      createdAt: serverTimestamp(),
+    }
+  )
+  const contactId = docRef.id
+  try {
+    await addDoc(collection(db, 'notifications'), {
+      title: 'New Contact Message',
+      message: `${msgData.name || 'Someone'} submitted a contact enquiry.`,
+      type: 'contact',
+      subtype: 'contact_message',
+      priority: 'normal',
+      icon: '✉️',
+      targetRole: 'super_admin',
+      userId: '',
+      gymId: 'default',
+      role: '',
+      page: 'support',
+      tab: 'messages',
+      contactId,
+      actionUrl: '/support?tab=messages',
+      relatedDocumentId: contactId,
+      read: false,
+      createdAt: serverTimestamp(),
+    })
+  } catch (e) {
+    console.error('[Firestore] Failed to create notification for contact message:', e)
+  }
+  return contactId
+}
+
+export function subscribeToContactMessages(callback, onError) {
+  const ref = query(collection(db, 'contactMessages'), where('status', 'in', ['New', 'Read']))
+  return onSnapshot(ref, (snapshot) => {
+    const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    callback(msgs)
+  }, (error) => {
+    console.error(`[Firestore] Subscription error (contactMessages):`, error.message); if (onError) onError(error, 'contactMessages')
+  })
+}
+
+export async function updateContactMessage(msgId, data) {
+  await updateDoc(doc(db, 'contactMessages', msgId), data)
 }
 
 // ─────────────────────────────────────────────

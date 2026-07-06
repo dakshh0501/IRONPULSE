@@ -30,12 +30,19 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return
   e.respondWith(
-    fetch(e.request)
-      .then((res) => {
+    (async () => {
+      const preload = e.request.mode === 'navigate' ? await e.preloadResponse : null
+      if (preload) {
+        return preload
+      }
+      try {
+        const res = await fetch(e.request)
         const clone = res.clone()
         caches.open(CACHE).then((c) => c.put(e.request, clone))
         return res
-      })
-      .catch(() => caches.match(e.request))
+      } catch {
+        return caches.match(e.request)
+      }
+    })()
   )
 })

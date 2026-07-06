@@ -336,7 +336,7 @@ function NewInvoiceModal({ onSave, onClose, members, plans }) {
     setSaveError('')
     try {
       await onSave({
-        id: 'INV-', memberId: form.memberId, member: form.memberName, memberName: form.memberName,
+        id: `INV-${Date.now()}`, memberId: form.memberId, member: form.memberName, memberName: form.memberName,
         plan: form.plan, amount: +form.amount, paid: 0, paidOn: null,
         method: form.method, due: form.due, status: 'Pending', avatar: form.avatar,
       })

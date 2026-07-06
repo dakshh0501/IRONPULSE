@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { openSupportWhatsApp } from '../utils/whatsappSupport'
 import { shareWebsite } from '../utils/shareWebsite'
+import { addContactMessage } from '../services/firestoreService'
 
 const FADE_UP = { opacity: 0, transform: 'translateY(30px)' }
 const VISIBLE = { opacity: 1, transform: 'translateY(0)' }
@@ -238,6 +239,31 @@ function Landing() {
   const [activeFaq, setActiveFaq] = useState(null)
   const [testiIdx, setTestiIdx] = useState(0)
   const [installPrompt, setInstallPrompt] = useState(null)
+  const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', message: '' })
+  const [contactErrors, setContactErrors] = useState({})
+  const [contactSaving, setContactSaving] = useState(false)
+  const [contactSuccess, setContactSuccess] = useState(false)
+
+  const handleContactSubmit = async () => {
+    const errs = {}
+    if (!contactForm.name.trim()) errs.name = 'Name is required'
+    if (!contactForm.email.trim()) errs.email = 'Email is required'
+    else if (!/\S+@\S+\.\S+/.test(contactForm.email)) errs.email = 'Invalid email'
+    if (!contactForm.message.trim()) errs.message = 'Message is required'
+    if (Object.keys(errs).length) { setContactErrors(errs); return }
+    setContactErrors({}); setContactSaving(true)
+    try {
+      await addContactMessage(contactForm)
+      setContactSuccess(true)
+      setContactForm({ name: '', email: '', phone: '', message: '' })
+      setTimeout(() => setContactSuccess(false), 5000)
+    } catch (e) {
+      console.error('[Landing] Contact form submission failed:', e)
+      setContactErrors({ _general: 'Failed to send message. Please try again.' })
+    } finally {
+      setContactSaving(false)
+    }
+  }
   const heroRef = useRef(null)
   const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 })
 
@@ -842,6 +868,41 @@ function Landing() {
         </div>
       </section>
 
+      {/* ── CONTACT ── */}
+      <section id="contact" style={{ padding: '100px 48px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+        <Reveal style={{ textAlign: 'center', marginBottom: 50 }}>
+          <p style={{ fontSize: 11, letterSpacing: '0.12em', color: '#e8420a', textTransform: 'uppercase', marginBottom: 8 }}>Get In Touch</p>
+          <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 48, fontWeight: 800, margin: 0 }}>
+            Have a question?
+          </h2>
+        </Reveal>
+        <Reveal>
+          <div style={{ maxWidth: 520, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <input className="form-input" placeholder="Your Name *" value={contactForm.name}
+              onChange={e => { setContactForm(f => ({ ...f, name: e.target.value })); setContactErrors(e => ({ ...e, name: '' })) }}
+              style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${contactErrors.name ? '#e8420a' : 'rgba(255,255,255,0.08)'}`, borderRadius: 10, padding: '14px 16px', color: '#e4e8f0', fontSize: 14, outline: 'none', width: '100%', boxSizing: 'border-box' }} />
+            {contactErrors.name && <p style={{ margin: 0, fontSize: 12, color: '#e8420a' }}>{contactErrors.name}</p>}
+            <input className="form-input" placeholder="Email Address *" value={contactForm.email}
+              onChange={e => { setContactForm(f => ({ ...f, email: e.target.value })); setContactErrors(e => ({ ...e, email: '' })) }}
+              style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${contactErrors.email ? '#e8420a' : 'rgba(255,255,255,0.08)'}`, borderRadius: 10, padding: '14px 16px', color: '#e4e8f0', fontSize: 14, outline: 'none', width: '100%', boxSizing: 'border-box' }} />
+            {contactErrors.email && <p style={{ margin: 0, fontSize: 12, color: '#e8420a' }}>{contactErrors.email}</p>}
+            <input className="form-input" placeholder="Phone Number (optional)" value={contactForm.phone}
+              onChange={e => setContactForm(f => ({ ...f, phone: e.target.value }))}
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '14px 16px', color: '#e4e8f0', fontSize: 14, outline: 'none', width: '100%', boxSizing: 'border-box' }} />
+            <textarea className="form-textarea" placeholder="Your Message *" rows={4} value={contactForm.message}
+              onChange={e => { setContactForm(f => ({ ...f, message: e.target.value })); setContactErrors(e => ({ ...e, message: '' })) }}
+              style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${contactErrors.message ? '#e8420a' : 'rgba(255,255,255,0.08)'}`, borderRadius: 10, padding: '14px 16px', color: '#e4e8f0', fontSize: 14, outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }} />
+            {contactErrors.message && <p style={{ margin: 0, fontSize: 12, color: '#e8420a' }}>{contactErrors.message}</p>}
+            {contactErrors._general && <p style={{ margin: 0, fontSize: 13, color: '#e8420a', textAlign: 'center' }}>{contactErrors._general}</p>}
+            {contactSuccess && <p style={{ margin: 0, fontSize: 13, color: '#00c8b4', textAlign: 'center' }}>✓ Message sent! We'll get back to you shortly.</p>}
+            <button className="lp-btn-primary" onClick={handleContactSubmit} disabled={contactSaving}
+              style={{ width: '100%', justifyContent: 'center', padding: '14px', opacity: contactSaving ? 0.7 : 1, cursor: contactSaving ? 'not-allowed' : 'pointer' }}>
+              {contactSaving ? 'Sending…' : 'Send Message'}
+            </button>
+          </div>
+        </Reveal>
+      </section>
+
       {/* ── FINAL CTA ── */}
       <section style={{
         padding: '100px 48px',
@@ -908,7 +969,7 @@ function Landing() {
             {/* Social */}
             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
               {['𝕏','in','▶','📷'].map((s, i) => (
-                <a key={i} href="javascript:void(0)" style={{
+                <a key={i} href="#" onClick={e => e.preventDefault()} style={{
                   width: 32, height: 32, borderRadius: 8,
                   background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -923,7 +984,7 @@ function Landing() {
           <div>
             <h4 style={{ fontSize: 12, fontWeight: 700, color: '#e4e8f0', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>Product</h4>
             {['Features', 'Pricing', 'Integrations', 'Changelog'].map(l => (
-              <a key={l} href="javascript:void(0)" style={{ display: 'block', fontSize: 13, color: '#6070a0', marginBottom: 10, textDecoration: 'none', transition: 'color 0.2s' }}
+              <a key={l} href="#" onClick={e => e.preventDefault()} style={{ display: 'block', fontSize: 13, color: '#6070a0', marginBottom: 10, textDecoration: 'none', transition: 'color 0.2s' }}
                 onMouseEnter={e => e.target.style.color = '#e8420a'} onMouseLeave={e => e.target.style.color = '#6070a0'}>{l}</a>
             ))}
           </div>
@@ -946,7 +1007,7 @@ function Landing() {
           <div>
             <h4 style={{ fontSize: 12, fontWeight: 700, color: '#e4e8f0', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>Legal</h4>
             {['Privacy', 'Terms', 'License', 'Cookies'].map(l => (
-              <a key={l} href="javascript:void(0)" style={{ display: 'block', fontSize: 13, color: '#6070a0', marginBottom: 10, textDecoration: 'none', transition: 'color 0.2s' }}
+              <a key={l} href="#" onClick={e => e.preventDefault()} style={{ display: 'block', fontSize: 13, color: '#6070a0', marginBottom: 10, textDecoration: 'none', transition: 'color 0.2s' }}
                 onMouseEnter={e => e.target.style.color = '#e8420a'} onMouseLeave={e => e.target.style.color = '#6070a0'}>{l}</a>
             ))}
           </div>

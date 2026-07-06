@@ -54,7 +54,7 @@ export default function DeviceManagement() {
         performedBy: effectiveRole || 'gym_admin',
         deviceId: dev.deviceId,
       })
-    } catch (err) { console.error(err); setActionError('Failed to remove device') }
+    } catch (err) { console.error('Failed to remove device:', err); setActionError('Failed to remove device') }
     finally { setLoading(false) }
   }
 
@@ -69,7 +69,7 @@ export default function DeviceManagement() {
         performedBy: effectiveRole || 'gym_admin',
         deviceId: dev.deviceId,
       })
-    } catch (err) { console.error(err); setActionError('Failed to revoke device') }
+    } catch (err) { console.error('Failed to revoke device:', err); setActionError('Failed to revoke device') }
     finally { setLoading(false) }
   }
 
@@ -84,7 +84,7 @@ export default function DeviceManagement() {
         performedBy: effectiveRole || 'gym_admin',
         deviceId: dev.deviceId,
       })
-    } catch (err) { console.error(err); setActionError('Failed to suspend device') }
+    } catch (err) { console.error('Failed to suspend device:', err); setActionError('Failed to suspend device') }
     finally { setLoading(false) }
   }
 
@@ -99,7 +99,7 @@ export default function DeviceManagement() {
         performedBy: effectiveRole || 'gym_admin',
         deviceId: dev.deviceId,
       })
-    } catch (err) { console.error(err); setActionError('Failed to activate device') }
+    } catch (err) { console.error('Failed to activate device:', err); setActionError('Failed to activate device') }
     finally { setLoading(false) }
   }
 

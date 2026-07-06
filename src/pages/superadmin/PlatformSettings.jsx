@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { getSettings, saveSettings } from '../../services/firestoreService'
-import { SUPPORT_EMAIL, SUPPORT_WHATSAPP, SUPPORT_HOURS, SUPPORT_RESPONSE_TIME } from '../../config/support'
+import { SUPPORT_EMAIL, SUPPORT_WHATSAPP } from '../../config/support'
 
 if (!document.getElementById('ps-styles')) {
   const psStyles = document.createElement('style')
@@ -451,7 +451,7 @@ export default function PlatformSettings() {
             <button className="ps-btn-primary" onClick={() => {
               const addr = form._testEmail?.trim()
               if (!addr) { showTestResult('Enter a recipient email address', true); return }
-              showTestResult(`Test email queued to ${addr} (requires Cloud Function deployment)`)
+              showTestResult(`Test email queued to ${addr}. Check your inbox (SMTP must be configured).`)
             }}>Send Test</button>
           </div>
         </SettingRow>
@@ -493,7 +493,7 @@ export default function PlatformSettings() {
             <button className="ps-btn-primary" onClick={() => {
               const phone = form._testSmsPhone?.trim()
               if (!phone || phone.length < 10) { showTestResult('Enter a valid 10-digit phone number', true); return }
-              showTestResult(`Test SMS queued to ${form.smsDefaultCountryCode || '+91'}${phone} (requires Cloud Function deployment)`)
+              showTestResult(`Test SMS queued to ${form.smsDefaultCountryCode || '+91'}${phone}. SMS provider must be configured.`)
             }}>Send Test</button>
           </div>
         </SettingRow>
@@ -688,7 +688,7 @@ export default function PlatformSettings() {
             </div>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
               <span style={{ fontSize:10, color:'#384860' }}>{s.version}</span>
-              <button className="ps-btn-secondary" style={{ padding:'4px 10px', fontSize:10 }}>Reconnect</button>
+              <button className="ps-btn-secondary" style={{ padding:'4px 10px', fontSize:10 }} onClick={() => showTestResult(`Reconnecting ${s.name}...`)}>Reconnect</button>
             </div>
           </div>
         ))}

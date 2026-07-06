@@ -182,7 +182,7 @@ export default function Notifications({ search: propSearch = '' }) {
   const handleMarkRead = async (id) => { await markNotifRead(id) }
   const handleMarkUnread = async (id) => {
     try { await markNotifUnread(id); setToast('Marked as unread') }
-    catch (e) { console.error(e) }
+    catch (e) { console.error('Failed to mark as unread:', e) }
   }
   const handleDelete = async (id) => { await deleteNotif(id); setToast('Dismissed') }
   const handleMarkAllRead = async () => { await markAllNotifsRead(); setToast('All marked read') }

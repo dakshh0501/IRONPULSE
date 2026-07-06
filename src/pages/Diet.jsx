@@ -379,7 +379,7 @@ const EMPTY_PLAN = {
   meals: [{ id: Date.now(), name: 'Breakfast', time: '7:00 AM', calories: '', items: [''] }],
 }
 
-function PlanFormModal({ existing, onSave, onClose, members = [] }) {
+function PlanFormModal({ existing, onSave, onClose, members = [], trainers = [] }) {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [form, setForm] = useState(() => {

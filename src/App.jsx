@@ -50,6 +50,7 @@ const GymSubscription     = lazy(() => import('./pages/GymSubscription'))
 const GymDevices          = lazy(() => import('./pages/DeviceManagement'))
 const NotFound            = lazy(() => import('./pages/NotFound'))
 const Rejected            = lazy(() => import('./pages/Rejected'))
+const VerifyEmail         = lazy(() => import('./pages/VerifyEmail'))
 
 // ── Shared component map (all pages that exist) ──────────────
 const PAGE_COMPONENTS = {
@@ -330,7 +331,7 @@ function isLocalhost() {
 }
 
 function ProtectedRoute({ children, allowedRoles }) {
-  const { isLoggedIn, role, effectiveRole, authLoading, userProfile } = useAuth()
+  const { isLoggedIn, role, effectiveRole, authLoading, userProfile, currentUser } = useAuth()
   const checkRole = effectiveRole || role
   const [exiting, setExiting] = useState(false)
   const exitTimer = useRef(null)
@@ -350,7 +351,8 @@ function ProtectedRoute({ children, allowedRoles }) {
       const target = isLocalhost() ? '/auth' : '/'
       return <Navigate to={target} replace />
     }
-    if (userProfile?.role === 'pending') return <Navigate to="/" replace />
+    if (userProfile?.role === 'pending') return <Navigate to="/auth" replace />
+    if (currentUser && !currentUser.emailVerified) return <Navigate to="/verify-email" replace />
     if (allowedRoles && !allowedRoles.includes(checkRole)) return <Navigate to="/dashboard" replace />
     return children
   }
@@ -390,6 +392,7 @@ function RouterTree() {
         <Route path="/reception" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer']}><ReceptionMode /></ProtectedRoute>} />
         <Route path="/payment-status" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']}><PaymentStatus /></ProtectedRoute>} />
         <Route path="/checkout" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']}><Checkout /></ProtectedRoute>} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/rejected" element={<Rejected />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
