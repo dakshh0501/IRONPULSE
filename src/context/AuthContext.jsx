@@ -17,6 +17,14 @@ import {
 import { getSettings } from '../services/firestoreService'
 import { applyAccentColor, DEFAULT_ACCENT } from '../utils/theme'
 import { getEffectiveRole } from '../utils/rbac'
+import {
+  isBiometricAvailable,
+  verifyBiometric,
+  isBiometricLoginEnabled,
+  setBiometricLoginEnabled,
+  getBiometricTypeName,
+  clearBiometricCache,
+} from '../services/biometricService'
 
 const AuthContext = createContext(null)
 
@@ -49,6 +57,9 @@ export function AuthProvider({ children }) {
   const [authError, setAuthError] = useState('')
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const [needsVerification, setNeedsVerification] = useState(false)
+  const [biometricEnabled, setBiometricEnabledState] = useState(() => isBiometricLoginEnabled())
+  const [biometricGate, setBiometricGate] = useState(false)
+  const [biometricType, setBiometricType] = useState(null)
   const signingUpRef = useRef(false)
 
   // ─────────────────────────────────────────────────────────────
@@ -271,6 +282,7 @@ export function AuthProvider({ children }) {
       setRole(null)
       setIsSuperAdmin(false)
       setNeedsVerification(false)
+      setBiometricGate(false)
       setAuthError('')
       applyAccentColor(DEFAULT_ACCENT) // reset to default on sign-out
     }
@@ -374,6 +386,60 @@ export function AuthProvider({ children }) {
     return map[code] || `Something went wrong. Please try again. (${code || 'unknown'})`
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // BIOMETRIC: Check availability on mount
+  // ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    isBiometricAvailable().then(result => {
+      if (result.isAvailable) {
+        setBiometricType(result.biometryType)
+      }
+    }).catch(() => {})
+  }, [])
+
+  // ── Biometric gate: when session restores via persistence and
+  // biometric is enabled, show gate before rendering app content.
+  useEffect(() => {
+    if (currentUser && role && biometricEnabled && !['pending','rejected','gym_owner_pending'].includes(role) && currentUser.emailVerified) {
+      setBiometricGate(true)
+    } else {
+      setBiometricGate(false)
+    }
+  }, [currentUser, role, biometricEnabled])
+
+  async function enableBiometric() {
+    const available = await isBiometricAvailable()
+    if (!available.isAvailable) {
+      throw new Error('Biometric authentication is not available on this device.')
+    }
+    await verifyBiometric({
+      reason: 'Enable biometric login',
+      title: 'Enable Biometric Login',
+      subtitle: 'Verify your identity',
+      description: 'Authenticate to enable biometric login for faster access.',
+    })
+    setBiometricLoginEnabled(true)
+    setBiometricEnabledState(true)
+    setBiometricType(available.biometryType)
+  }
+
+  function disableBiometric() {
+    setBiometricLoginEnabled(false)
+    setBiometricEnabledState(false)
+    setBiometricGate(false)
+    clearBiometricCache()
+  }
+
+  async function verifyBiometricGate() {
+    await verifyBiometric({
+      reason: 'Unlock IRONPULSE',
+      title: 'Biometric Unlock',
+      subtitle: 'Quick access',
+      description: 'Authenticate to unlock the app.',
+    })
+    setBiometricGate(false)
+  }
+
   // ── Derived gymId ───────────────────────────────────────────
   // Read from userProfile (set on the /users/{uid} doc during sign-up
   // or admin-creation), falling back to 'default' for single-gym mode.
@@ -427,6 +493,13 @@ export function AuthProvider({ children }) {
     refreshEmailStatus,
     setAuthError,
     updateUserProfile,
+    biometricEnabled,
+    biometricGate,
+    biometricType,
+    enableBiometric,
+    disableBiometric,
+    verifyBiometricGate,
+    getBiometricTypeName,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

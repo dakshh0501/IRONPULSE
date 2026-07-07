@@ -60,7 +60,7 @@ export default function Settings() {
   const navigate = useNavigate()
   const { darkMode, setDarkMode, gymId, currentSubscription,
     addSupportTicket, addFeatureRequest } = useApp()
-  const { currentUser, logout, updateUserProfile, sendVerificationEmail, refreshEmailStatus, effectiveRole } = useAuth()
+  const { currentUser, logout, updateUserProfile, sendVerificationEmail, refreshEmailStatus, effectiveRole, biometricEnabled, biometricType, enableBiometric, disableBiometric, getBiometricTypeName } = useAuth()
 
   const isSuperAdmin = effectiveRole === 'super_admin'
   const isAdmin = ['super_admin', 'gym_admin'].includes(effectiveRole)
@@ -995,6 +995,29 @@ export default function Settings() {
                 <SettingRow label="Two-Factor Authentication" desc="Add extra security with OTP on login">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ fontSize: 11, color: 'var(--text-dim)', padding: '2px 8px', background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 10, cursor: 'default' }}>🔜 Requires email provider setup</span>
+                  </div>
+                </SettingRow>
+                <SettingRow label="Biometric Login" desc={biometricEnabled ? `Unlock with ${getBiometricTypeName(biometricType) || 'biometrics'}` : 'Quick access with fingerprint or face unlock'}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {biometricType !== null && (
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                        {getBiometricTypeName(biometricType)}
+                      </span>
+                    )}
+                    <Toggle
+                      on={biometricEnabled}
+                      onChange={async (val) => {
+                        if (val) {
+                          try {
+                            await enableBiometric()
+                          } catch (e) {
+                            console.error('Failed to enable biometric:', e.message)
+                          }
+                        } else {
+                          disableBiometric()
+                        }
+                      }}
+                    />
                   </div>
                 </SettingRow>
                 <SettingRow label="Session Timeout" desc="Auto log out after inactivity">

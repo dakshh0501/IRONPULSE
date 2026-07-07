@@ -13,6 +13,7 @@
     "cap:apk:debug": "npm run build && npx cap sync && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
+    "capacitor-native-biometric": "^4.2.2",
     "firebase": "^12.13.0",
     "html5-qrcode": "^2.3.8",
     "jspdf": "^4.2.1",

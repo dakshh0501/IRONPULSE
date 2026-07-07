@@ -10,6 +10,7 @@ import Sidebar      from './components/Sidebar'
 import Header       from './components/Header'
 import LicenseGuard from './components/LicenseGuard'
 import ErrorBoundary from './components/ErrorBoundary'
+import BiometricGate from './components/BiometricGate'
 import { openSupportWhatsApp } from './utils/whatsappSupport'
 
 // ── Lazy-loaded pages (code-split at route level) ──────────
@@ -331,7 +332,7 @@ function isLocalhost() {
 }
 
 function ProtectedRoute({ children, allowedRoles }) {
-  const { isLoggedIn, role, effectiveRole, authLoading, userProfile, currentUser } = useAuth()
+  const { isLoggedIn, role, effectiveRole, authLoading, userProfile, currentUser, biometricGate } = useAuth()
   const checkRole = effectiveRole || role
   const [exiting, setExiting] = useState(false)
   const exitTimer = useRef(null)
@@ -354,6 +355,7 @@ function ProtectedRoute({ children, allowedRoles }) {
     if (userProfile?.role === 'pending') return <Navigate to="/auth" replace />
     if (currentUser && !currentUser.emailVerified) return <Navigate to="/verify-email" replace />
     if (allowedRoles && !allowedRoles.includes(checkRole)) return <Navigate to="/dashboard" replace />
+    if (biometricGate) return <BiometricGate />
     return children
   }
 
