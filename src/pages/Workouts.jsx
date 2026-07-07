@@ -2,6 +2,7 @@ import { useState, useEffect, memo } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import { buildWorkoutPlanWhatsAppMessage, buildWorkoutPlanWhatsAppLink } from '../utils/whatsappReminders'
+import { useSearchParams } from 'react-router-dom'
 
 // ─────────────────────────────────────────────────────────────
 //  CONSTANTS
@@ -867,7 +868,8 @@ function DeleteModal({ plan, onConfirm, onClose, error }) {
 // ─────────────────────────────────────────────────────────────
 //  MAIN PAGE EXPORT
 // ─────────────────────────────────────────────────────────────
-export default function Workouts({ search = '' }) {
+export default function Workouts() {
+  const [searchParams] = useSearchParams(); const search = searchParams.get('q') || ''
   const { workoutPlans: workouts, addWorkoutPlan, updateWorkoutPlan, deleteWorkoutPlan, members, trainers, gymSettings } = useApp()
   const { effectiveRole } = useAuth()
   const isMember = effectiveRole === 'member'

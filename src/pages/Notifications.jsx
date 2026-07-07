@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useApp } from '../context/AppContext'
+import { useSearchParams } from 'react-router-dom'
 
 const TYPE_CONFIG = {
   payment:    { icon:'💳', label:'Payment',       color:'#e8420a', bg:'rgba(232,66,10,0.1)'   },
@@ -131,7 +132,8 @@ function getTimeGroup(createdAt) {
   return 'Earlier'
 }
 
-export default function Notifications({ search: propSearch = '' }) {
+export default function Notifications() {
+  const [searchParams] = useSearchParams(); const propSearch = searchParams.get('q') || ''
   const { notifications, markNotifRead, markAllNotifsRead, markNotifUnread, deleteNotif, notifLoading } = useApp()
 
   const [typeFilter, setTypeFilter] = useState('all')

@@ -972,7 +972,7 @@ export default function Settings() {
                 <div className="setting-row">
                   <div className="setting-row-info" />
                   <div className="setting-row-action" style={{ gap: 8, display: 'flex', flexWrap: 'wrap' }}>
-                    <button className="btn btn-outline btn-sm" onClick={() => { copyWebsiteLink(); console.log('Website link copied') }}>📋 Copy Link</button>
+                    <button className="btn btn-outline btn-sm" onClick={copyWebsiteLink}>📋 Copy Link</button>
                     <button className="btn btn-primary btn-sm" onClick={shareWebsite}>🔗 Share Website</button>
                   </div>
                 </div>
@@ -987,7 +987,7 @@ export default function Settings() {
                 {!currentUser?.emailVerified && (
                   <SettingRow label="Email Verification" desc="Your email is not yet verified">
                     <button className="btn btn-outline btn-sm" onClick={async () => {
-                      try { await sendVerificationEmail(); console.log('Verification email sent') }
+                      try { await sendVerificationEmail() }
                       catch (e) { console.error('Failed to send verification email:', e.message) }
                     }}>Resend Verification</button>
                   </SettingRow>

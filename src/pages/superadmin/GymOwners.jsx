@@ -5,6 +5,7 @@ import { useApp } from '../../context/AppContext'
 import { generateUniqueLicenseKey } from '../../utils/license'
 import { addLicenseHistory } from '../../services/licenseHistoryService'
 import { resetAllDevices } from '../../services/deviceService'
+import { useSearchParams } from 'react-router-dom'
 
 if (!document.getElementById('go-styles')) {
   const goStyles = document.createElement('style')
@@ -211,7 +212,8 @@ function SkeletonRow() {
   )
 }
 
-export default function SuperAdminGymOwners({ search: parentSearch }) {
+export default function SuperAdminGymOwners() {
+  const [searchParams] = useSearchParams(); const parentSearch = searchParams.get('q') || ''
   const { gyms, subscriptions, members, trainers, payments, approveGymOwner, rejectGymOwner, fireNotif } = useApp()
 
   const [drawerGym, setDrawerGym] = useState(null)

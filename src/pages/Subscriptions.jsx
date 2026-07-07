@@ -1,6 +1,6 @@
 // src/pages/Subscriptions.jsx
 import { useState, useMemo, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { updateSubscription } from '../services/firestoreService'
 import { getPendingAttemptsForSubscription } from '../services/paymentService'
@@ -196,7 +196,8 @@ function SubscriptionDetailModal({ sub, gymName, ownerName, onClose, onAction, o
 }
 
 // ── Main Component ─────────────────────────────────────────────
-export default function Subscriptions({ search }) {
+export default function Subscriptions() {
+  const [searchParams] = useSearchParams(); const search = searchParams.get('q') || ''
   const navigate = useNavigate()
   const { subscriptions, gyms, initiatePayment, paymentAttempts, gymId } = useApp()
   const [searchTerm, setSearchTerm] = useState(search || '')

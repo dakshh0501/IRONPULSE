@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, memo } from 'react'
 import { useApp } from '../context/AppContext'
+import { useSearchParams } from 'react-router-dom'
 
 const SPECIALIZATIONS = Object.freeze([
   'Strength & Conditioning', 'Yoga & Flexibility', 'CrossFit & HIIT',
@@ -472,7 +473,8 @@ function DeleteModal({ trainer, onConfirm, onClose }) {
 }
 
 // ─── Main Page ───────────────────────────────────────────────
-export default function Trainers({ search = '' }) {
+export default function Trainers() {
+  const [searchParams] = useSearchParams(); const search = searchParams.get('q') || ''
   const { members, trainers, workoutPlans, dietPlans, attendance, addTrainer, updateTrainer, deleteTrainer } = useApp()
 
   const [loading, setLoading] = useState(true)

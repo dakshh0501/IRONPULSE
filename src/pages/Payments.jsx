@@ -6,6 +6,7 @@ import {
   buildPaymentReceiptWhatsAppLink,
 } from '../utils/whatsappReminders'
 import { jsPDF } from 'jspdf'
+import { useSearchParams } from 'react-router-dom'
 
 const METHODS  = Object.freeze(['UPI', 'Credit Card', 'Debit Card', 'Cash', 'Bank Transfer', 'Net Banking'])
 const STATUSES = Object.freeze(['Paid', 'Pending', 'Overdue', 'Partial'])
@@ -714,7 +715,8 @@ function PaymentTable({ invoices, search, onSelectInvoice, onDelete, readOnly })
 }
 
 // ─── Main Payments Page ──────────────────────────────────────
-export default function Payments({ search = '' }) {
+export default function Payments() {
+  const [searchParams] = useSearchParams(); const search = searchParams.get('q') || ''
   const { payments, members, plans, addPayment, updatePayment, deletePayment, gymSettings } = useApp()
   const { effectiveRole } = useAuth()
   const isMember = effectiveRole === 'member'

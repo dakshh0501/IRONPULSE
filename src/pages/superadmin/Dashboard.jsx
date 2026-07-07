@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useApp } from '../../context/AppContext'
 import { useAuth } from '../../context/AuthContext'
+import { useNavigate } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, AreaChart, Area } from 'recharts'
 
 const fmt = n => n ? `₹${Number(n).toLocaleString('en-IN')}` : '₹0'
@@ -172,7 +173,8 @@ function PlatformCharts({ gyms, subscriptions, payments }) {
 }
 
 // ─── Gym Overview Table ─────────────────────────────────────
-function GymTable({ gyms, subscriptions, gymMemberCount, gymRevenue, setPage }) {
+function GymTable({ gyms, subscriptions, gymMemberCount, gymRevenue }) {
+  const navigate = useNavigate()
   const today = Date.now()
   return (
     <div className="sa-table-card">
@@ -201,8 +203,8 @@ function GymTable({ gyms, subscriptions, gymMemberCount, gymRevenue, setPage }) 
                   <td style={{ fontSize:11, color:'var(--text-dim)' }}>{endTime ? <span style={{ color: daysLeft !== null && daysLeft <= 7 ? 'var(--red)' : daysLeft !== null && daysLeft <= 30 ? 'var(--amber)' : 'var(--text-dim)' }}>{expiryStr}{daysLeft !== null ? ` (${daysLeft}d)` : ''}</span> : '—'}</td>
                   <td><span className={`badge ${status==='Active'?'badge-green':status==='Pending'?'badge-amber':'badge-red'}`} style={{ fontSize:9 }}>{status}</span></td>
                   <td><div style={{ display:'flex', gap:2 }}>
-                    <button className="sa-action-btn" title="View" onClick={() => setPage?.('gymOwners')}>👁️</button>
-                    <button className="sa-action-btn" title="Settings" onClick={() => setPage?.('platformSettings')}>⚙️</button>
+                    <button className="sa-action-btn" title="View" onClick={() => navigate('/gymOwners')}>👁️</button>
+                    <button className="sa-action-btn" title="Settings" onClick={() => navigate('/settings')}>⚙️</button>
                   </div></td>
                 </tr>
               )
@@ -215,7 +217,8 @@ function GymTable({ gyms, subscriptions, gymMemberCount, gymRevenue, setPage }) 
 }
 
 // ─── Recent Activity ─────────────────────────────────────────
-function RecentActivity({ gyms, payments, setPage }) {
+function RecentActivity({ gyms, payments }) {
+  const navigate = useNavigate()
   const activities = useMemo(() => {
     const items = []
     gyms.forEach(g => {
@@ -242,7 +245,7 @@ function RecentActivity({ gyms, payments, setPage }) {
           </div>
         ))}
       </div>
-      <button className="btn btn-ghost btn-sm" onClick={() => setPage?.('reports')} style={{ width:'100%', justifyContent:'center', marginTop:8 }}>View Full Report →</button>
+      <button className="btn btn-ghost btn-sm" onClick={() => navigate('/reports')} style={{ width:'100%', justifyContent:'center', marginTop:8 }}>View Full Report →</button>
     </div>
   )
 }
@@ -274,7 +277,8 @@ function SystemHealth() {
 }
 
 // ─── Main Page ───────────────────────────────────────────────
-export default function PlatformDashboard({ setPage }) {
+export default function PlatformDashboard() {
+  const navigate = useNavigate()
   const { gyms, subscriptions, payments, members, trainers, pendingCount, supportTickets } = useApp()
   const { effectiveRole } = useAuth()
 
@@ -355,7 +359,7 @@ export default function PlatformDashboard({ setPage }) {
           <p>Platform overview and business health.</p>
         </div>
         <div className="page-header-actions">
-          <button className="btn btn-outline btn-sm" onClick={() => setPage?.('notifications')}>📢 Announcements</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/notifications')}>📢 Announcements</button>
           <button className="btn btn-ghost btn-sm" onClick={handleExport}>📥 Export</button>
           <button className="btn btn-ghost btn-sm" onClick={() => window.location.reload()}>🔄 Refresh</button>
         </div>
@@ -382,20 +386,25 @@ export default function PlatformDashboard({ setPage }) {
       <div className="sa-actions-card">
         <div className="sa-actions-label">Quick Actions</div>
         <div className="sa-actions-grid">
-          <button className="btn btn-primary btn-sm" onClick={() => setPage?.('pending')}>✅ Approve Gym</button>
-          <button className="btn btn-outline btn-sm" onClick={() => setPage?.('subscriptions')}>📋 Create Plan</button>
-          <button className="btn btn-outline btn-sm" onClick={() => setPage?.('notifications')}>📢 Announcements</button>
-          <button className="btn btn-outline btn-sm" onClick={() => setPage?.('settings')}>⚙️ Platform Settings</button>
-          <button className="btn btn-outline btn-sm" onClick={() => setPage?.('support')}>🎫 Support</button>
-          <button className="btn btn-outline btn-sm" onClick={() => setPage?.('reports')}>📊 Revenue Report</button>
+          <button className="btn btn-primary btn-sm" onClick={() => navigate('/pending')}>✅ Approve Gym</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/gymOwners')}>🏢 Gym Owners</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/subscriptions')}>📋 Subscriptions</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/analytics')}>📈 Usage Analytics</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/revenue')}>💰 Revenue</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/notifications')}>📢 Notifications</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/support')}>🎫 Support</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/reports')}>📊 Revenue Report</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/settings')}>⚙️ Platform Settings</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/license')}>🔑 License Keys</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/devices')}>📱 Device Management</button>
         </div>
       </div>
 
       {/* ═══════════════ BOTTOM GRID ═══════════════ */}
       <div className="sa-bottom-grid">
-        <GymTable gyms={gyms} subscriptions={subscriptions} gymMemberCount={gymMemberCount} gymRevenue={gymRevenue} setPage={setPage} />
+        <GymTable gyms={gyms} subscriptions={subscriptions} gymMemberCount={gymMemberCount} gymRevenue={gymRevenue} />
         <div className="sa-bottom-right">
-          <RecentActivity gyms={gyms} payments={payments} setPage={setPage} />
+          <RecentActivity gyms={gyms} payments={payments} />
           <SystemHealth />
         </div>
       </div>

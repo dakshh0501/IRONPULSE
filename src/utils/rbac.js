@@ -109,28 +109,6 @@ export const NAVIGATION = {
   ],
 }
 
-// ── Role → Route Map ───────────────────────────────────────
-export const PAGE_ROUTES = {
-  super_admin: [
-    'dashboard','gymOwners','subscriptions','pending',
-    'analytics','revenue','support','notifications',
-    'settings','security','devices','reports','license',
-  ],
-  gym_admin: [
-    'dashboard','members','trainers','payments',
-    'attendance','reception','workouts','diet',
-    'progress','reports','notifications','whatsapp','settings','support','subscription','devices',
-  ],
-  trainer: [
-    'dashboard','members','workouts','diet',
-    'progress','attendance','reception','notifications',
-  ],
-  member: [
-    'dashboard','progress','workouts','diet',
-    'payments','attendance','notifications',
-  ],
-}
-
 // ── Subscription Gating ────────────────────────────────────
 // Returns which roles should subscribe to each Firestore collection
 export function canSubscribe(role, collection) {

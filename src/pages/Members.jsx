@@ -5,8 +5,10 @@ import MemberModal from '../components/MemberModal'
 import DeleteConfirm from '../components/DeleteConfirm'
 import MemberDrawer from '../components/MemberDrawer'
 import MemberRow from '../components/MemberRow'
+import { useSearchParams } from 'react-router-dom'
 
-export default function Members({ search: propSearch }) {
+export default function Members() {
+  const [searchParams] = useSearchParams(); const propSearch = searchParams.get('q') || ''
   const { members, trainers, plans, addMember, updateMember, deleteMember, checkInMember, attendance, payments, progressLogs, dietPlans, workoutPlans, addPayment } = useApp()
   const { effectiveRole, currentUser } = useAuth()
   const isAdmin   = effectiveRole === 'super_admin' || effectiveRole === 'gym_admin'

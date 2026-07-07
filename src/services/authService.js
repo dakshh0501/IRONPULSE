@@ -21,6 +21,7 @@ import {
   collection,
   query,
   where,
+  limit,
   getDocs,
   updateDoc,
   deleteDoc,

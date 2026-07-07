@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, memo } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import { buildDietPlanWhatsAppMessage, buildDietPlanWhatsAppLink } from '../utils/whatsappReminders'
+import { useSearchParams } from 'react-router-dom'
 
 const GOALS = Object.freeze(['Fat Loss', 'Muscle Gain', 'Keto / Low Carb', 'Maintenance', 'Endurance', 'Vegan', 'Diabetic Friendly'])
 const STATUS_OPTIONS = Object.freeze(['Active', 'Paused', 'Completed'])
@@ -692,7 +693,8 @@ function DeleteConfirm({ plan, onConfirm, onCancel, error }) {
 }
 
 // ─── Main Diet Page ───────────────────────────────────────────────────────────
-export default function Diet({ search = '' }) {
+export default function Diet() {
+  const [searchParams] = useSearchParams(); const search = searchParams.get('q') || ''
   const { gymSettings, dietPlans, addDietPlan, updateDietPlan, deleteDietPlan, members, trainers } = useApp()
   const { effectiveRole } = useAuth()
   const isMember = effectiveRole === 'member'

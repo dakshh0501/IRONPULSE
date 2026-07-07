@@ -7,6 +7,7 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer,
   CartesianGrid, Legend,
 } from 'recharts'
+import { useSearchParams } from 'react-router-dom'
 
 const formatDate = (date) => date.toISOString().split('T')[0]
 const hasStatus = (obj, status) => (obj?.status || '').toLowerCase() === status
@@ -741,7 +742,8 @@ const getCutoffDate = (range) => {
 }
 
 // ─── Main Export ─────────────────────────────────────────────
-export default function Reports({ search: _search } = {}) {
+export default function Reports() {
+  const [searchParams] = useSearchParams(); const _search = searchParams.get('q') || ''
   const { members, payments, trainers, attendance } = useApp()
   const [activeTab, setActiveTab] = useState('Dashboard')
   const [dateRange, setDateRange] = useState('month')

@@ -187,7 +187,7 @@ devStyles.textContent = `
     letter-spacing: 0.08em;
     color: var(--text-muted);
     font-weight: 700;
-    background: #fafafa;
+    background: var(--bg3);
     position: sticky;
     top: 0;
     z-index: 2;

@@ -3,6 +3,7 @@ import { useApp }            from '../context/AppContext'
 import { useAuth }           from '../context/AuthContext'
 import { addAttendance as addAttendanceService } from '../services/attendanceService'
 import QRScanner             from '../components/QRScanner'
+import { useSearchParams } from 'react-router-dom'
 
 function getTodayStr() { return new Date().toISOString().split('T')[0] }
 
@@ -359,7 +360,8 @@ function AttendanceTable({ logs, search, members, todayStr }) {
 }
 
 // ─── Main Page ──────────────────────────────────────────────
-export default function Attendance({ search = '' }) {
+export default function Attendance() {
+  const [searchParams] = useSearchParams(); const search = searchParams.get('q') || ''
   const { attendance = [], members = [], gymId } = useApp()
   const { effectiveRole } = useAuth()
   const isMember = effectiveRole === 'member'

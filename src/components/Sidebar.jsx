@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { NAVIGATION } from '../utils/rbac'
 
@@ -19,10 +19,18 @@ const SECTION_ICONS = {
   Other: '🔧',
 }
 
-export default function Sidebar({ currentPage, setPage, collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
+function keyToUrl(key, navRole) {
+  if (key === 'reception') return '/reception'
+  if (navRole === 'trainer') return `/trainer/${key}`
+  if (navRole === 'member') return `/member/${key}`
+  return `/${key}`
+}
+
+export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
+  const navigate = useNavigate()
+  const location = useLocation()
   const { currentUser, logout, userProfile, effectiveRole } = useAuth()
   const { unreadCount, pendingCount, payments } = useApp()
-  const navigate = useNavigate()
 
   const role = effectiveRole || userProfile?.role
   const nav = NAVIGATION[role] || []
@@ -40,20 +48,7 @@ export default function Sidebar({ currentPage, setPage, collapsed, setCollapsed,
   }
 
   const handleNav = (key) => {
-    setPage(key)
-    const routeMap = {
-      dashboard:'/dashboard', members:'/members', trainers:'/trainers',
-      payments:'/payments', attendance:'/attendance', workouts:'/workouts',
-      diet:'/diet', progress:'/progress', reports:'/reports',
-      notifications:'/notifications', support:'/support',
-      settings:'/settings', whatsapp:'/whatsapp',
-      subscription:'/subscription', devices:'/devices',
-      reception:'/reception', gymOwners:'/gym-owners',
-      subscriptions:'/subscriptions', pending:'/pending',
-      analytics:'/analytics', revenue:'/revenue',
-      security:'/security', license:'/license',
-    }
-    navigate(routeMap[key] || '/dashboard')
+    navigate(keyToUrl(key, role))
     if (setMobileOpen) setMobileOpen(false)
   }
 
@@ -100,85 +95,63 @@ export default function Sidebar({ currentPage, setPage, collapsed, setCollapsed,
         <nav className="sidebar-nav">
           {groupedNav.map((group, gi) => (
             <div key={gi} className="sidebar-group">
-              {!collapsed && (
-                <div className="sidebar-group-label">
-                  <span className="sidebar-group-icon">{SECTION_ICONS[group.section] || '📌'}</span>
-                  <span>{group.section}</span>
-                </div>
-              )}
+              <div className="sidebar-section-label">
+                {SECTION_ICONS[group.section] || '📌'} {group.section}
+              </div>
               {group.items.map(item => {
-                const badge = item.badge ? getBadge(item.badge) : null
-                const isActive = currentPage === item.key
+                const url = keyToUrl(item.key, role)
+                const isActive = location.pathname === url
+                const badge = getBadge(item.badge)
                 return (
-                  <div
+                  <button
                     key={item.key}
-                    className={`sidebar-item${isActive ? ' active' : ''}`}
+                    className={`sidebar-item ${isActive ? 'active' : ''}`}
                     onClick={() => handleNav(item.key)}
-                    title={collapsed ? item.label : undefined}
                   >
                     <span className="sidebar-item-icon">{item.icon}</span>
-                    {!collapsed && (
-                      <>
-                        <span className="sidebar-item-label truncate">{item.label}</span>
-                        {badge != null && (
-                          <span className="sidebar-item-badge">
-                            {badge > 99 ? '99+' : badge}
-                          </span>
-                        )}
-                      </>
+                    <span className="sidebar-item-label">{item.label}</span>
+                    {badge != null && (
+                      <span className={`sidebar-badge${badge > 9 ? ' badge-lg' : ''}`}>
+                        {badge > 99 ? '99+' : badge}
+                      </span>
                     )}
-                    {isActive && collapsed && (
-                      <span className="sidebar-active-dot" />
-                    )}
-                  </div>
+                  </button>
                 )
               })}
             </div>
           ))}
         </nav>
 
-        {/* Profile footer */}
-        <div className="sidebar-footer">
-          <div className="sidebar-user" onClick={() => handleNav('settings')}>
-            <div className={`avatar ${avColor}`} style={{ width:34, height:34, fontSize:13 }}>
-              {userProfile?.name?.[0] || '?'}
-            </div>
-            {!collapsed && (
-              <>
-                <div className="sidebar-user-info">
-                  <div className="sidebar-user-name truncate">{userProfile?.name || 'User'}</div>
-                  <div className="sidebar-user-role">
-                    {role === 'super_admin' ? 'Super Admin' : (role || 'User')}
-                  </div>
-                </div>
-                <span className="sidebar-user-settings">⚙</span>
-              </>
-            )}
+        {/* Collapse toggle */}
+        {!collapsed && (
+          <div className="sidebar-footer" style={{ padding:'12px 16px' }}>
+            <button
+              className="sidebar-collapse-btn"
+              onClick={() => setCollapsed(c => !c)}
+              title="Collapse sidebar"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+              <span>Collapse</span>
+            </button>
           </div>
-          <button
-            className="sidebar-logout"
-            onClick={async () => await logout()}
-            title="Sign Out"
-          >
-            <span>🚪</span>
-            {!collapsed && <span>Sign Out</span>}
-          </button>
-        </div>
+        )}
+        {collapsed && (
+          <div className="sidebar-footer" style={{ padding:'12px 0', display:'flex', justifyContent:'center' }}>
+            <button
+              className="sidebar-collapse-btn"
+              onClick={() => setCollapsed(c => !c)}
+              title="Expand sidebar"
+              style={{ justifyContent:'center', padding:8, width:'auto' }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          </div>
+        )}
       </aside>
-
-      {/* Collapse toggle button */}
-      <button
-        className="sidebar-collapse-btn"
-        onClick={() => setCollapsed(c => !c)}
-        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{
-          transform: collapsed ? 'rotate(180deg)' : 'rotate(0deg)',
-          transition: 'transform 0.2s ease',
-        }}>
-          <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
     </>
   )
 }

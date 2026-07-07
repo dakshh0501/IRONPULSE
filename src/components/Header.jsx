@@ -1,69 +1,92 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Bell, Search, Sun, Moon, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 
 const PAGE_TITLES = {
-  dashboard:     'Dashboard',
-  gymOwners:     'Gym Owners',
-  subscriptions: 'Subscriptions',
-  support:       'Support',
-  members:       'Member Management',
-  trainers:      'Trainer Management',
-  workouts:      'Workout Plans',
-  diet:          'Diet Plans',
-  progress:      'Progress Tracking',
-  payments:      'Payments & Billing',
-  attendance:    'QR Check-in & Attendance',
-  notifications: 'Notifications',
-  reports:       'Reports & Analytics',
-  settings:      'Settings',
-  whatsapp:      'WhatsApp Reminders',
-  pending:       'Approval Requests',
-  analytics:     'Usage Analytics',
-  revenue:       'Platform Revenue',
-  security:      'Security',
-  license:       'License Keys',
-  devices:       'Registered Devices',
-  reception:     'Reception Mode',
-  subscription:  'My Subscription',
-  platformSettings: 'Platform Settings',
-  gymSubscription:  'Gym Subscription',
-  checkout:         'Checkout',
-  paymentStatus:    'Payment Status',
-  deviceManagement: 'Device Management',
-  approvalRequests: 'Approval Requests',
+  '/dashboard':     'Dashboard',
+  '/reception':     'Reception Mode',
+  '/gymOwners':     'Gym Owners',
+  '/subscriptions': 'Subscriptions',
+  '/pending':       'Approval Requests',
+  '/support':       'Support',
+  '/members':       'Member Management',
+  '/trainers':      'Trainer Management',
+  '/payments':      'Payments & Billing',
+  '/attendance':    'QR Check-in & Attendance',
+  '/workouts':      'Workout Plans',
+  '/diet':          'Diet Plans',
+  '/progress':      'Progress Tracking',
+  '/reports':       'Reports & Analytics',
+  '/notifications': 'Notifications',
+  '/settings':      'Settings',
+  '/whatsapp':      'WhatsApp Reminders',
+  '/analytics':     'Usage Analytics',
+  '/revenue':       'Platform Revenue',
+  '/security':      'Security',
+  '/license':       'License Keys',
+  '/devices':       'Registered Devices',
+  '/subscription':  'My Subscription',
+  '/member/dashboard':   'My Dashboard',
+  '/member/progress':    'My Progress',
+  '/member/workouts':    'My Workouts',
+  '/member/diet':        'My Diet Plan',
+  '/member/payments':    'My Payments',
+  '/member/attendance':  'Check In',
+  '/member/notifications':'Notifications',
+  '/trainer/dashboard':   'Trainer Dashboard',
+  '/trainer/members':     'My Clients',
+  '/trainer/workouts':    'Workout Plans',
+  '/trainer/diet':        'Diet Plans',
+  '/trainer/progress':    'Progress Tracking',
+  '/trainer/attendance':  'Attendance',
+  '/trainer/notifications':'Notifications',
 }
 
 const PAGE_BREADCRUMBS = {
-  dashboard:     { primary: 'Dashboard', secondary: 'Overview' },
-  gymOwners:     { primary: 'Gym Owners', secondary: 'Platform Management' },
-  subscriptions: { primary: 'Subscriptions', secondary: 'Plan Management' },
-  pending:       { primary: 'Approval Requests', secondary: 'Pending Approvals' },
-  support:       { primary: 'Support', secondary: 'Help & Tickets' },
-  members:       { primary: 'Members', secondary: 'Member Management' },
-  trainers:      { primary: 'Trainers', secondary: 'Trainer Management' },
-  payments:      { primary: 'Payments', secondary: 'Billing & Invoices' },
-  attendance:    { primary: 'Attendance', secondary: 'QR Check-in' },
-  workouts:      { primary: 'Workouts', secondary: 'Exercise Plans' },
-  diet:          { primary: 'Diet Plans', secondary: 'Nutrition Management' },
-  progress:      { primary: 'Progress', secondary: 'Tracking & Analytics' },
-  reports:       { primary: 'Reports', secondary: 'Analytics & Insights' },
-  settings:      { primary: 'Settings', secondary: 'Configuration' },
-  notifications: { primary: 'Notifications', secondary: 'Alerts & Updates' },
-  subscription:  { primary: 'Subscription', secondary: 'Plan & Billing' },
-  devices:       { primary: 'Devices', secondary: 'Registered Devices' },
-  reception:     { primary: 'Reception', secondary: 'Check-in Mode' },
-  whatsapp:      { primary: 'WhatsApp', secondary: 'Reminders' },
-  analytics:     { primary: 'Analytics', secondary: 'Usage Insights' },
-  revenue:       { primary: 'Revenue', secondary: 'Platform Earnings' },
-  security:      { primary: 'Security', secondary: 'Access Control' },
-  license:       { primary: 'License Keys', secondary: 'Key Management' },
+  '/dashboard':     { primary: 'Dashboard', secondary: 'Overview' },
+  '/reception':     { primary: 'Reception', secondary: 'Check-in Mode' },
+  '/gymOwners':     { primary: 'Gym Owners', secondary: 'Platform Management' },
+  '/subscriptions': { primary: 'Subscriptions', secondary: 'Plan Management' },
+  '/pending':       { primary: 'Approval Requests', secondary: 'Pending Approvals' },
+  '/support':       { primary: 'Support', secondary: 'Help & Tickets' },
+  '/members':       { primary: 'Members', secondary: 'Member Management' },
+  '/trainers':      { primary: 'Trainers', secondary: 'Trainer Management' },
+  '/payments':      { primary: 'Payments', secondary: 'Billing & Invoices' },
+  '/attendance':    { primary: 'Attendance', secondary: 'QR Check-in' },
+  '/workouts':      { primary: 'Workouts', secondary: 'Exercise Plans' },
+  '/diet':          { primary: 'Diet Plans', secondary: 'Nutrition Management' },
+  '/progress':      { primary: 'Progress', secondary: 'Tracking & Analytics' },
+  '/reports':       { primary: 'Reports', secondary: 'Analytics & Insights' },
+  '/settings':      { primary: 'Settings', secondary: 'Configuration' },
+  '/notifications': { primary: 'Notifications', secondary: 'Alerts & Updates' },
+  '/whatsapp':      { primary: 'WhatsApp', secondary: 'Reminders' },
+  '/analytics':     { primary: 'Analytics', secondary: 'Usage Insights' },
+  '/revenue':       { primary: 'Revenue', secondary: 'Platform Earnings' },
+  '/security':      { primary: 'Security', secondary: 'Access Control' },
+  '/license':       { primary: 'License Keys', secondary: 'Key Management' },
+  '/devices':       { primary: 'Devices', secondary: 'Registered Devices' },
+  '/subscription':  { primary: 'Subscription', secondary: 'Plan & Billing' },
+  '/member/dashboard':   { primary: 'My Dashboard', secondary: 'Overview' },
+  '/member/progress':    { primary: 'My Progress', secondary: 'Tracking' },
+  '/member/workouts':    { primary: 'My Workouts', secondary: 'Exercise Plans' },
+  '/member/diet':        { primary: 'My Diet Plan', secondary: 'Nutrition' },
+  '/member/payments':    { primary: 'My Payments', secondary: 'Billing' },
+  '/member/attendance':  { primary: 'Check In', secondary: 'Attendance' },
+  '/member/notifications':{ primary: 'Notifications', secondary: 'Alerts' },
+  '/trainer/dashboard':   { primary: 'Dashboard', secondary: 'Overview' },
+  '/trainer/members':     { primary: 'My Clients', secondary: 'Member List' },
+  '/trainer/workouts':    { primary: 'Workout Plans', secondary: 'Exercise' },
+  '/trainer/diet':        { primary: 'Diet Plans', secondary: 'Nutrition' },
+  '/trainer/progress':    { primary: 'Progress', secondary: 'Tracking' },
+  '/trainer/attendance':  { primary: 'Attendance', secondary: 'Check-in' },
+  '/trainer/notifications':{ primary: 'Notifications', secondary: 'Alerts' },
 }
 
-export default function Header({ currentPage, setPage, search, setSearch, setMobileOpen }) {
+export default function Header({ search, setSearch, setMobileOpen }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const { darkMode, setDarkMode, unreadCount, notifications, markAllNotifsRead, markNotifRead, gymSettings } = useApp()
   const { userProfile, effectiveRole } = useAuth()
   const [notifOpen, setNotifOpen] = useState(false)
@@ -74,6 +97,8 @@ export default function Header({ currentPage, setPage, search, setSearch, setMob
   const role = effectiveRole || userProfile?.role
   const gymName = gymSettings?.name || 'IronForge Gym'
 
+  const breadcrumbInfo = PAGE_BREADCRUMBS[location.pathname] || { primary: PAGE_TITLES[location.pathname] || 'Dashboard', secondary: '' }
+
   const getTimeAgo = (createdAt) => {
     if (!createdAt) return ''
     const ts = createdAt?.seconds ? new Date(createdAt.seconds * 1000) : new Date(createdAt)
@@ -83,8 +108,6 @@ export default function Header({ currentPage, setPage, search, setSearch, setMob
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
     return `${Math.floor(diff / 86400)}d ago`
   }
-
-  const pageInfo = PAGE_BREADCRUMBS[currentPage] || { primary: PAGE_TITLES[currentPage] || 'Dashboard', secondary: '' }
 
   // Close notification panel on outside click
   useEffect(() => {
@@ -111,9 +134,9 @@ export default function Header({ currentPage, setPage, search, setSearch, setMob
 
         {/* Breadcrumbs */}
         <div className="header-breadcrumbs">
-          <span className="header-page-primary">{pageInfo.primary}</span>
-          {pageInfo.secondary && (
-            <span className="header-page-secondary">{pageInfo.secondary}</span>
+          <span className="header-page-primary">{breadcrumbInfo.primary}</span>
+          {breadcrumbInfo.secondary && (
+            <span className="header-page-secondary">{breadcrumbInfo.secondary}</span>
           )}
         </div>
 
@@ -171,7 +194,7 @@ export default function Header({ currentPage, setPage, search, setSearch, setMob
 
           <div
             className="header-avatar"
-            onClick={() => setPage('settings')}
+            onClick={() => navigate('/settings')}
             title={userProfile?.name}
           >
             <div className="avatar av-orange" style={{ width:34, height:34, fontSize:13 }}>

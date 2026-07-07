@@ -16,6 +16,7 @@ import {
   changePlan as changePlanForGym,
 } from '../../services/subscriptionService'
 import { PLAN_AMOUNTS } from '../../constants/plans'
+import { useSearchParams } from 'react-router-dom'
 
 const PLAN_OPTIONS = ['Trial', 'Standard', 'Premium', 'Quarterly', 'Annual', 'Lifetime', 'Day Pass']
 const ROWS_PER_PAGE = 10
@@ -466,7 +467,8 @@ const ACTION_STYLES = {
   change: { bg: 'var(--blue)', label: 'Change Plan' },
 }
 
-export default function SuperAdminSubscriptions({ search: globalSearch }) {
+export default function SuperAdminSubscriptions() {
+  const [searchParams] = useSearchParams(); const globalSearch = searchParams.get('q') || ''
   const { currentUser } = useAuth()
   const { subscriptions, gyms } = useApp()
   const [selectedSubId, setSelectedSubId] = useState(null)
@@ -513,11 +515,15 @@ export default function SuperAdminSubscriptions({ search: globalSearch }) {
       return end > 0 && end < now + 7 * 86400000 && end >= now
     }).length
     const trial = subscriptions.filter(s => (s.plan || '').toLowerCase() === 'trial' || s.status === 'trial').length
-    const totalActiveAmount = subscriptions
-      .filter(s => s.status === 'active' || s.paymentStatus === 'paid')
-      .reduce((sum, s) => sum + (s.amount || 0), 0)
-    const mrr = totalActiveAmount / 100
-    const arr = mrr * 12
+    const MONTHLY_MULTIPLIER = { Standard: 1, Premium: 1, 'Day Pass': 1, Quarterly: 3, Annual: 12, Lifetime: 36, Trial: 0 }
+    const activeSubs = subscriptions.filter(s => s.status === 'active' || s.paymentStatus === 'paid')
+    const monthlyRevenue = activeSubs.reduce((sum, s) => {
+      const plan = s.plan || ''
+      const months = MONTHLY_MULTIPLIER[plan] || 1
+      return sum + ((s.amount || 0) / months)
+    }, 0)
+    const mrr = Math.round(monthlyRevenue) / 100
+    const arr = Math.round(monthlyRevenue * 12) / 100
     const totalPaid = subscriptions.filter(s => s.paymentStatus === 'paid').length
     const collectionRate = subscriptions.length > 0 ? Math.round((totalPaid / subscriptions.length) * 100) : 0
     const pendingRenewals = subscriptions.filter(s => {

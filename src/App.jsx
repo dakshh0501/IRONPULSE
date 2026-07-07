@@ -1,9 +1,8 @@
 // src/App.jsx
-import { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { AppProvider, useApp } from './context/AppContext'
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
+import { Routes, Route, Navigate, Outlet, useLocation, useSearchParams } from 'react-router-dom'
+import { AppProvider } from './context/AppContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import { PAGE_ROUTES } from './utils/rbac'
 import StartupScreen from './components/StartupScreen'
 import LoadingScreen from './components/LoadingScreen'
 import Sidebar      from './components/Sidebar'
@@ -11,7 +10,6 @@ import Header       from './components/Header'
 import LicenseGuard from './components/LicenseGuard'
 import ErrorBoundary from './components/ErrorBoundary'
 import BiometricGate from './components/BiometricGate'
-import { openSupportWhatsApp } from './utils/whatsappSupport'
 
 // ── Lazy-loaded pages (code-split at route level) ──────────
 const Landing        = lazy(() => import('./pages/Landing'))
@@ -53,231 +51,149 @@ const NotFound            = lazy(() => import('./pages/NotFound'))
 const Rejected            = lazy(() => import('./pages/Rejected'))
 const VerifyEmail         = lazy(() => import('./pages/VerifyEmail'))
 
-// ── Shared component map (all pages that exist) ──────────────
-const PAGE_COMPONENTS = {
-  dashboard:     (p) => <AdminDashboard setPage={p.setPage} />,
-  gymOwners:      (p) => <SuperAdminGymOwners search={p.search} setPage={p.setPage} />,
-  subscriptions:  (p) => <SuperAdminSubscriptions search={p.search} setPage={p.setPage} />,
-  pending:        (p) => <ApprovalRequests search={p.search} setPage={p.setPage} />,
-  support:        (p) => <Support search={p.search} setPage={p.setPage} />,
-  notifications: (p) => <Notifications   search={p.search} setPage={p.setPage} />,
-  members:       (p) => <Members         search={p.search} setPage={p.setPage} />,
-  trainers:      (p) => <Trainers        search={p.search} setPage={p.setPage} />,
-  workouts:      (p) => <Workouts        search={p.search} setPage={p.setPage} />,
-  diet:          (p) => <Diet            search={p.search} setPage={p.setPage} />,
-  payments:      (p) => <Payments        search={p.search} setPage={p.setPage} />,
-  progress:      (p) => <Progress        search={p.search} setPage={p.setPage} />,
-  attendance:    (p) => <Attendance      search={p.search} setPage={p.setPage} />,
-  reception:     (p) => <ReceptionMode   />,
-  reports:       (p) => <GymReports search={p.search} setPage={p.setPage} />,
-  subscription:  (p) => <GymSubscription />,
-  settings:      (p) => <Settings        search={p.search} setPage={p.setPage} />,
-  whatsapp:      (p) => <WhatsAppReminders search={p.search} />,
-  analytics:     (p) => <UsageAnalytics  />,
-  revenue:       (p) => <PlatformRevenue  />,
-  security:      (p) => <Security        />,
-  license:       (p) => <LicenseKeys     />,
-  devices:       (p) => <GymDevices      />,
-}
-
-// ── PAGE MAP — generated from RBAC roles ────────────────────
-function buildPageMap(setPage, search, role) {
-  const allowedKeys = PAGE_ROUTES[role] || []
-  const props = { setPage, search }
-  const map = {}
-  allowedKeys.forEach(key => {
-    const builder = PAGE_COMPONENTS[key]
-    if (builder) map[key] = builder(props)
-  })
-  // Always fall back to trainer dashboard for trainer role
-  if (role === 'trainer' && map.dashboard) {
-    map.dashboard = <TrainerDashboard setPage={setPage} />
-  }
-  // Always fall back to member dashboard for member role
-  if (role === 'member' && map.dashboard) {
-    map.dashboard = <MemberDashboard setPage={setPage} />
-  }
-  // Super Admin gets dedicated pages for shared routes
-  if (role === 'super_admin') {
-    map.dashboard     = <PlatformDashboard   setPage={setPage} />
-    map.settings      = <PlatformSettings    search={search} setPage={setPage} />
-    map.notifications = <SuperAdminNotifications search={search} setPage={setPage} />
-    map.reports       = <SuperAdminReports   search={search} setPage={setPage} />
-    map.devices       = <SuperAdminDevices   />
-    map.support       = <SuperAdminSupport search={search} setPage={setPage} />
-  }
-  // Wrap gym_admin-equivalent pages in LicenseGuard (premium pages)
-  // role here is navRole (effectiveRole || role), which normalizes 'admin' and 'gym_owner' to 'gym_admin'
-  if (role === 'gym_admin') {
-    const guardedKeys = ['dashboard','members','trainers','payments','attendance',
-      'reception','workouts','diet','progress','reports','notifications',
-      'whatsapp','settings','support','devices']
-    guardedKeys.forEach(key => {
-      if (map[key]) {
-        const original = map[key]
-        map[key] = <LicenseGuard>{original}</LicenseGuard>
-      }
-    })
-  }
-  return map
-}
-
-// ─────────────────────────────────────────────────────────────
-//  APP SHELL
-// ─────────────────────────────────────────────────────────────
-function AppShell() {
-  const { role, effectiveRole, logout } = useAuth()
-  const { currentSubscription } = useApp()
+// ── Role-switching page wrappers ──────────────────────────
+function DashboardPage() {
+  const { effectiveRole, role } = useAuth()
   const navRole = effectiveRole || role
-  const [page,       setPage]       = useState(() => sessionStorage.getItem('ironpulse-page') || 'dashboard')
-  const [search,     setSearch]     = useState('')
+  if (navRole === 'super_admin') return <PlatformDashboard />
+  if (navRole === 'member') return <MemberDashboard />
+  if (navRole === 'trainer') return <TrainerDashboard />
+  return <AdminDashboard />
+}
+
+function SettingsPage() {
+  const { effectiveRole, role } = useAuth()
+  const navRole = effectiveRole || role
+  if (navRole === 'super_admin') return <PlatformSettings />
+  return <Settings />
+}
+
+function NotificationsPage() {
+  const { effectiveRole, role } = useAuth()
+  const navRole = effectiveRole || role
+  if (navRole === 'super_admin') return <SuperAdminNotifications />
+  return <Notifications />
+}
+
+function ReportsPage() {
+  const { effectiveRole, role } = useAuth()
+  const navRole = effectiveRole || role
+  if (navRole === 'super_admin') return <SuperAdminReports />
+  return <GymReports />
+}
+
+function SupportPage() {
+  const { effectiveRole, role } = useAuth()
+  const navRole = effectiveRole || role
+  if (navRole === 'super_admin') return <SuperAdminSupport />
+  return <Support />
+}
+
+function DevicesPage() {
+  const { effectiveRole, role } = useAuth()
+  const navRole = effectiveRole || role
+  if (navRole === 'super_admin') return <SuperAdminDevices />
+  return <GymDevices />
+}
+
+// ── Role gate for super_admin-only and trainer/member routes ──
+function RoleGate({ allowedRoles, children }) {
+  const { effectiveRole, role } = useAuth()
+  const checkRole = effectiveRole || role
+  if (!allowedRoles.includes(checkRole)) return <Navigate to="/dashboard" replace />
+  return children
+}
+
+// ── LicenseGuard wrapper for gym_admin page content ──
+function Guarded({ children }) {
+  const { effectiveRole, role } = useAuth()
+  const navRole = effectiveRole || role
+  if (navRole === 'gym_admin') return <LicenseGuard>{children}</LicenseGuard>
+  return children
+}
+
+// ── Global page title based on URL path ──
+const PAGE_TITLES = {
+  '/dashboard':     'Dashboard',
+  '/gymOwners':     'Gym Owners',
+  '/subscriptions': 'Subscriptions',
+  '/support':       'Support',
+  '/members':       'Member Management',
+  '/trainers':      'Trainer Management',
+  '/workouts':      'Workout Plans',
+  '/diet':          'Diet Plans',
+  '/payments':      'Payments & Billing',
+  '/attendance':    'QR Check-in & Attendance',
+  '/notifications': 'Notifications',
+  '/reports':       'Reports & Analytics',
+  '/settings':      'Settings',
+  '/whatsapp':      'WhatsApp Reminders',
+  '/pending':       'Approval Requests',
+  '/analytics':     'Usage Analytics',
+  '/revenue':       'Platform Revenue',
+  '/security':      'Security',
+  '/license':       'License Keys',
+  '/devices':       'Registered Devices',
+  '/reception':     'Reception Mode',
+  '/subscription':  'My Subscription',
+  '/progress':      'Progress Tracking',
+}
+
+// ── APP SHELL — shared layout with sidebar + header ────────
+function AppShell() {
+  const location = useLocation()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const search = searchParams.get('q') || ''
+  const setSearch = useCallback((val) => {
+    if (val) setSearchParams({ q: val }, { replace: true })
+    else setSearchParams({}, { replace: true })
+  }, [setSearchParams])
   const [mobileOpen, setMobileOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => sessionStorage.getItem('ironpulse-sidebar') === 'collapsed'
   )
-  const [loadingNav, setLoadingNav] = useState(false)
-  const [navKey, setNavKey] = useState(0)
-  const prevPage = useRef(page)
   const swipeState = useRef({ startX: 0, startY: 0, swiping: false })
-
-  const isExpired = currentSubscription?.status === 'expired'
-  const isGymAdmin = effectiveRole === 'gym_admin'
-
-  useEffect(() => {
-    sessionStorage.setItem('ironpulse-page', page)
-  }, [page])
 
   useEffect(() => {
     sessionStorage.setItem('ironpulse-sidebar', sidebarCollapsed ? 'collapsed' : 'expanded')
   }, [sidebarCollapsed])
 
-  const onLoadingReady = useCallback(() => {
-    setLoadingNav(false)
-  }, [])
-
-  const handleSetPage = useCallback((p) => {
-    if (p === prevPage.current) return
-    setLoadingNav(true)
-    setNavKey(k => k + 1)
-    setPage(p)
-  }, [])
-
-  const handleSidebarNav = useCallback((p) => {
-    if (p === prevPage.current) return
-    setLoadingNav(true)
-    setNavKey(k => k + 1)
-    setPage(p)
-    setSearch('')
-  }, [])
-
-  useEffect(() => {
-    if (page !== prevPage.current) {
-      prevPage.current = page
-    }
-  }, [page])
-
-  const pageMap = useMemo(
-  () => buildPageMap(setPage, search, navRole),
-  [navRole, search, page]
-) || {}
-
-const safePageRaw =
-  pageMap[page]
-    ? page
-    : Object.keys(pageMap)[0]
-
-// Enforce subscription lock for gym admins with expired subscription
-const isPageLocked = isExpired && isGymAdmin && safePageRaw !== 'subscription'
-
-const safePage = isPageLocked ? 'subscription' : safePageRaw
-
-// Redirect to subscription page if locked
-useEffect(() => {
-  if (isPageLocked && page !== 'subscription') {
-    setPage('subscription')
+  const currentTitle = PAGE_TITLES[location.pathname] || 'Dashboard'
+  const pageInfo = {
+    primary: currentTitle,
+    secondary: '',
   }
-}, [isPageLocked, page])
-
-const UnauthorizedFallback = () => (
-  <div style={{
-    display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-    height:'100vh', textAlign:'center', padding:40,
-    background:'#070a12', position:'relative', overflow:'hidden'
-  }}>
-    <div style={{ position:'absolute', top:'20%', left:'50%', transform:'translateX(-50%)', width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle, rgba(232,66,10,0.05), transparent 70%)', pointerEvents:'none' }} />
-    <div style={{
-      width:72, height:72, borderRadius:'50%',
-      background:'rgba(232,66,10,0.08)', border:'2px solid rgba(232,66,10,0.15)',
-      display:'flex', alignItems:'center', justifyContent:'center', marginBottom:20,
-      fontSize:32
-    }}>🔒</div>
-    <h2 style={{ margin:'0 0 8px', fontSize:24, fontWeight:800, color:'#e4e8f0', fontFamily:"'Barlow Condensed', sans-serif" }}>Access Restricted</h2>
-    <p style={{ color:'#6070a0', margin:'0 0 28px', fontSize:14, maxWidth:400, lineHeight:1.6 }}>
-      Your account does not have access to any pages. This may mean your role is pending approval or not yet activated.
-    </p>
-    <div style={{ display:'flex', gap:12 }}>
-      <button className="btn btn-primary" onClick={() => window.location.href = '/'}>Return Home</button>
-      <button className="btn btn-outline" onClick={() => openSupportWhatsApp({ page: 'Unauthorized', issue: 'Permission Issue' })}>🆘 Contact Support</button>
-      <button className="btn btn-outline" onClick={logout}>Sign Out</button>
-    </div>
-  </div>
-)
-
-const pageContent =
-  pageMap[safePage] || <UnauthorizedFallback />
 
   const mobileOpenRef = useRef(mobileOpen)
   mobileOpenRef.current = mobileOpen
 
   // ── Document-level swipe gesture for sidebar open/close ─────
-  // We use document listeners because a fixed-position swipe zone
-  // div can be intercepted by the sidebar's fixed layout box on
-  // Android WebView (sidebar has position:fixed;left:0;z-index:300
-  // even when translated off-screen).  Document capture works
-  // regardless of z-index or element stacking.
   useEffect(() => {
     const s = swipeState.current
-
     const onTouchStart = (e) => {
       const touch = e.touches[0]
       s.startX = touch.clientX
       s.startY = touch.clientY
       s.swiping = touch.clientX <= 40 || mobileOpenRef.current
     }
-
     const onTouchMove = (e) => {
       if (!s.swiping) return
       const touch = e.touches[0]
       const deltaX = touch.clientX - s.startX
       const deltaY = touch.clientY - s.startY
-
-      // Must be more horizontal than vertical
-      if (Math.abs(deltaX) < Math.abs(deltaY) * 0.6) {
-        s.swiping = false
-        return
-      }
-
+      if (Math.abs(deltaX) < Math.abs(deltaY) * 0.6) { s.swiping = false; return }
       if (!mobileOpenRef.current && deltaX > 40) {
-        // Edge-swipe right → open sidebar
         if (e.cancelable) e.preventDefault()
-        setMobileOpen(true)
-        s.swiping = false
+        setMobileOpen(true); s.swiping = false
       } else if (mobileOpenRef.current && deltaX < -40) {
-        // Swipe left on open sidebar → close
         if (e.cancelable) e.preventDefault()
-        setMobileOpen(false)
-        s.swiping = false
+        setMobileOpen(false); s.swiping = false
       }
     }
-
-    const onTouchEnd = () => {
-      s.swiping = false
-    }
-
+    const onTouchEnd = () => { s.swiping = false }
     document.addEventListener('touchstart', onTouchStart, { passive: true })
     document.addEventListener('touchmove', onTouchMove, { passive: false })
     document.addEventListener('touchend', onTouchEnd, { passive: true })
-
     return () => {
       document.removeEventListener('touchstart', onTouchStart)
       document.removeEventListener('touchmove', onTouchMove)
@@ -287,7 +203,6 @@ const pageContent =
 
   return (
     <>
-      {loadingNav && <LoadingScreen key={navKey} onReady={onLoadingReady} />}
       {mobileOpen && (
         <div
           onClick={() => setMobileOpen(false)}
@@ -300,8 +215,6 @@ const pageContent =
       )}
       <div className={`app-shell${sidebarCollapsed ? ' collapsed' : ''}`}>
         <Sidebar
-          currentPage={safePage}
-          setPage={handleSidebarNav}
           collapsed={sidebarCollapsed}
           setCollapsed={setSidebarCollapsed}
           mobileOpen={mobileOpen}
@@ -309,14 +222,13 @@ const pageContent =
         />
         <div className="main-content">
           <Header
-            currentPage={safePage}
-            setPage={handleSetPage}
+            pageInfo={pageInfo}
             search={search}
             setSearch={setSearch}
             setMobileOpen={setMobileOpen}
           />
           <main className="page-content">
-            {pageContent}
+            <Outlet />
           </main>
         </div>
       </div>
@@ -345,9 +257,7 @@ function ProtectedRoute({ children, allowedRoles }) {
   }, [authLoading, exiting])
 
   if (!authLoading && exiting) {
-    if (userProfile?.role === 'rejected') {
-      return <Navigate to="/rejected" replace />
-    }
+    if (userProfile?.role === 'rejected') return <Navigate to="/rejected" replace />
     if (!isLoggedIn) {
       const target = isLocalhost() ? '/auth' : '/'
       return <Navigate to={target} replace />
@@ -356,7 +266,8 @@ function ProtectedRoute({ children, allowedRoles }) {
     if (currentUser && !currentUser.emailVerified) return <Navigate to="/verify-email" replace />
     if (allowedRoles && !allowedRoles.includes(checkRole)) return <Navigate to="/dashboard" replace />
     if (biometricGate) return <BiometricGate />
-    return children
+    if (children) return children
+    return <Outlet />
   }
 
   return <LoadingScreen />
@@ -384,18 +295,74 @@ function PublicRoute({ children }) {
 // ─────────────────────────────────────────────────────────────
 //  ROUTES
 // ─────────────────────────────────────────────────────────────
+
 function RouterTree() {
   return (
     <Suspense fallback={<LoadingScreen />}>
       <Routes>
+        {/* ── Public ── */}
         <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
         <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
-        <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']}><AppShell /></ProtectedRoute>} />
-        <Route path="/reception" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer']}><ReceptionMode /></ProtectedRoute>} />
-        <Route path="/payment-status" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']}><PaymentStatus /></ProtectedRoute>} />
-        <Route path="/checkout" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']}><Checkout /></ProtectedRoute>} />
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/rejected" element={<Rejected />} />
+
+        {/* ── Standalone authenticated (no sidebar) ── */}
+        <Route path="/payment-status" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']}><PaymentStatus /></ProtectedRoute>} />
+        <Route path="/checkout" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']}><Checkout /></ProtectedRoute>} />
+
+        {/* ── Authenticated with AppShell (sidebar + header) ── */}
+        <Route element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']} />}>
+          <Route element={<AppShell />}>
+
+            {/* Super admin + gym admin shared routes */}
+            <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="members" element={<RoleGate allowedRoles={['super_admin','gym_admin','trainer']}><Guarded><Members /></Guarded></RoleGate>} />
+            <Route path="trainers" element={<RoleGate allowedRoles={['super_admin','gym_admin']}><Guarded><Trainers /></Guarded></RoleGate>} />
+            <Route path="payments" element={<RoleGate allowedRoles={['super_admin','gym_admin']}><Guarded><Payments /></Guarded></RoleGate>} />
+            <Route path="attendance" element={<Guarded><Attendance /></Guarded>} />
+            <Route path="reception" element={<RoleGate allowedRoles={['super_admin','gym_admin','trainer']}><Guarded><ReceptionMode /></Guarded></RoleGate>} />
+            <Route path="workouts" element={<Guarded><Workouts /></Guarded>} />
+            <Route path="diet" element={<Guarded><Diet /></Guarded>} />
+            <Route path="progress" element={<Guarded><Progress /></Guarded>} />
+            <Route path="reports" element={<RoleGate allowedRoles={['super_admin','gym_admin']}><Guarded><ReportsPage /></Guarded></RoleGate>} />
+            <Route path="notifications" element={<RoleGate allowedRoles={['super_admin','gym_admin']}><Guarded><NotificationsPage /></Guarded></RoleGate>} />
+            <Route path="whatsapp" element={<RoleGate allowedRoles={['super_admin','gym_admin']}><Guarded><WhatsAppReminders /></Guarded></RoleGate>} />
+            <Route path="settings" element={<RoleGate allowedRoles={['super_admin','gym_admin']}><Guarded><SettingsPage /></Guarded></RoleGate>} />
+            <Route path="support" element={<RoleGate allowedRoles={['super_admin','gym_admin']}><Guarded><SupportPage /></Guarded></RoleGate>} />
+            <Route path="subscription" element={<RoleGate allowedRoles={['super_admin','gym_admin']}><Guarded><GymSubscription /></Guarded></RoleGate>} />
+            <Route path="devices" element={<RoleGate allowedRoles={['super_admin','gym_admin']}><Guarded><DevicesPage /></Guarded></RoleGate>} />
+
+            {/* Super admin only */}
+            <Route path="gymOwners" element={<RoleGate allowedRoles={['super_admin']}><SuperAdminGymOwners /></RoleGate>} />
+            <Route path="subscriptions" element={<RoleGate allowedRoles={['super_admin']}><SuperAdminSubscriptions /></RoleGate>} />
+            <Route path="pending" element={<RoleGate allowedRoles={['super_admin']}><ApprovalRequests /></RoleGate>} />
+            <Route path="analytics" element={<RoleGate allowedRoles={['super_admin']}><UsageAnalytics /></RoleGate>} />
+            <Route path="revenue" element={<RoleGate allowedRoles={['super_admin']}><PlatformRevenue /></RoleGate>} />
+            <Route path="security" element={<RoleGate allowedRoles={['super_admin']}><Security /></RoleGate>} />
+            <Route path="license" element={<RoleGate allowedRoles={['super_admin']}><LicenseKeys /></RoleGate>} />
+
+            {/* Trainer */}
+            <Route path="trainer/dashboard" element={<RoleGate allowedRoles={['trainer']}><TrainerDashboard /></RoleGate>} />
+            <Route path="trainer/members" element={<RoleGate allowedRoles={['trainer']}><Members /></RoleGate>} />
+            <Route path="trainer/workouts" element={<RoleGate allowedRoles={['trainer']}><Workouts /></RoleGate>} />
+            <Route path="trainer/diet" element={<RoleGate allowedRoles={['trainer']}><Diet /></RoleGate>} />
+            <Route path="trainer/progress" element={<RoleGate allowedRoles={['trainer']}><Progress /></RoleGate>} />
+            <Route path="trainer/attendance" element={<RoleGate allowedRoles={['trainer']}><Attendance /></RoleGate>} />
+            <Route path="trainer/notifications" element={<RoleGate allowedRoles={['trainer']}><Notifications /></RoleGate>} />
+
+            {/* Member */}
+            <Route path="member/dashboard" element={<RoleGate allowedRoles={['member']}><MemberDashboard /></RoleGate>} />
+            <Route path="member/progress" element={<RoleGate allowedRoles={['member']}><Progress /></RoleGate>} />
+            <Route path="member/workouts" element={<RoleGate allowedRoles={['member']}><Workouts /></RoleGate>} />
+            <Route path="member/diet" element={<RoleGate allowedRoles={['member']}><Diet /></RoleGate>} />
+            <Route path="member/payments" element={<RoleGate allowedRoles={['member']}><Payments /></RoleGate>} />
+            <Route path="member/attendance" element={<RoleGate allowedRoles={['member']}><Attendance /></RoleGate>} />
+            <Route path="member/notifications" element={<RoleGate allowedRoles={['member']}><Notifications /></RoleGate>} />
+
+          </Route>
+        </Route>
+
+        {/* ── Catch-all ── */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
@@ -419,7 +386,7 @@ export default function App() {
   return (
     <>
       {!startupDone && <StartupScreen onEnd={handleStartupEnd} />}
-        <AuthProvider>
+      <AuthProvider>
         <AppProvider>
           {startupDone ? <ErrorBoundary><RouterTree /></ErrorBoundary> : null}
         </AppProvider>

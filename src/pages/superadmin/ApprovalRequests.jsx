@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useApp } from '../../context/AppContext'
+import { useSearchParams } from 'react-router-dom'
 
 function StatusBadge({ status }) {
   const colors = { pending:'var(--amber)', approved:'var(--green)', rejected:'var(--red)' }
@@ -14,7 +15,8 @@ function StatusBadge({ status }) {
   )
 }
 
-export default function ApprovalRequests({ search }) {
+export default function ApprovalRequests() {
+  const [searchParams] = useSearchParams(); const search = searchParams.get('q') || ''
   const { gyms, approveGymOwner, rejectGymOwner } = useApp()
   const [remarks, setRemarks] = useState({})
   const [actionLoading, setActionLoading] = useState(null)

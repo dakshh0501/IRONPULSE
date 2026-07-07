@@ -10,10 +10,12 @@ import {
   getReminderSummary,
   getReminderTypeConfig
 } from '../utils/whatsappReminders'
+import { useSearchParams } from 'react-router-dom'
 
 const TYPE_ORDER = ['expired', '1day', '3day', '7day']
 
-export default function WhatsAppReminders({ search = '' }) {
+export default function WhatsAppReminders() {
+  const [searchParams] = useSearchParams(); const search = searchParams.get('q') || ''
   const { members, gymSettings } = useApp()
   const { effectiveRole } = useAuth()
   const canAccess = effectiveRole === 'super_admin' || effectiveRole === 'gym_admin'

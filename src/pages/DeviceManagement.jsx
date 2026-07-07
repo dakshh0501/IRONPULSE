@@ -7,16 +7,15 @@ import {
 } from '../services/deviceService'
 import { addLicenseHistory } from '../services/licenseHistoryService'
 
-function StatCard({ label, value, color, icon }) {
-  return (
-    <div className="stat-card">
-      <div className="stat-icon" style={{ background:`${color}18`, color }}>{icon}</div>
-      <div>
-        <p className="stat-label">{label}</p>
-        <p className="stat-value">{value}</p>
-      </div>
-    </div>
-  )
+const STATUS_BADGE = {
+  active:    'badge-green',
+  suspended: 'badge-amber',
+  revoked:   'badge-red',
+}
+
+function StatusBadge({ status }) {
+  const cls = STATUS_BADGE[status] || 'badge'
+  return <span className={`badge ${cls}`}>{status || 'unknown'}</span>
 }
 
 export default function DeviceManagement() {
@@ -36,69 +35,40 @@ export default function DeviceManagement() {
   const deviceLimit = currentSubscription?.deviceLimit || 0
   const currentCount = devices.length
   const activeCount = devices.filter(d => d.status === 'active').length
-
-  const stats = useMemo(() => ({
-    registered: currentCount,
-    limit: deviceLimit === 9999 ? 'Unlimited' : deviceLimit,
-    usage: deviceLimit === 9999 ? `${currentCount} / Unlimited` : `${currentCount} / ${deviceLimit}`,
-  }), [currentCount, deviceLimit])
+  const unlimited = deviceLimit >= 9999
 
   const handleRemove = async (dev) => {
-    setLoading(true)
+    setLoading(true); setActionError('')
     try {
       await removeDevice(dev.id)
-      await addLicenseHistory({
-        gymId,
-        licenseKey: currentSubscription?.licenseKey || '',
-        action: 'Device Removed',
-        performedBy: effectiveRole || 'gym_admin',
-        deviceId: dev.deviceId,
-      })
+      await addLicenseHistory({ gymId, licenseKey: currentSubscription?.licenseKey || '', action: 'Device Removed', performedBy: effectiveRole || 'gym_admin', deviceId: dev.deviceId })
     } catch (err) { console.error('Failed to remove device:', err); setActionError('Failed to remove device') }
     finally { setLoading(false) }
   }
 
   const handleRevoke = async (dev) => {
-    setLoading(true)
+    setLoading(true); setActionError('')
     try {
       await revokeDevice(dev.id)
-      await addLicenseHistory({
-        gymId,
-        licenseKey: currentSubscription?.licenseKey || '',
-        action: 'Device Revoked',
-        performedBy: effectiveRole || 'gym_admin',
-        deviceId: dev.deviceId,
-      })
+      await addLicenseHistory({ gymId, licenseKey: currentSubscription?.licenseKey || '', action: 'Device Revoked', performedBy: effectiveRole || 'gym_admin', deviceId: dev.deviceId })
     } catch (err) { console.error('Failed to revoke device:', err); setActionError('Failed to revoke device') }
     finally { setLoading(false) }
   }
 
   const handleSuspend = async (dev) => {
-    setLoading(true)
+    setLoading(true); setActionError('')
     try {
       await suspendDevice(dev.id)
-      await addLicenseHistory({
-        gymId,
-        licenseKey: currentSubscription?.licenseKey || '',
-        action: 'Device Suspended',
-        performedBy: effectiveRole || 'gym_admin',
-        deviceId: dev.deviceId,
-      })
+      await addLicenseHistory({ gymId, licenseKey: currentSubscription?.licenseKey || '', action: 'Device Suspended', performedBy: effectiveRole || 'gym_admin', deviceId: dev.deviceId })
     } catch (err) { console.error('Failed to suspend device:', err); setActionError('Failed to suspend device') }
     finally { setLoading(false) }
   }
 
   const handleActivate = async (dev) => {
-    setLoading(true)
+    setLoading(true); setActionError('')
     try {
       await activateDevice(dev.id)
-      await addLicenseHistory({
-        gymId,
-        licenseKey: currentSubscription?.licenseKey || '',
-        action: 'Device Activated',
-        performedBy: effectiveRole || 'gym_admin',
-        deviceId: dev.deviceId,
-      })
+      await addLicenseHistory({ gymId, licenseKey: currentSubscription?.licenseKey || '', action: 'Device Activated', performedBy: effectiveRole || 'gym_admin', deviceId: dev.deviceId })
     } catch (err) { console.error('Failed to activate device:', err); setActionError('Failed to activate device') }
     finally { setLoading(false) }
   }
@@ -113,67 +83,115 @@ export default function DeviceManagement() {
       </div>
 
       {actionError && (
-        <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:10, padding:'10px 14px', marginBottom:16, fontSize:13, color:'#f87171', textAlign:'center', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
-          <span>✗ {actionError}</span>
-          <button onClick={() => setActionError('')} style={{ background:'none', border:'none', color:'#f87171', cursor:'pointer', fontSize:14, padding:'0 4px' }}>✕</button>
+        <div style={{
+          display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+          padding:'10px 14px', marginBottom:20,
+          background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)',
+          borderRadius:10, fontSize:13, color:'var(--red)',
+        }}>
+          <span>{actionError}</span>
+          <button onClick={() => setActionError('')}
+            style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:14, padding:'0 4px', lineHeight:1 }}
+            aria-label="Dismiss error">✕</button>
         </div>
       )}
-      <div className="stats-grid" style={{ marginBottom:24 }}>
-        <StatCard label="Active Devices" value={stats.registered} icon="📱" color="var(--green)" />
-        <StatCard label="Device Limit" value={stats.limit} icon="🔒" color="var(--blue)" />
-        <StatCard label="Device Usage" value={stats.usage} icon="📊" color="var(--amber)" />
+
+      {/* ── Stats ── */}
+      <div className="pay-summary-grid" style={{ marginBottom:24 }}>
+        <div className="dash-kpi-card" style={{ cursor:'default', gridColumn:'span 2' }}>
+          <div className="dash-kpi-top">
+            <span className="dash-kpi-icon dash-kpi-icon-green">📱</span>
+            <span className="dash-kpi-trend">{activeCount} / {currentCount} active</span>
+          </div>
+          <span className="dash-kpi-value">{currentCount}</span>
+          <span className="dash-kpi-label">Total Devices</span>
+        </div>
+        <div className="dash-kpi-card" style={{ cursor:'default', gridColumn:'span 2' }}>
+          <div className="dash-kpi-top">
+            <span className="dash-kpi-icon dash-kpi-icon-blue">🔒</span>
+          </div>
+          <span className="dash-kpi-value">{unlimited ? '∞' : deviceLimit}</span>
+          <span className="dash-kpi-label">Device Limit</span>
+        </div>
+        <div className="dash-kpi-card" style={{ cursor:'default', gridColumn:'span 2' }}>
+          <div className="dash-kpi-top">
+            <span className="dash-kpi-icon dash-kpi-icon-amber">📊</span>
+          </div>
+          <span className="dash-kpi-value">{currentCount}{!unlimited ? ` / ${deviceLimit}` : ' / ∞'}</span>
+          <span className="dash-kpi-label">Usage</span>
+        </div>
       </div>
 
-      <div className="card" style={{ overflowX:'auto' }}>
-        <table className="data-table">
-          <thead>
-            <tr><th>Device Name</th><th>Platform</th><th>App Version</th><th>Status</th><th>Registered</th><th>Last Seen</th><th>Actions</th></tr>
-          </thead>
-          <tbody>
-            {devices.length === 0 ? (
-              <tr><td colSpan={7} style={{ textAlign:'center', padding:32, color:'var(--text-muted)' }}>No devices registered yet</td></tr>
-            ) : devices.map((dev, i) => (
-              <tr key={dev.id || i}>
-                <td style={{ fontWeight:600 }}>{dev.deviceName || '—'}</td>
-                <td style={{ fontSize:12 }}>{dev.platform || '—'}</td>
-                <td style={{ fontSize:12 }}>{dev.appVersion || '—'}</td>
-                <td>
-                  <span style={{
-                    display:'inline-block', padding:'2px 8px', borderRadius:10, fontSize:11, fontWeight:600,
-                    background: dev.status === 'active' ? '#22c55e14' : dev.status === 'suspended' ? '#f59e0b14' : dev.status === 'revoked' ? '#ef444414' : '#38486014',
-                    color: dev.status === 'active' ? '#22c55e' : dev.status === 'suspended' ? '#f59e0b' : dev.status === 'revoked' ? '#ef4444' : '#384860',
-                  }}>
-                    {dev.status || 'unknown'}
-                  </span>
-                </td>
-                <td style={{ fontSize:12, color:'var(--text-muted)' }}>
-                  {dev.registeredAt?.seconds ? new Date(dev.registeredAt.seconds * 1000).toLocaleDateString() : '—'}
-                </td>
-                <td style={{ fontSize:12, color:'var(--text-muted)' }}>
-                  {dev.lastSeen?.seconds ? new Date(dev.lastSeen.seconds * 1000).toLocaleString() : '—'}
-                </td>
-                <td>
-                  <div style={{ display:'flex', gap:4 }}>
-                    {dev.status === 'active' && canManage && (
-                      <>
-                        <button className="btn btn-sm btn-ghost" style={{ fontSize:10, color:'var(--orange)' }}
-                          onClick={() => handleSuspend(dev)} disabled={loading}>Suspend</button>
-                        <button className="btn btn-sm btn-ghost" style={{ fontSize:10, color:'var(--red)' }}
-                          onClick={() => handleRevoke(dev)} disabled={loading}>Revoke</button>
-                      </>
-                    )}
-                    {dev.status === 'suspended' && canManage && (
-                      <button className="btn btn-sm btn-ghost" style={{ fontSize:10, color:'var(--green)' }}
-                        onClick={() => handleActivate(dev)} disabled={loading}>Activate</button>
-                    )}
-                    <button className="btn btn-sm btn-ghost" style={{ fontSize:10, color:'var(--red)' }}
-                      onClick={() => handleRemove(dev)} disabled={loading}>Remove</button>
-                  </div>
-                </td>
+      {/* ── Table ── */}
+      <div className="pay-table-card">
+        <div className="pay-table-scroll">
+          <table className="pay-table">
+            <thead>
+              <tr>
+                <th>Device Name</th>
+                <th>Platform</th>
+                <th>App Version</th>
+                <th>Status</th>
+                <th>Registered</th>
+                <th>Last Seen</th>
+                {canManage && <th style={{ width:160 }}>Actions</th>}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {devices.length === 0 ? (
+                <tr>
+                  <td colSpan={canManage ? 7 : 6}>
+                    <div className="pay-empty">
+                      <div className="pay-empty-icon">📱</div>
+                      <h3 className="pay-empty-title">No devices registered</h3>
+                      <p className="pay-empty-text">Devices will appear here once they are registered under your license.</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : devices.map((dev, i) => (
+                <tr key={dev.id || i} className="pay-row">
+                  <td style={{ fontWeight:600 }}>{dev.deviceName || '—'}</td>
+                  <td><span className="badge badge-teal">{dev.platform || '—'}</span></td>
+                  <td style={{ fontSize:12, color:'var(--text-dim)' }}>{dev.appVersion || '—'}</td>
+                  <td><StatusBadge status={dev.status} /></td>
+                  <td style={{ fontSize:12, color:'var(--text-dim)' }}>
+                    {dev.registeredAt?.seconds ? new Date(dev.registeredAt.seconds * 1000).toLocaleDateString() : '—'}
+                  </td>
+                  <td style={{ fontSize:12, color:'var(--text-dim)' }}>
+                    {dev.lastSeen?.seconds ? new Date(dev.lastSeen.seconds * 1000).toLocaleString() : '—'}
+                  </td>
+                  {canManage && (
+                    <td>
+                      <div className="action-group">
+                        {dev.status === 'active' && (
+                          <>
+                            <button className="btn btn-sm btn-ghost"
+                              style={{ color:'var(--amber)' }}
+                              onClick={() => handleSuspend(dev)} disabled={loading}
+                              aria-label={`Suspend ${dev.deviceName || 'device'}`}>Suspend</button>
+                            <button className="btn btn-sm btn-ghost"
+                              style={{ color:'var(--red)' }}
+                              onClick={() => handleRevoke(dev)} disabled={loading}
+                              aria-label={`Revoke ${dev.deviceName || 'device'}`}>Revoke</button>
+                          </>
+                        )}
+                        {dev.status === 'suspended' && (
+                          <button className="btn btn-sm btn-ghost"
+                            style={{ color:'var(--green)' }}
+                            onClick={() => handleActivate(dev)} disabled={loading}
+                            aria-label={`Activate ${dev.deviceName || 'device'}`}>Activate</button>
+                        )}
+                        <button className="btn btn-sm btn-danger"
+                          onClick={() => handleRemove(dev)} disabled={loading}
+                          aria-label={`Remove ${dev.deviceName || 'device'}`}>Remove</button>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

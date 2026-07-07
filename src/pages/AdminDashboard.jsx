@@ -2,8 +2,10 @@ import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useMemo, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 
-export default function AdminDashboard({ setPage }) {
+export default function AdminDashboard() {
+  const navigate = useNavigate()
 
   const { members, trainers, payments, attendance, gymSettings, gyms, subscriptions, notifications } = useApp()
   const { currentUser, effectiveRole } = useAuth()
@@ -148,7 +150,7 @@ export default function AdminDashboard({ setPage }) {
   }, [subscriptions, todayDate])
 
   // ── Quick Action ──
-  const handleQuickAction = useCallback((page) => { if (isAdmin) setPage(page) }, [isAdmin, setPage])
+  const handleQuickAction = useCallback((page) => { if (isAdmin) navigate(page.startsWith('/') ? page : `/${page}`) }, [isAdmin, navigate])
   const goToMembers = useCallback(() => handleQuickAction('members'), [handleQuickAction])
   const goToPayments = useCallback(() => handleQuickAction('payments'), [handleQuickAction])
   const goToAttendance = useCallback(() => handleQuickAction('attendance'), [handleQuickAction])

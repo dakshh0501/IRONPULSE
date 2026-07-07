@@ -531,13 +531,13 @@ export default function LicenseKeys() {
       case 'Gym A-Z': list.sort((a, b) => a.gymName.localeCompare(b.gymName)); break
       case 'Gym Z-A': list.sort((a, b) => b.gymName.localeCompare(a.gymName)); break
       case 'Newest': list.sort((a, b) => {
-        const aD = new Date(a.expires || 0).getTime()
-        const bD = new Date(b.expires || 0).getTime()
+        const aD = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt || 0).getTime()
+        const bD = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt || 0).getTime()
         return bD - aD
       }); break
       case 'Oldest': list.sort((a, b) => {
-        const aD = new Date(a.expires || 0).getTime()
-        const bD = new Date(b.expires || 0).getTime()
+        const aD = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt || 0).getTime()
+        const bD = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt || 0).getTime()
         return aD - bD
       }); break
       case 'Expiry Soon': list.sort((a, b) => {
