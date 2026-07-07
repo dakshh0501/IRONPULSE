@@ -642,9 +642,9 @@ export default function SuperAdminGymOwners({ search: parentSearch }) {
                     </div>
                   </div>
                   <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-                    <button className="go-btn-primary" onClick={() => alert(`To upgrade ${g.gymName || g.name}, go to Settings → Gym Subscription and select a higher plan.`)}>⬆ Upgrade</button>
-                    <button className="go-btn-secondary" onClick={() => alert(`To downgrade ${g.gymName || g.name}, go to Settings → Gym Subscription and select a lower plan.`)}>⬇ Downgrade</button>
-                    <button className="go-btn-secondary" onClick={() => alert(`To renew ${g.gymName || g.name}, go to Settings → Gym Subscription and process the renewal.`)}>🔄 Renew</button>
+                    <button className="go-btn-primary" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Manage in Settings → Gym Subscription">⬆ Upgrade</button>
+                    <button className="go-btn-secondary" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Manage in Settings → Gym Subscription">⬇ Downgrade</button>
+                    <button className="go-btn-secondary" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Manage in Settings → Gym Subscription">🔄 Renew</button>
                   </div>
                 </>
               ) : (

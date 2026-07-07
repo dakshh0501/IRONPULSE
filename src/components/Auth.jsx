@@ -742,9 +742,9 @@ export default function Auth() {
 
                     {/* Bottom links */}
                     <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 16, fontSize: 11, color: '#384860' }}>
-                      <a href="#" onClick={e => e.preventDefault()} style={{ color: '#384860', textDecoration: 'none' }}>Privacy</a>
+                      <a href="/privacy" style={{ color: '#384860', textDecoration: 'none' }}>Privacy</a>
                       <span>·</span>
-                      <a href="#" onClick={e => e.preventDefault()} style={{ color: '#384860', textDecoration: 'none' }}>Terms</a>
+                      <a href="/terms" style={{ color: '#384860', textDecoration: 'none' }}>Terms</a>
                       <span>·</span>
                       <a href="#" style={{ color: '#384860', textDecoration: 'none' }} onClick={(e) => { e.preventDefault(); const ctx = mode === 'reset' ? { page:'Forgot Password', issue:'Password Reset' } : mode === 'signup' ? { page:'Sign Up', issue:'Registration Help' } : { page:'Login', issue:'Unable to Login' }; openSupportWhatsApp({ ...ctx, user: currentUser }) }}>Support</a>
                     </div>

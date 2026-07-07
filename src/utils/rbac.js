@@ -69,12 +69,14 @@ export const NAVIGATION = {
     { key:'progress',      label:'Progress Tracking',icon:'📈' },
     { section:'Business' },
     { key:'payments',      label:'Payments',        icon:'💳', badge:'payments' },
-    { key:'attendance',    label:'QR Check-in',     icon:'📱' },
     { section:'Engagement' },
     { key:'notifications', label:'Notifications',   icon:'🔔', badge:'notifs' },
     { key:'reports',       label:'Reports',         icon:'📊' },
     { key:'whatsapp',      label:'WhatsApp Reminders',icon:'💬' },
     { key:'support',       label:'Support & Tickets',icon:'🆘' },
+    { section:'Attendance' },
+    { key:'attendance',    label:'Attendance',      icon:'📋' },
+    { key:'reception',     label:'Reception Mode',  icon:'🚪' },
     { section:'Subscription' },
     { key:'subscription',  label:'My Subscription', icon:'📋' },
     { key:'devices',       label:'Registered Devices',icon:'📱' },
@@ -91,6 +93,7 @@ export const NAVIGATION = {
     { key:'progress',      label:'Progress Tracking',icon:'📈' },
     { section:'Other' },
     { key:'attendance',    label:'Attendance',      icon:'📱' },
+    { key:'reception',     label:'Reception Mode',  icon:'🚪' },
     { key:'notifications', label:'Notifications',   icon:'🔔', badge:'notifs' },
   ],
   member: [
@@ -137,9 +140,9 @@ export function canSubscribe(role, collection) {
     payments:    ['super_admin','gym_admin'],
     plans:       ['super_admin','gym_admin','trainer'],
     progressLogs:['super_admin','gym_admin','trainer','member'],
-    dietPlans:   ['super_admin','gym_admin','trainer'],
-    workoutPlans:['super_admin','gym_admin','trainer'],
-    attendance:  ['super_admin','gym_admin','trainer'],
+    dietPlans:   ['super_admin','gym_admin','trainer','member'],
+    workoutPlans:['super_admin','gym_admin','trainer','member'],
+    attendance:  ['super_admin','gym_admin','trainer','member'],
     settings:    ['super_admin','gym_admin','trainer'],
     subscriptions:    ['super_admin'],
     paymentAttempts:  ['super_admin', 'gym_admin'],
@@ -148,5 +151,9 @@ export function canSubscribe(role, collection) {
     supportTickets:   ['super_admin','gym_admin'],
     featureRequests:  ['super_admin','gym_admin'],
   }
-  return gate[collection]?.includes(role) ?? false
+  const result = gate[collection]?.includes(role) ?? false
+  if (!(collection in gate)) {
+    // unknown collection — deny by default
+  }
+  return result
 }

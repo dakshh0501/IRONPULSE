@@ -125,6 +125,7 @@ function PaymentStatusContent() {
               status: 'active',
             }).catch(err => {
               console.error('PaymentStatus: failed to fulfill subscription (client fallback)', err)
+              setError('Payment was processed but we had trouble updating your subscription. Please contact support if your plan does not reflect the change.')
             })
           }
         }

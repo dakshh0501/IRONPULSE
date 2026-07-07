@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import MemberQR from '../components/MemberQR'
@@ -166,7 +166,7 @@ function AttendanceHistory({ records }) {
       </div>
 
       {latest10.length === 0 ? (
-        <p className="muted">No attendance records found.</p>
+        <p className="muted-text">No attendance records found.</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {latest10.map((item, i) => (
@@ -256,18 +256,24 @@ function AttendanceHistory({ records }) {
 
 // ─── main component ──────────────────────────────────────────
 export default function MemberDashboard() {
-  const { attendance, payments, members } = useApp()
-  const {
-  currentUser,
-  userProfile
-} = useAuth()
+  const { attendance, payments, members, dietPlans, workoutPlans, progressLogs, snapshotErrors } = useApp()
+  const { currentUser, userProfile } = useAuth()
+  const [dataLoaded, setDataLoaded] = useState(false)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDataLoaded(true), 4000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  useEffect(() => {
+    if (attendance.length > 0 || members.length > 0) setDataLoaded(true)
+  }, [attendance, members])
 
   const myMember = useMemo(
     () => members.find(m => m.authUid === currentUser?.uid),
     [members, currentUser?.uid]
   )
 
-  // Use member doc for plan/expiry/name, fall back to userProfile
   const me = myMember || userProfile
 
   const myAttendance = useMemo(
@@ -278,6 +284,21 @@ export default function MemberDashboard() {
   const myPayments = useMemo(
     () => payments.filter(p => p.authUid === currentUser?.uid),
     [payments, currentUser?.uid]
+  )
+
+  const myDietPlans = useMemo(
+    () => dietPlans.filter(p => p.authUid === currentUser?.uid || p.memberId === currentUser?.uid),
+    [dietPlans, currentUser?.uid]
+  )
+
+  const myWorkoutPlans = useMemo(
+    () => workoutPlans.filter(p => p.authUid === currentUser?.uid || p.memberId === currentUser?.uid),
+    [workoutPlans, currentUser?.uid]
+  )
+
+  const myProgressLogs = useMemo(
+    () => progressLogs.filter(p => p.authUid === currentUser?.uid),
+    [progressLogs, currentUser?.uid]
   )
 
   // ── derived stats
@@ -301,8 +322,31 @@ export default function MemberDashboard() {
 
   const latestPayment = [...myPayments].sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt))[0]
 
+  // ── Loading skeleton ──
+  if (!dataLoaded && attendance.length === 0 && members.length === 0) {
+    return (
+      <div className="dashboard-page">
+        <div className="stats-grid">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="card" style={{ height: 80, background: 'var(--skeleton)' }} />
+          ))}
+        </div>
+        <div className="card" style={{ height: 200, background: 'var(--skeleton)' }} />
+      </div>
+    )
+  }
+
+  // ── Error banner ──
+  const errorMsg = snapshotErrors?.length > 0 ? snapshotErrors[0] : null
+
   return (
     <div className="dashboard-page">
+
+      {errorMsg && (
+        <div style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 10, padding: '12px 16px', marginBottom: 16, color: 'var(--red)', fontSize: 13, fontWeight: 500 }}>
+          ⚠️ {typeof errorMsg === 'string' ? errorMsg : 'Some data failed to load. Please refresh.'}
+        </div>
+      )}
 
       {/* Hero */}
       <div className="hero-card" style={{ display:'flex', alignItems:'center', gap:18 }}>
@@ -315,45 +359,105 @@ export default function MemberDashboard() {
 
       {/* ── 4 Stat Cards ── */}
       <div className="stats-grid">
-        <StatCard
-          label="Total Visits"
-          value={totalVisits}
-          icon="🏋️"
-          accent="orange"
-        />
-        <StatCard
-          label="This Month"
-          value={thisMonthVisits}
-          icon="📅"
-          accent="teal"
-        />
-        <StatCard
-          label="Last Visit"
-          value={lastVisit}
-          icon="🕐"
-          accent="green"
-        />
-        <StatCard
-          label="Membership"
-          value={membershipStatus}
-          icon="🪪"
-          accent={isExpired(me?.expiry) ? 'red' : 'green'}
-        />
+        <StatCard label="Total Visits" value={totalVisits} icon="🏋️" accent="orange" />
+        <StatCard label="This Month" value={thisMonthVisits} icon="📅" accent="teal" />
+        <StatCard label="Last Visit" value={lastVisit} icon="🕐" accent="green" />
+        <StatCard label="Membership" value={membershipStatus} icon="🪪" accent={isExpired(me?.expiry) ? 'red' : 'green'} />
       </div>
 
       {/* ── Membership Info Card ── */}
       <MembershipCard me={me} />
 
+      {/* ── Current Diet Plan ── */}
+      <div className="card">
+        <div className="section-title" style={{ marginBottom: 18 }}>🥗 Current Diet Plan</div>
+        {myDietPlans.length === 0 ? (
+          <p className="muted-text">No diet plan assigned yet.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {myDietPlans.slice(0, 3).map((plan, i) => (
+              <div key={plan.id || i} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '10px 14px', background: 'var(--hover)', borderRadius: 8, gap: 10, flexWrap: 'wrap'
+              }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{plan.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                    {plan.meals?.length || 0} meals · {plan.calories || '—'} cal
+                  </div>
+                </div>
+                <span className="badge badge-sm">{plan.goal || plan.type || 'General'}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Current Workout Plan ── */}
+      <div className="card">
+        <div className="section-title" style={{ marginBottom: 18 }}>💪 Current Workout Plan</div>
+        {myWorkoutPlans.length === 0 ? (
+          <p className="muted-text">No workout plan assigned yet.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {myWorkoutPlans.slice(0, 3).map((plan, i) => (
+              <div key={plan.id || i} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '10px 14px', background: 'var(--hover)', borderRadius: 8, gap: 10, flexWrap: 'wrap'
+              }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{plan.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                    {plan.exercises?.length || 0} exercises · {plan.duration || plan.frequency || '—'}
+                  </div>
+                </div>
+                <span className="badge badge-sm">{plan.goal || plan.level || 'General'}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Latest Progress ── */}
+      <div className="card">
+        <div className="section-title" style={{ marginBottom: 18 }}>📊 Latest Progress</div>
+        {myProgressLogs.length === 0 ? (
+          <p className="muted-text">No progress entries yet.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[...myProgressLogs].sort((a, b) => {
+              const da = a.createdAt?.toDate?.() || a.createdAt || a.date || ''
+              const db = b.createdAt?.toDate?.() || b.createdAt || b.date || ''
+              return new Date(db) - new Date(da)
+            }).slice(0, 5).map((log, i) => (
+              <div key={log.id || i} style={{
+                display: 'flex', gap: 16, padding: '10px 14px',
+                background: 'var(--hover)', borderRadius: 8, flexWrap: 'wrap'
+              }}>
+                {log.weight && <span style={{ fontSize: 13 }}>⚖️ {log.weight} kg</span>}
+                {log.bodyFat && <span style={{ fontSize: 13 }}>📉 {log.bodyFat}%</span>}
+                {log.bench && <span style={{ fontSize: 13 }}>🏋️ Bench {log.bench} kg</span>}
+                {log.squat && <span style={{ fontSize: 13 }}>🦵 Squat {log.squat} kg</span>}
+                {!log.weight && !log.bodyFat && !log.bench && !log.squat && (
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Progress recorded</span>
+                )}
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                  {log.date || (log.createdAt?.toDate ? log.createdAt.toDate().toLocaleDateString('en-IN') : '')}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* ── QR Card ── */}
       <div className="card">
-        <div className="section-title" style={{ marginBottom: 20 }}>
-          My QR Check-in
-        </div>
+        <div className="section-title" style={{ marginBottom: 20 }}>My QR Check-in</div>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <MemberQR
             member={{
-              id: currentUser?.uid || '',
-              name: currentUser?.displayName || me?.name || 'Member',
+              id: me?.authUid || currentUser?.uid || '',
+              name: me?.name || currentUser?.displayName || 'Member',
             }}
           />
         </div>
@@ -362,17 +466,27 @@ export default function MemberDashboard() {
       {/* ── Attendance History (latest 10) ── */}
       <AttendanceHistory records={myAttendance} />
 
-      {/* ── Latest Payment ── */}
+      {/* ── Payment History Summary ── */}
       <div className="card">
-        <div className="section-title">Latest Payment</div>
+        <div className="section-title" style={{ marginBottom: 18 }}>💳 Latest Payment</div>
         {latestPayment ? (
-          <div className="payment-summary">
-            <p>Amount: <strong>₹{latestPayment.amount}</strong></p>
-            <p>Status: <strong>{latestPayment.status}</strong></p>
-            <p>Date: <strong>{latestPayment.date}</strong></p>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '12px 16px', background: 'var(--hover)', borderRadius: 10,
+            flexWrap: 'wrap', gap: 10
+          }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>
+                ₹{latestPayment.amount}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                {latestPayment.date || formatDate(latestPayment.createdAt)}
+              </div>
+            </div>
+            <span className="badge badge-sm">{latestPayment.status}</span>
           </div>
         ) : (
-          <p className="muted">No payments found.</p>
+          <p className="muted-text">No payments found.</p>
         )}
       </div>
 

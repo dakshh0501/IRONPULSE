@@ -341,7 +341,7 @@ export default function Subscriptions({ search }) {
       // Prevent duplicate payment attempts
       const pendingAttempts = await getPendingAttemptsForSubscription(sub.id, gymId)
       if (pendingAttempts.length > 0) {
-        alert('A payment is already in progress for this subscription. Please complete or wait for it to expire.')
+        console.warn('A payment is already in progress for this subscription. Please complete or wait for it to expire.')
         return
       }
 

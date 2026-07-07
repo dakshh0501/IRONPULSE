@@ -8,7 +8,7 @@ import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 import { uploadGymLogo } from '../services/storageService'
 import { extractDominantColor } from '../utils/colorExtractor'
-import { SUPPORT_EMAIL, SUPPORT_WHATSAPP, SUPPORT_HOURS, SUPPORT_RESPONSE_TIME } from '../config/support'
+import { SUPPORT_EMAIL, SUPPORT_HOURS, SUPPORT_RESPONSE_TIME } from '../config/support'
 import { openSupportWhatsApp } from '../utils/whatsappSupport'
 import { shareWebsite, copyWebsiteLink } from '../utils/shareWebsite'
 import { WEBSITE_NAME, WEBSITE_URL } from '../config/website'
@@ -47,10 +47,10 @@ const DEFAULT_BILLING = {
 
 const SETTINGS_NAV = [
   { key:'profile',       icon:'👤', title:'Profile',       desc:'Owner account',         adminOnly:false },
-  { key:'gym',           icon:'🏋',  title:'Gym',           desc:'Gym details',           adminOnly:false },
-  { key:'plans',         icon:'💳', title:'Plans',         desc:'Membership pricing',    adminOnly:false },
-  { key:'notifications', icon:'🔔', title:'Notifications', desc:'SMS / Email',           adminOnly:false },
-  { key:'appearance',    icon:'🎨', title:'Appearance',    desc:'Theme & branding',      adminOnly:false },
+  { key:'gym',           icon:'🏋',  title:'Gym',           desc:'Gym details',           adminOnly:true },
+  { key:'plans',         icon:'💳', title:'Plans',         desc:'Membership pricing',    adminOnly:true },
+  { key:'notifications', icon:'🔔', title:'Notifications', desc:'SMS / Email',           adminOnly:true },
+  { key:'appearance',    icon:'🎨', title:'Appearance',    desc:'Theme & branding',      adminOnly:true },
   { key:'billing',       icon:'💰', title:'Billing',       desc:'Taxes & invoices',      adminOnly:true },
   { key:'security',      icon:'🔒', title:'Security',      desc:'Password & access',     adminOnly:true },
   { key:'support',       icon:'🆘', title:'Support',       desc:'Help & feedback',       adminOnly:false },
@@ -64,7 +64,7 @@ export default function Settings() {
 
   const isSuperAdmin = effectiveRole === 'super_admin'
   const isAdmin = ['super_admin', 'gym_admin'].includes(effectiveRole)
-  const allowedNav = SETTINGS_NAV.filter(t => !t.adminOnly || isSuperAdmin)
+  const allowedNav = SETTINGS_NAV.filter(t => !t.adminOnly || isAdmin)
   const [activeTab, setActiveTab] = useState('profile')
 
   // ── Gym Settings ────────────────────────────────────────
@@ -75,6 +75,7 @@ export default function Settings() {
   const [logoFile, setLogoFile] = useState(null)
   const [logoProgress, setLogoProgress] = useState(0)
   const [logoError, setLogoError] = useState('')
+  const [deleteError, setDeleteError] = useState('')
   const fileInputRef = useRef(null)
   const gymSavedRef = useRef(null)
   const setGym = (k, v) => setGymForm(p => ({ ...p, [k]: v }))
@@ -489,7 +490,7 @@ export default function Settings() {
                       </div>
                       <div className="form-group">
                         <label className="form-label">Role</label>
-                        <input className="form-input" value={effectiveRole||'admin'} disabled style={{ opacity:0.5, cursor:'not-allowed' }} />
+                        <input className="form-input" value={effectiveRole||'—'} disabled style={{ opacity:0.5, cursor:'not-allowed' }} />
                       </div>
                     </div>
                     <div className="settings-section-actions">
@@ -755,7 +756,7 @@ export default function Settings() {
                     <p className="setting-row-desc">Determines what you can see and do in IRONPULSE</p>
                   </div>
                   <div className="setting-row-action">
-                    <span className="badge badge-teal" style={{ fontSize:12 }}>{effectiveRole||'admin'}</span>
+                    <span className="badge badge-teal" style={{ fontSize:12 }}>{effectiveRole||'—'}</span>
                   </div>
                 </div>
               </Section>
@@ -933,7 +934,7 @@ export default function Settings() {
                           <p className="setting-row-label">Auto Invoice</p>
                           <p className="setting-row-desc">Automatically generate invoices on payment</p>
                         </div>
-                        <span style={{ fontSize: 11, color: 'var(--text-dim)', padding: '2px 8px', background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 10 }}>Coming Soon</span>
+                        <span style={{ fontSize: 11, color: 'var(--text-dim)', padding: '2px 8px', background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 10 }}>Pending implementation</span>
                       </div>
                     </div>
 
@@ -971,7 +972,7 @@ export default function Settings() {
                 <div className="setting-row">
                   <div className="setting-row-info" />
                   <div className="setting-row-action" style={{ gap: 8, display: 'flex', flexWrap: 'wrap' }}>
-                    <button className="btn btn-outline btn-sm" onClick={() => { const msg = copyWebsiteLink(); alert(msg) }}>📋 Copy Link</button>
+                    <button className="btn btn-outline btn-sm" onClick={() => { copyWebsiteLink(); console.log('Website link copied') }}>📋 Copy Link</button>
                     <button className="btn btn-primary btn-sm" onClick={shareWebsite}>🔗 Share Website</button>
                   </div>
                 </div>
@@ -986,24 +987,24 @@ export default function Settings() {
                 {!currentUser?.emailVerified && (
                   <SettingRow label="Email Verification" desc="Your email is not yet verified">
                     <button className="btn btn-outline btn-sm" onClick={async () => {
-                      try { await sendVerificationEmail(); alert('Verification email sent!') }
-                      catch (e) { alert('Failed to send: ' + e.message) }
+                      try { await sendVerificationEmail(); console.log('Verification email sent') }
+                      catch (e) { console.error('Failed to send verification email:', e.message) }
                     }}>Resend Verification</button>
                   </SettingRow>
                 )}
                 <SettingRow label="Two-Factor Authentication" desc="Add extra security with OTP on login">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 11, color: 'var(--text-dim)', padding: '2px 8px', background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 10, cursor: 'default' }}>🔜 Coming Soon</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-dim)', padding: '2px 8px', background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 10, cursor: 'default' }}>🔜 Requires email provider setup</span>
                   </div>
                 </SettingRow>
                 <SettingRow label="Session Timeout" desc="Auto log out after inactivity">
                   <select className="form-select" style={{ width:160, opacity: 0.6, cursor: 'not-allowed' }} disabled><option>30 minutes</option><option>1 hour</option><option>4 hours</option><option>Never</option></select>
                 </SettingRow>
                 <SettingRow label="Active Sessions" desc="View and manage active login sessions">
-                  <span className="btn btn-ghost btn-sm" style={{ opacity: 0.5, cursor: 'not-allowed' }}>View Sessions <span style={{ fontSize: 10, background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 8, padding: '1px 6px', marginLeft: 4 }}>Coming Soon</span></span>
+                  <span className="btn btn-ghost btn-sm" style={{ opacity: 0.5, cursor: 'not-allowed' }}>View Sessions <span style={{ fontSize: 10, background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 8, padding: '1px 6px', marginLeft: 4 }}>Requires Admin SDK</span></span>
                 </SettingRow>
                 <SettingRow label="Login History" desc="Review recent login activity">
-                  <span className="btn btn-ghost btn-sm" style={{ opacity: 0.5, cursor: 'not-allowed' }}>View Logs <span style={{ fontSize: 10, background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 8, padding: '1px 6px', marginLeft: 4 }}>Coming Soon</span></span>
+                  <span className="btn btn-ghost btn-sm" style={{ opacity: 0.5, cursor: 'not-allowed' }}>View Logs <span style={{ fontSize: 10, background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 8, padding: '1px 6px', marginLeft: 4 }}>Requires Admin SDK</span></span>
                 </SettingRow>
               </Section>
 
@@ -1046,11 +1047,16 @@ export default function Settings() {
                 </SettingRow>
               </Section>
 
+              {deleteError && (
+                <div style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 10, padding: '11px 16px', marginBottom: 16, color: 'var(--red)', fontSize: 13, fontWeight: 500 }}>
+                  ⚠️ {deleteError}
+                </div>
+              )}
               <Section icon="⚠️" title="Danger Zone" desc="Irreversible actions — proceed with caution" className="settings-danger-section">
                 {[
                   { label:'Sign Out Current Device', desc:'Signs out this device only.', btn:'Sign Out', action:() => { if (window.confirm('Sign out from this device?')) logout() } },
                   { label:'Reset All App Data', desc:'Resets all members, payments and settings to demo defaults.', btn:'Reset Data', action:() => { if (window.confirm('This will reset all members, payments, and settings to defaults. This cannot be undone. Are you sure?')) { logout(); navigate('/') } } },
-                  { label:'Delete Gym Account', desc:'Permanently deletes this gym and all associated data. Cannot undo.', btn:'Delete Account', action:async () => { if (!window.confirm('Are you sure you want to permanently delete this gym account? This action CANNOT be undone. All data will be lost.')) return; if (!window.confirm('FINAL CONFIRMATION: This cannot be reversed.')) return; try { const { deleteGym } = await import('../services/firestoreService'); await deleteGym(gymId); logout(); navigate('/') } catch (err) { alert('Delete failed: ' + err.message) } } },
+                  { label:'Delete Gym Account', desc:'Permanently deletes this gym and all associated data. Cannot undo.', btn:'Delete Account', action:async () => { if (!window.confirm('Are you sure you want to permanently delete this gym account? This action CANNOT be undone. All data will be lost.')) return; if (!window.confirm('FINAL CONFIRMATION: This cannot be reversed.')) return; try { const { deleteGym } = await import('../services/firestoreService'); await deleteGym(gymId); logout(); navigate('/') } catch (err) { setDeleteError('Delete failed: ' + (err.message || 'Unknown error')); console.error(err) } } },
                 ].map(item => (
                   <div key={item.label} className="setting-row" style={{ borderBottom:'1px solid rgba(239,68,68,0.1)' }}>
                     <div className="setting-row-info">

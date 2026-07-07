@@ -41,7 +41,19 @@ export default function Sidebar({ currentPage, setPage, collapsed, setCollapsed,
 
   const handleNav = (key) => {
     setPage(key)
-    navigate('/dashboard')
+    const routeMap = {
+      dashboard:'/dashboard', members:'/members', trainers:'/trainers',
+      payments:'/payments', attendance:'/attendance', workouts:'/workouts',
+      diet:'/diet', progress:'/progress', reports:'/reports',
+      notifications:'/notifications', support:'/support',
+      settings:'/settings', whatsapp:'/whatsapp',
+      subscription:'/subscription', devices:'/devices',
+      reception:'/reception', gymOwners:'/gym-owners',
+      subscriptions:'/subscriptions', pending:'/pending',
+      analytics:'/analytics', revenue:'/revenue',
+      security:'/security', license:'/license',
+    }
+    navigate(routeMap[key] || '/dashboard')
     if (setMobileOpen) setMobileOpen(false)
   }
 

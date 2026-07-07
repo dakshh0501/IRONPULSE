@@ -3469,6 +3469,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 .att-empty-icon { font-size: 32px; margin-bottom: 8px; }
 .att-empty-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
 .att-empty-text { font-size: 12px; color: var(--text-muted); }
+.muted-text { font-size: 14px; color: var(--text-muted); }
 
 /* ── Attendance Responsive ── */
 @media (max-width: 1200px) {

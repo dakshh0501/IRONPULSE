@@ -106,6 +106,54 @@ export async function addMember(memberData) {
   }
 }
 
+// Trainer-scoped members subscription (trainer role — only assigned members)
+export function subscribeToMyMembers(trainerAuthUid, callback, gymId, onError) {
+  if (!trainerAuthUid) { console.warn('[Firestore] subscribeToMyMembers called without trainerAuthUid'); return () => {} }
+  const ref = gymId
+    ? query(collection(db, 'members'), where('gymId', '==', gymId), where('trainerAuthUid', '==', trainerAuthUid))
+    : query(collection(db, 'members'), where('trainerAuthUid', '==', trainerAuthUid))
+  return onSnapshot(
+    ref,
+    (snapshot) => {
+      const members = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      callback(members)
+    },
+    (error) => {
+      console.error(`[Firestore] Subscription error (myMembers):`, error.message); if (onError) onError(error, 'myMembers')
+    }
+  )
+}
+
+// Backfill trainerAuthUid on existing member docs (one-time migration)
+export async function backfillTrainerAuthUid(gymId) {
+  if (!gymId) return 0
+  let updated = 0
+  try {
+    const q = query(collection(db, 'members'), where('gymId', '==', gymId))
+    const snap = await getDocs(q)
+    const batches = []
+    snap.forEach(d => {
+      const data = d.data()
+      if (data.trainerId && !data.trainerAuthUid) {
+        batches.push({ ref: d.ref, trainerId: data.trainerId })
+      }
+    })
+    for (const batch of batches) {
+      const trainerDoc = await getDoc(doc(db, 'trainers', batch.trainerId))
+      if (trainerDoc.exists()) {
+        const authUid = trainerDoc.data().authUid
+        if (authUid) {
+          await updateDoc(batch.ref, { trainerAuthUid: authUid })
+          updated++
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[Firestore] backfillTrainerAuthUid error:', e)
+  }
+  return updated
+}
+
 // Realtime members listener
 export function subscribeToMembers(callback, gymId, onError) {
   const ref = gymId
@@ -226,13 +274,17 @@ export async function deleteMember(memberId) {
 
   // Clean up orphaned documents in related collections
   const cleanupQueries = []
+
+  // Attendance records — always try both authUid (primary) and memberId (fallback)
+  const attendanceQuery = authUid
+    ? query(collection(db, 'attendance'), where('memberId', '==', authUid))
+    : query(collection(db, 'attendance'), where('memberId', '==', memberId))
+  cleanupQueries.push(
+    getDocs(attendanceQuery)
+      .then(snap => Promise.allSettled(snap.docs.map(d => deleteDoc(d.ref))))
+      .catch(() => {})
+  )
   if (authUid) {
-    // Attendance records use memberId = authUid
-    cleanupQueries.push(
-      getDocs(query(collection(db, 'attendance'), where('memberId', '==', authUid)))
-        .then(snap => Promise.allSettled(snap.docs.map(d => deleteDoc(d.ref))))
-        .catch(() => {})
-    )
     // Notifications use userId = authUid
     cleanupQueries.push(
       getDocs(query(collection(db, 'notifications'), where('userId', '==', authUid)))
@@ -274,6 +326,14 @@ export async function deleteMember(memberId) {
     cleanupQueries.push(
       getDocs(query(collection(db, 'workoutPlans'), where('assignedMember', '==', memberName)))
         .then(snap => Promise.allSettled(snap.docs.map(d => deleteDoc(d.ref))))
+        .catch(() => {})
+    )
+  }
+  // Nullify trainer references on this member's attendance records
+  if (memberName) {
+    cleanupQueries.push(
+      getDocs(query(collection(db, 'attendance'), where('memberName', '==', memberName)))
+        .then(snap => Promise.allSettled(snap.docs.map(d => updateDoc(d.ref, { trainerId: '', trainerName: '' }))))
         .catch(() => {})
     )
   }
@@ -906,6 +966,42 @@ export function subscribeToDietPlans(callback, gymId, onError) {
   )
 }
 
+// Member-scoped diet plans subscription (own assigned plans)
+export function subscribeToMyAssignedDietPlans(authUid, callback, gymId, onError) {
+  if (!authUid) return () => {}
+  const ref = gymId
+    ? query(collection(db, 'dietPlans'), where('gymId', '==', gymId), where('authUid', '==', authUid))
+    : query(collection(db, 'dietPlans'), where('authUid', '==', authUid))
+  return onSnapshot(
+    ref,
+    (snapshot) => {
+      const plans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      callback(plans)
+    },
+    (error) => {
+      console.error(`[Firestore] Subscription error (myAssignedDietPlans):`, error.message); if (onError) onError(error, 'myAssignedDietPlans')
+    }
+  )
+}
+
+// Trainer-scoped diet plans subscription
+export function subscribeToMyDietPlans(trainerAuthUid, callback, gymId, onError) {
+  if (!trainerAuthUid) { console.warn('[Firestore] subscribeToMyDietPlans called without trainerAuthUid'); return () => {} }
+  const ref = gymId
+    ? query(collection(db, 'dietPlans'), where('gymId', '==', gymId), where('assignedTrainerAuthUid', '==', trainerAuthUid))
+    : query(collection(db, 'dietPlans'), where('assignedTrainerAuthUid', '==', trainerAuthUid))
+  return onSnapshot(
+    ref,
+    (snapshot) => {
+      const plans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      callback(plans)
+    },
+    (error) => {
+      console.error(`[Firestore] Subscription error (myDietPlans):`, error.message); if (onError) onError(error, 'myDietPlans')
+    }
+  )
+}
+
 export async function addDietPlan(planData) {
   const docRef = await addDoc(
     collection(db, 'dietPlans'),
@@ -939,6 +1035,42 @@ export function subscribeToWorkoutPlans(callback, gymId, onError) {
     },
     (error) => {
       console.error(`[Firestore] Subscription error (workoutPlans):`, error.message); if (onError) onError(error, 'workoutPlans')
+    }
+  )
+}
+
+// Member-scoped workout plans subscription (own assigned plans)
+export function subscribeToMyAssignedWorkoutPlans(authUid, callback, gymId, onError) {
+  if (!authUid) return () => {}
+  const ref = gymId
+    ? query(collection(db, 'workoutPlans'), where('gymId', '==', gymId), where('authUid', '==', authUid))
+    : query(collection(db, 'workoutPlans'), where('authUid', '==', authUid))
+  return onSnapshot(
+    ref,
+    (snapshot) => {
+      const plans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      callback(plans)
+    },
+    (error) => {
+      console.error(`[Firestore] Subscription error (myAssignedWorkoutPlans):`, error.message); if (onError) onError(error, 'myAssignedWorkoutPlans')
+    }
+  )
+}
+
+// Trainer-scoped workout plans subscription
+export function subscribeToMyWorkoutPlans(trainerAuthUid, callback, gymId, onError) {
+  if (!trainerAuthUid) { console.warn('[Firestore] subscribeToMyWorkoutPlans called without trainerAuthUid'); return () => {} }
+  const ref = gymId
+    ? query(collection(db, 'workoutPlans'), where('gymId', '==', gymId), where('trainerAuthUid', '==', trainerAuthUid))
+    : query(collection(db, 'workoutPlans'), where('trainerAuthUid', '==', trainerAuthUid))
+  return onSnapshot(
+    ref,
+    (snapshot) => {
+      const plans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      callback(plans)
+    },
+    (error) => {
+      console.error(`[Firestore] Subscription error (myWorkoutPlans):`, error.message); if (onError) onError(error, 'myWorkoutPlans')
     }
   )
 }

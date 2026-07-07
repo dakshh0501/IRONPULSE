@@ -94,55 +94,19 @@ export function buildPaymentRequest({
 }
 
 /**
- * Build a payment request for a new subscription.
+ * Build a typed payment request.
+ * @param {'new'|'renewal'|'upgrade'} type
  */
-export function buildNewSubscriptionPayment({ gymId, subscriptionId, plan, originalAmount, discountAmount, finalAmount, currency, paymentMethod }) {
-  return buildPaymentRequest({
-    type: 'new',
-    gymId,
-    subscriptionId,
-    plan,
-    originalAmount,
-    discountAmount,
-    finalAmount,
-    currency,
-    paymentMethod,
-  })
+export function buildTypedPayment(type, params) {
+  return buildPaymentRequest({ ...params, type })
 }
 
-/**
- * Build a payment request for a subscription renewal.
- */
-export function buildRenewalPayment({ gymId, subscriptionId, plan, originalAmount, discountAmount, finalAmount, currency, paymentMethod }) {
-  return buildPaymentRequest({
-    type: 'renewal',
-    gymId,
-    subscriptionId,
-    plan,
-    originalAmount,
-    discountAmount,
-    finalAmount,
-    currency,
-    paymentMethod,
-  })
-}
-
-/**
- * Build a payment request for a subscription upgrade.
- */
-export function buildUpgradePayment({ gymId, subscriptionId, plan, originalAmount, discountAmount, finalAmount, currency, paymentMethod }) {
-  return buildPaymentRequest({
-    type: 'upgrade',
-    gymId,
-    subscriptionId,
-    plan,
-    originalAmount,
-    discountAmount,
-    finalAmount,
-    currency,
-    paymentMethod,
-  })
-}
+/** @deprecated Use buildTypedPayment('new', params) */
+export function buildNewSubscriptionPayment(params) { return buildTypedPayment('new', params) }
+/** @deprecated Use buildTypedPayment('renewal', params) */
+export function buildRenewalPayment(params) { return buildTypedPayment('renewal', params) }
+/** @deprecated Use buildTypedPayment('upgrade', params) */
+export function buildUpgradePayment(params) { return buildTypedPayment('upgrade', params) }
 
 // ─────────────────────────────────────────────
 // PAYMENT ORCHESTRATION (via Cloud Functions)
@@ -340,21 +304,19 @@ export async function getPendingAttemptsForSubscription(subscriptionId, gymId) {
  */
 export async function cleanupExpiredPaymentAttempts() {
   const now = new Date()
+  const nowStr = now.toISOString()
   const q = query(
     collection(db, COLLECTION),
-    where('status', '==', 'pending')
+    where('status', '==', 'pending'),
+    where('expiresAt', '<', nowStr)
   )
   const snap = await getDocs(q)
-  const batch = []
-  snap.docs.forEach(d => {
-    const data = d.data()
-    if (data.expiresAt && data.expiresAt < now.toISOString()) {
-      batch.push(updateDoc(doc(db, COLLECTION, d.id), {
-        status: 'expired',
-        updatedAt: serverTimestamp(),
-      }))
-    }
-  })
+  const batch = snap.docs.map(d =>
+    updateDoc(doc(db, COLLECTION, d.id), {
+      status: 'expired',
+      updatedAt: serverTimestamp(),
+    })
+  )
   await Promise.allSettled(batch)
   return batch.length
 }

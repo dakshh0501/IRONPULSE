@@ -117,11 +117,11 @@ export default function Security() {
           <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Platform security monitoring, session management, and audit trail.</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="sec-btn-danger" onClick={() => alert('Force logout requires Firebase Auth Admin SDK setup. Coming soon.')}>
+          <button className="sec-btn-danger" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Requires Firebase Auth Admin SDK">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4, verticalAlign: 'middle' }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             Force Logout All
           </button>
-          <button className="sec-btn-secondary" onClick={() => alert('Session revocation requires Firebase Auth Admin SDK setup. Coming soon.')}>Revoke All Sessions</button>
+          <button className="sec-btn-secondary" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Requires Firebase Auth Admin SDK">Revoke All Sessions</button>
         </div>
       </div>
 
@@ -244,7 +244,7 @@ export default function Security() {
             <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
               <span style={{ marginRight: 8 }}>🔐</span> Password Policy
             </h3>
-            <button className="sec-btn-secondary" style={{ padding: '5px 12px', fontSize: 11 }} onClick={() => alert('Password policy can be configured in Firebase Auth Console.')}>Configure</button>
+            <button className="sec-btn-secondary" style={{ padding: '5px 12px', fontSize: 11, opacity: 0.5, cursor: 'not-allowed' }} disabled title="Configure in Firebase Auth Console">Configure</button>
           </div>
           <div className="sec-section-body">
             <div className="sec-policy-grid">
@@ -324,15 +324,15 @@ export default function Security() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button className="sec-btn-danger" onClick={() => alert('Force logout requires Firebase Auth Admin SDK setup. Coming soon.')}>
+            <button className="sec-btn-danger" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Requires Firebase Auth Admin SDK">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
               Force Logout All Users
             </button>
-            <button className="sec-btn-danger" onClick={() => alert('Session revocation requires Firebase Auth Admin SDK setup. Coming soon.')}>
+            <button className="sec-btn-danger" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Requires Firebase Auth Admin SDK">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }}><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
               Revoke All Sessions
             </button>
-            <button className="sec-btn-danger" onClick={() => alert('Security key reset requires backend implementation. Coming soon.')}>
+            <button className="sec-btn-danger" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Requires backend implementation">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               Reset Security Keys
             </button>

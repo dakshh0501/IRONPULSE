@@ -1,11 +1,18 @@
-import { useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 
 export default function TrainerDashboard() {
 
-  const { members, attendance, trainers } = useApp()
+  const { members, attendance, trainers, snapshotErrors } = useApp()
   const { currentUser } = useAuth()
+  const [dataLoaded, setDataLoaded] = useState(false)
+
+  useEffect(() => {
+    if (members.length > 0 || trainers.length > 0) { setDataLoaded(true); return }
+    const timer = setTimeout(() => setDataLoaded(true), 4000)
+    return () => clearTimeout(timer)
+  }, [members.length, trainers.length])
 
   // ─────────────────────────────
   // Assigned members
@@ -51,7 +58,7 @@ export default function TrainerDashboard() {
       const expiryDate = new Date(m.expiry)
       const today = new Date()
       const daysUntilExpiry = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24))
-      return daysUntilExpiry <= 7 && daysUntilExpiry > 0
+      return daysUntilExpiry <= 7 && daysUntilExpiry >= 0
     })
   }, [myMembers])
 
@@ -68,16 +75,34 @@ export default function TrainerDashboard() {
     return map
   }, [myMembers])
 
+  const errorBanner = snapshotErrors?.length > 0 ? (
+    <div className="error-banner" style={{ background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:12, padding:'12px 16px', marginBottom:16, display:'flex', alignItems:'center', gap:8, fontSize:13, color:'#ef4444' }}>
+      <span>⚠</span> Some data failed to load. Check your connection.
+    </div>
+  ) : null
+
+  if (!dataLoaded && members.length === 0 && trainers.length === 0) {
+    return (
+      <div className="dashboard-page">
+        <div className="hero-card"><h1>Trainer Dashboard 💪</h1><p>Loading your dashboard...</p></div>
+        <div className="stats-grid">
+          {[1,2,3].map(i => <div key={i} className="skeleton-row" style={{ height:80, borderRadius:12, background:'var(--skeleton)' }} />)}
+        </div>
+        <div className="card"><div className="skeleton-row" style={{ height:200, borderRadius:12, background:'var(--skeleton)' }} /></div>
+      </div>
+    )
+  }
+
   return (
     <div className="dashboard-page">
 
-      {/* Hero */}
       <div className="hero-card">
         <h1>Trainer Dashboard 💪</h1>
         <p>Manage your assigned clients and gym activity.</p>
       </div>
 
-      {/* Stats */}
+      {errorBanner}
+
       <div className="stats-grid">
 
         <div className="stat-card orange">
@@ -97,7 +122,6 @@ export default function TrainerDashboard() {
 
       </div>
 
-      {/* Assigned Members */}
       <div className="card">
         <div className="section-title">My Clients</div>
         {myMembers.length === 0 ? (
@@ -117,7 +141,6 @@ export default function TrainerDashboard() {
         )}
       </div>
 
-      {/* Recent Check-ins */}
       <div className="card">
         <div className="section-title">Recent Check-ins</div>
         {todayAttendance.length === 0 ? (

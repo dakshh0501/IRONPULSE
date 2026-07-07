@@ -22,7 +22,7 @@ export default function MemberQR({
 
       <div
         style={{
-          background: '#fff',
+          background: 'var(--card-bg, #fff)',
           padding: 16,
           borderRadius: 16
         }}
@@ -32,20 +32,10 @@ export default function MemberQR({
           value={member.authUid || member.id}
           size={size}
           bgColor="#FFFFFF"
-          fgColor="#000000"
+          fgColor="var(--qr-fg, #000000)"
           level="H"
         />
 
-      </div>
-
-      <div
-        style={{
-          fontSize: 12,
-          color: '#888',
-          fontFamily: 'monospace'
-        }}
-      >
-        {member.id}
       </div>
 
     </div>

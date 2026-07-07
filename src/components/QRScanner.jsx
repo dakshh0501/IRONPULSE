@@ -80,8 +80,8 @@ export default function QRScanner({ onScanSuccess }) {
           position: 'relative',
           borderRadius: 14,
           overflow: 'hidden',
-          border: active ? '1px solid var(--teal)' : '1px solid rgba(255,255,255,0.08)',
-          background: '#0a0d14',
+          border: active ? '1px solid var(--teal)' : '1px solid var(--border)',
+          background: 'var(--bg-secondary)',
           minHeight: active ? 280 : 0,
           transition: 'min-height 0.3s ease, border-color 0.3s ease',
           boxShadow: active ? '0 0 24px rgba(0,200,180,0.12)' : 'none',
@@ -105,7 +105,7 @@ export default function QRScanner({ onScanSuccess }) {
 
       {/* Error message */}
       {error && (
-        <div style={{ width: '100%', maxWidth: 320, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--red)', textAlign: 'center' }}>
+        <div style={{ width: '100%', maxWidth: 320, background: 'var(--bg-error)', border: '1px solid var(--border-error)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--red)', textAlign: 'center' }}>
           {error}
         </div>
       )}

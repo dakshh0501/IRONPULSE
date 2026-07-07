@@ -391,6 +391,7 @@ export async function getPendingUsers(gymId) {
     if (gymId) {
       constraints.push(where('gymId', '==', gymId))
     }
+    constraints.push(limit(500))
     const q = query(collection(db, 'users'), ...constraints)
     const snap = await getDocs(q)
     return snap.docs.map(doc => ({ uid: doc.id, ...doc.data() }))

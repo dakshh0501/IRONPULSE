@@ -968,8 +968,8 @@ function Landing() {
             </p>
             {/* Social */}
             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-              {['𝕏','in','▶','📷'].map((s, i) => (
-                <a key={i} href="#" onClick={e => e.preventDefault()} style={{
+              {[{s:'𝕏',url:'https://twitter.com/ironpulse'},{s:'in',url:'https://linkedin.com/company/ironpulse'},{s:'▶',url:'https://youtube.com/@ironpulse'},{s:'📷',url:'https://instagram.com/ironpulse'}].map(({s, url}) => (
+                <a key={s} href={url} target="_blank" rel="noopener noreferrer" style={{
                   width: 32, height: 32, borderRadius: 8,
                   background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -983,8 +983,8 @@ function Landing() {
 
           <div>
             <h4 style={{ fontSize: 12, fontWeight: 700, color: '#e4e8f0', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>Product</h4>
-            {['Features', 'Pricing', 'Integrations', 'Changelog'].map(l => (
-              <a key={l} href="#" onClick={e => e.preventDefault()} style={{ display: 'block', fontSize: 13, color: '#6070a0', marginBottom: 10, textDecoration: 'none', transition: 'color 0.2s' }}
+            {[{l:'Features',hash:'#features'},{l:'Pricing',hash:'#pricing'},{l:'Integrations',hash:'#features'},{l:'Changelog',hash:'#about'}].map(({l, hash}) => (
+              <a key={l} href={hash} onClick={e => { e.preventDefault(); scrollTo(hash.replace('#','')) }} style={{ display: 'block', fontSize: 13, color: '#6070a0', marginBottom: 10, textDecoration: 'none', transition: 'color 0.2s', cursor: 'pointer' }}
                 onMouseEnter={e => e.target.style.color = '#e8420a'} onMouseLeave={e => e.target.style.color = '#6070a0'}>{l}</a>
             ))}
           </div>
@@ -1006,8 +1006,8 @@ function Landing() {
           </div>
           <div>
             <h4 style={{ fontSize: 12, fontWeight: 700, color: '#e4e8f0', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>Legal</h4>
-            {['Privacy', 'Terms', 'License', 'Cookies'].map(l => (
-              <a key={l} href="#" onClick={e => e.preventDefault()} style={{ display: 'block', fontSize: 13, color: '#6070a0', marginBottom: 10, textDecoration: 'none', transition: 'color 0.2s' }}
+            {[{l:'Privacy',url:'/privacy'},{l:'Terms',url:'/terms'},{l:'License',url:'/license'},{l:'Cookies',url:'/cookies'}].map(({l,url}) => (
+              <a key={l} href={url} style={{ display: 'block', fontSize: 13, color: '#6070a0', marginBottom: 10, textDecoration: 'none', transition: 'color 0.2s' }}
                 onMouseEnter={e => e.target.style.color = '#e8420a'} onMouseLeave={e => e.target.style.color = '#6070a0'}>{l}</a>
             ))}
           </div>

@@ -293,7 +293,7 @@ function TicketDrawer({ ticket, gymName, onClose }) {
               <div style={{ marginTop: 'auto', paddingTop: 12 }}>
                 <div className="sspt-reply-box">
                   <textarea placeholder="Type your reply..." value={replyText} onChange={e => { setReplyText(e.target.value); setDrawerMsg('') }} />
-                  <button className="sspt-reply-btn" onClick={() => { if (replyText.trim()) setDrawerMsg('Reply sent. Full reply system coming soon.'); else setDrawerMsg('Type a reply first') }}>Send Reply</button>
+                  <button className="sspt-reply-btn" onClick={() => { if (replyText.trim()) setDrawerMsg('Reply functionality will be available after Firestore replies collection is implemented.'); else setDrawerMsg('Type a reply first') }}>Send Reply</button>
                   {drawerMsg && <div style={{ fontSize: 11, color: drawerMsg === 'Type a reply first' ? 'var(--text-muted)' : 'var(--teal)', marginTop: 4, position: 'absolute', bottom: -18, left: 0 }}>{drawerMsg}</div>}
                 </div>
               </div>
@@ -324,7 +324,7 @@ function TicketDrawer({ ticket, gymName, onClose }) {
               <div style={{ marginTop: 'auto', paddingTop: 8 }}>
                 <div className="sspt-reply-box" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
                   <textarea placeholder="Add an internal note..." value={noteText} onChange={e => { setNoteText(e.target.value); setDrawerMsg('') }} style={{ minHeight: 80 }} />
-                  <button className="sspt-reply-btn" style={{ alignSelf: 'flex-end' }} onClick={() => { if (noteText.trim()) setDrawerMsg('Note saved. Notes system coming soon.'); else setDrawerMsg('Type a note first') }}>Save Note</button>
+                  <button className="sspt-reply-btn" style={{ alignSelf: 'flex-end' }} onClick={() => { if (noteText.trim()) setDrawerMsg('Note saved. Internal notes will be visible after a Firestore notes collection is added.'); else setDrawerMsg('Type a note first') }}>Save Note</button>
                 </div>
               </div>
             </>
@@ -366,7 +366,7 @@ function KnowledgeBaseTab() {
           <h4>{item.title}</h4>
           <p>{item.desc}</p>
           <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 11, color: '#506080', fontStyle: 'italic' }}>Coming soon</span>
+            <span style={{ fontSize: 11, color: '#506080', fontStyle: 'italic' }}>Knowledge base content pending</span>
           </div>
         </div>
       ))}

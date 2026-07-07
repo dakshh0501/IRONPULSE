@@ -209,12 +209,12 @@ export default function Header({ currentPage, setPage, search, setSearch, setMob
                 No notifications yet
               </div>
             ) : (
-              notifications.slice(0, 50).map(n => (
+              notifications.map(n => (
                 <div key={n.id} className={`notif-item ${!n.read ? 'unread' : ''}`}
                   onClick={() => {
-                    if (!n.read) markNotifRead(n.id).catch(err => console.error('Failed to mark notification read:', err))
+                    if (!n.read) markNotifRead(n.id).catch(() => {})
                     if (n.actionUrl) navigate(n.actionUrl)
-                    else if (n.page) navigate(`/${n.page}${n.tab ? `?tab=${n.tab}` : ''}`)
+                    else if (n.page) navigate(`/${n.page}${n.tab ? `/${n.tab}` : ''}`)
                   }}>
                   {!n.read && <div className="notif-dot-sm" />}
                   {n.read && <div style={{ width:8 }} />}

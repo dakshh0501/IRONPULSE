@@ -676,7 +676,7 @@ export default function Support() {
                 <span className="spt-kb-icon">{card.icon}</span>
                 <div className="spt-kb-title">{card.title}</div>
                 <div className="spt-kb-sub">{card.sub}</div>
-                <span className="spt-kb-badge">Coming Soon</span>
+                <span className="spt-kb-badge">Content pending</span>
               </div>
             ))}
           </div>
@@ -709,7 +709,7 @@ export default function Support() {
               replies: arrayUnion({ text, by: currentUser?.uid, at: new Date().toISOString() }),
               updatedAt: serverTimestamp(),
             })
-          } catch (e) { console.error('Failed to save reply:', e) }
+          } catch (e) { console.error('Failed to save reply:', e); setDrawerMsg('Failed to send reply. Please try again.') }
         }}
         onSaveNote={async (text) => {
           if (!drawerTicket?.id) return
@@ -719,7 +719,7 @@ export default function Support() {
               internalNotes: arrayUnion({ text, by: currentUser?.uid, at: new Date().toISOString() }),
               updatedAt: serverTimestamp(),
             })
-          } catch (e) { console.error('Failed to save note:', e) }
+          } catch (e) { console.error('Failed to save note:', e); setDrawerMsg('Failed to save note. Please try again.') }
         }}
         onFileAttach={async (file) => {
           if (!drawerTicket?.id) return
@@ -733,7 +733,7 @@ export default function Support() {
               })
             }
             reader.readAsDataURL(file)
-          } catch (e) { console.error('Failed to attach file:', e) }
+          } catch (e) { console.error('Failed to attach file:', e); setDrawerMsg('Failed to attach file. Please try again.') }
         }}
       />
     </div>

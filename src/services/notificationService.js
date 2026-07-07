@@ -7,6 +7,8 @@ import {
   query,
   where,
   limit,
+  orderBy,
+  startAfter,
   onSnapshot,
   getDocs,
   serverTimestamp,
@@ -43,16 +45,15 @@ export async function loadMoreNotifications(userId, lastVisible, gymId) {
   if (gymId) {
     constraints.push(where('gymId', '==', gymId))
   }
-  constraints.push(limit(PAGE_SIZE * 2))
+  constraints.push(orderBy('createdAt', 'desc'))
+  if (lastVisible) {
+    constraints.push(startAfter(lastVisible))
+  }
+  constraints.push(limit(PAGE_SIZE))
   const q = query(collection(db, COLLECTION), ...constraints)
   const snapshot = await getDocs(q)
   const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-  list.sort((a, b) => {
-    const aTime = a.createdAt?.seconds || a.createdAt || 0
-    const bTime = b.createdAt?.seconds || b.createdAt || 0
-    return bTime - aTime
-  })
-  return list.slice(0, PAGE_SIZE)
+  return list
 }
 
 export async function addNotification(data) {
@@ -74,15 +75,14 @@ export async function markNotifAsUnread(notifId) {
 }
 
 export async function markAllNotifsAsRead(userId, gymId) {
-  const constraints = [where('userId', '==', userId)]
+  const constraints = [where('userId', '==', userId), where('read', '==', false)]
   if (gymId) {
     constraints.push(where('gymId', '==', gymId))
   }
+  constraints.push(limit(100))
   const q = query(collection(db, COLLECTION), ...constraints)
   const snapshot = await getDocs(q)
-  const updates = snapshot.docs
-    .filter(d => d.data().read === false)
-    .map(d => updateDoc(d.ref, { read: true }))
+  const updates = snapshot.docs.map(d => updateDoc(d.ref, { read: true }))
   await Promise.allSettled(updates)
 }
 

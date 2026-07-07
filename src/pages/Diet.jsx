@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, memo } from 'react'
 import { useApp } from '../context/AppContext'
+import { useAuth } from '../context/AuthContext'
 import { buildDietPlanWhatsAppMessage, buildDietPlanWhatsAppLink } from '../utils/whatsappReminders'
 
 const GOALS = Object.freeze(['Fat Loss', 'Muscle Gain', 'Keto / Low Carb', 'Maintenance', 'Endurance', 'Vegan', 'Diabetic Friendly'])
@@ -136,7 +137,7 @@ function MealTimeline({ meals }) {
 }
 
 // ─── Plan Card ───────────────────────────────────────────────────────────────
-const PlanCard = memo(function PlanCard({ plan, onView, onEdit, onDelete }) {
+const PlanCard = memo(function PlanCard({ plan, onView, onEdit, onDelete, readOnly }) {
   const [hovered, setHovered] = useState(false)
   const gc = goalColor(plan.goal)
   return (
@@ -223,16 +224,20 @@ const PlanCard = memo(function PlanCard({ plan, onView, onEdit, onDelete }) {
           borderRadius: 8, color: gc.text, fontSize: 12, fontWeight: 700,
           cursor: 'pointer', letterSpacing: 0.3,
         }}>VIEW PLAN</button>
-        <button onClick={() => onEdit(plan)} aria-label="Edit diet plan" style={{
-          padding: '8px 14px',
-          background: 'var(--hover)', border: '1px solid var(--border)',
-          borderRadius: 8, color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-        }}>✏️</button>
-        <button onClick={() => onDelete(plan.id)} aria-label="Delete diet plan" style={{
-          padding: '8px 14px',
-          background: 'var(--orange)11', border: '1px solid var(--orange)30',
-          borderRadius: 8, color: 'var(--orange)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-        }}>🗑</button>
+        {!readOnly && (
+          <>
+            <button onClick={() => onEdit(plan)} aria-label="Edit diet plan" style={{
+              padding: '8px 14px',
+              background: 'var(--hover)', border: '1px solid var(--border)',
+              borderRadius: 8, color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            }}>✏️</button>
+            <button onClick={() => onDelete(plan.id)} aria-label="Delete diet plan" style={{
+              padding: '8px 14px',
+              background: 'var(--orange)11', border: '1px solid var(--orange)30',
+              borderRadius: 8, color: 'var(--orange)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            }}>🗑</button>
+          </>
+        )}
       </div>
     </div>
   )
@@ -288,11 +293,11 @@ function PlanDetailModal({ plan, onClose, onEdit, gymName }) {
               }}>
                 💬 Share via WhatsApp
               </button>
-              <button onClick={() => { onClose(); onEdit(plan) }} style={{
+              {onEdit && <button onClick={() => { onClose(); onEdit(plan) }} style={{
                 padding: '8px 16px', background: 'var(--hover)',
                 border: '1px solid var(--border)', borderRadius: 8,
                 color: 'var(--text)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-              }}>✏️ EDIT</button>
+              }}>✏️ EDIT</button>}
               <button onClick={onClose} style={{
                 width: 36, height: 36, borderRadius: 8,
                 background: 'var(--orange)15', border: '1px solid var(--orange)30',
@@ -375,7 +380,7 @@ function PlanDetailModal({ plan, onClose, onEdit, gymName }) {
 // ─── Plan Form Modal ─────────────────────────────────────────────────────────
 const EMPTY_PLAN = {
   name: '', goal: 'Fat Loss', calories: '', protein: '', carbs: '', fat: '',
-  assignedMember: '', assignedTrainer: '', duration: '', status: 'Active',
+  assignedMember: '', assignedTrainer: '', assignedTrainerAuthUid: '', duration: '', status: 'Active',
   meals: [{ id: Date.now(), name: 'Breakfast', time: '7:00 AM', calories: '', items: [''] }],
 }
 
@@ -574,7 +579,8 @@ function PlanFormModal({ existing, onSave, onClose, members = [], trainers = [] 
                   <label style={labelStyle}>Assigned Trainer *</label>
                   <select value={form.assignedTrainer} onChange={e => {
                     const val = e.target.value
-                    setForm(f => ({ ...f, assignedTrainer: val }))
+                    const t = trainers.find(x => x.name === val)
+                    setForm(f => ({ ...f, assignedTrainer: val, assignedTrainerAuthUid: t?.authUid || '' }))
                     setErrors(err => ({ ...err, assignedTrainer: '' }))
                   }} style={{ ...inp('assignedTrainer', 'Trainer name').style, cursor: 'pointer' }}>
                     <option value="">— Select trainer —</option>
@@ -659,7 +665,7 @@ function PlanFormModal({ existing, onSave, onClose, members = [], trainers = [] 
 }
 
 // ─── Delete Confirm ──────────────────────────────────────────────────────────
-function DeleteConfirm({ plan, onConfirm, onCancel }) {
+function DeleteConfirm({ plan, onConfirm, onCancel, error }) {
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onCancel?.() }
     window.addEventListener('keydown', handler)
@@ -673,6 +679,9 @@ function DeleteConfirm({ plan, onConfirm, onCancel }) {
         <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 22 }}>
           This will permanently delete <span style={{ color: 'var(--orange)', fontWeight: 700 }}>{plan.name}</span>. This action cannot be undone.
         </div>
+        {error && (
+          <div style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 8, padding: '8px 12px', marginBottom: 14, color: 'var(--red)', fontSize: 12, fontWeight: 500 }}>⚠️ {error}</div>
+        )}
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={onCancel} style={{ flex: 1, padding: '11px', background: 'var(--hover)', border: '1px solid var(--border)', borderRadius: 9, color: 'var(--text-muted)', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
           <button onClick={onConfirm} style={{ flex: 1, padding: '11px', background: 'linear-gradient(135deg,var(--orange),#c0392b)', border: 'none', borderRadius: 9, color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Delete</button>
@@ -685,11 +694,14 @@ function DeleteConfirm({ plan, onConfirm, onCancel }) {
 // ─── Main Diet Page ───────────────────────────────────────────────────────────
 export default function Diet({ search = '' }) {
   const { gymSettings, dietPlans, addDietPlan, updateDietPlan, deleteDietPlan, members, trainers } = useApp()
+  const { effectiveRole } = useAuth()
+  const isMember = effectiveRole === 'member'
   const gymName = gymSettings?.name || 'IronForge Gym'
   const [viewPlan, setViewPlan] = useState(null)
   const [editPlan, setEditPlan] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [delPlan, setDelPlan] = useState(null)
+  const [deleteError, setDeleteError] = useState('')
   const [filterGoal, setFilterGoal] = useState('All')
   const [filterStatus, setFilterStatus] = useState('All')
   const [localSearch, setLocalSearch] = useState('')
@@ -733,10 +745,12 @@ export default function Diet({ search = '' }) {
   const handleDelete = async (id) => {
     try {
       await deleteDietPlan(id)
+      setDelPlan(null)
+      setDeleteError('')
     } catch (e) {
       console.error('Failed to delete diet plan:', e)
+      setDeleteError('Failed to delete plan: ' + (e.message || 'Unknown error'))
     }
-    setDelPlan(null)
   }
 
   const openEdit = (plan) => { setEditPlan(plan); setShowForm(true) }
@@ -749,6 +763,34 @@ export default function Diet({ search = '' }) {
     border: active ? 'none' : '1px solid var(--border)',
     color: active ? '#fff' : 'var(--text-muted)',
   })
+
+  // ── Member view ──
+  if (isMember) {
+    return (
+      <div className="page-container">
+        <div className="page-header">
+          <div>
+            <h2>My Diet Plans</h2>
+            <p>Your assigned nutrition plans.</p>
+          </div>
+        </div>
+        {dietPlans.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🥗</div>
+            <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, letterSpacing: 1, marginBottom: 8 }}>NO DIET PLANS</div>
+            <div style={{ fontSize: 13 }}>You don't have any diet plans assigned yet. Check back later.</div>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 18 }}>
+            {dietPlans.map(plan => (
+              <PlanCard key={plan.id} plan={plan} onView={setViewPlan} onEdit={() => {}} onDelete={() => {}} readOnly />
+            ))}
+          </div>
+        )}
+        {viewPlan && <PlanDetailModal plan={viewPlan} onClose={() => setViewPlan(null)} onEdit={null} gymName={gymName} />}
+      </div>
+    )
+  }
 
   return (
     <div className="page-container">
@@ -842,7 +884,7 @@ export default function Diet({ search = '' }) {
       {/* Modals */}
       {viewPlan && <PlanDetailModal plan={viewPlan} onClose={() => setViewPlan(null)} onEdit={(p) => { setViewPlan(null); openEdit(p) }} gymName={gymName} />}
       {showForm && <PlanFormModal existing={editPlan} onSave={handleSave} onClose={() => { setShowForm(false); setEditPlan(null) }} members={members} trainers={trainers} />}
-      {delPlan && <DeleteConfirm plan={delPlan} onConfirm={() => handleDelete(delPlan.id)} onCancel={() => setDelPlan(null)} />}
+      {delPlan && <DeleteConfirm plan={delPlan} onConfirm={() => handleDelete(delPlan.id)} onCancel={() => { setDelPlan(null); setDeleteError('') }} error={deleteError} />}
     </div>
   )
 }

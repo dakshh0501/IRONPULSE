@@ -263,7 +263,6 @@ export default function Progress() {
       setEditEntry(null)
     } catch (e) {
       console.error('Failed to update progress entry:', e)
-      throw e
     }
   }
 

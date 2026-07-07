@@ -10,8 +10,10 @@ import {
 import { useAuth } from './AuthContext'
 import {
   subscribeToMembers,
+  subscribeToMyMembers,
   subscribeToMyMember,
   subscribeToMyPayments,
+  backfillTrainerAuthUid,
   addMember as addMemberToFirestore,
   updateMember as updateMemberInFirestore,
   deleteMember as deleteMemberFromFirestore,
@@ -38,10 +40,14 @@ import {
   subscribeToFeatureRequests,
   addFeatureRequest as addFeatureRequestToFirestore,
   subscribeToDietPlans,
+  subscribeToMyDietPlans,
+  subscribeToMyAssignedDietPlans,
   addDietPlan as addDietPlanToFirestore,
   updateDietPlan as updateDietPlanInFirestore,
   deleteDietPlan as deleteDietPlanFromFirestore,
   subscribeToWorkoutPlans,
+  subscribeToMyWorkoutPlans,
+  subscribeToMyAssignedWorkoutPlans,
   addWorkoutPlan as addWorkoutPlanToFirestore,
   updateWorkoutPlan as updateWorkoutPlanInFirestore,
   deleteWorkoutPlan as deleteWorkoutPlanFromFirestore,
@@ -56,6 +62,7 @@ import {
 import {
   subscribeAttendance,
   subscribeMyAttendance,
+  subscribeMyTrainerAttendance,
   addAttendance as addAttendanceToFirestore,
 } from '../services/attendanceService'
 import { getPendingUsers } from '../services/authService'
@@ -136,11 +143,13 @@ export function AppProvider({ children }) {
   const [notifLoading, setNotifLoading] = useState(true)
   const [snapshotErrors, setSnapshotErrors] = useState([])
 
+  const errorSeq = useRef(0)
   const reportSnapshotError = useCallback((error, collection) => {
-    const entry = { collection, message: error.message, timestamp: Date.now() }
-    setSnapshotErrors(prev => [...prev, entry])
+    const seq = ++errorSeq.current
+    const entry = { collection, message: error.message, timestamp: Date.now(), seq }
+    setSnapshotErrors(prev => [...prev.slice(-9), entry])
     setTimeout(() => {
-      setSnapshotErrors(prev => prev.filter(e => e.timestamp !== entry.timestamp))
+      setSnapshotErrors(prev => prev.filter(e => e.seq !== seq))
     }, 10000)
   }, [])
 
@@ -151,6 +160,7 @@ export function AppProvider({ children }) {
   // super_admin sees ALL data (no gymId filter).
   // All other roles scoped to their own gymId.
   const isSuperAdmin = effectiveRole === 'super_admin'
+  const isAdmin = isSuperAdmin || effectiveRole === 'gym_admin'
   const queryGymId = isSuperAdmin ? null : gymId
 
   // ── Pending gym owner approvals listener ───────────────
@@ -167,6 +177,7 @@ export function AppProvider({ children }) {
 
   // ── Admins: approve gym owner (single source of truth) ──
   const approveGymOwner = async (gymId, newSubscription = 'Trial', remarks = '') => {
+    if (!isSuperAdmin) throw new Error('Unauthorized: only super admins can approve gym owners')
     let stepsCompleted = []
     try {
       const gymSnap = await getDoc(doc(db, 'gyms', gymId))
@@ -263,6 +274,7 @@ export function AppProvider({ children }) {
 
   // ── Admins: reject gym owner (single source of truth) ──
   const rejectGymOwner = async (gymId, remarks = '') => {
+    if (!isSuperAdmin) throw new Error('Unauthorized: only super admins can reject gym owners')
     try {
       // 1. Read gym doc to get ownerUid
       const gymSnap = await getDoc(doc(db, 'gyms', gymId))
@@ -298,6 +310,7 @@ export function AppProvider({ children }) {
 
   // ── Gym CRUD ─────────────────────────────────────────────
   const addGym = async (gymData) => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can manage gyms')
     try {
       return await addGymToFirestore({ ...gymData, gymId: userGymId }, currentUser.uid)
     } catch (err) {
@@ -307,6 +320,7 @@ export function AppProvider({ children }) {
   }
 
   const updateGym = async (gymId, updatedData) => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can manage gyms')
     try {
       await updateGymInFirestore(gymId, updatedData)
     } catch (err) {
@@ -316,6 +330,7 @@ export function AppProvider({ children }) {
   }
 
   const deleteGym = async (gymId) => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can manage gyms')
     try {
       await deleteGymFromFirestore(gymId)
     } catch (err) {
@@ -370,10 +385,10 @@ export function AppProvider({ children }) {
     return unsubscribe
   }, [currentUser, authLoading, effectiveRole])
 
-  // ── Gym Subscription listener (gym_admin/gym_owner) ───
+  // ── Gym Subscription listener (gym_admin/gym_owner/super_admin) ───
   useEffect(() => {
     if (authLoading || !currentUser || !gymId) return
-    if (effectiveRole !== 'gym_admin') return
+    if (effectiveRole !== 'gym_admin' && effectiveRole !== 'super_admin') return
     const unsub = subscribeToGymSubscription(gymId, (sub) => {
       if (sub) {
         const checked = checkAutoExpiry(sub)
@@ -406,11 +421,15 @@ export function AppProvider({ children }) {
     return unsubscribe
   }, [currentUser, authLoading, effectiveRole, gymId])
 
-  // ── Cleanup expired payment attempts on mount ────────
+  // ── Cleanup expired payment attempts on mount + periodic ──
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (effectiveRole !== 'super_admin' && effectiveRole !== 'gym_admin') return
     cleanupExpiredPaymentAttempts().catch(err => console.error('[AppContext]', err))
+    const interval = setInterval(() => {
+      cleanupExpiredPaymentAttempts().catch(err => console.error('[AppContext] cleanup interval:', err))
+    }, 300000)
+    return () => clearInterval(interval)
   }, [authLoading, currentUser, effectiveRole])
 
   // ── Notifications listener (deferred) ─────────────────
@@ -503,6 +522,18 @@ export function AppProvider({ children }) {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'members')) return
 
+    if (effectiveRole === 'trainer') {
+      const unsubscribe = subscribeToMyMembers(
+        currentUser.uid,
+        (data) => { setMembers(data) },
+        queryGymId,
+        reportSnapshotError
+      )
+      // One-time backfill for existing members without trainerAuthUid
+      backfillTrainerAuthUid(queryGymId).catch(() => {})
+      return unsubscribe
+    }
+
     const unsubscribe = subscribeToMembers(
       (data) => { setMembers(data) },
       queryGymId,
@@ -559,8 +590,10 @@ export function AppProvider({ children }) {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'plans')) return
 
-    // gym_admin auto-migrates default plans (scoped to gym)
-    if (effectiveRole === 'gym_admin') {
+    // gym_admin auto-migrates default plans once (scoped to gym)
+    const migratedKey = `migrated_plans_${queryGymId || 'default'}`
+    if (effectiveRole === 'gym_admin' && !sessionStorage.getItem(migratedKey)) {
+      sessionStorage.setItem(migratedKey, '1')
       migrateDefaultPlans(queryGymId).catch(err => console.error('Failed to migrate plans:', err))
     }
 
@@ -599,7 +632,15 @@ export function AppProvider({ children }) {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'dietPlans')) return
     let unsub; let timerId
-    const schedule = () => { unsub = subscribeToDietPlans((data) => setDietPlans(data), queryGymId, reportSnapshotError) }
+    const schedule = () => {
+      if (effectiveRole === 'member' && currentUser?.uid) {
+        unsub = subscribeToMyAssignedDietPlans(currentUser.uid, (data) => setDietPlans(data), queryGymId, reportSnapshotError)
+      } else if (effectiveRole === 'trainer' && currentUser?.uid) {
+        unsub = subscribeToMyDietPlans(currentUser.uid, (data) => setDietPlans(data), queryGymId, reportSnapshotError)
+      } else {
+        unsub = subscribeToDietPlans((data) => setDietPlans(data), queryGymId, reportSnapshotError)
+      }
+    }
     if ('requestIdleCallback' in window) {
       timerId = requestIdleCallback(schedule, { timeout: 300 })
     } else {
@@ -619,7 +660,15 @@ export function AppProvider({ children }) {
     if (authLoading || !currentUser) return
     if (!canSubscribe(effectiveRole, 'workoutPlans')) return
     let unsub; let timerId
-    const schedule = () => { unsub = subscribeToWorkoutPlans((data) => setWorkoutPlans(data), queryGymId, reportSnapshotError) }
+    const schedule = () => {
+      if (effectiveRole === 'member' && currentUser?.uid) {
+        unsub = subscribeToMyAssignedWorkoutPlans(currentUser.uid, (data) => setWorkoutPlans(data), queryGymId, reportSnapshotError)
+      } else if (effectiveRole === 'trainer' && currentUser?.uid) {
+        unsub = subscribeToMyWorkoutPlans(currentUser.uid, (data) => setWorkoutPlans(data), queryGymId, reportSnapshotError)
+      } else {
+        unsub = subscribeToWorkoutPlans((data) => setWorkoutPlans(data), queryGymId, reportSnapshotError)
+      }
+    }
     if ('requestIdleCallback' in window) {
       timerId = requestIdleCallback(schedule, { timeout: 300 })
     } else {
@@ -653,8 +702,12 @@ export function AppProvider({ children }) {
   // ── Attendance listener ────────────────────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
+    if (effectiveRole === 'trainer' && currentUser?.uid) {
+      const unsubscribe = subscribeMyTrainerAttendance(currentUser.uid, (data) => setAttendance(data), queryGymId)
+      return unsubscribe
+    }
     if (canSubscribe(effectiveRole, 'attendance')) {
-      const unsubscribe = subscribeAttendance((data) => setAttendance(data), queryGymId)
+      const unsubscribe = subscribeAttendance((data) => setAttendance(data), queryGymId, reportSnapshotError)
       return unsubscribe
     }
     if (effectiveRole === 'member' && currentUser?.uid) {
@@ -791,7 +844,7 @@ export function AppProvider({ children }) {
   const markAllNotifsRead = async () => {
     if (!currentUser?.uid) return
     try {
-      await markAllNotifsAsRead(currentUser.uid)
+      await markAllNotifsAsRead(currentUser.uid, gymId)
       setNotifications(prev => prev.map(n => ({ ...n, read: true })))
     } catch (err) {
       console.error('markAllNotifsRead error:', err)
@@ -809,24 +862,39 @@ export function AppProvider({ children }) {
 
   // ── Member CRUD ────────────────────────────────────────
   const addMember = async (memberData) => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can add members')
     try {
+      const memberDataWithAuth = { ...memberData }
+      if (memberDataWithAuth.trainerId && !memberDataWithAuth.trainerAuthUid) {
+        const trainer = trainers.find(t => t.id === memberDataWithAuth.trainerId)
+        if (trainer?.authUid) memberDataWithAuth.trainerAuthUid = trainer.authUid
+      }
       const memberId = await addMemberToFirestore({
-        ...memberData,
+        ...memberDataWithAuth,
         gymId,
-        trainerId:   memberData.trainerId   || '',
-        trainerName: memberData.trainerName || '',
+        trainerId:   memberDataWithAuth.trainerId   || '',
+        trainerName: memberDataWithAuth.trainerName || '',
         status:      memberData.status      || 'Active',
         plan:        memberData.plan        || 'Monthly',
         amountPaid:  Number(memberData.amountPaid) || 0,
         checkins:    Number(memberData.checkins)   || 0,
       })
-      if (currentUser?.uid) {
+      if (currentUser?.uid && memberId) {
+        const notifUserId = memberData.authUid || currentUser.uid
         fireNotif('member_added', {
           userId: currentUser.uid,
           title: 'New Member Added',
           message: `${memberData.name || 'Member'} has been added with ${memberData.plan || 'Monthly'} plan.`,
-          relatedDocumentId: memberId || '',
-        }).catch(err => console.error('[AppContext]', err))
+          relatedDocumentId: memberId,
+        }).catch(() => {})
+        if (notifUserId !== currentUser.uid) {
+          fireNotif('member_added', {
+            userId: notifUserId,
+            title: 'Welcome!',
+            message: `You have been registered with ${memberData.plan || 'Monthly'} plan.`,
+            relatedDocumentId: memberId,
+          }).catch(() => {})
+        }
       }
       return memberId
     } catch (error) {
@@ -836,6 +904,7 @@ export function AppProvider({ children }) {
   }
 
   const updateMember = async (id, data) => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can update members')
     try {
       await updateMemberInFirestore(id, {
         ...data,
@@ -848,6 +917,7 @@ export function AppProvider({ children }) {
   }
 
   const deleteMember = async (id) => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can delete members')
     try {
       const member = members.find(m => m.id === id)
       await deleteMemberFromFirestore(id)
@@ -857,7 +927,7 @@ export function AppProvider({ children }) {
           title: 'Member Deleted',
           message: `${member.name} has been removed from the system.`,
           relatedDocumentId: id,
-        }).catch(err => console.error('[AppContext]', err))
+        }).catch(() => {})
       }
     } catch (error) {
       console.error('Error deleting member:', error)
@@ -870,10 +940,10 @@ export function AppProvider({ children }) {
       const now = new Date()
       const todayStr = now.toISOString().split('T')[0]
       const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
-      const memberId = member.authUid || member.uid
+      const memberId = member.authUid || member.id
       if (!memberId) {
-        console.error('checkInMember: no authUid or uid on member', member.id)
-        throw new Error('Member has no authUid — cannot record attendance')
+        console.error('checkInMember: no authUid or id on member', member)
+        throw new Error('Member identifier missing — cannot record attendance')
       }
       await addAttendanceToFirestore({
         memberId,
@@ -883,19 +953,22 @@ export function AppProvider({ children }) {
         plan:        member.plan   || member.membershipPlan || 'Standard',
         trainerId:   member.trainerId   || '',
         trainerName: member.trainerName || '',
+        trainerAuthUid: member.trainerAuthUid || '',
         date:        todayStr,
         time,
         method:      'Manual',
         duration:    90,
         gymId,
       })
-      await updateMemberInFirestore(member.id, { checkins: (member.checkins || 0) + 1 })
+      if (member.id) {
+        await updateMemberInFirestore(member.id, { checkins: (member.checkins || 0) + 1 })
+      }
       if (member.authUid || member.uid) {
         fireNotif('qr_success', {
           userId: member.authUid || member.uid,
           title: 'Check-in Successful',
           message: `You checked in at ${time}. Have a great workout!`,
-        }).catch(err => console.error('[AppContext]', err))
+        }).catch(() => {})
       }
     } catch (error) {
       console.error('Error checking in:', error)
@@ -905,6 +978,7 @@ export function AppProvider({ children }) {
 
   // ── Payment CRUD ───────────────────────────────────────
   const addPayment = async (paymentData) => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can manage payments')
     try {
       const paymentId = await addPaymentToFirestore({
         ...paymentData,
@@ -938,6 +1012,7 @@ export function AppProvider({ children }) {
   }
 
   const updatePayment = async (id, data) => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can manage payments')
     try {
       const { amount, ...rest } = data
       const payload = { ...rest }
@@ -950,6 +1025,7 @@ export function AppProvider({ children }) {
   }
 
   const deletePayment = async (id) => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can manage payments')
     try {
       await deletePaymentFromFirestore(id)
     } catch (error) {
@@ -960,6 +1036,7 @@ export function AppProvider({ children }) {
 
   // ── Trainer CRUD ───────────────────────────────────────
   const addTrainer = async (trainerData) => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can manage trainers')
     try {
       const result = await addTrainerToFirestore({
         ...trainerData,
@@ -984,6 +1061,7 @@ export function AppProvider({ children }) {
   }
 
   const updateTrainer = async (id, data) => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can manage trainers')
     try {
       await updateTrainerInFirestore(id, data)
     } catch (error) {
@@ -993,6 +1071,7 @@ export function AppProvider({ children }) {
   }
 
   const deleteTrainer = async (id) => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can manage trainers')
     try {
       const trainer = trainers.find(t => t.id === id)
       await deleteTrainerFromFirestore(id)
@@ -1012,6 +1091,7 @@ export function AppProvider({ children }) {
 
   // ── Plans CRUD ─────────────────────────────────────────
   const addPlan = async (planData) => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can manage plans')
     try {
       return await addPlanToFirestore({ ...planData, gymId })
     } catch (error) {
@@ -1021,6 +1101,7 @@ export function AppProvider({ children }) {
   }
 
   const updatePlan = async (id, data) => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can manage plans')
     try {
       await updatePlanInFirestore(id, data)
     } catch (error) {
@@ -1030,6 +1111,7 @@ export function AppProvider({ children }) {
   }
 
   const deletePlan = async (id) => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can manage plans')
     try {
       await deletePlanFromFirestore(id)
     } catch (error) {
@@ -1212,6 +1294,7 @@ export function AppProvider({ children }) {
 
   // ── Subscription Lifecycle ──────────────────────────────
   const activateSubscription = async (planName, planType, amount) => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can manage subscriptions')
     try {
       await activateSubService(gymId, planName, planType, amount, currentUser?.uid)
       fireNotif('sub_activated', {
@@ -1228,6 +1311,7 @@ export function AppProvider({ children }) {
   }
 
   const suspendSubscription = async () => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can manage subscriptions')
     try {
       await suspendSubService(gymId, currentUser?.uid)
       const targetGym = gyms.find(g => g.id === gymId)
@@ -1246,6 +1330,7 @@ export function AppProvider({ children }) {
   }
 
   const expireSubscription = async () => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can manage subscriptions')
     try {
       await expireSubService(gymId, currentUser?.uid)
       fireNotif('sub_expired', {
@@ -1262,6 +1347,7 @@ export function AppProvider({ children }) {
   }
 
   const renewSubscription = async (planName, planType, amount) => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can manage subscriptions')
     try {
       await renewSubService(gymId, planName, planType, amount, currentUser?.uid)
       fireNotif('sub_renewed', {
@@ -1278,6 +1364,7 @@ export function AppProvider({ children }) {
   }
 
   const upgradeSubscription = async (planName, planType, amount) => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can manage subscriptions')
     try {
       await upgradeSubService(gymId, planName, planType, amount, currentUser?.uid)
       fireNotif('sub_upgraded', {
@@ -1295,6 +1382,7 @@ export function AppProvider({ children }) {
 
   // delegates to changePlan (same date calc and update logic)
   const downgradeSubscription = async (planName, planType, amount) => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can manage subscriptions')
     try {
       await downgradeSubService(gymId, planName, planType, amount, currentUser?.uid)
       fireNotif('sub_downgraded', {
@@ -1311,6 +1399,7 @@ export function AppProvider({ children }) {
   }
 
   const reactivateSubscription = async () => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can manage subscriptions')
     try {
       const sub = currentSubscription
       const now = new Date()
@@ -1340,6 +1429,7 @@ export function AppProvider({ children }) {
   }
 
   const assignTrialToGym = async (trialDays) => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can manage subscriptions')
     try {
       await assignTrialService(gymId, trialDays, currentUser?.uid)
       fireNotif('sub_trial_started', {
@@ -1365,6 +1455,7 @@ export function AppProvider({ children }) {
   }
 
   const changeSubscriptionPlan = async (planName, planType, amount) => {
+    if (!isAdmin) throw new Error('Unauthorized: only admins can manage subscriptions')
     try {
       await changePlanService(gymId, planName, planType, amount, currentUser?.uid)
     } catch (error) {

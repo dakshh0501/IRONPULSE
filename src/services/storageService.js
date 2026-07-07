@@ -7,11 +7,23 @@ const MAX_WIDTH = 1024
 const MAX_HEIGHT = 1024
 
 function validateImage(file) {
+  if (!file || typeof file !== 'object') {
+    throw new Error('Invalid file object.')
+  }
   if (!ALLOWED_TYPES.includes(file.type)) {
     throw new Error('Only JPG, JPEG, PNG, and WEBP files are accepted.')
   }
   if (file.size > MAX_SIZE) {
     throw new Error('File size must be less than 5MB.')
+  }
+  if (file.size <= 0) {
+    throw new Error('File appears to be empty.')
+  }
+  if (file.name && file.name.length > 200) {
+    throw new Error('File name is too long.')
+  }
+  if (file.name && /[<>:"/\\|?*]/.test(file.name)) {
+    throw new Error('File name contains invalid characters.')
   }
 }
 

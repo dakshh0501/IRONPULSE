@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, memo } from 'react'
 import { useApp }            from '../context/AppContext'
+import { useAuth }           from '../context/AuthContext'
 import { addAttendance as addAttendanceService } from '../services/attendanceService'
 import QRScanner             from '../components/QRScanner'
 
@@ -360,9 +361,12 @@ function AttendanceTable({ logs, search, members, todayStr }) {
 // ─── Main Page ──────────────────────────────────────────────
 export default function Attendance({ search = '' }) {
   const { attendance = [], members = [], gymId } = useApp()
+  const { effectiveRole } = useAuth()
+  const isMember = effectiveRole === 'member'
   const [scanResult, setScanResult] = useState(null)
   const [showScanner, setShowScanner] = useState(false)
   const [todayStr, setTodayStr] = useState(getTodayStr)
+  const [errorMsg, setErrorMsg] = useState('')
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -396,10 +400,12 @@ export default function Attendance({ search = '' }) {
   }, [attendance])
   const weeklyAvg = Math.round(weekdays.reduce((s, v) => s + v, 0) / 7)
 
+  const showError = useCallback((msg) => { setErrorMsg(msg); setTimeout(() => setErrorMsg(''), 5000) }, [])
+
   const handleCheckIn = useCallback(async (member) => {
     const uid = member.authUid || member.uid || member.id
     const alreadyCheckedIn = attendance.some(item => item.memberId === uid && item.date === todayStr)
-    if (alreadyCheckedIn) { alert(`${member.name} is already checked in today.`); return }
+    if (alreadyCheckedIn) { showError(`${member.name} is already checked in today.`); return }
     const now = new Date()
     const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
     try {
@@ -411,15 +417,15 @@ export default function Attendance({ search = '' }) {
         trainerId: member.trainerId || '', trainerName: member.trainerName || '',
         date: todayStr, time, method: 'Manual', duration: 90, gymId,
       })
-    } catch (err) { console.error('Failed to record attendance:', err); alert('Failed to check in. Please try again.'); return }
+    } catch (err) { console.error('Failed to record attendance:', err); showError('Failed to check in. Please try again.'); return }
     setScanResult({ member, time })
     setTimeout(() => setScanResult(null), 4000)
-  }, [attendance, todayStr, gymId])
+  }, [attendance, todayStr, gymId, showError])
 
   const handleQRCheckIn = useCallback(async (member) => {
     const uid = member.authUid || member.uid || member.id
     const alreadyCheckedIn = attendance.some(item => item.memberId === uid && item.date === todayStr)
-    if (alreadyCheckedIn) { alert(`${member.name} is already checked in today.`); return }
+    if (alreadyCheckedIn) { showError(`${member.name} is already checked in today.`); return }
     const now = new Date()
     const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
     try {
@@ -431,22 +437,122 @@ export default function Attendance({ search = '' }) {
         trainerId: member.trainerId || '', trainerName: member.trainerName || '',
         date: todayStr, time, method: 'QR', duration: 90, gymId,
       })
-    } catch (err) { console.error('Failed to record attendance:', err); alert('Failed to check in. Please try again.'); return }
+    } catch (err) { console.error('Failed to record attendance:', err); showError('Failed to check in. Please try again.'); return }
     setScanResult({ member, time })
     setTimeout(() => setScanResult(null), 4000)
-  }, [attendance, todayStr, gymId])
+  }, [attendance, todayStr, gymId, showError])
 
   const handleScanSuccess = useCallback(async (decodedText) => {
     const scannedId = String(decodedText).trim()
     const member = members.find(m => String(m.authUid||m.uid||m.id) === scannedId)
-    if (!member) { alert(`Member not found.\nScanned ID: ${scannedId.slice(0,16)}…\n\nMake sure the member's QR is from their dashboard and authUid is stored in Firestore.`); return }
+    if (!member) { showError(`Member not found. Scanned ID: ${scannedId.slice(0,16)}…`); return }
     await handleQRCheckIn(member)
-  }, [members, handleQRCheckIn])
+  }, [members, handleQRCheckIn, showError])
 
   const onScanSuccessCb = useCallback((text) => {
     handleScanSuccess(text)
     setShowScanner(false)
   }, [handleScanSuccess])
+
+  // ── Member view ──
+  if (isMember) {
+    const myAuthUid = (members?.[0]?.authUid || members?.[0]?.uid || members?.[0]?.id || '')
+    const myLogs = attendance.filter(l => l.memberId === myAuthUid)
+    const checkedInToday = myLogs.some(l => l.date === todayStr)
+    const myLastCheckin = [...myLogs].sort((a, b) => ((b.date||'')+(b.time||'')).localeCompare((a.date||'')+(a.time||'')))[0]
+    const thisMonthLogs = myLogs.filter(l => l.date?.startsWith(todayStr.slice(0, 7)))
+    const myStreak = useMemo(() => {
+      const days = new Set(myLogs.map(l => l.date))
+      let s = 0
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(); d.setDate(d.getDate() - i)
+        if (days.has(d.toISOString().split('T')[0])) s++; else break
+      }
+      return s
+    }, [myLogs])
+
+    return (
+      <div className="page-container">
+        <div className="page-header">
+          <div>
+            <h2>My Attendance</h2>
+            <p>Your check-in history and stats.</p>
+          </div>
+        </div>
+
+        {errorMsg && (
+          <div style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 10, padding: '11px 16px', marginBottom: 16, color: 'var(--red)', fontSize: 13, fontWeight: 500 }}>
+            ⚠️ {errorMsg}
+          </div>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14, marginBottom: 24 }}>
+          <div className="stat-card" style={{ borderColor: checkedInToday ? 'var(--green)' : 'var(--red)' }}>
+            <span className="stat-icon">{checkedInToday ? '✅' : '❌'}</span>
+            <span className="stat-label">Today</span>
+            <span className="stat-value" style={{ color: checkedInToday ? 'var(--green)' : 'var(--red)', fontSize: 16 }}>
+              {checkedInToday ? `Checked in at ${myLastCheckin?.time || '—'}` : 'Not checked in'}
+            </span>
+          </div>
+          <div className="stat-card green">
+            <span className="stat-icon">🔥</span>
+            <span className="stat-label">Streak</span>
+            <span className="stat-value">{myStreak} days</span>
+          </div>
+          <div className="stat-card blue">
+            <span className="stat-icon">📅</span>
+            <span className="stat-label">This Month</span>
+            <span className="stat-value">{thisMonthLogs.length} days</span>
+          </div>
+        </div>
+
+        {/* Simple attendance table (read-only, personal) */}
+        <div className="att-table-card">
+          <div className="att-table-toolbar">
+            <div className="att-table-toolbar-left">
+              <span className="att-table-title">Check-in History</span>
+            </div>
+            <span className="att-table-count">{myLogs.length} total check-ins</span>
+          </div>
+          <div className="att-table-scroll">
+            <table className="att-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Method</th>
+                </tr>
+              </thead>
+              <tbody>
+                {myLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={4}>
+                      <div className="pay-empty">
+                        <div className="pay-empty-icon">📭</div>
+                        <div className="pay-empty-title">No check-ins yet</div>
+                        <div className="pay-empty-text">Your attendance records will appear here.</div>
+                      </div>
+                    </td>
+                  </tr>
+                ) : [...myLogs]
+                  .sort((a, b) => ((b.date||'')+(b.time||'')).localeCompare((a.date||'')+(a.time||'')))
+                  .slice(0, 50)
+                  .map((l, i) => (
+                    <tr key={l.id||i}>
+                      <td style={{ color:'var(--text-dim)', fontSize:11 }}>{i+1}</td>
+                      <td>{fmtDate(l.date, todayStr)}</td>
+                      <td>{l.time || '—'}</td>
+                      <td><span className="badge badge-sm">{l.method || 'Manual'}</span></td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="page-container">
@@ -460,6 +566,12 @@ export default function Attendance({ search = '' }) {
           <button className="btn btn-primary" onClick={() => setShowScanner(true)}>📷 QR Scan</button>
         </div>
       </div>
+
+      {errorMsg && (
+        <div style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 10, padding: '11px 16px', marginBottom: 16, color: 'var(--red)', fontSize: 13, fontWeight: 500 }}>
+          ⚠️ {errorMsg}
+        </div>
+      )}
 
       {/* ═══════════════ SUMMARY CARDS ═══════════════ */}
       <div className="att-summary-grid">

@@ -1,5 +1,6 @@
 import { useState, useEffect, memo } from 'react'
 import { useApp } from '../context/AppContext'
+import { useAuth } from '../context/AuthContext'
 import { buildWorkoutPlanWhatsAppMessage, buildWorkoutPlanWhatsAppLink } from '../utils/whatsappReminders'
 
 // ─────────────────────────────────────────────────────────────
@@ -31,7 +32,7 @@ const avColor   = (name = '') => AV_COLORS[(name.charCodeAt(0) || 0) % AV_COLORS
 const EMPTY_EXERCISE = { name: '', sets: 3, reps: '10', rest: '60s', muscle: 'Chest' }
 
 const EMPTY_PLAN = {
-  name: '', member: '', trainer: '', goal: 'Weight Loss',
+  name: '', member: '', trainer: '', trainerAuthUid: '', goal: 'Weight Loss',
   level: 'Beginner', days: 3, duration: '45 min', exercises: [],
 }
 
@@ -162,7 +163,7 @@ function ExerciseTable({ exercises, compact = false }) {
 // ─────────────────────────────────────────────────────────────
 //  WORKOUT CARD
 // ─────────────────────────────────────────────────────────────
-const WorkoutCard = memo(function WorkoutCard({ plan, members, trainers, onView, onEdit, onDelete, gymName }) {
+const WorkoutCard = memo(function WorkoutCard({ plan, members, trainers, onView, onEdit, onDelete, gymName, readOnly }) {
   const member  = plan.memberId ? members.find(m => m.id === plan.memberId) : members.find(m => m.name === plan.member)
   const trainer = plan.trainerId ? trainers.find(t => t.id === plan.trainerId) : trainers.find(t => t.name === plan.trainer)
   const gc      = GOAL_COLOR[plan.goal] || { bg: 'var(--bg3)', text: 'var(--text-muted)' }
@@ -202,8 +203,12 @@ const WorkoutCard = memo(function WorkoutCard({ plan, members, trainers, onView,
         </div>
         <div style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
           <button className="btn btn-sm btn-ghost" aria-label="Share via WhatsApp" onClick={handleWhatsAppShare} style={{ background: '#25D366', border: 'none', color: '#fff' }}>💬</button>
-          <button className="btn btn-sm btn-ghost" aria-label="Edit workout plan" onClick={() => onEdit(plan)}>✏️</button>
-          <button className="btn btn-sm btn-red"   aria-label="Delete workout plan" onClick={() => onDelete(plan)}>🗑</button>
+          {!readOnly && (
+            <>
+              <button className="btn btn-sm btn-ghost" aria-label="Edit workout plan" onClick={() => onEdit(plan)}>✏️</button>
+              <button className="btn btn-sm btn-red"   aria-label="Delete workout plan" onClick={() => onDelete(plan)}>🗑</button>
+            </>
+          )}
         </div>
       </div>
 
@@ -407,9 +412,9 @@ function WorkoutDetailModal({ plan, members, trainers, onEdit, onClose, gymName 
 
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Close</button>
-          <button className="btn btn-primary" onClick={() => { onEdit(plan); onClose() }}>
+          {onEdit && <button className="btn btn-primary" onClick={() => { onEdit(plan); onClose() }}>
             ✏️ Edit Plan
-          </button>
+          </button>}
         </div>
       </div>
     </div>
@@ -700,7 +705,7 @@ function PlanFormModal({ plan, members, trainers, onSave, onClose }) {
 
                 <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label">Assign Trainer</label>
-                  <select className="form-select" value={form.trainer} onChange={e => set('trainer', e.target.value)}>
+                  <select className="form-select" value={form.trainer} onChange={e => { const t = trainers.find(x => x.name === e.target.value); set('trainer', e.target.value); set('trainerAuthUid', t?.authUid || '') }}>
                     <option value="">— Select trainer —</option>
                     {trainers.map(t => (
                       <option key={t.id} value={t.name}>
@@ -828,7 +833,7 @@ function PlanFormModal({ plan, members, trainers, onSave, onClose }) {
 // ─────────────────────────────────────────────────────────────
 //  DELETE CONFIRM
 // ─────────────────────────────────────────────────────────────
-function DeleteModal({ plan, onConfirm, onClose }) {
+function DeleteModal({ plan, onConfirm, onClose, error }) {
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose?.() }
     window.addEventListener('keydown', handler)
@@ -845,9 +850,12 @@ function DeleteModal({ plan, onConfirm, onClose }) {
             This cannot be undone.
           </p>
         </div>
+        {error && (
+          <div style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 8, padding: '8px 12px', margin: '0 24px 14px', color: 'var(--red)', fontSize: 12, fontWeight: 500 }}>⚠️ {error}</div>
+        )}
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-red" onClick={() => { onConfirm(plan.id); onClose() }}>
+          <button className="btn btn-red" onClick={() => onConfirm(plan.id)}>
             Delete Plan
           </button>
         </div>
@@ -861,6 +869,8 @@ function DeleteModal({ plan, onConfirm, onClose }) {
 // ─────────────────────────────────────────────────────────────
 export default function Workouts({ search = '' }) {
   const { workoutPlans: workouts, addWorkoutPlan, updateWorkoutPlan, deleteWorkoutPlan, members, trainers, gymSettings } = useApp()
+  const { effectiveRole } = useAuth()
+  const isMember = effectiveRole === 'member'
   const gymName = gymSettings?.name || 'IronForge Gym'
 
   const [goalFilter, setGoalFilter] = useState('All')
@@ -868,6 +878,7 @@ export default function Workouts({ search = '' }) {
   const [editPlan,   setEditPlan]   = useState(null)
   const [formOpen,   setFormOpen]   = useState(false)
   const [delPlan,    setDelPlan]    = useState(null)
+  const [deleteError, setDeleteError] = useState('')
 
   // ── CRUD handlers ─────────────────────────────────────────
   const handleSave = async (data) => {
@@ -899,6 +910,53 @@ export default function Workouts({ search = '' }) {
   // ── Summary stats ─────────────────────────────────────────
   const totalExercises = workouts.reduce((s, w) => s + (w.exercises?.length || 0), 0)
   const assigned       = workouts.filter(w => w.member).length
+
+  // ── Member view ──
+  if (isMember) {
+    return (
+      <div className="page-container">
+        <div className="page-header">
+          <div>
+            <h2>My Workout Plans</h2>
+            <p>Your assigned training programs.</p>
+          </div>
+        </div>
+        {workouts.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 24px', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>💪</div>
+            <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, letterSpacing: 1, marginBottom: 8 }}>NO WORKOUT PLANS</div>
+            <div style={{ fontSize: 13 }}>You don't have any workout plans assigned yet. Check back later.</div>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+            {workouts.map(plan => (
+              <WorkoutCard
+                key={plan.id}
+                plan={plan}
+                members={members}
+                trainers={trainers}
+                onView={setViewPlan}
+                onEdit={() => {}}
+                onDelete={() => {}}
+                gymName={gymName}
+                readOnly
+              />
+            ))}
+          </div>
+        )}
+        {viewPlan && (
+          <WorkoutDetailModal
+            plan={viewPlan}
+            members={members}
+            trainers={trainers}
+            onEdit={null}
+            onClose={() => setViewPlan(null)}
+            gymName={gymName}
+          />
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="page-container">
@@ -1022,8 +1080,9 @@ export default function Workouts({ search = '' }) {
       {delPlan && (
         <DeleteModal
           plan={delPlan}
-          onConfirm={async (id) => { try { await deleteWorkoutPlan(id) } catch (e) { console.error('Failed to delete workout plan:', e) } setDelPlan(null) }}
-          onClose={() => setDelPlan(null)}
+          onConfirm={async (id) => { try { await deleteWorkoutPlan(id); setDelPlan(null); setDeleteError('') } catch (e) { console.error('Failed to delete workout plan:', e); setDeleteError('Failed to delete plan: ' + (e.message || 'Unknown error')) } }}
+          onClose={() => { setDelPlan(null); setDeleteError('') }}
+          error={deleteError}
         />
       )}
     </div>

@@ -29,17 +29,12 @@ const DEFAULT_GYM_ID = 'default'
  *   method     — 'QR' | 'Manual'
  */
 export async function addAttendance(data) {
-  try {
-    const ref = await addDoc(collection(db, COLLECTION), {
-      ...data,
-      gymId: data.gymId || DEFAULT_GYM_ID,
-      createdAt: serverTimestamp(),
-    })
-    return { success: true, id: ref.id }
-  } catch (err) {
-    console.error('[attendanceService] addAttendance error:', err)
-    return { success: false, error: err.message }
-  }
+  const ref = await addDoc(collection(db, COLLECTION), {
+    ...data,
+    gymId: data.gymId || DEFAULT_GYM_ID,
+    createdAt: serverTimestamp(),
+  })
+  return { success: true, id: ref.id }
 }
 
 /**
@@ -73,7 +68,7 @@ export async function getAttendanceByDate(date, gymId) {
  *     return unsub
  *   }, [user])
  */
-export function subscribeAttendance(callback, gymId) {
+export function subscribeAttendance(callback, gymId, onError) {
   const q = gymId
     ? query(collection(db, COLLECTION), where('gymId', '==', gymId))
     : query(collection(db, COLLECTION))
@@ -89,7 +84,10 @@ export function subscribeAttendance(callback, gymId) {
       })
       callback(records)
     },
-    (err)  => console.error('[attendanceService] subscribeAttendance error:', err)
+    (err)  => {
+      console.error('[attendanceService] subscribeAttendance error:', err)
+      if (onError) onError(err, 'attendance')
+    }
   )
 }
 
@@ -104,6 +102,27 @@ export function subscribeAttendance(callback, gymId) {
  *     return unsub
  *   }, [currentUser.uid])
  */
+// Trainer-scoped attendance subscription (trainer role — only their assigned members' check-ins)
+export function subscribeMyTrainerAttendance(trainerAuthUid, callback, gymId) {
+  if (!trainerAuthUid) { console.warn('[attendanceService] subscribeMyTrainerAttendance called without trainerAuthUid'); return () => {} }
+  const q = gymId
+    ? query(collection(db, COLLECTION), where('gymId', '==', gymId), where('trainerAuthUid', '==', trainerAuthUid))
+    : query(collection(db, COLLECTION), where('trainerAuthUid', '==', trainerAuthUid))
+  return onSnapshot(
+    q,
+    (snap) => {
+      const records = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      records.sort((a, b) => {
+        const dateCmp = (b.date || '').localeCompare(a.date || '')
+        if (dateCmp !== 0) return dateCmp
+        return (b.time || '').localeCompare(a.time || '')
+      })
+      callback(records)
+    },
+    (err)  => console.error('[attendanceService] subscribeMyTrainerAttendance error:', err)
+  )
+}
+
 export function subscribeMyAttendance(uid, callback, gymId) {
   // Use only equality filters to avoid requiring composite indexes — sort client-side
   const q = gymId

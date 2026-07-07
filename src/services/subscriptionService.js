@@ -320,6 +320,7 @@ export async function changePlan(gymId, planName, planType, amount, actorUid) {
     planId: planType,
     planName,
     planType,
+    status: 'active',
     expiryDate: expiry.toISOString(),
     amount,
   })

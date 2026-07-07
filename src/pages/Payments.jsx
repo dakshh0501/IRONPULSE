@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
+import { useAuth } from '../context/AuthContext'
 import {
   buildPaymentReceiptWhatsAppMessage,
   buildPaymentReceiptWhatsAppLink,
@@ -111,7 +112,7 @@ function DailyRevenueChart({ payments }) {
 }
 
 // ─── Payment Details Drawer ──────────────────────────────────
-function PaymentDetailsDrawer({ invoice, onClose, onMarkPaid, gymName, gymSettings = {} }) {
+function PaymentDetailsDrawer({ invoice, onClose, onMarkPaid, gymName, gymSettings = {}, readOnly }) {
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose?.() }
     window.addEventListener('keydown', handler)
@@ -280,8 +281,8 @@ function PaymentDetailsDrawer({ invoice, onClose, onMarkPaid, gymName, gymSettin
         </div>
 
         <div className="pay-drawer-footer">
-          {(invoice.status === 'Pending' || invoice.status === 'Overdue' || invoice.status === 'Partial') && (
-            <button className="btn btn-primary" onClick={() => { onMarkPaid(invoice.firestoreId); onClose() }}>✓ MARK AS PAID</button>
+          {!readOnly && (invoice.status === 'Pending' || invoice.status === 'Overdue' || invoice.status === 'Partial') && (
+            <button className="btn btn-primary" onClick={() => { onMarkPaid?.(invoice.firestoreId); onClose() }}>✓ MARK AS PAID</button>
           )}
           <button className="btn btn-ghost" onClick={handlePrint}>🖨️ Print</button>
           <button className="btn btn-ghost" onClick={handleDownloadPDF}>📄 PDF</button>
@@ -571,7 +572,7 @@ function OutstandingDues({ members, payments, onSelectMember }) {
 }
 
 // ─── Payment Table ───────────────────────────────────────────
-function PaymentTable({ invoices, search, onSelectInvoice, onDelete }) {
+function PaymentTable({ invoices, search, onSelectInvoice, onDelete, readOnly }) {
   const [filterStatus, setFilterStatus] = useState('All')
   const [localSearch, setLocalSearch] = useState('')
   const [page, setPage] = useState(1)
@@ -642,13 +643,13 @@ function PaymentTable({ invoices, search, onSelectInvoice, onDelete }) {
               <th>Method</th>
               <th>Status</th>
               <th>Due Date</th>
-              <th style={{ width:50 }}></th>
+              {!readOnly && <th style={{ width:50 }}></th>}
             </tr>
           </thead>
           <tbody>
             {paged.length === 0 ? (
               <tr>
-                <td colSpan={10}>
+                <td colSpan={readOnly ? 9 : 10}>
                   <div className="pay-empty">
                     <div className="pay-empty-icon">💳</div>
                     <div className="pay-empty-title">No payments yet</div>
@@ -677,12 +678,14 @@ function PaymentTable({ invoices, search, onSelectInvoice, onDelete }) {
                   <td style={{ fontSize:12, color:'var(--text-dim)' }}>{inv.method ? `${METHOD_ICON[inv.method]||''} ${inv.method}` : '—'}</td>
                   <td><StatusBadge status={inv.status} size="sm" /></td>
                   <td style={{ fontSize:12, color:'var(--text-dim)' }}>{fmtDate(inv.due)}</td>
-                  <td>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); if (window.confirm('Delete this invoice?')) onDelete(inv.firestoreId) }}
-                      className="btn-delete-icon" title="Delete"
-                    >🗑️</button>
-                  </td>
+                  {!readOnly && (
+                    <td>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); if (window.confirm('Delete this invoice?')) onDelete(inv.firestoreId) }}
+                        className="btn-delete-icon" title="Delete"
+                      >🗑️</button>
+                    </td>
+                  )}
                 </tr>
               )
             })}
@@ -713,14 +716,30 @@ function PaymentTable({ invoices, search, onSelectInvoice, onDelete }) {
 // ─── Main Payments Page ──────────────────────────────────────
 export default function Payments({ search = '' }) {
   const { payments, members, plans, addPayment, updatePayment, deletePayment, gymSettings } = useApp()
+  const { effectiveRole } = useAuth()
+  const isMember = effectiveRole === 'member'
   const gymName = gymSettings?.name || 'IronForge Gym'
   const invoices = payments
 
   const [viewInvoice, setViewInvoice] = useState(null)
   const [showNew, setShowNew] = useState(false)
   const [showCollect, setShowCollect] = useState(false)
+  const [paymentError, setPaymentError] = useState('')
+
+  // Member-specific stat
+  const myPayments = useMemo(() => {
+    if (!isMember) return invoices
+    const totalPaid = invoices.filter(i => i.status === 'Paid').reduce((s, i) => s + (Number(i.paid||i.amount)||0), 0)
+    const totalDue = invoices.filter(i => i.status === 'Pending' || i.status === 'Overdue').reduce((s, i) => s + ((Number(i.amount)||0)-(Number(i.paid)||0)), 0)
+    const lastPayment = [...invoices].sort((a, b) => {
+      const da = a.paidOn || a.date || ''; const db = b.paidOn || b.date || ''
+      return db.localeCompare(da)
+    })[0]
+    return { totalPaid, totalDue, paymentCount: invoices.length, lastPaymentDate: lastPayment?.paidOn || lastPayment?.date || '—', lastAmount: lastPayment?.paid || lastPayment?.amount || '—' }
+  }, [invoices, isMember])
 
   const stats = useMemo(() => {
+    if (isMember) return {}
     const total = invoices.reduce((s, i) => s + (Number(i.amount)||0), 0)
     const collected = invoices.reduce((s, i) => s + (Number(i.paid)||0), 0)
     const pending = invoices.filter(i => i.status === 'Pending'||i.status === 'Partial').reduce((s, i) => s + ((Number(i.amount)||0)-(Number(i.paid)||0)), 0)
@@ -737,7 +756,7 @@ export default function Payments({ search = '' }) {
     }).reduce((s, i) => s + (Number(i.paid||i.amount)||0), 0)
     const overdueMembers = new Set(invoices.filter(i => i.status === 'Overdue').map(i => i.memberId)).size
     return { total, collected, pending, overdue, paidCount, failedCount, todayCollected, monthly, overdueMembers, collectionRate: total > 0 ? Math.round((collected/total)*100) : 0 }
-  }, [invoices])
+  }, [invoices, isMember])
 
   const revenueData = useMemo(() => {
     if (!payments || payments.length === 0) return []
@@ -756,14 +775,18 @@ export default function Payments({ search = '' }) {
     return Object.values(months).sort((a, b) => order.indexOf(a.month) - order.indexOf(b.month))
   }, [payments])
 
+  const showPaymentError = useCallback((msg) => { setPaymentError(msg); setTimeout(() => setPaymentError(''), 5000) }, [])
+
   const handleMarkPaid = async (id) => {
     try {
       const invoice = invoices.find(inv => inv.firestoreId === id)
       if (!invoice) return
       await updatePayment(id, { status: 'Paid', paid: invoice.amount, paidOn: todayStr() })
       setViewInvoice(null)
+      setPaymentError('')
     } catch (error) {
       console.error('Error marking invoice paid:', error)
+      showPaymentError('Failed to mark payment as paid: ' + (error.message || 'Unknown error'))
     }
   }
 
@@ -789,9 +812,59 @@ export default function Payments({ search = '' }) {
         paidOn: todayStr(), method: 'Cash', status: 'Paid', avatar: (member.name||'M').slice(0,2).toUpperCase(),
       })
       setShowCollect(false)
+      setPaymentError('')
     } catch (error) {
       console.error('Error recording quick payment:', error)
+      showPaymentError('Failed to record payment: ' + (error.message || 'Unknown error'))
     }
+  }
+
+  // ── Member view ──
+  if (isMember) {
+    return (
+      <div className="page-container">
+        <div className="page-header">
+          <div>
+            <h2>My Payments</h2>
+            <p>Your payment history and billing details.</p>
+          </div>
+        </div>
+
+        {paymentError && (
+          <div style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 10, padding: '11px 16px', marginBottom: 16, color: 'var(--red)', fontSize: 13, fontWeight: 500 }}>
+            ⚠️ {paymentError}
+          </div>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14, marginBottom: 24 }}>
+          <div className="stat-card green">
+            <span className="stat-icon">💰</span>
+            <span className="stat-label">Total Paid</span>
+            <span className="stat-value">{fmt(myPayments.totalPaid)}</span>
+          </div>
+          <div className="stat-card amber">
+            <span className="stat-icon">⏳</span>
+            <span className="stat-label">Pending Dues</span>
+            <span className="stat-value">{fmt(myPayments.totalDue)}</span>
+          </div>
+          <div className="stat-card purple">
+            <span className="stat-icon">📄</span>
+            <span className="stat-label">Transactions</span>
+            <span className="stat-value">{myPayments.paymentCount}</span>
+          </div>
+        </div>
+
+        {/* Simple payment history table (read-only) */}
+        <PaymentTable invoices={invoices} search={search} onSelectInvoice={setViewInvoice} onDelete={null} readOnly />
+
+        {viewInvoice && (
+          <PaymentDetailsDrawer
+            invoice={viewInvoice} onClose={() => setViewInvoice(null)}
+            onMarkPaid={null} gymName={gymName} gymSettings={gymSettings} readOnly
+          />
+        )}
+      </div>
+    )
   }
 
   return (
@@ -807,6 +880,12 @@ export default function Payments({ search = '' }) {
           <button className="btn btn-outline" onClick={() => setShowNew(true)}>+ New Invoice</button>
         </div>
       </div>
+
+      {paymentError && (
+        <div style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 10, padding: '11px 16px', marginBottom: 16, color: 'var(--red)', fontSize: 13, fontWeight: 500 }}>
+          ⚠️ {paymentError}
+        </div>
+      )}
 
       {/* ═══════════════ SUMMARY CARDS ═══════════════ */}
       <div className="pay-summary-grid">
