@@ -29,11 +29,11 @@ function keyToUrl(key, navRole) {
 export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
   const navigate = useNavigate()
   const location = useLocation()
-  const { currentUser, logout, userProfile, effectiveRole } = useAuth()
+  const { userProfile, effectiveRole } = useAuth()
   const { unreadCount, pendingCount, payments } = useApp()
 
   const role = effectiveRole || userProfile?.role
-  const nav = NAVIGATION[role] || []
+  const nav = useMemo(() => NAVIGATION[role] || [], [role])
 
   const overdueCount = useMemo(() =>
     payments.filter(p => p.status === 'Overdue' || p.status === 'Pending').length,
@@ -51,10 +51,6 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
     navigate(keyToUrl(key, role))
     if (setMobileOpen) setMobileOpen(false)
   }
-
-  const avatarColors = ['av-orange','av-teal','av-green','av-purple','av-amber']
-  const charIndex = userProfile?.name ? userProfile.name.charCodeAt(0) : 0
-  const avColor = avatarColors[charIndex % avatarColors.length] || 'av-orange'
 
   const groupedNav = useMemo(() => {
     const groups = []
