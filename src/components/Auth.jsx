@@ -101,12 +101,45 @@ export default function Auth() {
 
   const [form, setForm] = useState({
     name: '', email: localStorage.getItem('ironpulse-remember-email') || '',
-    password: '', gymName: '', phone: ''
+    password: '', gymName: '', phone: '', referredBy: ''
   })
+  const [referralCodeValid, setReferralCodeValid] = useState(null)
+  const [referralCodeChecking, setReferralCodeChecking] = useState(false)
+
+  const checkReferralCodeTimer = useRef(null)
 
   const handleChange = useCallback((e) => {
     setAuthError('')
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
+    if (e.target.name === 'referredBy') {
+      if (checkReferralCodeTimer.current) clearTimeout(checkReferralCodeTimer.current)
+      const code = e.target.value.trim()
+      if (!code) {
+        setReferralCodeValid(null)
+        setReferralCodeChecking(false)
+        return
+      }
+      if (!/^IP-[A-Za-z0-9]{6}$/.test(code)) {
+        setReferralCodeValid(false)
+        setReferralCodeChecking(false)
+        return
+      }
+      setReferralCodeChecking(true)
+      setReferralCodeValid(null)
+      checkReferralCodeTimer.current = setTimeout(async () => {
+        try {
+          const { validateReferralCodeFormat } = await import('../utils/referralCode')
+          if (validateReferralCodeFormat(code)) {
+            const { getReferrerByCode } = await import('../services/referralService')
+            const referrer = await getReferrerByCode(code.toUpperCase())
+            setReferralCodeValid(!!referrer)
+          }
+        } catch {
+          setReferralCodeValid(false)
+        }
+        setReferralCodeChecking(false)
+      }, 600)
+    }
   }, [setAuthError])
 
   const handleSubmit = useCallback(async (e) => {
@@ -128,7 +161,7 @@ export default function Auth() {
           setLoading(false)
           return
         }
-        const result = await register({ name: form.name, email: form.email, password: form.password, gymName: form.gymName, phone: form.phone })
+        const result = await register({ name: form.name, email: form.email, password: form.password, gymName: form.gymName, phone: form.phone, referredBy: form.referredBy.trim().toUpperCase() || '' })
         setLoading(false)
         if (result && result.email) {
           setSignupEmail(result.email)
@@ -614,6 +647,13 @@ export default function Auth() {
                         <div style={{ position: 'relative', marginBottom: 14 }}>
                           <span style={inpIcon}>🏢</span>
                           <input name="gymName" placeholder="Gym Name" value={form.gymName} onChange={handleChange} required className="auth-input" />
+                        </div>
+                        <div style={{ position: 'relative', marginBottom: 14 }}>
+                          <span style={inpIcon}>🎁</span>
+                          <input name="referredBy" placeholder="Referral Code (Optional)" value={form.referredBy} onChange={handleChange} className={`auth-input${referralCodeValid === false ? ' error' : ''}`} style={{ textTransform: 'uppercase' }} />
+                          {referralCodeChecking && <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#6070a0' }}>Checking...</span>}
+                          {referralCodeValid === true && <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: '#00c8b4' }}>✓</span>}
+                          {referralCodeValid === false && <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#f87171' }}>Invalid</span>}
                         </div>
                         <div style={{
                           background: 'rgba(232,66,10,0.06)', border: '1px solid rgba(232,66,10,0.12)',

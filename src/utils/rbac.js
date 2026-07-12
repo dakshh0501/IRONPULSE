@@ -56,6 +56,7 @@ export const NAVIGATION = {
     { key:'devices',       label:'Devices',          icon:'📱' },
     { key:'reports',       label:'Reports',          icon:'📊' },
     { key:'license',       label:'License Keys',     icon:'🔑' },
+    { key:'referrals',     label:'Referral Management',icon:'🎁' },
   ],
   gym_admin: [
     { section:'Main' },
@@ -105,6 +106,7 @@ export const NAVIGATION = {
     { section:'Account' },
     { key:'payments',      label:'My Payments',     icon:'💳' },
     { key:'attendance',    label:'Check In',        icon:'📱' },
+    { key:'referral',      label:'Refer & Earn',    icon:'🎁' },
     { key:'notifications', label:'Notifications',   icon:'🔔', badge:'notifs' },
   ],
 }
@@ -128,6 +130,8 @@ export function canSubscribe(role, collection) {
     notifications:    ['super_admin','gym_admin','trainer','member'],
     supportTickets:   ['super_admin','gym_admin'],
     featureRequests:  ['super_admin','gym_admin'],
+    referrals:        ['super_admin','gym_admin','member'],
+    referralSettings: ['super_admin','gym_admin'],
   }
   const result = gate[collection]?.includes(role) ?? false
   if (!(collection in gate)) {

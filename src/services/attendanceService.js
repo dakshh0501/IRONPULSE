@@ -1,82 +1,53 @@
-// src/services/attendanceService.js
-// Single source of truth for all Firestore attendance operations.
-// Import addAttendance from HERE everywhere — never from AppContext.
-
 import {
   collection,
   addDoc,
-  serverTimestamp,
   query,
   where,
-  getDocs,
+  orderBy,
+  limit,
   onSnapshot,
+  getDocs,
 } from 'firebase/firestore'
 import { db } from '../firebase'
 
 const COLLECTION = 'attendance'
-const DEFAULT_GYM_ID = 'default'
 
-/**
- * addAttendance(data)
- * Writes one attendance record to Firestore.
- * Returns { success: true, id } or { success: false, error }.
- *
- * Required fields in data:
- *   memberId   — Firebase auth UID (from member.authUid)
- *   memberName — display name
- *   date       — 'YYYY-MM-DD'
- *   time       — 'HH:MM'
- *   method     — 'QR' | 'Manual'
- */
+const RECENT_DAYS = 90
+const MAX_ATTENDANCE_RECORDS = 5000
+
+function getRecentDate() {
+  const d = new Date()
+  d.setDate(d.getDate() - RECENT_DAYS)
+  return d.toISOString().split('T')[0]
+}
+
 export async function addAttendance(data) {
-  const ref = await addDoc(collection(db, COLLECTION), {
+  const docRef = await addDoc(collection(db, COLLECTION), {
     ...data,
-    gymId: data.gymId || DEFAULT_GYM_ID,
-    createdAt: serverTimestamp(),
+    date: data.date || new Date().toISOString().split('T')[0],
+    time: data.time || new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }),
+    createdAt: new Date().toISOString(),
   })
-  return { success: true, id: ref.id }
+  return docRef.id
 }
 
-/**
- * getAttendanceByDate(date, gymId)
- * One-time fetch of all attendance records for a given date string 'YYYY-MM-DD'.
- */
 export async function getAttendanceByDate(date, gymId) {
-  try {
-    // Use only equality filters — sort client-side
-    const q = gymId
-      ? query(collection(db, COLLECTION), where('gymId', '==', gymId), where('date', '==', date))
-      : query(collection(db, COLLECTION), where('date', '==', date))
-    const snap = await getDocs(q)
-    const records = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-    records.sort((a, b) => (a.time || '').localeCompare(b.time || ''))
-    return records
-  } catch (err) {
-    console.error('[attendanceService] getAttendanceByDate error:', err)
-    return []
-  }
+  const constraints = [where('date', '==', date)]
+  if (gymId) constraints.push(where('gymId', '==', gymId))
+  const q = query(collection(db, COLLECTION), ...constraints)
+  const snap = await getDocs(q)
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
 
-/**
- * subscribeAttendance(callback, gymId)
- * Real-time listener for all attendance records, ordered by date desc.
- * Returns the unsubscribe function.
- *
- * Usage in AppContext (admin/trainer):
- *   useEffect(() => {
- *     const unsub = subscribeAttendance(records => setAttendance(records))
- *     return unsub
- *   }, [user])
- */
 export function subscribeAttendance(callback, gymId, onError) {
-  const q = gymId
-    ? query(collection(db, COLLECTION), where('gymId', '==', gymId))
-    : query(collection(db, COLLECTION))
+  const constraints = [where('date', '>=', getRecentDate())]
+  if (gymId) constraints.push(where('gymId', '==', gymId))
+  constraints.push(limit(MAX_ATTENDANCE_RECORDS))
+  const q = query(collection(db, COLLECTION), ...constraints)
   return onSnapshot(
     q,
     (snap) => {
       const records = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      // Sort by date desc, time desc (client-side to avoid index requirement)
       records.sort((a, b) => {
         const dateCmp = (b.date || '').localeCompare(a.date || '')
         if (dateCmp !== 0) return dateCmp
@@ -91,23 +62,13 @@ export function subscribeAttendance(callback, gymId, onError) {
   )
 }
 
-/**
- * subscribeMyAttendance(uid, callback, gymId)
- * Real-time listener for attendance records belonging to a specific member,
- * ordered by date desc. Used by the Member role so they only see their own data.
- *
- * Usage in AppContext (member):
- *   useEffect(() => {
- *     const unsub = subscribeMyAttendance(currentUser.uid, records => setAttendance(records))
- *     return unsub
- *   }, [currentUser.uid])
- */
-// Trainer-scoped attendance subscription (trainer role — only their assigned members' check-ins)
 export function subscribeMyTrainerAttendance(trainerAuthUid, callback, gymId) {
   if (!trainerAuthUid) { console.warn('[attendanceService] subscribeMyTrainerAttendance called without trainerAuthUid'); return () => {} }
-  const q = gymId
-    ? query(collection(db, COLLECTION), where('gymId', '==', gymId), where('trainerAuthUid', '==', trainerAuthUid))
-    : query(collection(db, COLLECTION), where('trainerAuthUid', '==', trainerAuthUid))
+  const constraints = [where('date', '>=', getRecentDate())]
+  if (gymId) constraints.push(where('gymId', '==', gymId))
+  constraints.push(where('trainerAuthUid', '==', trainerAuthUid))
+  constraints.push(limit(MAX_ATTENDANCE_RECORDS))
+  const q = query(collection(db, COLLECTION), ...constraints)
   return onSnapshot(
     q,
     (snap) => {
@@ -124,15 +85,15 @@ export function subscribeMyTrainerAttendance(trainerAuthUid, callback, gymId) {
 }
 
 export function subscribeMyAttendance(uid, callback, gymId) {
-  // Use only equality filters to avoid requiring composite indexes — sort client-side
-  const q = gymId
-    ? query(collection(db, COLLECTION), where('gymId', '==', gymId), where('memberId', '==', uid))
-    : query(collection(db, COLLECTION), where('memberId', '==', uid))
+  const constraints = [where('date', '>=', getRecentDate())]
+  if (gymId) constraints.push(where('gymId', '==', gymId))
+  constraints.push(where('memberId', '==', uid))
+  constraints.push(limit(MAX_ATTENDANCE_RECORDS))
+  const q = query(collection(db, COLLECTION), ...constraints)
   return onSnapshot(
     q,
     (snap) => {
       const records = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      // Sort by date desc, time desc (client-side)
       records.sort((a, b) => {
         const dateCmp = (b.date || '').localeCompare(a.date || '')
         if (dateCmp !== 0) return dateCmp

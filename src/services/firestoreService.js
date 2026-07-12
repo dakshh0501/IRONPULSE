@@ -11,7 +11,8 @@ import {
   getDoc,
   getDocs,
   query,
-  where
+  where,
+  limit
 } from 'firebase/firestore'
 import {
   createUserWithEmailAndPassword,
@@ -29,6 +30,7 @@ import {
 } from '../firebase'
 import { db } from '../firebase'
 import { getFunctions, httpsCallable } from 'firebase/functions'
+import { generateUniqueReferralCode } from '../utils/referralCode'
 
 // Secondary auth instance for creating trainer accounts
 // so the admin stays logged in on the main auth instance
@@ -65,6 +67,13 @@ export async function addMember(memberData) {
         console.warn('secondaryAuth signOut non-fatal:', e)
       }
 
+      let referralCode = ''
+      try {
+        referralCode = await generateUniqueReferralCode()
+      } catch (e) {
+        console.warn('Failed to generate referral code (non-blocking):', e)
+      }
+
       await setDoc(
         doc(db, 'users', user.uid),
         {
@@ -73,6 +82,7 @@ export async function addMember(memberData) {
           name: cleanData.name || '',
           role: 'member',
           gymId: cleanData.gymId || DEFAULT_GYM_ID,
+          referralCode,
           createdAt: serverTimestamp(),
         }
       )
@@ -110,8 +120,8 @@ export async function addMember(memberData) {
 export function subscribeToMyMembers(trainerAuthUid, callback, gymId, onError) {
   if (!trainerAuthUid) { console.warn('[Firestore] subscribeToMyMembers called without trainerAuthUid'); return () => {} }
   const ref = gymId
-    ? query(collection(db, 'members'), where('gymId', '==', gymId), where('trainerAuthUid', '==', trainerAuthUid))
-    : query(collection(db, 'members'), where('trainerAuthUid', '==', trainerAuthUid))
+    ? query(collection(db, 'members'), where('gymId', '==', gymId), where('trainerAuthUid', '==', trainerAuthUid), limit(2000))
+    : query(collection(db, 'members'), where('trainerAuthUid', '==', trainerAuthUid), limit(2000))
   return onSnapshot(
     ref,
     (snapshot) => {
@@ -157,8 +167,8 @@ export async function backfillTrainerAuthUid(gymId) {
 // Realtime members listener
 export function subscribeToMembers(callback, gymId, onError) {
   const ref = gymId
-    ? query(collection(db, 'members'), where('gymId', '==', gymId))
-    : collection(db, 'members')
+    ? query(collection(db, 'members'), where('gymId', '==', gymId), limit(2000))
+    : query(collection(db, 'members'), limit(2000))
 
   return onSnapshot(
     ref,
@@ -182,7 +192,7 @@ export function subscribeToMembers(callback, gymId, onError) {
 // Member self-subscription (member role - own record only)
 export function subscribeToMyMember(authUid, callback, onError) {
   if (!authUid) return () => {}
-  const q = query(collection(db, 'members'), where('authUid', '==', authUid))
+  const q = query(collection(db, 'members'), where('authUid', '==', authUid), limit(2000))
   return onSnapshot(
     q,
     (snapshot) => {
@@ -199,8 +209,8 @@ export function subscribeToMyMember(authUid, callback, onError) {
 export function subscribeToMyPayments(authUid, callback, gymId, onError) {
   if (!authUid) return () => {}
   const q = gymId
-    ? query(collection(db, 'payments'), where('gymId', '==', gymId), where('authUid', '==', authUid))
-    : query(collection(db, 'payments'), where('authUid', '==', authUid))
+    ? query(collection(db, 'payments'), where('gymId', '==', gymId), where('authUid', '==', authUid), limit(2000))
+    : query(collection(db, 'payments'), where('authUid', '==', authUid), limit(2000))
   return onSnapshot(
     q,
     (snapshot) => {
@@ -392,8 +402,8 @@ export async function addPayment(paymentData) {
 // Realtime payments listener
 export function subscribeToPayments(callback, gymId, onError) {
   const ref = gymId
-    ? query(collection(db, 'payments'), where('gymId', '==', gymId))
-    : collection(db, 'payments')
+    ? query(collection(db, 'payments'), where('gymId', '==', gymId), limit(2000))
+    : query(collection(db, 'payments'), limit(2000))
 
   return onSnapshot(
     ref,
@@ -510,8 +520,8 @@ export async function addTrainer(trainerData) {
 // Subscribe realtime trainers
 export function subscribeToTrainers(callback, gymId, onError) {
   const ref = gymId
-    ? query(collection(db, 'trainers'), where('gymId', '==', gymId))
-    : collection(db, 'trainers')
+    ? query(collection(db, 'trainers'), where('gymId', '==', gymId), limit(500))
+    : query(collection(db, 'trainers'), limit(500))
 
   return onSnapshot(
     ref,
@@ -665,8 +675,8 @@ export async function addSupportTicket(ticketData) {
 
 export function subscribeToSupportTickets(callback, gymId, onError) {
   const ref = gymId
-    ? query(collection(db, 'supportTickets'), where('gymId', '==', gymId))
-    : collection(db, 'supportTickets')
+    ? query(collection(db, 'supportTickets'), where('gymId', '==', gymId), limit(500))
+    : query(collection(db, 'supportTickets'), limit(500))
 
   return onSnapshot(ref, (snapshot) => {
     const tickets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
@@ -717,7 +727,7 @@ export async function addContactMessage(msgData) {
 }
 
 export function subscribeToContactMessages(callback, onError) {
-  const ref = query(collection(db, 'contactMessages'), where('status', 'in', ['New', 'Read']))
+  const ref = query(collection(db, 'contactMessages'), where('status', 'in', ['New', 'Read']), limit(500))
   return onSnapshot(ref, (snapshot) => {
     const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
     callback(msgs)
@@ -750,8 +760,8 @@ export async function addFeatureRequest(requestData) {
 
 export function subscribeToFeatureRequests(callback, gymId, onError) {
   const ref = gymId
-    ? query(collection(db, 'featureRequests'), where('gymId', '==', gymId))
-    : collection(db, 'featureRequests')
+    ? query(collection(db, 'featureRequests'), where('gymId', '==', gymId), limit(500))
+    : query(collection(db, 'featureRequests'), limit(500))
 
   return onSnapshot(ref, (snapshot) => {
     const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
@@ -810,8 +820,8 @@ function applyDiscount(originalAmount, discountType, discountValue) {
 
 export function subscribeToProgressLogs(callback, gymId, onError) {
   const ref = gymId
-    ? query(collection(db, 'progressLogs'), where('gymId', '==', gymId))
-    : collection(db, 'progressLogs')
+    ? query(collection(db, 'progressLogs'), where('gymId', '==', gymId), limit(1000))
+    : query(collection(db, 'progressLogs'), limit(1000))
 
   return onSnapshot(
     ref,
@@ -827,7 +837,7 @@ export function subscribeToProgressLogs(callback, gymId, onError) {
 
 export function subscribeToMyProgressLogs(callback, authUid, onError) {
   if (!authUid) return () => {}
-  const ref = query(collection(db, 'progressLogs'), where('authUid', '==', authUid))
+  const ref = query(collection(db, 'progressLogs'), where('authUid', '==', authUid), limit(500))
   return onSnapshot(
     ref,
     (snapshot) => {
@@ -884,8 +894,8 @@ export async function deleteProgressLog(logId) {
 // Realtime plans listener (global — shared across gyms)
 export function subscribeToPlans(callback, gymId, onError) {
   const ref = gymId
-    ? query(collection(db, 'plans'), where('gymId', '==', gymId))
-    : collection(db, 'plans')
+    ? query(collection(db, 'plans'), where('gymId', '==', gymId), limit(1000))
+    : query(collection(db, 'plans'), limit(1000))
 
   return onSnapshot(
     ref,
@@ -951,8 +961,8 @@ export async function migrateDefaultPlans(gymId) {
 
 export function subscribeToDietPlans(callback, gymId, onError) {
   const ref = gymId
-    ? query(collection(db, 'dietPlans'), where('gymId', '==', gymId))
-    : collection(db, 'dietPlans')
+    ? query(collection(db, 'dietPlans'), where('gymId', '==', gymId), limit(1000))
+    : query(collection(db, 'dietPlans'), limit(1000))
 
   return onSnapshot(
     ref,
@@ -970,8 +980,8 @@ export function subscribeToDietPlans(callback, gymId, onError) {
 export function subscribeToMyAssignedDietPlans(authUid, callback, gymId, onError) {
   if (!authUid) return () => {}
   const ref = gymId
-    ? query(collection(db, 'dietPlans'), where('gymId', '==', gymId), where('authUid', '==', authUid))
-    : query(collection(db, 'dietPlans'), where('authUid', '==', authUid))
+    ? query(collection(db, 'dietPlans'), where('gymId', '==', gymId), where('authUid', '==', authUid), limit(500))
+    : query(collection(db, 'dietPlans'), where('authUid', '==', authUid), limit(500))
   return onSnapshot(
     ref,
     (snapshot) => {
@@ -988,8 +998,8 @@ export function subscribeToMyAssignedDietPlans(authUid, callback, gymId, onError
 export function subscribeToMyDietPlans(trainerAuthUid, callback, gymId, onError) {
   if (!trainerAuthUid) { console.warn('[Firestore] subscribeToMyDietPlans called without trainerAuthUid'); return () => {} }
   const ref = gymId
-    ? query(collection(db, 'dietPlans'), where('gymId', '==', gymId), where('assignedTrainerAuthUid', '==', trainerAuthUid))
-    : query(collection(db, 'dietPlans'), where('assignedTrainerAuthUid', '==', trainerAuthUid))
+    ? query(collection(db, 'dietPlans'), where('gymId', '==', gymId), where('assignedTrainerAuthUid', '==', trainerAuthUid), limit(500))
+    : query(collection(db, 'dietPlans'), where('assignedTrainerAuthUid', '==', trainerAuthUid), limit(500))
   return onSnapshot(
     ref,
     (snapshot) => {
@@ -1024,8 +1034,8 @@ export async function deleteDietPlan(planId) {
 
 export function subscribeToWorkoutPlans(callback, gymId, onError) {
   const ref = gymId
-    ? query(collection(db, 'workoutPlans'), where('gymId', '==', gymId))
-    : collection(db, 'workoutPlans')
+    ? query(collection(db, 'workoutPlans'), where('gymId', '==', gymId), limit(1000))
+    : query(collection(db, 'workoutPlans'), limit(1000))
 
   return onSnapshot(
     ref,
@@ -1043,8 +1053,8 @@ export function subscribeToWorkoutPlans(callback, gymId, onError) {
 export function subscribeToMyAssignedWorkoutPlans(authUid, callback, gymId, onError) {
   if (!authUid) return () => {}
   const ref = gymId
-    ? query(collection(db, 'workoutPlans'), where('gymId', '==', gymId), where('authUid', '==', authUid))
-    : query(collection(db, 'workoutPlans'), where('authUid', '==', authUid))
+    ? query(collection(db, 'workoutPlans'), where('gymId', '==', gymId), where('authUid', '==', authUid), limit(500))
+    : query(collection(db, 'workoutPlans'), where('authUid', '==', authUid), limit(500))
   return onSnapshot(
     ref,
     (snapshot) => {
@@ -1061,8 +1071,8 @@ export function subscribeToMyAssignedWorkoutPlans(authUid, callback, gymId, onEr
 export function subscribeToMyWorkoutPlans(trainerAuthUid, callback, gymId, onError) {
   if (!trainerAuthUid) { console.warn('[Firestore] subscribeToMyWorkoutPlans called without trainerAuthUid'); return () => {} }
   const ref = gymId
-    ? query(collection(db, 'workoutPlans'), where('gymId', '==', gymId), where('trainerAuthUid', '==', trainerAuthUid))
-    : query(collection(db, 'workoutPlans'), where('trainerAuthUid', '==', trainerAuthUid))
+    ? query(collection(db, 'workoutPlans'), where('gymId', '==', gymId), where('trainerAuthUid', '==', trainerAuthUid), limit(500))
+    : query(collection(db, 'workoutPlans'), where('trainerAuthUid', '==', trainerAuthUid), limit(500))
   return onSnapshot(
     ref,
     (snapshot) => {
@@ -1152,7 +1162,7 @@ export async function backfillOwnershipFields() {
 
 export function subscribeToGyms(callback, onError) {
   return onSnapshot(
-    collection(db, 'gyms'),
+    query(collection(db, 'gyms'), limit(500)),
     (snapshot) => {
       const gyms = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
       callback(gyms)
@@ -1193,7 +1203,7 @@ export async function deleteGym(gymId) {
 
 export function subscribeToSubscriptions(callback, onError) {
   return onSnapshot(
-    collection(db, 'subscriptions'),
+    query(collection(db, 'subscriptions'), limit(500)),
     (snapshot) => {
       const subs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
       callback(subs)

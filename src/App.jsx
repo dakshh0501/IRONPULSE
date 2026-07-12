@@ -1,6 +1,6 @@
 // src/App.jsx
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
-import { Routes, Route, Navigate, Outlet, useLocation, useSearchParams } from 'react-router-dom'
+import { Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom'
 import { AppProvider } from './context/AppContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import StartupScreen from './components/StartupScreen'
@@ -47,6 +47,8 @@ const SuperAdminDevices   = lazy(() => import('./pages/superadmin/DeviceManageme
 const GymReports          = lazy(() => import('./pages/Reports'))
 const GymSubscription     = lazy(() => import('./pages/GymSubscription'))
 const GymDevices          = lazy(() => import('./pages/DeviceManagement'))
+const Referral            = lazy(() => import('./pages/Referral'))
+const ReferralManagement  = lazy(() => import('./pages/superadmin/ReferralManagement'))
 const NotFound            = lazy(() => import('./pages/NotFound'))
 const Rejected            = lazy(() => import('./pages/Rejected'))
 const VerifyEmail         = lazy(() => import('./pages/VerifyEmail'))
@@ -112,36 +114,8 @@ function Guarded({ children }) {
   return children
 }
 
-// ── Global page title based on URL path ──
-const PAGE_TITLES = {
-  '/dashboard':     'Dashboard',
-  '/gymOwners':     'Gym Owners',
-  '/subscriptions': 'Subscriptions',
-  '/support':       'Support',
-  '/members':       'Member Management',
-  '/trainers':      'Trainer Management',
-  '/workouts':      'Workout Plans',
-  '/diet':          'Diet Plans',
-  '/payments':      'Payments & Billing',
-  '/attendance':    'QR Check-in & Attendance',
-  '/notifications': 'Notifications',
-  '/reports':       'Reports & Analytics',
-  '/settings':      'Settings',
-  '/whatsapp':      'WhatsApp Reminders',
-  '/pending':       'Approval Requests',
-  '/analytics':     'Usage Analytics',
-  '/revenue':       'Platform Revenue',
-  '/security':      'Security',
-  '/license':       'License Keys',
-  '/devices':       'Registered Devices',
-  '/reception':     'Reception Mode',
-  '/subscription':  'My Subscription',
-  '/progress':      'Progress Tracking',
-}
-
 // ── APP SHELL — shared layout with sidebar + header ────────
 function AppShell() {
-  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const search = searchParams.get('q') || ''
   const setSearch = useCallback((val) => {
@@ -157,12 +131,6 @@ function AppShell() {
   useEffect(() => {
     sessionStorage.setItem('ironpulse-sidebar', sidebarCollapsed ? 'collapsed' : 'expanded')
   }, [sidebarCollapsed])
-
-  const currentTitle = PAGE_TITLES[location.pathname] || 'Dashboard'
-  const pageInfo = {
-    primary: currentTitle,
-    secondary: '',
-  }
 
   const mobileOpenRef = useRef(mobileOpen)
   mobileOpenRef.current = mobileOpen
@@ -222,7 +190,6 @@ function AppShell() {
         />
         <div className="main-content">
           <Header
-            pageInfo={pageInfo}
             search={search}
             setSearch={setSearch}
             setMobileOpen={setMobileOpen}
@@ -246,50 +213,27 @@ function isLocalhost() {
 function ProtectedRoute({ children, allowedRoles }) {
   const { isLoggedIn, role, effectiveRole, authLoading, userProfile, currentUser, biometricGate } = useAuth()
   const checkRole = effectiveRole || role
-  const [exiting, setExiting] = useState(false)
-  const exitTimer = useRef(null)
 
-  useEffect(() => {
-    if (!authLoading && !exiting) {
-      exitTimer.current = setTimeout(() => setExiting(true), 450)
-    }
-    return () => { if (exitTimer.current) clearTimeout(exitTimer.current) }
-  }, [authLoading, exiting])
+  if (authLoading) return <LoadingScreen />
 
-  if (!authLoading && exiting) {
-    if (userProfile?.role === 'rejected') return <Navigate to="/rejected" replace />
-    if (!isLoggedIn) {
-      const target = isLocalhost() ? '/auth' : '/'
-      return <Navigate to={target} replace />
-    }
-    if (userProfile?.role === 'pending') return <Navigate to="/auth" replace />
-    if (currentUser && !currentUser.emailVerified) return <Navigate to="/verify-email" replace />
-    if (allowedRoles && !allowedRoles.includes(checkRole)) return <Navigate to="/dashboard" replace />
-    if (biometricGate) return <BiometricGate />
-    if (children) return children
-    return <Outlet />
+  if (userProfile?.role === 'rejected') return <Navigate to="/rejected" replace />
+  if (!isLoggedIn) {
+    const target = isLocalhost() ? '/auth' : '/'
+    return <Navigate to={target} replace />
   }
-
-  return <LoadingScreen />
+  if (userProfile?.role === 'pending') return <Navigate to="/auth" replace />
+  if (currentUser && !currentUser.emailVerified) return <Navigate to="/verify-email" replace />
+  if (allowedRoles && !allowedRoles.includes(checkRole)) return <Navigate to="/dashboard" replace />
+  if (biometricGate) return <BiometricGate />
+  if (children) return children
+  return <Outlet />
 }
 
 function PublicRoute({ children }) {
   const { isLoggedIn, authLoading } = useAuth()
-  const [exiting, setExiting] = useState(false)
-  const exitTimer = useRef(null)
 
-  useEffect(() => {
-    if (!authLoading && !exiting) {
-      exitTimer.current = setTimeout(() => setExiting(true), 450)
-    }
-    return () => { if (exitTimer.current) clearTimeout(exitTimer.current) }
-  }, [authLoading, exiting])
-
-  if (!authLoading && exiting) {
-    return isLoggedIn ? <Navigate to="/dashboard" replace /> : children
-  }
-
-  return <LoadingScreen />
+  if (authLoading) return <LoadingScreen />
+  return isLoggedIn ? <Navigate to="/dashboard" replace /> : children
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -332,6 +276,10 @@ function RouterTree() {
             <Route path="subscription" element={<RoleGate allowedRoles={['super_admin','gym_admin']}><Guarded><GymSubscription /></Guarded></RoleGate>} />
             <Route path="devices" element={<RoleGate allowedRoles={['super_admin','gym_admin']}><Guarded><DevicesPage /></Guarded></RoleGate>} />
 
+            {/* Referral routes */}
+            <Route path="referral" element={<RoleGate allowedRoles={['member']}><Referral /></RoleGate>} />
+            <Route path="referrals" element={<RoleGate allowedRoles={['super_admin']}><ReferralManagement /></RoleGate>} />
+
             {/* Super admin only */}
             <Route path="gymOwners" element={<RoleGate allowedRoles={['super_admin']}><SuperAdminGymOwners /></RoleGate>} />
             <Route path="subscriptions" element={<RoleGate allowedRoles={['super_admin']}><SuperAdminSubscriptions /></RoleGate>} />
@@ -358,6 +306,7 @@ function RouterTree() {
             <Route path="member/payments" element={<RoleGate allowedRoles={['member']}><Payments /></RoleGate>} />
             <Route path="member/attendance" element={<RoleGate allowedRoles={['member']}><Attendance /></RoleGate>} />
             <Route path="member/notifications" element={<RoleGate allowedRoles={['member']}><Notifications /></RoleGate>} />
+            <Route path="member/referral" element={<RoleGate allowedRoles={['member']}><Referral /></RoleGate>} />
 
           </Route>
         </Route>

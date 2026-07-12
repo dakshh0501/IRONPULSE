@@ -48,6 +48,13 @@ export const NOTIF_TYPES = {
   device_registered: { type: 'system',     icon: '📱', priority: 'normal' },
   device_removed:    { type: 'system',     icon: '🗑', priority: 'normal' },
   device_limit_reached:{ type: 'system',   icon: '⚠️', priority: 'high' },
+  referral_registered: { type: 'referral', icon: '📋', priority: 'normal' },
+  referral_qualified:  { type: 'referral', icon: '🎁', priority: 'normal' },
+  referral_rewarded:   { type: 'referral', icon: '💰', priority: 'normal' },
+  referral_earned:     { type: 'referral', icon: '🎉', priority: 'high' },
+  referral_applied:    { type: 'referral', icon: '✅', priority: 'normal' },
+  referral_discount:   { type: 'referral', icon: '🏷️', priority: 'normal' },
+  referral_coupon:     { type: 'referral', icon: '🎟️', priority: 'normal' },
 }
 
 export function buildNotification(notifKey, data) {

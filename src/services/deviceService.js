@@ -55,6 +55,7 @@ export function subscribeToDevices(gymId, callback, statusFilter) {
   if (!gymId) return () => {}
   const constraints = [where('gymId', '==', gymId)]
   if (statusFilter) constraints.push(where('status', '==', statusFilter))
+  constraints.push(limit(500))
   const q = query(collection(db, DEVICES_COLLECTION), ...constraints)
   return onSnapshot(q, (snap) => {
     callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))

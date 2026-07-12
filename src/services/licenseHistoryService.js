@@ -1,4 +1,4 @@
-import { collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore'
+import { collection, addDoc, query, where, orderBy, limit, onSnapshot, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase'
 
 const HISTORY_COLLECTION = 'licenseHistory'
@@ -8,7 +8,8 @@ export function subscribeToLicenseHistory(gymId, callback) {
   const q = query(
     collection(db, HISTORY_COLLECTION),
     where('gymId', '==', gymId),
-    orderBy('createdAt', 'desc')
+    orderBy('createdAt', 'desc'),
+    limit(1000)
   )
   return onSnapshot(q, (snap) => {
     callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
@@ -18,7 +19,8 @@ export function subscribeToLicenseHistory(gymId, callback) {
 export function subscribeToAllLicenseHistory(callback) {
   const q = query(
     collection(db, HISTORY_COLLECTION),
-    orderBy('createdAt', 'desc')
+    orderBy('createdAt', 'desc'),
+    limit(1000)
   )
   return onSnapshot(q, (snap) => {
     callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))

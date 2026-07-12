@@ -116,8 +116,12 @@ service cloud.firestore {
 
       allow update: if isAuthed() && (
         (request.auth.uid == uid &&
-          request.resource.data.role == resource.data.role)
-        || isStaff()
+          request.resource.data.role == resource.data.role &&
+          request.resource.data.referralCode == resource.data.referralCode &&
+          request.resource.data.referredBy == resource.data.referredBy)
+        || (isStaff() &&
+          request.resource.data.referralCode == resource.data.referralCode &&
+          request.resource.data.referredBy == resource.data.referredBy)
       );
 
       allow delete: if isSuperAdmin();
@@ -285,12 +289,13 @@ service cloud.firestore {
           isSuperAdmin() ||
           docId == getCallerGymId() + ':gym' ||
           docId == getCallerGymId() + ':theme' ||
-          docId == 'gym' || docId == 'theme'
+          docId == 'gym' || docId == 'theme' ||
+          docId == 'referralSettings'
         )
       );
       allow create: if isAdminOrOwner() && inCallersGymCreate();
-      allow update: if isAdminOrOwner() && inCallersGym();
-      allow delete: if isAdminOrOwner() && inCallersGym();
+      allow update: if isSuperAdmin() || (isAdminOrOwner() && inCallersGym());
+      allow delete: if isSuperAdmin();
     }
 
     // ════════════════════════════════════════════════════════
@@ -385,6 +390,88 @@ service cloud.firestore {
       allow create: if true; // anyone can submit a contact form
 
       allow read, update, delete: if isSuperAdmin();
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  REFERRALS (gym-scoped)
+    //  Members: read own referrals (as referrer)
+    //  Gym admins: read gym referrals
+    //  Super admin: full access
+    // ════════════════════════════════════════════════════════
+    match /referrals/{referralId} {
+
+      allow read: if isSuperAdmin() || (
+        isGymAdmin() && resource.data.gymId == getCallerGymId()
+      ) || (
+        isMember() && resource.data.referrerUid == request.auth.uid
+      );
+
+      allow create: if isSuperAdmin() || (
+        isGymAdmin() && inCallersGymCreate()
+      );
+
+      allow update: if isSuperAdmin() || (
+        isGymAdmin() && resource.data.gymId == getCallerGymId()
+      );
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  REFERRAL SETTINGS (single global doc in /settings)
+    //  Super admin: full access
+    //  Gym admin: read only
+    // ════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════
+    //  REWARD LEDGER (gym-scoped — referral rewards)
+    //  Members: read own reward records
+    //  Gym admins: read gym reward records
+    //  Super admin: full access
+    // ════════════════════════════════════════════════════════
+    match /rewardLedger/{rewardId} {
+
+      allow read: if isSuperAdmin() || (
+        isGymAdmin() && resource.data.gymId == getCallerGymId()
+      ) || (
+        isMember() && resource.data.referrerUid == request.auth.uid
+      ) || (
+        isMember() && resource.data.referredUid == request.auth.uid
+      );
+
+      allow create: if isSuperAdmin() || (isGymAdmin() && inCallersGymCreate());
+      allow update: if isSuperAdmin() || (isGymAdmin() && resource.data.gymId == getCallerGymId());
+      allow delete: if isSuperAdmin();
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  DISCOUNT COUPONS (gym-scoped — referral discounts)
+    //  Members: read own coupons
+    //  Gym admins: read gym coupons
+    //  Super admin: full access
+    // ════════════════════════════════════════════════════════
+    match /discountCoupons/{couponId} {
+
+      allow read: if isSuperAdmin() || (
+        isGymAdmin() && resource.data.gymId == getCallerGymId()
+      ) || (
+        isMember() && resource.data.userId == request.auth.uid
+      );
+
+      allow create: if isSuperAdmin() || (isGymAdmin() && inCallersGymCreate());
+      allow update: if isSuperAdmin() || (isGymAdmin() && resource.data.gymId == getCallerGymId());
+      allow delete: if isSuperAdmin();
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  AUDIT LOG (super admin only — sensitive changes)
+    // ════════════════════════════════════════════════════════
+    match /auditLog/{logId} {
+
+      allow read: if isSuperAdmin();
+      allow create: if isAuthed() && (
+        isSuperAdmin() || isGymAdmin()
+      );
+      allow update, delete: if isSuperAdmin();
     }
 
     // ════════════════════════════════════════════════════════

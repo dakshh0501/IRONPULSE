@@ -35,6 +35,7 @@ const PAGE_TITLES = {
   '/member/payments':    'My Payments',
   '/member/attendance':  'Check In',
   '/member/notifications':'Notifications',
+  '/member/referral':     'Refer & Earn',
   '/trainer/dashboard':   'Trainer Dashboard',
   '/trainer/members':     'My Clients',
   '/trainer/workouts':    'Workout Plans',
@@ -42,6 +43,8 @@ const PAGE_TITLES = {
   '/trainer/progress':    'Progress Tracking',
   '/trainer/attendance':  'Attendance',
   '/trainer/notifications':'Notifications',
+  '/referral':      'Refer & Earn',
+  '/referrals':     'Referral Management',
 }
 
 const PAGE_BREADCRUMBS = {
@@ -75,6 +78,7 @@ const PAGE_BREADCRUMBS = {
   '/member/payments':    { primary: 'My Payments', secondary: 'Billing' },
   '/member/attendance':  { primary: 'Check In', secondary: 'Attendance' },
   '/member/notifications':{ primary: 'Notifications', secondary: 'Alerts' },
+  '/member/referral':     { primary: 'Refer & Earn', secondary: 'Invite Friends' },
   '/trainer/dashboard':   { primary: 'Dashboard', secondary: 'Overview' },
   '/trainer/members':     { primary: 'My Clients', secondary: 'Member List' },
   '/trainer/workouts':    { primary: 'Workout Plans', secondary: 'Exercise' },
@@ -82,6 +86,8 @@ const PAGE_BREADCRUMBS = {
   '/trainer/progress':    { primary: 'Progress', secondary: 'Tracking' },
   '/trainer/attendance':  { primary: 'Attendance', secondary: 'Check-in' },
   '/trainer/notifications':{ primary: 'Notifications', secondary: 'Alerts' },
+  '/referral':        { primary: 'Refer & Earn', secondary: 'Invite Friends' },
+  '/referrals':       { primary: 'Referral Management', secondary: 'Analytics & Settings' },
 }
 
 export default function Header({ search, setSearch, setMobileOpen }) {

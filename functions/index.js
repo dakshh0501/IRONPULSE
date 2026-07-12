@@ -164,6 +164,13 @@ async function fulfillSubscriptionPayment(attempt, phonePeTransactionId) {
     console.error('fulfillSubscriptionPayment: transaction failed', attempt.subscriptionId, err)
     throw err
   })
+
+  // ── Issue referral reward (non-blocking, outside transaction) ──
+  if (!attempt.gymId) {
+    issueReferralReward(attempt, phonePeTransactionId).catch(err => {
+      console.error('fulfillSubscriptionPayment: issueReferralReward failed', err)
+    })
+  }
 }
 
 /**
@@ -204,6 +211,7 @@ async function createPaymentRecordInTransaction(transaction, attempt, phonePeTra
     invoiceNo,
     gymId: attempt.gymId || 'default',
     memberId: attempt.subscriptionId || '',
+    authUid: attempt.authUid || '',
     member: gymName || 'Subscription',
     memberName: gymName || 'Subscription',
     plan: attempt.plan || 'Standard',
@@ -223,6 +231,382 @@ async function createPaymentRecordInTransaction(transaction, attempt, phonePeTra
 
   transaction.set(paymentRef, paymentRecord)
 
+}
+
+/**
+ * Issue referral reward after a successful first subscription payment.
+ * Called from fulfillSubscriptionPayment for member-level payment attempts.
+ *
+ * Flow:
+ *   1️⃣ Check referral     — does the referred user have a referredBy code?
+ *   2️⃣ Check first payment — is this the first successful payment for this user?
+ *   3️⃣ Check reward        — has a reward already been issued for this referral?
+ *   4️⃣ Create referral     — write referral record (status=Qualified)
+ *   5️⃣ Issue reward        — create wallet/discount record
+ *   6️⃣ Update referral     — set status=Rewarded, rewardIssued=true
+ *   7️⃣ Commit              — all writes complete
+ */
+async function issueReferralReward(attempt, phonePeTransactionId) {
+  try {
+    // ─── 1️⃣ CHECK REFERRAL ────────────────────────────────
+    // Uses referredUid as referral doc ID for natural idempotency
+    // Only process member-level payments (skip gym subscription payments)
+    if (!attempt.subscriptionId || attempt.gymId) return
+
+    // Derive the referred user's authUid:
+    //   - From the attempt directly (authUid / referredUid) OR
+    //   - Look up the member doc from the subscriptionId
+    let referredUid = attempt.authUid || attempt.referredUid || ''
+    if (!referredUid && attempt.subscriptionId) {
+      try {
+        const memberSnap = await db.collection('members').doc(attempt.subscriptionId).get()
+        if (memberSnap.exists) {
+          referredUid = memberSnap.data().authUid || ''
+        }
+      } catch (_) {}
+    }
+    if (!referredUid) return
+
+    const referredUserSnap = await db.collection('users').doc(referredUid).get()
+    if (!referredUserSnap.exists) return
+
+    const referredUser = referredUserSnap.data()
+    const referralCode = referredUser.referredBy || ''
+    if (!referralCode) return
+
+    const referrerSnap = await db.collection('users').where('referralCode', '==', referralCode).get()
+    if (referrerSnap.empty) return
+    const referrer = referrerSnap.docs[0].data()
+    const referrerUid = referrer.uid
+
+    // Anti-fraud: cannot refer yourself
+    if (referrerUid === referredUid) return
+
+    // ─── 2️⃣ CHECK FIRST PAYMENT ────────────────────────────
+    // Count existing paid payment records for this user to verify it's their first
+    const paymentQuery = await db.collection('payments')
+      .where('authUid', '==', referredUid)
+      .where('status', '==', 'Paid')
+      .get()
+    // If they already have at least one paid record (not counting this one), skip
+    if (paymentQuery.size > 1) return
+
+    // ─── 3️⃣ CHECK REWARD NOT ALREADY ISSUED ────────────────
+    const existingRefSnap = await db.collection('referrals')
+      .where('referredUid', '==', referredUid)
+      .get()
+    if (!existingRefSnap.empty) return
+
+    // ─── 4️⃣ LOAD REFERRAL SETTINGS ─────────────────────────
+    const settingsSnap = await db.collection('settings').doc('referralSettings').get()
+    const settings = settingsSnap.exists ? settingsSnap.data() : {}
+    if (settings.enabled === false) return
+
+    const rewardAmount = Number(settings.rewardAmount) || 100
+    const rewardMode = settings.rewardMode || 'Wallet'
+
+    // ─── 5️⃣ ANTI-FRAUD CHECKS ───────────────────────────────
+
+    // a) Referrer's user doc exists and isn't deleted
+    if (referrer.status === 'deleted' || referrer.deleted === true) {
+      console.error('issueReferralReward: anti-fraud (a) referrer deleted', { referrerUid })
+      return
+    }
+
+    // b) Referred user's membership is not cancelled
+    try {
+      const memberDoc = await db.collection('members').doc(attempt.subscriptionId).get()
+      const memberData = memberDoc.exists ? memberDoc.data() : null
+      if (memberData && (memberData.status === 'cancelled' || memberData.membershipStatus === 'cancelled')) {
+        console.error('issueReferralReward: anti-fraud (b) membership cancelled', { subscriptionId: attempt.subscriptionId })
+        return
+      }
+    } catch (memErr) {
+      console.error('issueReferralReward: anti-fraud (b) membership lookup error', memErr)
+    }
+
+    // c) Campaign hasn't expired
+    if (settings.expiryDate) {
+      const expiry = new Date(settings.expiryDate)
+      if (expiry < new Date()) {
+        console.error('issueReferralReward: anti-fraud (c) campaign expired', { expiryDate: settings.expiryDate })
+        return
+      }
+    }
+
+    // d) Referrer hasn't hit max rewards
+    if (settings.maxRewardsPerUser) {
+      const maxRewards = Number(settings.maxRewardsPerUser)
+      try {
+        const rewardedRefSnap = await db.collection('referrals')
+          .where('referrerUid', '==', referrerUid)
+          .where('status', '==', 'Rewarded')
+          .get()
+        if (rewardedRefSnap.size >= maxRewards) {
+          console.error('issueReferralReward: anti-fraud (d) max rewards reached', { referrerUid, count: rewardedRefSnap.size, max: maxRewards })
+          return
+        }
+      } catch (countErr) {
+        console.error('issueReferralReward: anti-fraud (d) count error', countErr)
+      }
+    }
+
+    // e) Not a second payment — exclude the current transaction
+    try {
+      const allPayments = await db.collection('payments')
+        .where('authUid', '==', referredUid)
+        .where('status', '==', 'Paid')
+        .get()
+      let otherCount = allPayments.size
+      if (attempt.paymentId) {
+        const hasCurrent = allPayments.docs.some(d => d.data().paymentId === attempt.paymentId)
+        if (hasCurrent) otherCount = Math.max(0, otherCount - 1)
+      }
+      if (otherCount >= 1) {
+        console.error('issueReferralReward: anti-fraud (e) second payment', { referredUid, otherCount })
+        return
+      }
+    } catch (payErr) {
+      console.error('issueReferralReward: anti-fraud (e) payment count error', payErr)
+    }
+
+    // f) Payment attempt wasn't refunded
+    try {
+      if (attempt.paymentId) {
+        const attemptRefundQuery = await db.collection('paymentAttempts')
+          .where('paymentId', '==', attempt.paymentId)
+          .limit(1)
+          .get()
+        if (!attemptRefundQuery.empty) {
+          const pa = attemptRefundQuery.docs[0].data()
+          if (pa.status === 'refunded' || pa.phonePeState === 'REFUNDED') {
+            console.error('issueReferralReward: anti-fraud (f) payment refunded', { paymentId: attempt.paymentId })
+            return
+          }
+        }
+      }
+    } catch (refundErr) {
+      console.error('issueReferralReward: anti-fraud (f) refund check error', refundErr)
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // PHASE 2 — ATOMIC TRANSACTION (referral + reward creation)
+    // Uses referredUid as doc ID for natural idempotency:
+    //   if a referral doc already exists for this user, the set() is a no-op.
+    // ════════════════════════════════════════════════════════════
+
+    const now = new Date()
+    const gymId = referredUser.gymId || 'default'
+
+    const referralData = {
+      referrerUid,
+      referredUid,
+      referralCode,
+      gymId,
+      status: 'Rewarded',
+      rewardType: rewardMode,
+      rewardValue: rewardAmount,
+      rewardIssued: true,
+      firstPaymentId: attempt.paymentId || '',
+      createdAt: now.toISOString(),
+      qualifiedAt: now.toISOString(),
+      rewardedAt: now.toISOString(),
+      paymentId: attempt.paymentId || '',
+    }
+
+    if (rewardMode === 'Discount') {
+      const randomPart = crypto.randomBytes(2).toString('hex').toUpperCase()
+      const couponCode = `REF-${referredUid.slice(0, 4).toUpperCase()}-${randomPart}`
+      const couponExpiry = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
+      const couponId = db.collection('discountCoupons').doc().id
+
+      referralData.rewardRef = couponId
+      referralData.couponCode = couponCode
+
+      await db.runTransaction(async (transaction) => {
+        const referralRef = db.collection('referrals').doc(referredUid)
+        const existing = await transaction.get(referralRef)
+        if (existing.exists) return
+        transaction.set(referralRef, referralData)
+        transaction.set(db.collection('discountCoupons').doc(couponId), {
+          code: couponCode,
+          type: 'referral',
+          rewardValue: rewardAmount,
+          referrerUid,
+          referredUid,
+          userId: referredUid,
+          referralId: referredUid,
+          gymId,
+          status: 'active',
+          expiryDate: couponExpiry,
+          minSubscription: settings.minimumSubscription || null,
+          usedAt: null,
+          usedBy: null,
+          createdAt: now.toISOString(),
+        })
+      })
+    } else if (rewardMode === 'Extension') {
+      const extensionDays = Number(settings.extensionDays) || 30
+      const rewardId = db.collection('rewardLedger').doc().id
+
+      referralData.rewardRef = rewardId
+
+      await db.runTransaction(async (transaction) => {
+        const referralRef = db.collection('referrals').doc(referredUid)
+        const existing = await transaction.get(referralRef)
+        if (existing.exists) return
+        transaction.set(referralRef, referralData)
+        transaction.set(db.collection('rewardLedger').doc(rewardId), {
+          type: 'membership_extension',
+          rewardType: rewardMode,
+          rewardValue: rewardAmount,
+          extensionDays,
+          referrerUid,
+          referredUid,
+          userId: referredUid,
+          referralId: referredUid,
+          gymId,
+          status: 'pending',
+          issuedAt: now.toISOString(),
+          description: `Membership extension of ${extensionDays} days from referral reward`,
+        })
+      })
+    } else {
+      // Default: Wallet mode
+      const rewardId = db.collection('rewardLedger').doc().id
+
+      referralData.rewardRef = rewardId
+
+      await db.runTransaction(async (transaction) => {
+        const referralRef = db.collection('referrals').doc(referredUid)
+        const existing = await transaction.get(referralRef)
+        if (existing.exists) return
+        transaction.set(referralRef, referralData)
+        transaction.set(db.collection('rewardLedger').doc(rewardId), {
+          type: 'wallet_credit',
+          rewardType: rewardMode,
+          rewardValue: rewardAmount,
+          referrerUid,
+          referredUid,
+          userId: referredUid,
+          gymId,
+          status: 'available',
+          issuedAt: now.toISOString(),
+          description: `Referral reward of ₹${rewardAmount} credited to wallet`,
+        })
+      })
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // PHASE 3 — NOTIFICATIONS (fire-and-forget, outside transaction)
+    // ════════════════════════════════════════════════════════════
+
+    const notifPromises = []
+
+    // a) Referrer
+    notifPromises.push(
+      db.collection('notifications').add({
+        userId: referrerUid,
+        gymId,
+        role: 'member',
+        title: 'Referral Reward Earned!',
+        message: `You earned ₹${rewardAmount} referral reward! A new member used your code.`,
+        type: 'referral',
+        subtype: 'referral_earned',
+        priority: 'high',
+        icon: '🎉',
+        actionUrl: '/referral',
+        relatedDocumentId: referredUid,
+        read: false,
+        createdAt: now.toISOString(),
+      }).catch(err => console.error('issueReferralReward: referrer notification error', err))
+    )
+
+    // b) Referred user
+    notifPromises.push(
+      db.collection('notifications').add({
+        userId: referredUid,
+        gymId,
+        role: 'member',
+        title: 'You Qualified for a Referral!',
+        message: 'Your referral qualified for a reward! Welcome to the community.',
+        type: 'referral',
+        subtype: 'referral_qualified',
+        priority: 'normal',
+        icon: '🎉',
+        actionUrl: '/referral',
+        relatedDocumentId: referredUid,
+        read: false,
+        createdAt: now.toISOString(),
+      }).catch(err => console.error('issueReferralReward: referred user notification error', err))
+    )
+
+    // c) Gym admins
+    try {
+      const adminSnap = await db.collection('users')
+        .where('gymId', '==', gymId)
+        .where('role', 'in', ['admin', 'gym_admin', 'gym_owner', 'super_admin'])
+        .get()
+      adminSnap.forEach(doc => {
+        const u = doc.data()
+        notifPromises.push(
+          db.collection('notifications').add({
+            userId: u.uid || doc.id,
+            gymId,
+            role: u.role || 'admin',
+            title: 'Referral Reward Issued',
+            message: `A referral reward of ₹${rewardAmount} was issued for referred user.`,
+            type: 'referral',
+            subtype: 'referral_rewarded',
+            priority: 'normal',
+            icon: '🎉',
+            actionUrl: '/referral',
+            relatedDocumentId: referredUid,
+            read: false,
+            createdAt: now.toISOString(),
+          }).catch(err => console.error('issueReferralReward: gym admin notification error', err))
+        )
+      })
+    } catch (notifErr) {
+      console.error('issueReferralReward: gym admin query error', notifErr)
+    }
+
+    // d) Super admins
+    try {
+      const superAdminSnap = await db.collection('users')
+        .where('role', '==', 'super_admin')
+        .get()
+      superAdminSnap.forEach(doc => {
+        const u = doc.data()
+        notifPromises.push(
+          db.collection('notifications').add({
+            userId: u.uid || doc.id,
+            gymId: 'platform',
+            role: 'super_admin',
+            title: 'Referral Reward Issued',
+            message: `Referral reward of ₹${rewardAmount} issued for referred user.`,
+            type: 'referral',
+            subtype: 'referral_rewarded',
+            priority: 'low',
+            icon: '🎉',
+            actionUrl: '/referral',
+            relatedDocumentId: referredUid,
+            read: false,
+            createdAt: now.toISOString(),
+          }).catch(err => console.error('issueReferralReward: super admin notification error', err))
+        )
+      })
+    } catch (notifErr) {
+      console.error('issueReferralReward: super admin query error', notifErr)
+    }
+
+    if (notifPromises.length > 0) {
+      await Promise.allSettled(notifPromises)
+    }
+
+  } catch (err) {
+    console.error('issueReferralReward: error', err)
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -421,6 +805,7 @@ exports.createPayment = onCall({
     phone,
     redirectUrl,
     callbackUrl,
+    authUid,
   } = request.data
 
   // Validate required payment parameters
@@ -540,6 +925,7 @@ exports.createPayment = onCall({
     currency: currency || 'INR',
     paymentMethod: paymentMethod || 'UPI',
     paymentGateway: 'PhonePe',
+    authUid: authUid || null,
     status: 'pending',
     merchantTransactionId,
     transactionId: null,

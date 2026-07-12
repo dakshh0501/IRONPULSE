@@ -29,7 +29,7 @@ function keyToUrl(key, navRole) {
 export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
   const navigate = useNavigate()
   const location = useLocation()
-  const { userProfile, effectiveRole } = useAuth()
+  const { userProfile, effectiveRole, logout } = useAuth()
   const { unreadCount, pendingCount, payments } = useApp()
 
   const role = effectiveRole || userProfile?.role
@@ -118,35 +118,78 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
           ))}
         </nav>
 
-        {/* Collapse toggle */}
-        {!collapsed && (
-          <div className="sidebar-footer" style={{ padding:'12px 16px' }}>
-            <button
-              className="sidebar-collapse-btn"
-              onClick={() => setCollapsed(c => !c)}
-              title="Collapse sidebar"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-              <span>Collapse</span>
-            </button>
-          </div>
-        )}
-        {collapsed && (
-          <div className="sidebar-footer" style={{ padding:'12px 0', display:'flex', justifyContent:'center' }}>
-            <button
-              className="sidebar-collapse-btn"
-              onClick={() => setCollapsed(c => !c)}
-              title="Expand sidebar"
-              style={{ justifyContent:'center', padding:8, width:'auto' }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </button>
-          </div>
-        )}
+        {/* Footer */}
+        <div className="sidebar-footer">
+          {!collapsed ? (
+            <>
+              {/* User profile */}
+              <div className="sidebar-user" onClick={() => handleNav('settings')} style={{ cursor:'pointer' }}>
+                <div className="avatar av-orange" style={{ width:34, height:34, fontSize:13 }}>
+                  {userProfile?.name?.[0] || 'U'}
+                </div>
+                <div className="sidebar-user-info">
+                  <div className="sidebar-user-name">{userProfile?.name || 'User'}</div>
+                  <div className="sidebar-user-role">{role === 'super_admin' ? 'Super Admin' : (role || 'User')}</div>
+                </div>
+                <span style={{ fontSize:14, color:'var(--text-muted)' }}>⚙</span>
+              </div>
+              {/* Actions */}
+              <div style={{ display:'flex', flexDirection:'column', gap:4, padding:'4px 12px 8px' }}>
+                <button
+                  className="sidebar-collapse-btn"
+                  onClick={() => setCollapsed(c => !c)}
+                  title="Collapse sidebar"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                  <span>Collapse</span>
+                </button>
+                <button
+                  className="sidebar-logout"
+                  onClick={async () => { await logout(); navigate('/') }}
+                  title="Log Out"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                  <span>Log Out</span>
+                </button>
+              </div>
+            </>
+          ) : (
+            <div style={{ padding:'8px 0', display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
+              {/* User avatar */}
+              <div className="avatar av-orange" style={{ width:30, height:30, fontSize:11, cursor:'pointer', flexShrink:0 }}
+                onClick={() => handleNav('settings')} title={userProfile?.name || 'User'}>
+                {userProfile?.name?.[0] || 'U'}
+              </div>
+              <button
+                className="sidebar-collapse-btn"
+                onClick={() => setCollapsed(c => !c)}
+                title="Expand sidebar"
+                style={{ justifyContent:'center', padding:8, width:'auto' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+              <button
+                className="sidebar-logout"
+                onClick={async () => { await logout(); navigate('/') }}
+                title="Log Out"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </div>
       </aside>
     </>
   )

@@ -3,11 +3,12 @@ import { useAuth } from '../context/AuthContext'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getReferralStats } from '../services/referralService'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
 
-  const { members, trainers, payments, attendance, gymSettings, gyms, subscriptions, notifications } = useApp()
+  const { members, trainers, payments, attendance, gymSettings, gyms, subscriptions, notifications, referrals } = useApp()
   const { currentUser, effectiveRole } = useAuth()
 
   const isAdmin = effectiveRole === 'super_admin' || effectiveRole === 'gym_admin'
@@ -560,6 +561,22 @@ export default function AdminDashboard() {
             <span className="dash-overview-label">Upcoming Birthdays</span>
             <span className="dash-overview-desc">{upcomingBirthdays.length > 0 ? upcomingBirthdays.map(m=>m.name).join(', ') : 'No birthdays this week'}</span>
           </div>
+
+          {!isSuperAdmin && (() => {
+            const rs = getReferralStats(referrals)
+            return (
+              <div className="dash-overview-card" style={{ cursor:'pointer' }} onClick={() => navigate('/referrals')}>
+                <div className="dash-overview-top">
+                  <span className="dash-overview-icon">🎁</span>
+                  <span className="dash-overview-value">{rs.total}</span>
+                </div>
+                <span className="dash-overview-label">Referrals</span>
+                <span className="dash-overview-desc">
+                  {rs.pending} pending · {rs.qualified} qualified · {rs.rewarded} rewarded · {rs.conversionRate}% conv · ₹{rs.rewardCost} cost
+                </span>
+              </div>
+            )
+          })()}
         </div>
       )}
 

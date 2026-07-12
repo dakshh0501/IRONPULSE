@@ -74,7 +74,7 @@ import {
   refreshPaymentStatus as refreshPaymentStatusService,
   cleanupExpiredPaymentAttempts,
 } from '../services/paymentService'
-import { doc, getDoc, updateDoc, deleteDoc, query, where, getDocs, collection, serverTimestamp, onSnapshot } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, deleteDoc, query, where, getDocs, collection, serverTimestamp, onSnapshot, orderBy, limit } from 'firebase/firestore'
 import { db } from '../firebase'
 import {
   subscribeToNotifications,
@@ -101,6 +101,14 @@ import {
   changePlan as changePlanService,
   checkAutoExpiry,
 } from '../services/subscriptionService'
+import {
+  subscribeToMyReferrals,
+  subscribeToGymReferrals,
+  subscribeToAllReferrals,
+  subscribeToReferralSettings,
+  createReferral as createReferralInFirestore,
+  updateReferral as updateReferralInFirestore,
+} from '../services/referralService'
 import { fetchSecurityMetrics as fetchSecurityMetricsFromService } from '../services/securityService'
 
 const AppContext = createContext()
@@ -142,15 +150,21 @@ export function AppProvider({ children }) {
   const [notifications, setNotifications] = useState([])
   const [notifLoading, setNotifLoading] = useState(true)
   const [snapshotErrors, setSnapshotErrors] = useState([])
+  const [referrals, setReferrals] = useState([])
+  const [referralSettings, setReferralSettings] = useState(null)
+  const [referralsLoading, setReferralsLoading] = useState(true)
 
   const errorSeq = useRef(0)
+  const errorTimers = useRef([])
   const reportSnapshotError = useCallback((error, collection) => {
     const seq = ++errorSeq.current
     const entry = { collection, message: error.message, timestamp: Date.now(), seq }
     setSnapshotErrors(prev => [...prev.slice(-9), entry])
-    setTimeout(() => {
+    const id = setTimeout(() => {
+      errorTimers.current = errorTimers.current.filter(t => t.id !== id)
       setSnapshotErrors(prev => prev.filter(e => e.seq !== seq))
     }, 10000)
+    errorTimers.current.push({ id, seq })
   }, [])
 
   // ── Gym context (derived from userGymId) ───────────────
@@ -448,7 +462,9 @@ export function AppProvider({ children }) {
       if (effectiveRole === 'super_admin') {
         const notifQuery = query(
           collection(db, 'notifications'),
-          where('targetRole', '==', 'super_admin')
+          where('targetRole', '==', 'super_admin'),
+          orderBy('createdAt', 'desc'),
+          limit(50)
         )
         const unsub2 = onSnapshot(notifQuery, (snapshot) => {
           const roleNotifs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
@@ -491,14 +507,18 @@ export function AppProvider({ children }) {
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (effectiveRole !== 'super_admin') return
+    let mounted = true
     setSecurityMetricsLoading(true)
     fetchSecurityMetricsFromService().then(metrics => {
+      if (!mounted) return
       setSecurityMetrics(metrics)
       setSecurityMetricsLoading(false)
     }).catch(err => {
+      if (!mounted) return
       console.error('[AppContext] fetchSecurityMetrics error:', err)
       setSecurityMetricsLoading(false)
     })
+    return () => { mounted = false }
   }, [authLoading, currentUser, effectiveRole])
 
   // ── Notification helpers ───────────────────────────────
@@ -698,6 +718,31 @@ export function AppProvider({ children }) {
     const unsubscribe = subscribeToFeatureRequests((data) => { setFeatureRequests(data); setFeatureRequestsLoading(false) }, queryGymId, reportSnapshotError)
     return unsubscribe
   }, [currentUser, authLoading, effectiveRole, queryGymId])
+
+  // ── Referrals listener ─────────────────────────────
+  useEffect(() => {
+    if (authLoading || !currentUser) return
+    setReferralsLoading(true)
+    let unsub
+    if (effectiveRole === 'super_admin') {
+      unsub = subscribeToAllReferrals((data) => { setReferrals(data); setReferralsLoading(false) }, reportSnapshotError)
+    } else if (effectiveRole === 'member' && currentUser?.uid) {
+      unsub = subscribeToMyReferrals(currentUser.uid, (data) => { setReferrals(data); setReferralsLoading(false) }, reportSnapshotError)
+    } else if (gymId) {
+      unsub = subscribeToGymReferrals(gymId, (data) => { setReferrals(data); setReferralsLoading(false) }, reportSnapshotError)
+    } else {
+      setReferralsLoading(false)
+    }
+    return () => { if (unsub) unsub() }
+  }, [currentUser, authLoading, effectiveRole, gymId])
+
+  // ── Referral Settings listener (super_admin only) ──
+  useEffect(() => {
+    if (authLoading || !currentUser) return
+    if (effectiveRole !== 'super_admin' && effectiveRole !== 'gym_admin') return
+    const unsub = subscribeToReferralSettings(setReferralSettings, reportSnapshotError)
+    return () => unsub()
+  }, [currentUser, authLoading, effectiveRole])
 
   // ── Attendance listener ────────────────────────────────
   useEffect(() => {
@@ -1284,7 +1329,7 @@ export function AppProvider({ children }) {
     setCheckinLog(p => [{
       id: Date.now(), name: member.name,
       avatar: member.avatar, time: timeStr, out: '✓',
-    }, ...p])
+    }, ...p.slice(0, 49)])
     try {
       await updateMember(member.id, { checkins: Number(member.checkins || 0) + 1 })
     } catch (err) {
@@ -1483,6 +1528,8 @@ export function AppProvider({ children }) {
     approveGymOwner, rejectGymOwner,
     addSupportTicket, addFeatureRequest,
     addGym, updateGym, deleteGym,
+    createReferral: createReferralInFirestore,
+    updateReferral: updateReferralInFirestore,
   }
 
   const contextValue = useMemo(() => ({
@@ -1495,6 +1542,7 @@ export function AppProvider({ children }) {
     paymentAttempts, snapshotErrors,
     supportTickets, supportTicketsLoading,
     featureRequests, featureRequestsLoading, notifLoading,
+    referrals, referralSettings, referralsLoading,
     securityMetrics, securityMetricsLoading, unreadCount,
     ...actionsRef.current,
   }), [
@@ -1507,6 +1555,7 @@ export function AppProvider({ children }) {
     paymentAttempts, snapshotErrors,
     supportTickets, supportTicketsLoading,
     featureRequests, featureRequestsLoading, notifLoading,
+    referrals, referralSettings, referralsLoading,
     securityMetrics, securityMetricsLoading, unreadCount,
   ])
 

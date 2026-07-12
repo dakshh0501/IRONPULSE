@@ -15,6 +15,7 @@ import {
   where,
   getDoc,
   getDocs,
+  limit,
 } from 'firebase/firestore'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { db } from '../firebase'
@@ -130,6 +131,7 @@ export function buildUpgradePayment(params) { return buildTypedPayment('upgrade'
  * @param {string} params.email - payer email
  * @param {string} params.phone - payer phone
  * @param {string} params.redirectUrl - where to redirect after payment
+ * @param {string} params.authUid - paying member's authUid (for referral tracking)
  * @param {string} params.callbackUrl - webhook URL (optional)
  *
  * @returns {{ attemptId, redirectUrl, error }}
@@ -147,6 +149,7 @@ export async function initiatePayment({
   name,
   email,
   phone,
+  authUid,
   redirectUrl,
   callbackUrl,
 }) {
@@ -164,6 +167,7 @@ export async function initiatePayment({
       name,
       email,
       phone,
+      authUid,
       redirectUrl,
       callbackUrl,
     })
@@ -268,8 +272,8 @@ export async function getPaymentAttempt(docId) {
  */
 export function subscribeToPaymentAttempts(callback, gymId, onError) {
   const ref = gymId
-    ? query(collection(db, COLLECTION), where('gymId', '==', gymId))
-    : collection(db, COLLECTION)
+    ? query(collection(db, COLLECTION), where('gymId', '==', gymId), limit(500))
+    : query(collection(db, COLLECTION), limit(500))
 
   return onSnapshot(ref, (snapshot) => {
     const attempts = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
@@ -291,7 +295,7 @@ export async function getPendingAttemptsForSubscription(subscriptionId, gymId) {
   if (gymId) {
     constraints.push(where('gymId', '==', gymId))
   }
-  const q = query(collection(db, COLLECTION), ...constraints)
+  const q = query(collection(db, COLLECTION), ...constraints, limit(10))
   const snap = await getDocs(q)
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }

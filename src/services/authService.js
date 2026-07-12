@@ -29,8 +29,9 @@ import {
 import { auth, db } from '../firebase'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { addGym } from './firestoreService'
+import { generateUniqueReferralCode } from '../utils/referralCode'
 
-export async function signUp({ name, email, password, gymData, role }) {
+export async function signUp({ name, email, password, gymData, role, referredBy }) {
   let authUser = null
 
   // ───── Step 1: createUserWithEmailAndPassword (Auth API, not Firestore) ─────
@@ -55,12 +56,21 @@ export async function signUp({ name, email, password, gymData, role }) {
   }
 
   // ───── Step 2: setDoc(users/{uid}) ─────
+  let referralCode = null
+  try {
+    referralCode = await generateUniqueReferralCode()
+  } catch (err) {
+    console.error('[SIGNUP] Failed to generate referral code (non-blocking):', err)
+  }
+
   const userData = {
     uid: authUser.uid,
     email: authUser.email,
     name: name || '',
     role: role || 'pending',
     gymId: gymData?.gymId || 'default',
+    referralCode: referralCode || '',
+    referredBy: referredBy || '',
     createdAt: serverTimestamp(),
   }
 

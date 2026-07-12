@@ -4,6 +4,8 @@
 // No duplicate logic, no role defaults
 
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { addDoc, collection, getDocs, query, where } from 'firebase/firestore'
+import { db } from '../firebase'
 import {
   subscribeToAuthState,
   signUp,
@@ -208,13 +210,65 @@ export function AuthProvider({ children }) {
   // ─────────────────────────────────────────────────────────────
   // REGISTER: Creates user with pending/gym_owner_pending/membership role
   // ─────────────────────────────────────────────────────────────
-  async function register({ name, email, password, gymName, phone }) {
+  async function register({ name, email, password, gymName, phone, referredBy }) {
     setAuthError('')
 
     signingUpRef.current = true
     try {
       const gymData = { gymName, ownerName: name, email, phone }
-      await signUp({ name, email, password, gymData, role: 'gym_owner_pending' })
+      const signUpResult = await signUp({ name, email, password, gymData, role: 'gym_owner_pending', referredBy })
+
+      // Fire-and-forget referral notifications
+      if (referredBy) {
+        try {
+          const refQ = query(collection(db, 'users'), where('referralCode', '==', referredBy))
+          const refSnap = await getDocs(refQ)
+          if (!refSnap.empty) {
+            const referrer = refSnap.docs[0].data()
+            const notifPromises = []
+            notifPromises.push(
+              addDoc(collection(db, 'notifications'), {
+                userId: referrer.uid,
+                gymId: referrer.gymId || 'default',
+                role: 'member',
+                title: 'Referral Registered!',
+                message: `${name || 'Someone'} signed up using your referral code!`,
+                type: 'referral',
+                subtype: 'referral_registered',
+                priority: 'normal',
+                icon: '📋',
+                actionUrl: '/referral',
+                relatedDocumentId: '',
+                read: false,
+                createdAt: new Date().toISOString(),
+              }).catch(() => {})
+            )
+            if (signUpResult?.uid) {
+              notifPromises.push(
+                addDoc(collection(db, 'notifications'), {
+                  userId: signUpResult.uid,
+                  gymId: referrer.gymId || 'default',
+                  role: 'member',
+                  title: 'Referral Applied',
+                  message: `Your referral code was applied! Welcome aboard.`,
+                  type: 'referral',
+                  subtype: 'referral_applied',
+                  priority: 'normal',
+                  icon: '✅',
+                  actionUrl: '',
+                  relatedDocumentId: '',
+                  read: false,
+                  createdAt: new Date().toISOString(),
+                }).catch(() => {})
+              )
+            }
+            await Promise.allSettled(notifPromises)
+          }
+        } catch (notifErr) {
+          console.error('[AuthContext] referral notification error:', notifErr)
+        }
+      }
+
       return { email }
     } catch (err) {
       const msg = friendlyError(err.code || err.message)
