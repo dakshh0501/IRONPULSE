@@ -99,19 +99,34 @@ export default function Auth() {
   const [loginBlockedEmail, setLoginBlockedEmail] = useState('')
   const [verifyDone, setVerifyDone] = useState(false)
 
-  const [form, setForm] = useState({
-    name: '', email: localStorage.getItem('ironpulse-remember-email') || '',
-    password: '', gymName: '', phone: '', referredBy: ''
+  const [form, setForm] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    const refCode = params.get('ref')
+    return {
+      name: '', email: localStorage.getItem('ironpulse-remember-email') || '',
+      password: '', gymName: '', phone: '',
+      referredBy: refCode ? refCode.toUpperCase() : ''
+    }
   })
   const [referralCodeValid, setReferralCodeValid] = useState(null)
   const [referralCodeChecking, setReferralCodeChecking] = useState(false)
+  const [referredByLocked, setReferredByLocked] = useState(() => !!new URLSearchParams(window.location.search).get('ref'))
 
   const checkReferralCodeTimer = useRef(null)
 
   const handleChange = useCallback((e) => {
     setAuthError('')
+    if (e.target.name === 'referredBy' && referredByLocked && e.target.value !== '') {
+      return
+    }
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
     if (e.target.name === 'referredBy') {
+      if (e.target.value === '') {
+        setReferredByLocked(false)
+        setReferralCodeValid(null)
+        setReferralCodeChecking(false)
+        return
+      }
       if (checkReferralCodeTimer.current) clearTimeout(checkReferralCodeTimer.current)
       const code = e.target.value.trim()
       if (!code) {
@@ -132,7 +147,12 @@ export default function Auth() {
           if (validateReferralCodeFormat(code)) {
             const { getReferrerByCode } = await import('../services/referralService')
             const referrer = await getReferrerByCode(code.toUpperCase())
-            setReferralCodeValid(!!referrer)
+            // Self-referral check: reject if referrer email matches signup email
+            if (referrer && referrer.email === form.email) {
+              setReferralCodeValid(false)
+            } else {
+              setReferralCodeValid(!!referrer)
+            }
           }
         } catch {
           setReferralCodeValid(false)
@@ -140,7 +160,7 @@ export default function Auth() {
         setReferralCodeChecking(false)
       }, 600)
     }
-  }, [setAuthError])
+  }, [setAuthError, referredByLocked, form.email])
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault()
@@ -237,6 +257,33 @@ export default function Auth() {
 
   useEffect(() => {
     return () => clearInterval(verifyCooldownRef.current)
+  }, [])
+
+  // Validate pre-filled referral code from URL param on mount
+  useEffect(() => {
+    const refCode = searchParams.get('ref')
+    if (refCode) {
+      const code = refCode.trim().toUpperCase()
+      if (/^IP-[A-Z0-9]{6}$/.test(code)) {
+        setReferralCodeChecking(true)
+        const timer = setTimeout(async () => {
+          try {
+            const { getReferrerByCode } = await import('../services/referralService')
+            const referrer = await getReferrerByCode(code)
+            if (referrer && referrer.email && referrer.email === form.email) {
+              setReferralCodeValid(false)
+            } else {
+              setReferralCodeValid(!!referrer)
+            }
+          } catch {
+            setReferralCodeValid(false)
+          }
+          setReferralCodeChecking(false)
+        }, 600)
+        return () => clearTimeout(timer)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleResend = useCallback(async () => {
@@ -649,11 +696,21 @@ export default function Auth() {
                           <input name="gymName" placeholder="Gym Name" value={form.gymName} onChange={handleChange} required className="auth-input" />
                         </div>
                         <div style={{ position: 'relative', marginBottom: 14 }}>
-                          <span style={inpIcon}>🎁</span>
-                          <input name="referredBy" placeholder="Referral Code (Optional)" value={form.referredBy} onChange={handleChange} className={`auth-input${referralCodeValid === false ? ' error' : ''}`} style={{ textTransform: 'uppercase' }} />
-                          {referralCodeChecking && <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#6070a0' }}>Checking...</span>}
-                          {referralCodeValid === true && <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: '#00c8b4' }}>✓</span>}
-                          {referralCodeValid === false && <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#f87171' }}>Invalid</span>}
+                          <span style={inpIcon}>{referredByLocked ? '🔒' : '🎁'}</span>
+                          <input name="referredBy" placeholder="Referral Code (Optional)" value={form.referredBy} onChange={handleChange} className={`auth-input${referralCodeValid === false ? ' error' : ''}${referredByLocked ? '' : ''}`} style={{ textTransform: 'uppercase' }} readOnly={referredByLocked} title={referredByLocked ? 'Pre-filled from referral link. Clear to change.' : ''} />
+                          {referredByLocked && !referralCodeChecking && (
+                            <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#6070a0', cursor: 'pointer' }} onClick={() => { setForm(prev => ({ ...prev, referredBy: '' })); setReferredByLocked(false); setReferralCodeValid(null); }} title="Clear">
+                              ✕
+                            </span>
+                          )}
+                          {!referredByLocked && referralCodeChecking && <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#6070a0' }}>Checking...</span>}
+                          {!referredByLocked && referralCodeValid === true && <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: '#00c8b4' }}>✓</span>}
+                          {!referredByLocked && referralCodeValid === false && <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#f87171' }}>Invalid</span>}
+                          {referredByLocked && (
+                            <div style={{ fontSize: 10, color: '#6070a0', marginTop: 2, paddingLeft: 2 }}>
+                              Auto-filled from referral link
+                            </div>
+                          )}
                         </div>
                         <div style={{
                           background: 'rgba(232,66,10,0.06)', border: '1px solid rgba(232,66,10,0.12)',

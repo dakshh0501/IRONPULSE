@@ -44,6 +44,7 @@ export async function getReferrerByCode(code) {
   return {
     uid: user.uid,
     name: user.name || '',
+    email: user.email || '',
     referralCode: code,
     gymId: user.gymId || 'default',
   }

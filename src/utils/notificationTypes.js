@@ -55,6 +55,12 @@ export const NOTIF_TYPES = {
   referral_applied:    { type: 'referral', icon: '✅', priority: 'normal' },
   referral_discount:   { type: 'referral', icon: '🏷️', priority: 'normal' },
   referral_coupon:     { type: 'referral', icon: '🎟️', priority: 'normal' },
+  referral_joined:     { type: 'referral', icon: '👋', priority: 'normal' },
+  referral_verified:   { type: 'referral', icon: '✅', priority: 'normal' },
+  referral_reward_earned: { type: 'referral', icon: '💰', priority: 'high' },
+  referral_reward_redeemed:{ type: 'referral', icon: '🎁', priority: 'normal' },
+  referral_reward_expired: { type: 'referral', icon: '⏰', priority: 'normal' },
+  referral_rejected:   { type: 'referral', icon: '❌', priority: 'high' },
 }
 
 export function buildNotification(notifKey, data) {

@@ -49,6 +49,11 @@ const GymSubscription     = lazy(() => import('./pages/GymSubscription'))
 const GymDevices          = lazy(() => import('./pages/DeviceManagement'))
 const Referral            = lazy(() => import('./pages/Referral'))
 const ReferralManagement  = lazy(() => import('./pages/superadmin/ReferralManagement'))
+const ReferralAnalytics   = lazy(() => import('./pages/superadmin/ReferralAnalytics'))
+const MyRewards           = lazy(() => import('./pages/MyRewards'))
+const GymReferralDashboard = lazy(() => import('./pages/gym/ReferralDashboard'))
+const GymReferralFraud    = lazy(() => import('./pages/gym/ReferralFraud'))
+const GymCouponManagement = lazy(() => import('./pages/gym/CouponManagement'))
 const NotFound            = lazy(() => import('./pages/NotFound'))
 const Rejected            = lazy(() => import('./pages/Rejected'))
 const VerifyEmail         = lazy(() => import('./pages/VerifyEmail'))
@@ -278,7 +283,12 @@ function RouterTree() {
 
             {/* Referral routes */}
             <Route path="referral" element={<RoleGate allowedRoles={['member']}><Referral /></RoleGate>} />
+            <Route path="member/rewards" element={<RoleGate allowedRoles={['member']}><MyRewards /></RoleGate>} />
             <Route path="referrals" element={<RoleGate allowedRoles={['super_admin']}><ReferralManagement /></RoleGate>} />
+            <Route path="referrals/analytics" element={<RoleGate allowedRoles={['super_admin']}><ReferralAnalytics /></RoleGate>} />
+            <Route path="referrals/dashboard" element={<RoleGate allowedRoles={['gym_admin']}><GymReferralDashboard /></RoleGate>} />
+            <Route path="referrals/fraud" element={<RoleGate allowedRoles={['super_admin','gym_admin']}><GymReferralFraud /></RoleGate>} />
+            <Route path="referrals/coupons" element={<RoleGate allowedRoles={['super_admin','gym_admin']}><GymCouponManagement /></RoleGate>} />
 
             {/* Super admin only */}
             <Route path="gymOwners" element={<RoleGate allowedRoles={['super_admin']}><SuperAdminGymOwners /></RoleGate>} />

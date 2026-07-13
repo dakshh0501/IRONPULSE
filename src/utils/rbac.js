@@ -57,6 +57,9 @@ export const NAVIGATION = {
     { key:'reports',       label:'Reports',          icon:'📊' },
     { key:'license',       label:'License Keys',     icon:'🔑' },
     { key:'referrals',     label:'Referral Management',icon:'🎁' },
+    { key:'referrals/analytics', label:'Referral Analytics',icon:'📊' },
+    { key:'referrals/fraud', label:'Fraud Monitoring',icon:'🛡️' },
+    { key:'referrals/coupons', label:'Coupons',icon:'🎟️' },
   ],
   gym_admin: [
     { section:'Main' },
@@ -78,6 +81,10 @@ export const NAVIGATION = {
     { section:'Attendance' },
     { key:'attendance',    label:'Attendance',      icon:'📋' },
     { key:'reception',     label:'Reception Mode',  icon:'🚪' },
+    { section:'Referral' },
+    { key:'referrals/dashboard', label:'Referral Dashboard',icon:'📊' },
+    { key:'referrals/fraud',     label:'Fraud Monitoring',icon:'🛡️' },
+    { key:'referrals/coupons',   label:'Coupons',icon:'🎟️' },
     { section:'Subscription' },
     { key:'subscription',  label:'My Subscription', icon:'📋' },
     { key:'devices',       label:'Registered Devices',icon:'📱' },
@@ -107,6 +114,7 @@ export const NAVIGATION = {
     { key:'payments',      label:'My Payments',     icon:'💳' },
     { key:'attendance',    label:'Check In',        icon:'📱' },
     { key:'referral',      label:'Refer & Earn',    icon:'🎁' },
+    { key:'member/rewards',label:'My Rewards',      icon:'💰' },
     { key:'notifications', label:'Notifications',   icon:'🔔', badge:'notifs' },
   ],
 }
@@ -131,7 +139,7 @@ export function canSubscribe(role, collection) {
     supportTickets:   ['super_admin','gym_admin'],
     featureRequests:  ['super_admin','gym_admin'],
     referrals:        ['super_admin','gym_admin','member'],
-    referralSettings: ['super_admin','gym_admin'],
+    referralSettings: ['super_admin','gym_admin','member'],
   }
   const result = gate[collection]?.includes(role) ?? false
   if (!(collection in gate)) {

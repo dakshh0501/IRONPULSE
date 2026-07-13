@@ -36,6 +36,7 @@ const PAGE_TITLES = {
   '/member/attendance':  'Check In',
   '/member/notifications':'Notifications',
   '/member/referral':     'Refer & Earn',
+  '/member/rewards':      'My Rewards',
   '/trainer/dashboard':   'Trainer Dashboard',
   '/trainer/members':     'My Clients',
   '/trainer/workouts':    'Workout Plans',
@@ -45,6 +46,9 @@ const PAGE_TITLES = {
   '/trainer/notifications':'Notifications',
   '/referral':      'Refer & Earn',
   '/referrals':     'Referral Management',
+  '/referrals/dashboard':'Referral Dashboard',
+  '/referrals/fraud':'Fraud Monitoring',
+  '/referrals/coupons':'Coupon Management',
 }
 
 const PAGE_BREADCRUMBS = {
@@ -88,6 +92,10 @@ const PAGE_BREADCRUMBS = {
   '/trainer/notifications':{ primary: 'Notifications', secondary: 'Alerts' },
   '/referral':        { primary: 'Refer & Earn', secondary: 'Invite Friends' },
   '/referrals':       { primary: 'Referral Management', secondary: 'Analytics & Settings' },
+  '/member/rewards':      { primary: 'My Rewards', secondary: 'Redeem & Track' },
+  '/referrals/dashboard': { primary: 'Referral Dashboard', secondary: 'Gym Performance' },
+  '/referrals/fraud':     { primary: 'Fraud Monitoring', secondary: 'Security' },
+  '/referrals/coupons':   { primary: 'Coupon Management', secondary: 'Discount Coupons' },
 }
 
 export default function Header({ search, setSearch, setMobileOpen }) {

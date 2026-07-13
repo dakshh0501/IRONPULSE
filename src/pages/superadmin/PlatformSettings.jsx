@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { getSettings, saveSettings } from '../../services/firestoreService'
 import { SUPPORT_EMAIL, SUPPORT_WHATSAPP } from '../../config/support'
+import ReferralSettingsSection from './ReferralSettingsSection'
 
 if (!document.getElementById('ps-styles')) {
   const psStyles = document.createElement('style')
@@ -178,6 +179,7 @@ const TABS = [
   { key:'security',     label:'Security',          icon:'🔒', desc:'Password policy & access' },
   { key:'storage',      label:'Storage & Backup',  icon:'💾', desc:'Data & backup management' },
   { key:'integrations', label:'Integrations',      icon:'🔌', desc:'Connected services status' },
+  { key:'referral',     label:'Referral',          icon:'🎁', desc:'Referral program settings' },
   { key:'system',       label:'System Status',     icon:'📊', desc:'Platform health monitoring' },
 ]
 
@@ -732,6 +734,8 @@ export default function PlatformSettings() {
     </>
   )
 
+  const renderReferral = () => <ReferralSettingsSection />
+
   const TAB_RENDERERS = {
     branding: renderBranding,
     general: renderGeneral,
@@ -744,6 +748,7 @@ export default function PlatformSettings() {
     security: renderSecurity,
     storage: renderStorage,
     integrations: renderIntegrations,
+    referral: renderReferral,
     system: renderSystem,
   }
 

@@ -108,6 +108,10 @@ import {
   subscribeToReferralSettings,
   createReferral as createReferralInFirestore,
   updateReferral as updateReferralInFirestore,
+  subscribeToRewardLedger,
+  subscribeToGymRewardLedger,
+  subscribeToMyDiscountCoupons,
+  subscribeToGymDiscountCoupons,
 } from '../services/referralService'
 import { fetchSecurityMetrics as fetchSecurityMetricsFromService } from '../services/securityService'
 
@@ -153,6 +157,8 @@ export function AppProvider({ children }) {
   const [referrals, setReferrals] = useState([])
   const [referralSettings, setReferralSettings] = useState(null)
   const [referralsLoading, setReferralsLoading] = useState(true)
+  const [rewardLedger, setRewardLedger] = useState([])
+  const [discountCoupons, setDiscountCoupons] = useState([])
 
   const errorSeq = useRef(0)
   const errorTimers = useRef([])
@@ -736,13 +742,37 @@ export function AppProvider({ children }) {
     return () => { if (unsub) unsub() }
   }, [currentUser, authLoading, effectiveRole, gymId])
 
-  // ── Referral Settings listener (super_admin only) ──
+  // ── Referral Settings listener (super_admin / gym_admin / member) ──
   useEffect(() => {
     if (authLoading || !currentUser) return
-    if (effectiveRole !== 'super_admin' && effectiveRole !== 'gym_admin') return
+    if (effectiveRole !== 'super_admin' && effectiveRole !== 'gym_admin' && effectiveRole !== 'member') return
     const unsub = subscribeToReferralSettings(setReferralSettings, reportSnapshotError)
     return () => unsub()
   }, [currentUser, authLoading, effectiveRole])
+
+  // ── Reward Ledger listener (gym_admin / member) ──────
+  useEffect(() => {
+    if (authLoading || !currentUser) return
+    let unsub
+    if (effectiveRole === 'member' && currentUser?.uid) {
+      unsub = subscribeToRewardLedger(currentUser.uid, (data) => setRewardLedger(data), reportSnapshotError)
+    } else if (gymId && (effectiveRole === 'gym_admin' || effectiveRole === 'super_admin')) {
+      unsub = subscribeToGymRewardLedger(gymId, (data) => setRewardLedger(data), reportSnapshotError)
+    }
+    return () => { if (unsub) unsub() }
+  }, [currentUser, authLoading, effectiveRole, gymId])
+
+  // ── Discount Coupons listener (gym_admin / member) ──
+  useEffect(() => {
+    if (authLoading || !currentUser) return
+    let unsub
+    if (effectiveRole === 'member' && currentUser?.uid) {
+      unsub = subscribeToMyDiscountCoupons(currentUser.uid, (data) => setDiscountCoupons(data), reportSnapshotError)
+    } else if (gymId && (effectiveRole === 'gym_admin' || effectiveRole === 'super_admin')) {
+      unsub = subscribeToGymDiscountCoupons(gymId, (data) => setDiscountCoupons(data), reportSnapshotError)
+    }
+    return () => { if (unsub) unsub() }
+  }, [currentUser, authLoading, effectiveRole, gymId])
 
   // ── Attendance listener ────────────────────────────────
   useEffect(() => {
@@ -1543,6 +1573,7 @@ export function AppProvider({ children }) {
     supportTickets, supportTicketsLoading,
     featureRequests, featureRequestsLoading, notifLoading,
     referrals, referralSettings, referralsLoading,
+    rewardLedger, discountCoupons,
     securityMetrics, securityMetricsLoading, unreadCount,
     ...actionsRef.current,
   }), [
@@ -1556,6 +1587,7 @@ export function AppProvider({ children }) {
     supportTickets, supportTicketsLoading,
     featureRequests, featureRequestsLoading, notifLoading,
     referrals, referralSettings, referralsLoading,
+    rewardLedger, discountCoupons,
     securityMetrics, securityMetricsLoading, unreadCount,
   ])
 

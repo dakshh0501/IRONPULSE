@@ -463,6 +463,20 @@ service cloud.firestore {
     }
 
     // ════════════════════════════════════════════════════════
+    //  REFERRAL AUDIT LOGS (super admin only — referral events)
+    // ════════════════════════════════════════════════════════
+    match /referralAuditLogs/{logId} {
+
+      allow read: if isSuperAdmin() || (
+        isGymAdmin() && resource.data.gymId == getCallerGymId()
+      );
+
+      allow create: if isAuthed();
+
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // ════════════════════════════════════════════════════════
     //  AUDIT LOG (super admin only — sensitive changes)
     // ════════════════════════════════════════════════════════
     match /auditLog/{logId} {

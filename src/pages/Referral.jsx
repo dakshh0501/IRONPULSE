@@ -1,9 +1,9 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
-import { getReferralStats, buildReferralLink } from '../services/referralService'
+import { getReferralStats, buildReferralLink, buildShareMessage, getShareMessageTemplate } from '../services/referralService'
 import QRCode from 'react-qr-code'
-import { Copy, Share2, QrCode, Check, Users, Gift, TrendingUp, Clock, Award, ExternalLink } from 'lucide-react'
+import { Copy, Share2, QrCode, Check, Users, Gift, TrendingUp, Clock, Award, ExternalLink, MessageCircle } from 'lucide-react'
 
 const STATUS_STEPS = ['Pending', 'Qualified', 'Rewarded']
 
@@ -69,7 +69,7 @@ function StatusBadge({ status }) {
 
 export default function Referral() {
   const { currentUser, userProfile } = useAuth()
-  const { referrals, referralsLoading } = useApp()
+  const { referrals, referralsLoading, referralSettings } = useApp()
 
   const [filter, setFilter] = useState('All')
   const [searchText, setSearchText] = useState('')
@@ -133,19 +133,29 @@ export default function Referral() {
     setTimeout(() => setCopiedLink(false), 2000)
   }, [referralLink])
 
+  const shareMessage = useMemo(() => {
+    const template = getShareMessageTemplate(referralSettings)
+    return buildShareMessage(template, referralCode, referralLink)
+  }, [referralCode, referralLink, referralSettings])
+
   const handleShare = useCallback(async () => {
     if (!referralCode) return
     const shareData = {
       title: 'Refer & Earn — IRONPULSE',
-      text: `Join me at the gym! Use my referral code: ${referralCode}`,
-      url: referralLink,
+      text: shareMessage,
     }
     if (navigator.share) {
       try { await navigator.share(shareData); return }
       catch {}
     }
     await handleCopyLink()
-  }, [referralCode, referralLink, handleCopyLink])
+  }, [referralCode, shareMessage, handleCopyLink])
+
+  const handleShareWhatsApp = useCallback(() => {
+    if (!referralCode) return
+    const encoded = encodeURIComponent(shareMessage)
+    window.open(`https://wa.me/?text=${encoded}`, '_blank', 'noopener,noreferrer')
+  }, [referralCode, shareMessage])
 
   const formatDate = (ts) => {
     if (!ts) return '--'
@@ -193,14 +203,25 @@ export default function Referral() {
             <div style={{
               fontSize: 34, fontWeight: 800, letterSpacing: '0.14em',
               color: 'var(--orange)', fontFamily: "'Barlow Condensed', monospace",
-              marginBottom: 14, userSelect: 'all',
+              marginBottom: 6, userSelect: 'all',
             }}>
               {referralCode || '---'}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 14, wordBreak: 'break-all', userSelect: 'all', fontFamily: 'monospace' }}>
+              {referralLink}
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
               <button className="btn btn-primary btn-sm" onClick={handleCopyCode} disabled={!referralCode} style={{ minWidth: 90 }} aria-label="Copy referral code">
                 {copiedCode ? <Check size={14} /> : <Copy size={14} />}
                 {copiedCode ? 'Copied' : 'Copy Code'}
+              </button>
+              <button className="btn btn-outline btn-sm" onClick={handleCopyLink} disabled={!referralCode} aria-label="Copy referral link">
+                {copiedLink ? <Check size={14} /> : <Copy size={14} />}
+                {copiedLink ? 'Copied' : 'Copy Link'}
+              </button>
+              <button className="btn btn-outline btn-sm" onClick={handleShareWhatsApp} disabled={!referralCode} style={{ background: 'rgba(37,211,102,0.1)', borderColor: 'rgba(37,211,102,0.25)', color: 'var(--green)' }} aria-label="Share via WhatsApp">
+                <MessageCircle size={14} />
+                WhatsApp
               </button>
               <button className="btn btn-outline btn-sm" onClick={handleShare} disabled={!referralCode} aria-label="Share referral link">
                 <Share2 size={14} />
@@ -353,9 +374,14 @@ export default function Referral() {
                 </div>
                 <h3>No referrals yet</h3>
                 <p>Share your referral code with friends and start earning rewards when they join.</p>
-                <button className="btn btn-primary btn-sm" style={{ marginTop: 12 }} onClick={handleShare} disabled={!referralCode}>
-                  <Share2 size={14} /> Share Your Code
-                </button>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 12 }}>
+                  <button className="btn btn-primary btn-sm" onClick={handleShare} disabled={!referralCode}>
+                    <Share2 size={14} /> Share
+                  </button>
+                  <button className="btn btn-outline btn-sm" onClick={handleShareWhatsApp} disabled={!referralCode} style={{ background: 'rgba(37,211,102,0.1)', borderColor: 'rgba(37,211,102,0.25)', color: 'var(--green)' }}>
+                    <MessageCircle size={14} /> WhatsApp
+                  </button>
+                </div>
               </div>
             ) : filtered.length === 0 ? (
               <div className="empty-state">

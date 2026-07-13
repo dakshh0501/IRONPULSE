@@ -90,6 +90,7 @@ export async function createReferral(referralData) {
       rewardValue: Number(referralData.rewardValue) || 0,
       rewardIssued: false,
       firstPaymentId: referralData.firstPaymentId || '',
+      expiresAt: referralData.expiresAt || null,
       createdAt: serverTimestamp(),
       qualifiedAt: null,
       rewardedAt: null,
@@ -357,7 +358,66 @@ export async function redeemDiscountCoupon(couponId) {
 
 // ── REFERRAL LINK UTILS ──────────────────────────
 
+const APP_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_APP_URL) || (typeof window !== 'undefined' ? window.location.origin : '')
+
 export function buildReferralLink(referralCode) {
   if (!referralCode) return ''
-  return `https://ironpulse.app/register?ref=${referralCode}`
+  return `${APP_URL}/signup?ref=${referralCode}`
+}
+
+// ── DUPLICATE REFERRAL CHECK ─────────────────────
+
+export async function hasPendingReferral(referredUid) {
+  if (!referredUid) return false
+  const q = query(
+    collection(db, 'referrals'),
+    where('referredUid', '==', referredUid),
+    where('status', '==', 'Pending'),
+    limit(1)
+  )
+  const snap = await getDocs(q)
+  return !snap.empty
+}
+
+// ── EXPIRY CHECK ─────────────────────────────────
+
+export function isReferralExpired(referral) {
+  if (!referral.expiresAt) return false
+  const expiresAt = referral.expiresAt?.seconds
+    ? new Date(referral.expiresAt.seconds * 1000)
+    : new Date(referral.expiresAt)
+  return expiresAt < new Date()
+}
+
+// ── SHARE MESSAGE ────────────────────────────────
+
+export function buildShareMessage(template, referralCode, referralLink) {
+  if (!template) {
+    return `Join me on IRONPULSE Gym Management!\n\nUse my referral link:\n${referralLink}\n\nOr enter my referral code during signup:\n${referralCode}`
+  }
+  return template
+    .replace(/\{\{LINK\}\}/g, referralLink)
+    .replace(/\{\{CODE\}\}/g, referralCode)
+}
+
+export function getShareMessageTemplate(settings) {
+  return settings?.shareMessage || ''
+}
+
+// ── REFERRAL AUDIT LOG ───────────────────────────
+
+export async function logReferralAudit({ action, performedBy, targetUid, referralId, metadata }) {
+  try {
+    await addDoc(collection(db, 'referralAuditLogs'), {
+      timestamp: serverTimestamp(),
+      action,
+      performedBy: performedBy || '',
+      targetUid: targetUid || '',
+      referralId: referralId || '',
+      metadata: metadata || {},
+      createdAt: serverTimestamp(),
+    })
+  } catch (err) {
+    console.error('[ReferralService] Audit log error (non-blocking):', err)
+  }
 }
