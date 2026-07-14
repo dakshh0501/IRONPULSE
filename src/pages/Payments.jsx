@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import {
@@ -777,7 +777,12 @@ export default function Payments() {
     return Object.values(months).sort((a, b) => order.indexOf(a.month) - order.indexOf(b.month))
   }, [payments])
 
-  const showPaymentError = useCallback((msg) => { setPaymentError(msg); setTimeout(() => setPaymentError(''), 5000) }, [])
+  const errorTimerRef = useRef(null)
+  const showPaymentError = useCallback((msg) => {
+    setPaymentError(msg)
+    if (errorTimerRef.current) clearTimeout(errorTimerRef.current)
+    errorTimerRef.current = setTimeout(() => { setPaymentError(''); errorTimerRef.current = null }, 5000)
+  }, [])
 
   const handleMarkPaid = async (id) => {
     try {

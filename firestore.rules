@@ -181,8 +181,7 @@ service cloud.firestore {
       allow read: if (isStaff() && inCallersGym()) || isOwnAttendance(resource.data.memberId);
       allow create: if (isStaff() && inCallersGymCreate()) || (
         isMember() &&
-        exists(/databases/$(database)/documents/members/$(request.resource.data.memberId)) &&
-        get(/databases/$(database)/documents/members/$(request.resource.data.memberId)).data.authUid == request.auth.uid
+        isOwnAttendance(request.resource.data.memberId)
       );
       allow update: if isAdminOrOwner() && inCallersGym();
       allow delete: if isAdminOrOwner() && inCallersGym();
@@ -353,7 +352,7 @@ service cloud.firestore {
         isGymAdmin() && resource.data.gymId == getCallerGymId()
       );
 
-      allow create: if isStaff() && (
+      allow create: if isAdminOrOwner() && (
         isSuperAdmin() || request.resource.data.gymId == getCallerGymId()
       );
 

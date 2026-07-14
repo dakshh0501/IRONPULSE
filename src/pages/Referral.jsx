@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import { getReferralStats, buildReferralLink, buildShareMessage, getShareMessageTemplate } from '../services/referralService'
 import QRCode from 'react-qr-code'
-import { Copy, Share2, QrCode, Check, Users, Gift, TrendingUp, Clock, Award, ExternalLink, MessageCircle } from 'lucide-react'
+import { Copy, Share2, QrCode, Check, Users, Gift, TrendingUp, Clock, Award, MessageCircle } from 'lucide-react'
 
 const STATUS_STEPS = ['Pending', 'Qualified', 'Rewarded']
 
@@ -68,7 +68,7 @@ function StatusBadge({ status }) {
 }
 
 export default function Referral() {
-  const { currentUser, userProfile } = useAuth()
+  const { userProfile } = useAuth()
   const { referrals, referralsLoading, referralSettings } = useApp()
 
   const [filter, setFilter] = useState('All')

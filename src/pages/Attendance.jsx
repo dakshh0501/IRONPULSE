@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, memo } from 'react'
+import { useState, useMemo, useEffect, useCallback, memo, useRef } from 'react'
 import { useApp }            from '../context/AppContext'
 import { useAuth }           from '../context/AuthContext'
 import { addAttendance as addAttendanceService } from '../services/attendanceService'
@@ -402,7 +402,12 @@ export default function Attendance() {
   }, [attendance])
   const weeklyAvg = Math.round(weekdays.reduce((s, v) => s + v, 0) / 7)
 
-  const showError = useCallback((msg) => { setErrorMsg(msg); setTimeout(() => setErrorMsg(''), 5000) }, [])
+  const errorTimerRef = useRef(null)
+  const showError = useCallback((msg) => {
+    setErrorMsg(msg)
+    if (errorTimerRef.current) clearTimeout(errorTimerRef.current)
+    errorTimerRef.current = setTimeout(() => { setErrorMsg(''); errorTimerRef.current = null }, 5000)
+  }, [])
 
   const handleCheckIn = useCallback(async (member) => {
     const uid = member.authUid || member.uid || member.id

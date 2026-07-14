@@ -2,9 +2,8 @@ import { useState, useMemo } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import {
-  LineChart, Line, AreaChart, Area, BarChart, Bar,
-  XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  ReferenceLine, Legend,
+  LineChart, Line, AreaChart, Area,
+  XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from 'recharts'
 // ─────────────────────────────────────────────────────────────
 //  CONSTANTS
@@ -263,15 +262,16 @@ export default function Progress() {
       setEditEntry(null)
     } catch (e) {
       console.error('Failed to update progress entry:', e)
+      alert('Failed to update progress entry: ' + (e.message || 'Unknown error'))
     }
   }
 
   const handleDelete = async (logId) => {
-    if (!window.confirm('Delete this progress entry? This cannot be undone.')) return
     try {
       await deleteProgressLog(logId)
     } catch (e) {
       console.error('Failed to delete progress entry:', e)
+      alert('Failed to delete progress entry: ' + (e.message || 'Unknown error'))
     }
   }
 

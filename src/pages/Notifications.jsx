@@ -181,13 +181,22 @@ export default function Notifications() {
 
   const groupOrder = ['Today', 'Yesterday', 'This Week', 'Earlier']
 
-  const handleMarkRead = async (id) => { await markNotifRead(id) }
+  const handleMarkRead = async (id) => {
+    try { await markNotifRead(id) }
+    catch (e) { console.error('Failed to mark as read:', e); setToast('Failed to mark as read') }
+  }
   const handleMarkUnread = async (id) => {
     try { await markNotifUnread(id); setToast('Marked as unread') }
     catch (e) { console.error('Failed to mark as unread:', e); setToast('Failed to mark as unread') }
   }
-  const handleDelete = async (id) => { await deleteNotif(id); setToast('Dismissed') }
-  const handleMarkAllRead = async () => { await markAllNotifsRead(); setToast('All marked read') }
+  const handleDelete = async (id) => {
+    try { await deleteNotif(id); setToast('Dismissed') }
+    catch (e) { console.error('Failed to delete notification:', e); setToast('Failed to delete') }
+  }
+  const handleMarkAllRead = async () => {
+    try { await markAllNotifsRead(); setToast('All marked read') }
+    catch (e) { console.error('Failed to mark all as read:', e); setToast('Failed to mark all as read') }
+  }
 
   if (notifLoading) {
     return (
