@@ -80,7 +80,7 @@ function StatCard({ label, value, icon, color, delay = 0 }) {
       transition: `all 0.5s cubic-bezier(0.16,1,0.3,1) ${delay * 50}ms`,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <div className="sntf-stat-icon" style={{ background: `${color}18`, color }}>{icon}</div>
+        <div className="sntf-stat-icon" aria-hidden="true" style={{ background: `${color}18`, color }}>{icon}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="sntf-stat-label">{label}</div>
           <div className="sntf-stat-value"><AnimatedCounter value={value} /></div>
@@ -159,7 +159,7 @@ export default function SuperAdminNotifications() {
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         {tabs.map(t => (
           <button key={t.key} className={`sntf-tab ${filter === t.key ? 'active' : ''}`} onClick={() => setFilter(t.key)}>
-            {t.icon} {t.label}
+            <span aria-hidden="true">{t.icon}</span> {t.label}
             {t.count !== undefined && (
               <span style={{ marginLeft: 4, background: 'var(--bg3)', padding: '1px 6px', borderRadius: 8, fontSize: 10 }}>{t.count}</span>
             )}
@@ -170,7 +170,7 @@ export default function SuperAdminNotifications() {
       <div className="sntf-card" style={{ padding: 0, overflow: 'hidden' }}>
         {filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 24px' }}>
-            <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.5 }}>📭</div>
+            <div aria-hidden="true" style={{ fontSize: 40, marginBottom: 12, opacity: 0.5 }}>📭</div>
             <p style={{ fontSize: 14, color: '#6070a0', margin: '0 0 4px' }}>No notifications found</p>
             <p style={{ fontSize: 12, color: '#384860', margin: 0 }}>Try a different filter tab.</p>
           </div>
@@ -187,7 +187,7 @@ export default function SuperAdminNotifications() {
                   width: 36, height: 36, borderRadius: 10, flexShrink: 0,
                   background: 'var(--hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
                 }}>
-                  {n.icon || '📢'}
+                  <span aria-hidden="true">{n.icon || '📢'}</span>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
@@ -219,10 +219,10 @@ export default function SuperAdminNotifications() {
       {/* ── Broadcast Modal ── */}
       {showBroadcast && (
         <div className="modal-overlay" onClick={() => !broadcastSending && setShowBroadcast(false)}>
-          <div className="modal" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+          <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="modal-title">📢 Send Broadcast</h3>
-              <button className="modal-close" onClick={() => setShowBroadcast(false)} disabled={broadcastSending}>✕</button>
+              <button className="modal-close" aria-label="Close" onClick={() => setShowBroadcast(false)} disabled={broadcastSending}>✕</button>
             </div>
             <div className="modal-body">
               <div style={{ marginBottom: 14 }}>

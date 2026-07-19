@@ -395,7 +395,7 @@ function StatCard({ label, value, icon, color, delay = 0 }) {
       transition: `all 0.5s cubic-bezier(0.16,1,0.3,1) ${delay * 50}ms`,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <div className="dev-stat-icon" style={{ background: `${color}18`, color }}>{icon}</div>
+        <div className="dev-stat-icon" aria-hidden="true" style={{ background: `${color}18`, color }}>{icon}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="dev-stat-label">{label}</div>
           <div className="dev-stat-value"><AnimatedCounter value={value} /></div>
@@ -631,9 +631,9 @@ export default function SuperAdminDeviceManagement() {
       <style>{devStyles.textContent}</style>
 
       {actionError && (
-        <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:10, padding:'10px 14px', marginBottom:16, fontSize:13, color:'#f87171', textAlign:'center', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+        <div role="alert" style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:10, padding:'10px 14px', marginBottom:16, fontSize:13, color:'#f87171', textAlign:'center', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
           <span>✗ {actionError}</span>
-          <button onClick={() => setActionError('')} style={{ background:'none', border:'none', color:'#f87171', cursor:'pointer', fontSize:14, padding:'0 4px' }}>✕</button>
+          <button onClick={() => setActionError('')} style={{ background:'none', border:'none', color:'#f87171', cursor:'pointer', fontSize:14, padding:'0 4px' }} aria-label="Dismiss error">✕</button>
         </div>
       )}
 
@@ -646,9 +646,10 @@ export default function SuperAdminDeviceManagement() {
           {Object.keys(gymMap).filter(gid => allDevices.some(d => d.gymId === gid)).map(gid => (
             <button key={gid} className="dev-btn-secondary" style={{ fontSize: 12 }}
               onClick={() => setConfirmReset(gid)} disabled={loading}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4, verticalAlign: 'middle' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" style={{ marginRight: 4, verticalAlign: 'middle' }}>
                 <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
               </svg>
+              
               Reset {gymMap[gid]}
             </button>
           ))}
@@ -667,17 +668,17 @@ export default function SuperAdminDeviceManagement() {
       <div className="dev-card" style={{ padding: '12px 16px', marginBottom: 16 }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: 200, maxWidth: 300 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="2" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="2" aria-hidden="true" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
-            <input className="dev-input" style={{ paddingLeft: 34 }} placeholder="Search by device, gym or platform..." value={localSearch} onChange={e => { setLocalSearch(e.target.value); setPage(1) }} />
+            <input className="dev-input" style={{ paddingLeft: 34 }} placeholder="Search by device, gym or platform..." value={localSearch} onChange={e => { setLocalSearch(e.target.value); setPage(1) }} aria-label="Search by device, gym or platform" />
             {localSearch && (
-              <button onClick={() => setLocalSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: 4 }}>
+              <button onClick={() => setLocalSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: 4 }} aria-label="Clear search">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             )}
           </div>
-          <select className="dev-select" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }} style={{ minWidth: 120 }}>
+          <select className="dev-select" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }} style={{ minWidth: 120 }} aria-label="Filter by status">
             <option value="All">All Status</option>
             <option value="Active">Active</option>
             <option value="Online">Online</option>
@@ -685,7 +686,7 @@ export default function SuperAdminDeviceManagement() {
             <option value="Suspended">Suspended</option>
             <option value="Revoked">Revoked</option>
           </select>
-          <select className="dev-select" value={platformFilter} onChange={e => { setPlatformFilter(e.target.value); setPage(1) }} style={{ minWidth: 120 }}>
+          <select className="dev-select" value={platformFilter} onChange={e => { setPlatformFilter(e.target.value); setPage(1) }} style={{ minWidth: 120 }} aria-label="Filter by platform">
             <option value="All">All Platforms</option>
             <option value="Windows">Windows</option>
             <option value="Android">Android</option>
@@ -693,7 +694,7 @@ export default function SuperAdminDeviceManagement() {
             <option value="Mac">Mac</option>
             <option value="Linux">Linux</option>
           </select>
-          <select className="dev-select" value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }} style={{ minWidth: 130 }}>
+          <select className="dev-select" value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }} style={{ minWidth: 130 }} aria-label="Sort by">
             {SORT_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           {hasFilters && (
@@ -709,13 +710,13 @@ export default function SuperAdminDeviceManagement() {
           <table className="dev-table">
             <thead>
               <tr>
-                <th>Device</th>
-                <th>Gym</th>
-                <th>Platform</th>
-                <th>App Version</th>
-                <th>Status</th>
-                <th>Last Seen</th>
-                <th>Actions</th>
+                <th scope="col">Device</th>
+                <th scope="col">Gym</th>
+                <th scope="col">Platform</th>
+                <th scope="col">App Version</th>
+                <th scope="col">Status</th>
+                <th scope="col">Last Seen</th>
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -724,7 +725,7 @@ export default function SuperAdminDeviceManagement() {
               ) : paginated.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ padding: 48, textAlign: 'center' }}>
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.5 }}>
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="1.5" aria-hidden="true" style={{ marginBottom: 12, opacity: 0.5 }}>
                       <rect x="2" y="2" width="20" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/>
                     </svg>
                     <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: '0 0 4px' }}>No devices registered</p>
@@ -737,7 +738,7 @@ export default function SuperAdminDeviceManagement() {
                 <tr key={dev.id || i} onClick={() => { setDrawerDev(dev); setDrawerTab('overview') }}>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontSize: 20, flexShrink: 0 }}>{getPlatformIcon(dev.platform)}</span>
+                      <span aria-hidden="true" style={{ fontSize: 20, flexShrink: 0 }}>{getPlatformIcon(dev.platform)}</span>
                       <div>
                         <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13 }}>{dev.deviceName || '—'}</div>
                         <div style={{ fontSize: 10, color: 'var(--text-dim)', fontFamily: "'JetBrains Mono', monospace", marginTop: 1 }}>
@@ -753,7 +754,7 @@ export default function SuperAdminDeviceManagement() {
                       color: getPlatformColor(dev.platform),
                       fontSize: 12,
                     }}>
-                      {getPlatformIcon(dev.platform)} {dev.platform || '—'}
+                      <span aria-hidden="true">{getPlatformIcon(dev.platform)}</span> {dev.platform || '—'}
                     </span>
                   </td>
                   <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{dev.appVersion || dev.version || '—'}</td>
@@ -819,15 +820,15 @@ export default function SuperAdminDeviceManagement() {
       {drawerDev && (
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 99, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }} onClick={() => setDrawerDev(null)} />
-          <div className="dev-drawer">
+          <div className="dev-drawer" role="dialog" aria-modal="true">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <button className="dev-btn-secondary" style={{ padding: '6px 10px', fontSize: 11 }} onClick={() => setDrawerDev(null)}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                <button className="dev-btn-secondary" style={{ padding: '6px 10px', fontSize: 11 }} onClick={() => setDrawerDev(null)} aria-label="Close drawer">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
                 </button>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 22 }}>{getPlatformIcon(drawerDev.platform)}</span>
+                    <span aria-hidden="true" style={{ fontSize: 22 }}>{getPlatformIcon(drawerDev.platform)}</span>
                     <div>
                       <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{drawerDev.deviceName || 'Unnamed Device'}</div>
                       <div style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: "'JetBrains Mono', monospace" }}>
@@ -841,8 +842,8 @@ export default function SuperAdminDeviceManagement() {
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
               <div style={{ width: 130, flexShrink: 0, padding: '12px 8px', borderRight: '1px solid var(--border)', overflowY: 'auto' }}>
                 {drawerTabs.map(tab => (
-                  <button key={tab.id} className={`dev-drawer-tab ${drawerTab === tab.id ? 'active' : ''}`} onClick={() => setDrawerTab(tab.id)}>
-                    <span style={{ fontSize: 14 }}>{tab.icon}</span> {tab.label}
+                    <button key={tab.id} className={`dev-drawer-tab ${drawerTab === tab.id ? 'active' : ''}`} onClick={() => setDrawerTab(tab.id)}>
+                    <span aria-hidden="true" style={{ fontSize: 14 }}>{tab.icon}</span> {tab.label}
                   </button>
                 ))}
               </div>
@@ -862,7 +863,7 @@ export default function SuperAdminDeviceManagement() {
                       ['🔑', 'License Key', drawerDev.licenseKey ? drawerDev.licenseKey.substring(0, 16) + '...' : '—'],
                     ].map(([icon, label, value]) => (
                       <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--surface)', borderRadius: 10, fontSize: 13 }}>
-                        <span style={{ fontSize: 14, width: 20, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
+                        <span aria-hidden="true" style={{ fontSize: 14, width: 20, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 1 }}>{label}</div>
                           <div style={{ fontWeight: 600, color: 'var(--text-muted)' }}>{value}</div>
@@ -877,9 +878,9 @@ export default function SuperAdminDeviceManagement() {
                   <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 16px' }}>Device Timeline</h3>
                   <div className="dev-timeline">
                     {[
-                      { action: 'Device Registered', date: drawerDev.createdAt || drawerDev.lastSeen, color: '#3b82f6', icon: '✦' },
-                      { action: 'Status: ' + (drawerDev.status || 'offline'), date: drawerDev.lastSeen, color: drawerDev.status === 'active' ? '#22c55e' : drawerDev.status === 'suspended' ? '#f59e0b' : drawerDev.status === 'revoked' ? '#ef4444' : '#506080', icon: '●' },
-                      { action: 'Last Active', date: drawerDev.lastSeen, color: '#a855f7', icon: '◆' },
+                      { action: 'Device Registered', date: drawerDev.createdAt || drawerDev.lastSeen, color: '#3b82f6', icon: <span aria-hidden="true">✦</span> },
+                      { action: 'Status: ' + (drawerDev.status || 'offline'), date: drawerDev.lastSeen, color: drawerDev.status === 'active' ? '#22c55e' : drawerDev.status === 'suspended' ? '#f59e0b' : drawerDev.status === 'revoked' ? '#ef4444' : '#506080', icon: <span aria-hidden="true">●</span> },
+                      { action: 'Last Active', date: drawerDev.lastSeen, color: '#a855f7', icon: <span aria-hidden="true">◆</span> },
                     ].filter(e => e.date).map((e, i) => (
                       <div key={i} className="dev-timeline-item">
                         <div className="dev-timeline-dot" style={{ borderColor: e.color, color: e.color, fontSize: 9 }}>{e.icon}</div>
@@ -961,10 +962,10 @@ export default function SuperAdminDeviceManagement() {
       )}
 
       {confirmReset && (
-        <div className="modal-overlay" onClick={() => setConfirmReset(null)}>
+        <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setConfirmReset(null)}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: '#ef4444' }}>⚠️</div>
+              <div aria-hidden="true" style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: '#ef4444' }}>⚠️</div>
               <div>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Reset All Devices</h3>
                 <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0' }}>{gymMap[confirmReset]}</p>

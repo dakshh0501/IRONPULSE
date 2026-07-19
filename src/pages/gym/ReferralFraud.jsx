@@ -128,12 +128,13 @@ export default function ReferralFraud() {
                 className="form-input"
                 type="text"
                 placeholder="Search by name..."
+                aria-label="Search suspicious referrals by name"
                 value={searchText}
                 onChange={e => setSearchText(e.target.value)}
                 style={{ width: 200, padding: '6px 12px', fontSize: 12 }}
               />
               {searchText && (
-                <button onClick={() => setSearchText('')} style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-dim)', padding: '2px 4px' }}>✕</button>
+                <button onClick={() => setSearchText('')} aria-label="Clear search" style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-dim)', padding: '2px 4px' }}>✕</button>
               )}
             </div>
           </div>
@@ -156,7 +157,7 @@ export default function ReferralFraud() {
 
         {filteredReports.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: 56, marginBottom: 16, opacity: 0.4 }}>🛡️</div>
+            <div style={{ fontSize: 56, marginBottom: 16, opacity: 0.4 }} aria-hidden="true">🛡️</div>
             <p style={{ fontSize: 15, fontWeight: 600, margin: '0 0 4px' }}>No suspicious activity detected</p>
             <p style={{ fontSize: 12, margin: 0, color: 'var(--text-dim)' }}>The referral system is clean. Fraud alerts will appear here automatically.</p>
           </div>
@@ -165,12 +166,12 @@ export default function ReferralFraud() {
             <table className="data-table" style={{ minWidth: 700 }}>
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Referrer</th>
-                  <th>Referred</th>
-                  <th>Fraud Score</th>
-                  <th>Flags</th>
-                  <th>Status</th>
+                  <th scope="col">Date</th>
+                  <th scope="col">Referrer</th>
+                  <th scope="col">Referred</th>
+                  <th scope="col">Fraud Score</th>
+                  <th scope="col">Flags</th>
+                  <th scope="col">Status</th>
                 </tr>
               </thead>
               <tbody>

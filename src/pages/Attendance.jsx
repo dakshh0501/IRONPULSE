@@ -25,7 +25,7 @@ function WeekHeatmap({ logs, todayStr }) {
   const max = Math.max(...days.map(d => d.count), 1)
 
   return (
-    <div className="att-heatmap-card">
+    <div className="att-heatmap-card" role="img" aria-label="7-day attendance heatmap showing daily check-in counts">
       <div className="att-heatmap-header">
         <div className="att-heatmap-title">7-Day Attendance</div>
         <div className="att-heatmap-desc">Daily check-in count</div>
@@ -103,7 +103,7 @@ function PeakHoursChart({ logs }) {
   const max = Math.max(...hours.map(h => h.count), 1)
 
   return (
-    <div className="att-heatmap-card">
+    <div className="att-heatmap-card" role="img" aria-label="Peak hours chart showing check-in distribution by hour">
       <div className="att-heatmap-header">
         <div className="att-heatmap-title">Peak Hours</div>
         <div className="att-heatmap-desc">Check-in distribution by hour</div>
@@ -142,16 +142,16 @@ function QuickCheckIn({ members, onCheckIn, onOpenScanner, scanResult, todayLogs
   return (
     <div className="att-quick-card">
       <div className="att-quick-header">
-        <span className="att-quick-icon">⚡</span>
+        <span className="att-quick-icon" aria-hidden="true">⚡</span>
         <div>
           <div className="att-quick-title">Quick Check-In</div>
           <div className="att-quick-desc">Search and check in members instantly</div>
         </div>
       </div>
       <div className="att-quick-search-wrap">
-        <span className="att-quick-search-icon">🔍</span>
-        <input className="att-quick-search" placeholder="Search member by name, email or phone..." value={q} onChange={e => setQ(e.target.value)} />
-        {q && <button className="att-quick-clear" onClick={() => setQ('')}>✕</button>}
+        <span className="att-quick-search-icon" aria-hidden="true">🔍</span>
+        <input className="att-quick-search" aria-label="Search member by name, email or phone" placeholder="Search member by name, email or phone..." value={q} onChange={e => setQ(e.target.value)} />
+        {q && <button className="att-quick-clear" aria-label="Clear search" onClick={() => setQ('')}>✕</button>}
       </div>
       {q && filtered.length > 0 && (
         <div className="att-quick-results">
@@ -208,7 +208,7 @@ function TodayTimeline({ logs }) {
           <div className="att-timeline-desc">Chronological check-in feed</div>
         </div>
         <div className="att-empty">
-          <div className="att-empty-icon">📭</div>
+          <div className="att-empty-icon" aria-hidden="true">📭</div>
           <div className="att-empty-title">No check-ins yet today</div>
           <div className="att-empty-text">Check-ins will appear here as members arrive.</div>
         </div>
@@ -283,9 +283,9 @@ function AttendanceTable({ logs, search, members, todayStr }) {
         <div className="att-table-toolbar-left">
           <span className="att-table-title">Attendance Log</span>
           <div className="att-table-search-wrap">
-            <input className="att-table-search" placeholder="Search member or plan..." value={localSearch} onChange={e => { setLocalSearch(e.target.value); setPage(1) }} />
+            <input className="att-table-search" aria-label="Search member or plan" placeholder="Search member or plan..." value={localSearch} onChange={e => { setLocalSearch(e.target.value); setPage(1) }} />
           </div>
-          <input type="date" className="form-input" value={dateFilter} onChange={e => { setDateFilter(e.target.value); setPage(1) }} style={{ width:'auto', fontSize:12, height:34, padding:'6px 10px' }} />
+          <input type="date" className="form-input" aria-label="Filter by date" value={dateFilter} onChange={e => { setDateFilter(e.target.value); setPage(1) }} style={{ width:'auto', fontSize:12, height:34, padding:'6px 10px' }} />
         </div>
         <div className="att-table-toolbar-right">
           {['All','QR','Manual'].map(m => (
@@ -299,14 +299,14 @@ function AttendanceTable({ logs, search, members, todayStr }) {
         <table className="att-table">
           <thead>
             <tr>
-              <th style={{ width:36 }}>#</th>
-              <th>Member</th>
-              <th>Date</th>
-              <th>Check In</th>
-              <th>Duration</th>
-              <th>Method</th>
-              <th>Plan</th>
-              <th>Trainer</th>
+              <th scope="col" style={{ width:36 }}>#</th>
+              <th scope="col">Member</th>
+              <th scope="col">Date</th>
+              <th scope="col">Check In</th>
+              <th scope="col">Duration</th>
+              <th scope="col">Method</th>
+              <th scope="col">Plan</th>
+              <th scope="col">Trainer</th>
             </tr>
           </thead>
           <tbody>
@@ -314,7 +314,7 @@ function AttendanceTable({ logs, search, members, todayStr }) {
               <tr>
                 <td colSpan={8}>
                   <div className="att-empty" style={{ padding:32 }}>
-                    <div className="att-empty-icon" style={{ fontSize:36 }}>📋</div>
+                    <div className="att-empty-icon" aria-hidden="true" style={{ fontSize:36 }}>📋</div>
                     <div className="att-empty-text">No attendance records found for this filter.</div>
                   </div>
                 </td>
@@ -488,26 +488,26 @@ export default function Attendance() {
         </div>
 
         {errorMsg && (
-          <div style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 10, padding: '11px 16px', marginBottom: 16, color: 'var(--red)', fontSize: 13, fontWeight: 500 }}>
-            ⚠️ {errorMsg}
+          <div role="alert" style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 10, padding: '11px 16px', marginBottom: 16, color: 'var(--red)', fontSize: 13, fontWeight: 500 }}>
+            <span aria-hidden="true">⚠️</span> {errorMsg}
           </div>
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14, marginBottom: 24 }}>
           <div className="stat-card" style={{ borderColor: checkedInToday ? 'var(--green)' : 'var(--red)' }}>
-            <span className="stat-icon">{checkedInToday ? '✅' : '❌'}</span>
+            <span className="stat-icon" aria-hidden="true">{checkedInToday ? '✅' : '❌'}</span>
             <span className="stat-label">Today</span>
             <span className="stat-value" style={{ color: checkedInToday ? 'var(--green)' : 'var(--red)', fontSize: 16 }}>
               {checkedInToday ? `Checked in at ${myLastCheckin?.time || '—'}` : 'Not checked in'}
             </span>
           </div>
           <div className="stat-card green">
-            <span className="stat-icon">🔥</span>
+            <span className="stat-icon" aria-hidden="true">🔥</span>
             <span className="stat-label">Streak</span>
             <span className="stat-value">{myStreak} days</span>
           </div>
           <div className="stat-card blue">
-            <span className="stat-icon">📅</span>
+            <span className="stat-icon" aria-hidden="true">📅</span>
             <span className="stat-label">This Month</span>
             <span className="stat-value">{thisMonthLogs.length} days</span>
           </div>
@@ -525,10 +525,10 @@ export default function Attendance() {
             <table className="att-table">
               <thead>
                 <tr>
-                  <th>#</th>
-                  <th>Date</th>
-                  <th>Time</th>
-                  <th>Method</th>
+                  <th scope="col">#</th>
+                  <th scope="col">Date</th>
+                  <th scope="col">Time</th>
+                  <th scope="col">Method</th>
                 </tr>
               </thead>
               <tbody>
@@ -536,7 +536,7 @@ export default function Attendance() {
                   <tr>
                     <td colSpan={4}>
                       <div className="pay-empty">
-                        <div className="pay-empty-icon">📭</div>
+                        <div className="pay-empty-icon" aria-hidden="true">📭</div>
                         <div className="pay-empty-title">No check-ins yet</div>
                         <div className="pay-empty-text">Your attendance records will appear here.</div>
                       </div>
@@ -575,8 +575,8 @@ export default function Attendance() {
       </div>
 
       {errorMsg && (
-        <div style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 10, padding: '11px 16px', marginBottom: 16, color: 'var(--red)', fontSize: 13, fontWeight: 500 }}>
-          ⚠️ {errorMsg}
+        <div role="alert" style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 10, padding: '11px 16px', marginBottom: 16, color: 'var(--red)', fontSize: 13, fontWeight: 500 }}>
+          <span aria-hidden="true">⚠️</span> {errorMsg}
         </div>
       )}
 
@@ -584,7 +584,7 @@ export default function Attendance() {
       <div className="att-summary-grid">
         <div className="dash-kpi-card" style={{ cursor:'default' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-orange">🏃</span>
+            <span className="dash-kpi-icon dash-kpi-icon-orange" aria-hidden="true">🏃</span>
             <span className="dash-kpi-trend">{totalCheckins > 0 ? `${Math.round((totalCheckins/members.length)*100)||0}%` : '—'}</span>
           </div>
           <span className="dash-kpi-value">{totalCheckins}</span>
@@ -592,35 +592,35 @@ export default function Attendance() {
         </div>
         <div className="dash-kpi-card" style={{ cursor:'default' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-green">✅</span>
+            <span className="dash-kpi-icon dash-kpi-icon-green" aria-hidden="true">✅</span>
           </div>
           <span className="dash-kpi-value">{present}</span>
           <span className="dash-kpi-label">Present</span>
         </div>
         <div className="dash-kpi-card" style={{ cursor:'default' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-red">❌</span>
+            <span className="dash-kpi-icon dash-kpi-icon-red" aria-hidden="true">❌</span>
           </div>
           <span className="dash-kpi-value">{absent}</span>
           <span className="dash-kpi-label">Absent</span>
         </div>
         <div className="dash-kpi-card" style={{ cursor:'default' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-amber">⏰</span>
+            <span className="dash-kpi-icon dash-kpi-icon-amber" aria-hidden="true">⏰</span>
           </div>
           <span className="dash-kpi-value">{late}</span>
           <span className="dash-kpi-label">Late</span>
         </div>
         <div className="dash-kpi-card" style={{ cursor:'default' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-purple">📍</span>
+            <span className="dash-kpi-icon dash-kpi-icon-purple" aria-hidden="true">📍</span>
           </div>
           <span className="dash-kpi-value">{peakHour}</span>
           <span className="dash-kpi-label">Peak Hour</span>
         </div>
         <div className="dash-kpi-card" style={{ cursor:'default' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-teal">📊</span>
+            <span className="dash-kpi-icon dash-kpi-icon-teal" aria-hidden="true">📊</span>
           </div>
           <span className="dash-kpi-value">{weeklyAvg}</span>
           <span className="dash-kpi-label">Weekly Avg</span>
@@ -630,19 +630,19 @@ export default function Attendance() {
       {/* ═══════════════ QR SCANNER MODAL ═══════════════ */}
       {showScanner && (
         <div className="modal-overlay" onClick={() => setShowScanner(false)}>
-          <div className="modal modal-sm" onClick={e => e.stopPropagation()}>
+          <div className="modal modal-sm" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <div>
                 <h3>QR Check-In</h3>
                 <p>Scan member QR code to check in</p>
               </div>
-              <button className="modal-close" onClick={() => setShowScanner(false)}>✕</button>
+              <button className="modal-close" aria-label="Close QR scanner" onClick={() => setShowScanner(false)}>✕</button>
             </div>
             <div style={{ padding:'0 24px 24px' }}>
               <QRScanner onScanSuccess={onScanSuccessCb} />
               {scanResult && (
                 <div className="att-scan-success">
-                  <span style={{ fontSize:24 }}>✅</span>
+                  <span aria-hidden="true" style={{ fontSize:24 }}>✅</span>
                   <div>
                     <div className="att-scan-success-title">Check-in Recorded</div>
                     <div className="att-scan-success-sub">{scanResult.member.name} · {scanResult.time}</div>
@@ -679,7 +679,7 @@ export default function Attendance() {
           <div className="att-streaks-body">
             {members.length === 0 ? (
               <div className="att-empty" style={{ padding:'24px 0' }}>
-                <div className="att-empty-icon" style={{ fontSize:28 }}>👥</div>
+                <div className="att-empty-icon" aria-hidden="true" style={{ fontSize:28 }}>👥</div>
                 <div className="att-empty-text">No members found.</div>
               </div>
             ) : members.map(m => (

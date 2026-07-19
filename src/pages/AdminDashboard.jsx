@@ -5,6 +5,9 @@ import { useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getReferralStats } from '../services/referralService'
 
+const todayDate = new Date()
+let todayDateCache = { date: todayDate, str: todayDate.toLocaleDateString('en-CA'), dateStr: todayDate.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' }), hour: todayDate.getHours() }
+
 export default function AdminDashboard() {
   const navigate = useNavigate()
 
@@ -16,11 +19,7 @@ export default function AdminDashboard() {
   const ownerName = currentUser?.displayName || (effectiveRole === 'super_admin' ? 'Super Admin' : 'Admin')
   const gymName = gymSettings?.name || 'IronForge Gym'
 
-  const todayDate = new Date()
-  const todayStr = todayDate.toLocaleDateString('en-CA')
-  const dateStr = todayDate.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' })
-
-  const hour = todayDate.getHours()
+  const { date: todayDate, str: todayStr, dateStr, hour } = todayDateCache
   const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening'
 
   // ── Existing KPIs ──
@@ -210,9 +209,9 @@ export default function AdminDashboard() {
         </div>
         <div className="dash-hero-right">
           <button className="btn btn-primary btn-sm" onClick={goToMembers}>+ Add Member</button>
-          <button className="btn btn-outline btn-sm" onClick={goToPayments}>💰 Collect Payment</button>
-          <button className="btn btn-outline btn-sm" onClick={goToAttendance}>📋 Mark Attendance</button>
-          <button className="btn btn-ghost btn-sm" onClick={goToReports}>📊 Generate Report</button>
+          <button className="btn btn-outline btn-sm" onClick={goToPayments}><span aria-hidden="true">💰</span> Collect Payment</button>
+          <button className="btn btn-outline btn-sm" onClick={goToAttendance}><span aria-hidden="true">📋</span> Mark Attendance</button>
+          <button className="btn btn-ghost btn-sm" onClick={goToReports}><span aria-hidden="true">📊</span> Generate Report</button>
         </div>
       </div>
 
@@ -220,7 +219,7 @@ export default function AdminDashboard() {
       <div className="dash-kpi-grid">
         <div className="dash-kpi-card" onClick={goToMembers} style={{ cursor:'pointer' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-orange">👥</span>
+            <span className="dash-kpi-icon dash-kpi-icon-orange" aria-hidden="true">👥</span>
             <span className={`dash-kpi-trend ${memberTrend.cls}`}>{memberTrend.icon}</span>
           </div>
           <span className="dash-kpi-value">{totalMembers}</span>
@@ -229,7 +228,7 @@ export default function AdminDashboard() {
 
         <div className="dash-kpi-card" onClick={goToMembers} style={{ cursor:'pointer' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-teal">💪</span>
+            <span className="dash-kpi-icon dash-kpi-icon-teal" aria-hidden="true">💪</span>
             <span className="dash-kpi-trend dash-trend-up">↑ {totalMembers > 0 ? ((activeMembers/totalMembers)*100).toFixed(0) : 0}%</span>
           </div>
           <span className="dash-kpi-value">{activeMembers}</span>
@@ -238,7 +237,7 @@ export default function AdminDashboard() {
 
         <div className="dash-kpi-card">
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-green">🏃</span>
+            <span className="dash-kpi-icon dash-kpi-icon-green" aria-hidden="true">🏃</span>
             <span className={`dash-kpi-trend ${attendanceTrend.cls}`}>{attendanceTrend.icon}</span>
           </div>
           <span className="dash-kpi-value">{activeToday}</span>
@@ -247,7 +246,7 @@ export default function AdminDashboard() {
 
         <div className="dash-kpi-card">
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-amber">💰</span>
+            <span className="dash-kpi-icon dash-kpi-icon-amber" aria-hidden="true">💰</span>
             <span className={`dash-kpi-trend ${revenueTrend.cls}`}>{revenueTrend.icon}</span>
           </div>
           <span className="dash-kpi-value">{formatCurrency(todayRevenue)}</span>
@@ -256,7 +255,7 @@ export default function AdminDashboard() {
 
         <div className="dash-kpi-card" onClick={goToPayments} style={{ cursor:'pointer' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-red">⏳</span>
+            <span className="dash-kpi-icon dash-kpi-icon-red" aria-hidden="true">⏳</span>
             <span className="dash-kpi-trend">{pendingPayments > 0 ? `${pendingPayments} pending` : '—'}</span>
           </div>
           <span className="dash-kpi-value">{pendingPayments}</span>
@@ -265,7 +264,7 @@ export default function AdminDashboard() {
 
         <div className="dash-kpi-card" onClick={goToMembers} style={{ cursor:'pointer' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-purple">⏰</span>
+            <span className="dash-kpi-icon dash-kpi-icon-purple" aria-hidden="true">⏰</span>
             <span className="dash-kpi-trend">{expiringSoon.length > 0 ? `${expiringSoon.length} at risk` : '—'}</span>
           </div>
           <span className="dash-kpi-value">{expiringSoon.length}</span>
@@ -278,28 +277,28 @@ export default function AdminDashboard() {
         <div className="dash-kpi-grid" style={{ marginTop:0 }}>
           <div className="dash-kpi-card">
             <div className="dash-kpi-top">
-              <span className="dash-kpi-icon dash-kpi-icon-blue">🏢</span>
+              <span className="dash-kpi-icon dash-kpi-icon-blue" aria-hidden="true">🏢</span>
             </div>
             <span className="dash-kpi-value">{totalGyms}</span>
             <span className="dash-kpi-label">Total Gyms</span>
           </div>
           <div className="dash-kpi-card">
             <div className="dash-kpi-top">
-              <span className="dash-kpi-icon dash-kpi-icon-green">✅</span>
+              <span className="dash-kpi-icon dash-kpi-icon-green" aria-hidden="true">✅</span>
             </div>
             <span className="dash-kpi-value">{activeGyms}</span>
             <span className="dash-kpi-label">Active Gyms</span>
           </div>
           <div className="dash-kpi-card">
             <div className="dash-kpi-top">
-              <span className="dash-kpi-icon dash-kpi-icon-amber">📋</span>
+              <span className="dash-kpi-icon dash-kpi-icon-amber" aria-hidden="true">📋</span>
             </div>
             <span className="dash-kpi-value">{pendingApprovals}</span>
             <span className="dash-kpi-label">Pending Approvals</span>
           </div>
           <div className="dash-kpi-card">
             <div className="dash-kpi-top">
-              <span className="dash-kpi-icon dash-kpi-icon-teal">💳</span>
+              <span className="dash-kpi-icon dash-kpi-icon-teal" aria-hidden="true">💳</span>
             </div>
             <span className="dash-kpi-value">{formatCurrency(totalSubscriptionRevenue)}</span>
             <span className="dash-kpi-label">SaaS Revenue</span>
@@ -315,7 +314,7 @@ export default function AdminDashboard() {
               <h3 className="dash-chart-title">Revenue Overview</h3>
               <p className="dash-chart-desc">Monthly payment collection</p>
             </div>
-            <div className="dash-chart-body">
+            <div className="dash-chart-body" role="img" aria-label="Revenue overview bar chart showing monthly payment collection">
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={monthlyPaymentRevenue}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
@@ -336,7 +335,7 @@ export default function AdminDashboard() {
               <h3 className="dash-chart-title">Attendance Trend</h3>
               <p className="dash-chart-desc">Monthly check-ins this year</p>
             </div>
-            <div className="dash-chart-body">
+            <div className="dash-chart-body" role="img" aria-label="Attendance trend line chart showing monthly check-ins this year">
               <ResponsiveContainer width="100%" height={240}>
                 <LineChart data={monthlyAttendance}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
@@ -356,7 +355,7 @@ export default function AdminDashboard() {
               <h3 className="dash-chart-title">Membership Growth</h3>
               <p className="dash-chart-desc">New member registrations this year</p>
             </div>
-            <div className="dash-chart-body">
+            <div className="dash-chart-body" role="img" aria-label="Membership growth line chart showing new member registrations this year">
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={memberGrowth}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
@@ -378,7 +377,7 @@ export default function AdminDashboard() {
                 <h3 className="dash-chart-title">SaaS Revenue</h3>
                 <p className="dash-chart-desc">Monthly subscription revenue</p>
               </div>
-              <div className="dash-chart-body">
+              <div className="dash-chart-body" role="img" aria-label="SaaS revenue bar chart showing monthly subscription revenue">
                 <ResponsiveContainer width="100%" height={240}>
                   <BarChart data={monthlyRevenueTrend}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
@@ -402,7 +401,7 @@ export default function AdminDashboard() {
         <div className="dash-activity-grid">
           <div className="dash-card">
             <div className="dash-card-header">
-              <span className="dash-card-icon">💰</span>
+              <span className="dash-card-icon" aria-hidden="true">💰</span>
               <div>
                 <h3 className="dash-card-title">Recent Payments</h3>
                 <p className="dash-card-desc">Latest 5 transactions</p>
@@ -433,7 +432,7 @@ export default function AdminDashboard() {
 
           <div className="dash-card">
             <div className="dash-card-header">
-              <span className="dash-card-icon">👥</span>
+              <span className="dash-card-icon" aria-hidden="true">👥</span>
               <div>
                 <h3 className="dash-card-title">Latest Members</h3>
                 <p className="dash-card-desc">Recently joined</p>
@@ -465,7 +464,7 @@ export default function AdminDashboard() {
 
           <div className="dash-card">
             <div className="dash-card-header">
-              <span className="dash-card-icon">🏃</span>
+              <span className="dash-card-icon" aria-hidden="true">🏃</span>
               <div>
                 <h3 className="dash-card-title">Recent Attendance</h3>
                 <p className="dash-card-desc">Latest check-ins</p>
@@ -495,7 +494,7 @@ export default function AdminDashboard() {
 
           <div className="dash-card">
             <div className="dash-card-header">
-              <span className="dash-card-icon">🔔</span>
+              <span className="dash-card-icon" aria-hidden="true">🔔</span>
               <div>
                 <h3 className="dash-card-title">Notifications</h3>
                 <p className="dash-card-desc">Latest alerts</p>
@@ -525,7 +524,7 @@ export default function AdminDashboard() {
         <div className="dash-overview-grid">
           <div className="dash-overview-card">
             <div className="dash-overview-top">
-              <span className="dash-overview-icon">🔄</span>
+              <span className="dash-overview-icon" aria-hidden="true">🔄</span>
               <span className="dash-overview-value">{upcomingRenewals.length}</span>
             </div>
             <span className="dash-overview-label">Pending Renewals</span>
@@ -534,7 +533,7 @@ export default function AdminDashboard() {
 
           <div className="dash-overview-card">
             <div className="dash-overview-top">
-              <span className="dash-overview-icon">⏰</span>
+              <span className="dash-overview-icon" aria-hidden="true">⏰</span>
               <span className="dash-overview-value">{expiringSoon.filter(m => {
                 if (!m.expiry) return false
                 return Math.ceil((new Date(m.expiry) - todayDate) / (1000*60*60*24)) <= 3
@@ -546,7 +545,7 @@ export default function AdminDashboard() {
 
           <div className="dash-overview-card">
             <div className="dash-overview-top">
-              <span className="dash-overview-icon">💳</span>
+              <span className="dash-overview-icon" aria-hidden="true">💳</span>
               <span className="dash-overview-value">{outstandingPayments.length}</span>
             </div>
             <span className="dash-overview-label">Outstanding Payments</span>
@@ -555,7 +554,7 @@ export default function AdminDashboard() {
 
           <div className="dash-overview-card">
             <div className="dash-overview-top">
-              <span className="dash-overview-icon">🎂</span>
+              <span className="dash-overview-icon" aria-hidden="true">🎂</span>
               <span className="dash-overview-value">{upcomingBirthdays.length}</span>
             </div>
             <span className="dash-overview-label">Upcoming Birthdays</span>
@@ -567,7 +566,7 @@ export default function AdminDashboard() {
             return (
               <div className="dash-overview-card" style={{ cursor:'pointer' }} onClick={() => navigate('/referrals')}>
                 <div className="dash-overview-top">
-                  <span className="dash-overview-icon">🎁</span>
+                  <span className="dash-overview-icon" aria-hidden="true">🎁</span>
                   <span className="dash-overview-value">{rs.total}</span>
                 </div>
                 <span className="dash-overview-label">Referrals</span>
@@ -586,7 +585,7 @@ export default function AdminDashboard() {
           <div className="settings-section-header" style={{ marginBottom:16, paddingBottom:12 }}>
             <div>
               <div className="settings-section-title-row">
-                <span className="settings-section-icon">⚡</span>
+                <span className="settings-section-icon" aria-hidden="true">⚡</span>
                 <h3 className="settings-section-title">Quick Actions</h3>
               </div>
               <p className="settings-section-desc" style={{ marginLeft:30 }}>Common tasks at your fingertips</p>
@@ -598,15 +597,15 @@ export default function AdminDashboard() {
               <span className="dash-quick-btn-label">Add Member</span>
             </button>
             <button className="dash-quick-btn" onClick={goToPayments}>
-              <span className="dash-quick-btn-icon">💰</span>
+              <span className="dash-quick-btn-icon" aria-hidden="true">💰</span>
               <span className="dash-quick-btn-label">Collect Payment</span>
             </button>
             <button className="dash-quick-btn" onClick={goToAttendance}>
-              <span className="dash-quick-btn-icon">📋</span>
+              <span className="dash-quick-btn-icon" aria-hidden="true">📋</span>
               <span className="dash-quick-btn-label">Mark Attendance</span>
             </button>
             <button className="dash-quick-btn" onClick={goToReports}>
-              <span className="dash-quick-btn-icon">📊</span>
+              <span className="dash-quick-btn-icon" aria-hidden="true">📊</span>
               <span className="dash-quick-btn-label">Generate Report</span>
             </button>
           </div>

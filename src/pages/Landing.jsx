@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { openSupportWhatsApp } from '../utils/whatsappSupport'
 import { shareWebsite } from '../utils/shareWebsite'
 import { addContactMessage } from '../services/firestoreService'
@@ -234,6 +234,7 @@ const testimonials = [
 
 function Landing() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [activeFaq, setActiveFaq] = useState(null)
@@ -279,6 +280,18 @@ function Landing() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  // ── Route-based scroll to sections (for /features, /pricing, etc.) ──
+  useEffect(() => {
+    const sectionMap = { '/features': '#features', '/pricing': '#pricing', '/contact': '#contact', '/about': '#about', '/faq': '#faq' }
+    const id = sectionMap[location.pathname]
+    if (id) {
+      setTimeout(() => {
+        const el = document.querySelector(id)
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 100)
+    }
+  }, [location.pathname])
+
   useEffect(() => {
     const onMove = (e) => {
       if (!heroRef.current) return
@@ -323,7 +336,7 @@ function Landing() {
     <div style={{ minHeight: '100vh', background: '#070a12', color: '#e4e8f0', fontFamily: "'Barlow', sans-serif", overflow: 'hidden' }}>
 
       {/* ── NAVBAR ── */}
-      <nav className={scrolled ? 'lp-nav-scrolled' : ''} style={{
+      <nav role="navigation" aria-label="Main navigation" className={scrolled ? 'lp-nav-scrolled' : ''} style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '14px 48px', transition: 'all 0.3s ease',
@@ -354,8 +367,9 @@ function Landing() {
           <button onClick={() => navigate('/auth?tab=login')} className="lp-btn-secondary" style={{ padding: '10px 22px', fontSize: 13 }}>Sign In</button>
           <button onClick={() => navigate('/auth?tab=signup')} className="lp-btn-primary" style={{ padding: '10px 22px', fontSize: 13 }}>Get Started</button>
           <button className="lp-mobile-btn" onClick={() => setMobileOpen(o => !o)}
-            style={{ display: 'none', background: 'none', border: 'none', color: '#e4e8f0', fontSize: 24, cursor: 'pointer', padding: 4 }}>
-            {mobileOpen ? '✕' : '☰'}
+            style={{ display: 'none', background: 'none', border: 'none', color: '#e4e8f0', fontSize: 24, cursor: 'pointer', padding: 4 }}
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}>
+            <span aria-hidden="true">{mobileOpen ? '✕' : '☰'}</span>
           </button>
         </div>
 
@@ -402,7 +416,7 @@ function Landing() {
               padding: '6px 14px', borderRadius: 20, fontSize: 11, fontWeight: 600, letterSpacing: '0.12em',
               background: 'rgba(232,66,10,0.1)', border: '1px solid rgba(232,66,10,0.2)', color: '#ff6a2a', textTransform: 'uppercase'
             }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ff6a2a', display: 'inline-block' }} />
+                  <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: '50%', background: '#ff6a2a', display: 'inline-block' }} />
               Gym Management Platform
             </div>
 
@@ -430,7 +444,7 @@ function Landing() {
             <div className="lp-trust-row" style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginTop: 8 }}>
               {['Secure', 'Cloud Based', 'PhonePe', 'License Protected'].map(t => (
                 <span key={t} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#6070a0' }}>
-                  <span style={{ color: '#00c8b4', fontSize: 14 }}>✓</span> {t}
+                  <span aria-hidden="true" style={{ color: '#00c8b4', fontSize: 14 }}>✓</span> {t}
                 </span>
               ))}
             </div>
@@ -585,7 +599,7 @@ function Landing() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 18, color: '#e8420a', marginBottom: 16
                 }}>
-                  {['👥','📋','✅','🏋️','🥗','💰','📊','📅'][i]}
+                  <span aria-hidden="true">{['👥','📋','✅','🏋️','🥗','💰','📊','📅'][i]}</span>
                 </div>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: '#e4e8f0', margin: '0 0 8px' }}>{f.title}</h3>
                 <p style={{ fontSize: 13, color: '#6070a0', lineHeight: 1.6, margin: 0 }}>{f.desc}</p>
@@ -722,7 +736,7 @@ function Landing() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 20, color: i % 2 === 0 ? '#e8420a' : '#00c8b4', margin: '0 auto 16px'
                 }}>
-                  {['⚡','🛡️','☁️','👥','📊','🔑'][i]}
+                  <span aria-hidden="true">{['⚡','🛡️','☁️','👥','📊','🔑'][i]}</span>
                 </div>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: '#e4e8f0', margin: '0 0 6px' }}>{b.title}</h3>
                 <p style={{ fontSize: 13, color: '#6070a0', margin: 0, lineHeight: 1.5 }}>{b.desc}</p>
@@ -774,7 +788,7 @@ function Landing() {
                 <div style={{ margin: '16px 0 20px', flex: 1 }}>
                   {p.features.map(f => (
                     <div key={f} style={{ fontSize: 13, color: '#a0aac0', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                      <span style={{ color: p.color }}>✓</span> {f}
+                      <span aria-hidden="true" style={{ color: p.color }}>✓</span> {f}
                     </div>
                   ))}
                 </div>
@@ -809,9 +823,9 @@ function Landing() {
           }}>
             {testimonials.map(t => (
               <div key={t.name} className="lp-testimonial-card">
-                <div style={{ display: 'flex', gap: 3, marginBottom: 12 }}>
+                <div style={{ display: 'flex', gap: 3, marginBottom: 12 }} aria-label={`${t.rating} out of 5 stars`}>
                   {Array.from({ length: 5 }, (_, i) => (
-                    <span key={i} style={{ color: i < t.rating ? '#f59e0b' : 'rgba(255,255,255,0.08)', fontSize: 14 }}>★</span>
+                    <span key={i} style={{ color: i < t.rating ? '#f59e0b' : 'rgba(255,255,255,0.08)', fontSize: 14 }} aria-hidden="true">★</span>
                   ))}
                 </div>
                 <p style={{ fontSize: 14, color: '#a0aac0', lineHeight: 1.6, margin: '0 0 16px', fontStyle: 'italic' }}>"{t.text}"</p>
@@ -833,7 +847,7 @@ function Landing() {
           {/* Dots */}
           <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 24 }}>
             {testimonials.map((_, i) => (
-              <div key={i} className={`lp-dot ${i === testiIdx ? 'active' : ''}`} onClick={() => setTestiIdx(i)} />
+              <div key={i} className={`lp-dot ${i === testiIdx ? 'active' : ''}`} onClick={() => setTestiIdx(i)} role="button" aria-label={`Go to testimonial ${i + 1}`} tabIndex={0} />
             ))}
           </div>
         </div>
@@ -854,7 +868,7 @@ function Landing() {
               <div className={`lp-faq-q ${activeFaq === i ? 'open' : ''}`} onClick={() => setActiveFaq(activeFaq === i ? null : i)}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 15, fontWeight: 600, color: '#e4e8f0' }}>{f.q}</span>
-                  <span style={{
+                  <span aria-hidden="true" style={{
                     fontSize: 18, color: activeFaq === i ? '#e8420a' : '#6070a0',
                     transition: 'transform 0.3s ease', transform: activeFaq === i ? 'rotate(45deg)' : 'rotate(0)'
                   }}>+</span>
@@ -878,23 +892,23 @@ function Landing() {
         </Reveal>
         <Reveal>
           <div style={{ maxWidth: 520, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <input className="form-input" placeholder="Your Name *" value={contactForm.name}
+            <input className="form-input" aria-label="Your Name" placeholder="Your Name *" value={contactForm.name}
               onChange={e => { setContactForm(f => ({ ...f, name: e.target.value })); setContactErrors(e => ({ ...e, name: '' })) }}
               style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${contactErrors.name ? '#e8420a' : 'rgba(255,255,255,0.08)'}`, borderRadius: 10, padding: '14px 16px', color: '#e4e8f0', fontSize: 14, outline: 'none', width: '100%', boxSizing: 'border-box' }} />
-            {contactErrors.name && <p style={{ margin: 0, fontSize: 12, color: '#e8420a' }}>{contactErrors.name}</p>}
-            <input className="form-input" placeholder="Email Address *" value={contactForm.email}
+            {contactErrors.name && <p role="alert" style={{ margin: 0, fontSize: 12, color: '#e8420a' }}>{contactErrors.name}</p>}
+            <input className="form-input" aria-label="Email Address" placeholder="Email Address *" value={contactForm.email}
               onChange={e => { setContactForm(f => ({ ...f, email: e.target.value })); setContactErrors(e => ({ ...e, email: '' })) }}
               style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${contactErrors.email ? '#e8420a' : 'rgba(255,255,255,0.08)'}`, borderRadius: 10, padding: '14px 16px', color: '#e4e8f0', fontSize: 14, outline: 'none', width: '100%', boxSizing: 'border-box' }} />
-            {contactErrors.email && <p style={{ margin: 0, fontSize: 12, color: '#e8420a' }}>{contactErrors.email}</p>}
-            <input className="form-input" placeholder="Phone Number (optional)" value={contactForm.phone}
+            {contactErrors.email && <p role="alert" style={{ margin: 0, fontSize: 12, color: '#e8420a' }}>{contactErrors.email}</p>}
+            <input className="form-input" aria-label="Phone Number" placeholder="Phone Number (optional)" value={contactForm.phone}
               onChange={e => setContactForm(f => ({ ...f, phone: e.target.value }))}
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '14px 16px', color: '#e4e8f0', fontSize: 14, outline: 'none', width: '100%', boxSizing: 'border-box' }} />
-            <textarea className="form-textarea" placeholder="Your Message *" rows={4} value={contactForm.message}
+            <textarea className="form-textarea" aria-label="Your Message" placeholder="Your Message *" rows={4} value={contactForm.message}
               onChange={e => { setContactForm(f => ({ ...f, message: e.target.value })); setContactErrors(e => ({ ...e, message: '' })) }}
               style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${contactErrors.message ? '#e8420a' : 'rgba(255,255,255,0.08)'}`, borderRadius: 10, padding: '14px 16px', color: '#e4e8f0', fontSize: 14, outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }} />
-            {contactErrors.message && <p style={{ margin: 0, fontSize: 12, color: '#e8420a' }}>{contactErrors.message}</p>}
-            {contactErrors._general && <p style={{ margin: 0, fontSize: 13, color: '#e8420a', textAlign: 'center' }}>{contactErrors._general}</p>}
-            {contactSuccess && <p style={{ margin: 0, fontSize: 13, color: '#00c8b4', textAlign: 'center' }}>✓ Message sent! We'll get back to you shortly.</p>}
+            {contactErrors.message && <p role="alert" style={{ margin: 0, fontSize: 12, color: '#e8420a' }}>{contactErrors.message}</p>}
+            {contactErrors._general && <p role="alert" style={{ margin: 0, fontSize: 13, color: '#e8420a', textAlign: 'center' }}>{contactErrors._general}</p>}
+            {contactSuccess && <p role="status" style={{ margin: 0, fontSize: 13, color: '#00c8b4', textAlign: 'center' }}><span aria-hidden="true">✓</span> Message sent! We'll get back to you shortly.</p>}
             <button className="lp-btn-primary" onClick={handleContactSubmit} disabled={contactSaving}
               style={{ width: '100%', justifyContent: 'center', padding: '14px', opacity: contactSaving ? 0.7 : 1, cursor: contactSaving ? 'not-allowed' : 'pointer' }}>
               {contactSaving ? 'Sending…' : 'Send Message'}
@@ -936,7 +950,7 @@ function Landing() {
         {installPrompt && (
           <Reveal>
             <div style={{ marginTop: 40, padding: '20px 32px', borderRadius: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', display: 'inline-flex', alignItems: 'center', gap: 16 }}>
-              <span style={{ fontSize: 24 }}>📲</span>
+              <span aria-hidden="true" style={{ fontSize: 24 }}>📲</span>
               <div style={{ textAlign: 'left' }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#e4e8f0' }}>Install IRONPULSE</div>
                 <div style={{ fontSize: 12, color: '#6070a0' }}>Get the app for quick access and offline support.</div>
@@ -947,8 +961,40 @@ function Landing() {
         )}
       </section>
 
+      {/* ── PRIVACY POLICY (standalone page) ── */}
+      {location.pathname === '/privacy' && (
+        <section id="privacy" style={{ padding: '100px 48px', maxWidth: 800, margin: '0 auto' }}>
+          <h2 style={{ fontSize: 32, fontWeight: 800, color: '#e4e8f0', marginBottom: 24 }}>Privacy Policy</h2>
+          <p style={{ color: '#6070a0', marginBottom: 16, lineHeight: 1.7 }}>Last updated: July 2026</p>
+          <h3 style={{ color: '#e4e8f0', fontSize: 18, fontWeight: 600, marginBottom: 8, marginTop: 24 }}>1. Information We Collect</h3>
+          <p style={{ color: '#6070a0', marginBottom: 12, lineHeight: 1.7 }}>IRONPULSE collects information you provide directly, such as your name, email address, phone number, and gym details when you create an account. We also collect usage data including attendance logs, payment records, and member management information necessary for the operation of the platform.</p>
+          <h3 style={{ color: '#e4e8f0', fontSize: 18, fontWeight: 600, marginBottom: 8, marginTop: 24 }}>2. How We Use Your Data</h3>
+          <p style={{ color: '#6070a0', marginBottom: 12, lineHeight: 1.7 }}>We use collected data to provide, maintain, and improve our gym management services; process transactions; send notifications and updates; and communicate with you about your account.</p>
+          <h3 style={{ color: '#e4e8f0', fontSize: 18, fontWeight: 600, marginBottom: 8, marginTop: 24 }}>3. Data Sharing</h3>
+          <p style={{ color: '#6070a0', marginBottom: 12, lineHeight: 1.7 }}>We do not sell your personal data. We may share data with third-party service providers (e.g., PhonePe for payment processing) solely for the purpose of operating our services.</p>
+          <h3 style={{ color: '#e4e8f0', fontSize: 18, fontWeight: 600, marginBottom: 8, marginTop: 24 }}>4. Contact</h3>
+          <p style={{ color: '#6070a0', marginBottom: 12, lineHeight: 1.7 }}>For privacy-related inquiries, contact us at privacy@ironpulse.app.</p>
+        </section>
+      )}
+
+      {/* ── TERMS OF SERVICE (standalone page) ── */}
+      {location.pathname === '/terms' && (
+        <section id="terms" style={{ padding: '100px 48px', maxWidth: 800, margin: '0 auto' }}>
+          <h2 style={{ fontSize: 32, fontWeight: 800, color: '#e4e8f0', marginBottom: 24 }}>Terms of Service</h2>
+          <p style={{ color: '#6070a0', marginBottom: 16, lineHeight: 1.7 }}>Last updated: July 2026</p>
+          <h3 style={{ color: '#e4e8f0', fontSize: 18, fontWeight: 600, marginBottom: 8, marginTop: 24 }}>1. Acceptance of Terms</h3>
+          <p style={{ color: '#6070a0', marginBottom: 12, lineHeight: 1.7 }}>By accessing or using IRONPULSE, you agree to be bound by these terms. If you do not agree, do not use the service.</p>
+          <h3 style={{ color: '#e4e8f0', fontSize: 18, fontWeight: 600, marginBottom: 8, marginTop: 24 }}>2. Account Responsibilities</h3>
+          <p style={{ color: '#6070a0', marginBottom: 12, lineHeight: 1.7 }}>You are responsible for maintaining the confidentiality of your account credentials and for all activities under your account.</p>
+          <h3 style={{ color: '#e4e8f0', fontSize: 18, fontWeight: 600, marginBottom: 8, marginTop: 24 }}>3. Payment Terms</h3>
+          <p style={{ color: '#6070a0', marginBottom: 12, lineHeight: 1.7 }}>Subscription fees are billed in advance and are non-refundable. Plan upgrades take effect immediately; downgrades apply at the next billing cycle.</p>
+          <h3 style={{ color: '#e4e8f0', fontSize: 18, fontWeight: 600, marginBottom: 8, marginTop: 24 }}>4. Limitation of Liability</h3>
+          <p style={{ color: '#6070a0', marginBottom: 12, lineHeight: 1.7 }}>IRONPULSE shall not be liable for any indirect, incidental, or consequential damages arising from the use of our platform.</p>
+        </section>
+      )}
+
       {/* ── FOOTER ── */}
-      <footer style={{
+      <footer role="contentinfo" style={{
         padding: '60px 48px 32px', borderTop: '1px solid rgba(255,255,255,0.04)',
         background: '#050810'
       }}>
@@ -968,8 +1014,8 @@ function Landing() {
             </p>
             {/* Social */}
             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-              {[{s:'𝕏',url:'https://twitter.com/ironpulse'},{s:'in',url:'https://linkedin.com/company/ironpulse'},{s:'▶',url:'https://youtube.com/@ironpulse'},{s:'📷',url:'https://instagram.com/ironpulse'}].map(({s, url}) => (
-                <a key={s} href={url} target="_blank" rel="noopener noreferrer" style={{
+              {[{s:'𝕏',url:'https://twitter.com/ironpulse',label:'X (formerly Twitter)'},{s:'in',url:'https://linkedin.com/company/ironpulse',label:'LinkedIn'},{s:'▶',url:'https://youtube.com/@ironpulse',label:'YouTube'},{s:'📷',url:'https://instagram.com/ironpulse',label:'Instagram'}].map(({s, url, label}) => (
+                <a key={s} href={url} target="_blank" rel="noopener noreferrer" aria-label={label} style={{
                   width: 32, height: 32, borderRadius: 8,
                   background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -990,18 +1036,18 @@ function Landing() {
           </div>
           <div>
             <h4 style={{ fontSize: 12, fontWeight: 700, color: '#e4e8f0', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>Contact</h4>
-            <a href="#" onClick={(e) => { e.preventDefault(); openSupportWhatsApp({ page: 'Landing', issue: 'General Inquiry' }) }}
-              style={{ display: 'block', fontSize: 13, color: '#6070a0', marginBottom: 10, textDecoration: 'none', transition: 'color 0.2s' }}
+            <button onClick={() => openSupportWhatsApp({ page: 'Landing', issue: 'General Inquiry' })}
+              style={{ display: 'block', fontSize: 13, color: '#6070a0', marginBottom: 10, textDecoration: 'none', transition: 'color 0.2s', background: 'none', border: 'none', padding: 0, fontFamily: 'inherit', cursor: 'pointer', textAlign: 'left', lineHeight: 1.6 }}
               onMouseEnter={e => e.target.style.color = '#e8420a'} onMouseLeave={e => e.target.style.color = '#6070a0'}>
-              💬 WhatsApp Business<br />+91 9371880039
-            </a>
+              <span aria-hidden="true">💬</span> WhatsApp Business<br />+91 9371880039
+            </button>
             <a href="mailto:ironpulsexa@gmail.com"
               style={{ display: 'block', fontSize: 13, color: '#6070a0', marginBottom: 10, textDecoration: 'none', transition: 'color 0.2s' }}
               onMouseEnter={e => e.target.style.color = '#e8420a'} onMouseLeave={e => e.target.style.color = '#6070a0'}>
-              ✉️ ironpulsexa@gmail.com
+              <span aria-hidden="true">✉️</span> ironpulsexa@gmail.com
             </a>
             <div style={{ fontSize: 13, color: '#6070a0', lineHeight: 1.6 }}>
-              🕐 Business Hours<br />Monday – Saturday<br />9:00 AM – 8:00 PM
+              <span aria-hidden="true">🕐</span> Business Hours<br />Monday – Saturday<br />9:00 AM – 8:00 PM
             </div>
           </div>
           <div>
@@ -1022,7 +1068,7 @@ function Landing() {
             }}
               onMouseEnter={e => { e.target.style.background = 'rgba(232,66,10,0.1)'; e.target.style.borderColor = 'rgba(232,66,10,0.2)'; e.target.style.color = '#e8420a' }}
               onMouseLeave={e => { e.target.style.background = 'rgba(255,255,255,0.03)'; e.target.style.borderColor = 'rgba(255,255,255,0.06)'; e.target.style.color = '#6070a0' }}>
-              🔗 Share Website
+              <span aria-hidden="true">🔗</span> Share Website
             </button>
           </div>
           <p style={{ fontSize: 12, color: '#384860' }}>© 2025 IRONPULSE. All rights reserved. Built for high-performance gyms.</p>

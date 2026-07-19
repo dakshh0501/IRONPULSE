@@ -84,31 +84,31 @@ export default function WhatsAppReminders() {
       {/* Summary Cards */}
       <div className="stats-grid" style={{ marginBottom: 24 }}>
         <div className="stat-card teal">
-          <span className="stat-icon">📅</span>
+          <span className="stat-icon" aria-hidden="true">📅</span>
           <span className="stat-label">7 Day Reminders</span>
           <span className="stat-value" style={{ color: 'var(--teal)' }}>{summary['7day']}</span>
           <span className="stat-sub">Expiring in 7 days</span>
         </div>
         <div className="stat-card orange">
-          <span className="stat-icon">⏰</span>
+          <span className="stat-icon" aria-hidden="true">⏰</span>
           <span className="stat-label">3 Day Reminders</span>
           <span className="stat-value" style={{ color: 'var(--orange)' }}>{summary['3day']}</span>
           <span className="stat-sub">Expiring in 3 days</span>
         </div>
         <div className="stat-card red">
-          <span className="stat-icon">🚨</span>
+          <span className="stat-icon" aria-hidden="true">🚨</span>
           <span className="stat-label">1 Day Reminders</span>
           <span className="stat-value" style={{ color: 'var(--red)' }}>{summary['1day']}</span>
           <span className="stat-sub">Expiring tomorrow</span>
         </div>
         <div className="stat-card red" style={{ borderColor: 'var(--red)' }}>
-          <span className="stat-icon">❌</span>
+          <span className="stat-icon" aria-hidden="true">❌</span>
           <span className="stat-label">Expired Members</span>
           <span className="stat-value" style={{ color: 'var(--red)' }}>{summary.expired}</span>
           <span className="stat-sub">Membership expired</span>
         </div>
         <div className="stat-card" style={{ borderColor: 'var(--purple)', background: 'linear-gradient(135deg, rgba(168,85,247,0.1), rgba(168,85,247,0.05))' }}>
-          <span className="stat-icon">📊</span>
+          <span className="stat-icon" aria-hidden="true">📊</span>
           <span className="stat-label">Total Reminders</span>
           <span className="stat-value" style={{ color: 'var(--purple)' }}>{summary.total}</span>
           <span className="stat-sub">Members needing action</span>
@@ -152,7 +152,7 @@ export default function WhatsAppReminders() {
                   borderRadius: 'var(--radius) var(--radius) 0 0',
                   margin: '-1px -1px 0 -1px'
                 }}>
-                  <span style={{ fontSize: 20 }}>{config.icon}</span>
+                  <span aria-hidden="true" style={{ fontSize: 20 }}>{config.icon}</span>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 15, color: config.color }}>{config.label}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{group.length} member{group.length !== 1 ? 's' : ''}</div>
@@ -199,9 +199,9 @@ export default function WhatsAppReminders() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>{reminder.name}</div>
                         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                          <span>📱 {formatPhone(reminder.contact)}</span>
-                          <span>📋 {reminder.plan}</span>
-                          <span>📅 Expires: {formatDate(reminder.expiry)}</span>
+                          <span><span aria-hidden="true">📱</span> {formatPhone(reminder.contact)}</span>
+                          <span><span aria-hidden="true">📋</span> {reminder.plan}</span>
+                          <span><span aria-hidden="true">📅</span> Expires: {formatDate(reminder.expiry)}</span>
                           <span style={{ color: config.color, fontWeight: 600 }}>{reminder.daysLeft >= 0 ? `${reminder.daysLeft} day${reminder.daysLeft !== 1 ? 's' : ''} left` : `${Math.abs(reminder.daysLeft)} day${Math.abs(reminder.daysLeft) !== 1 ? 's' : ''} ago`}</span>
                         </div>
                       </div>
@@ -221,7 +221,7 @@ export default function WhatsAppReminders() {
                           flexShrink: 0
                         }}
                       >
-                        <span style={{ fontSize: 16 }}>💬</span>
+                        <span aria-hidden="true" style={{ fontSize: 16 }}>💬</span>
                         <span>Send WhatsApp</span>
                       </a>
                     </div>
@@ -235,7 +235,7 @@ export default function WhatsAppReminders() {
 
       {/* Info Note */}
       <div style={{ marginTop: 24, padding: '12px 16px', background: 'var(--bg3)', borderRadius: 10, fontSize: 12, color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
-        💡 <strong>How it works:</strong> Click "Send WhatsApp" to open WhatsApp Web/App with a pre-filled renewal message. Messages are personalized with member name, plan, expiry date, and renewal amount. No external APIs required — uses native <code>wa.me</code> deep links.
+        <span aria-hidden="true">💡</span> <strong>How it works:</strong> Click "Send WhatsApp" to open WhatsApp Web/App with a pre-filled renewal message. Messages are personalized with member name, plan, expiry date, and renewal amount. No external APIs required — uses native <code>wa.me</code> deep links.
       </div>
     </div>
   )

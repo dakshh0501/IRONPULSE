@@ -37,6 +37,50 @@ button { cursor: pointer; border: none; font-family: inherit; }
 input, select, textarea { font-family: inherit; }
 a { text-decoration: none; color: inherit; }
 
+/* ── Skip-to-content (visually hidden, shown on focus) ── */
+.skip-to-content {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: var(--accent, #e8420a);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+}
+.skip-to-content:focus {
+  top: 0;
+}
+
+/* ── Screen-reader-only utility ── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Global focus-visible ring ── */
+:focus-visible {
+  outline: 2px solid var(--accent, #e8420a);
+  outline-offset: 2px;
+}
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+select:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible) {
+  outline: none;
+}
+
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -515,41 +559,6 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 /* ─────────────────────────────────────────────────────────────
    QR CODE
    ───────────────────────────────────────────────────────────── */
-.qr-grid { display: grid; grid-template-columns: 7px; gap: 0; }
-
-/* ─────────────────────────────────────────────────────────────
-   LANDING PAGE (premium styles injected dynamically in Landing.jsx)
-   ───────────────────────────────────────────────────────────── */
-
-/* ─────────────────────────────────────────────────────────────
-   AUTH MODAL
-   ───────────────────────────────────────────────────────────── */
-.auth-modal {
-  background: #0e1220;
-  border: 1px solid rgba(0,200,180,0.15);
-  border-radius: 14px;
-  padding: 36px;
-  width: 460px;
-  max-width: 95vw;
-  animation: slideUp 0.25s ease;
-}
-.auth-logo { font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:0.1em; color:#e8420a; margin-bottom:4px; }
-.auth-sub  { font-size:14px; color:#6070a0; margin-bottom:28px; }
-.auth-tabs { display:flex; gap:4px; background:#0a0d14; padding:4px; border-radius:8px; margin-bottom:24px; }
-.auth-tab  { flex:1; padding:8px; border-radius:6px; font-size:13px; font-weight:600; color:#6070a0; background:none; transition:all 0.2s; }
-.auth-tab.active { background:#111828; color:#e8eaf0; }
-.role-select-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px; }
-.role-select-btn {
-  padding:10px 6px; border-radius:8px; border:1.5px solid rgba(255,255,255,0.08);
-  background:#0a0d14; color:#6070a0; font-size:12px; font-weight:600;
-  text-align:center; cursor:pointer; transition:all 0.2s;
-}
-.role-select-btn.active { border-color:#00c8b4; color:#00c8b4; background:rgba(0,200,180,0.08); }
-.role-select-btn span { display:block; font-size:20px; margin-bottom:4px; }
-.otp-inputs { display:flex; gap:10px; justify-content:center; margin:20px 0; }
-.otp-input  { width:48px; height:56px; text-align:center; font-size:22px; font-weight:700; background:#0a0d14; border:1.5px solid rgba(255,255,255,0.1); border-radius:8px; color:#e8eaf0; outline:none; transition:border-color 0.2s; }
-.otp-input:focus { border-color:#00c8b4; }
-
 /* ─────────────────────────────────────────────────────────────
    WORKOUT PAGE
    ───────────────────────────────────────────────────────────── */
@@ -565,16 +574,6 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 /* ─────────────────────────────────────────────────────────────
    DIET PAGE
    ───────────────────────────────────────────────────────────── */
-.macro-bars { display:flex; flex-direction:column; gap:10px; }
-.macro-row { display:flex; align-items:center; gap:10px; }
-.macro-label{ width:70px; font-size:12px; color:var(--text-muted); font-weight:500; }
-.macro-val  { font-size:12px; font-weight:700; color:var(--text); min-width:50px; text-align:right; }
-.meal-list  { display:flex; flex-direction:column; gap:10px; }
-.meal-row   { display:flex; gap:14px; align-items:flex-start; padding:12px; background:var(--bg3); border-radius:var(--radius-sm); }
-.meal-time  { font-size:11px; color:var(--teal); font-weight:700; min-width:58px; padding-top:2px; }
-.meal-name  { font-size:12px; font-weight:700; color:var(--text); margin-bottom:2px; }
-.meal-items { font-size:12px; color:var(--text-muted); line-height:1.5; }
-
 /* ─────────────────────────────────────────────────────────────
    CHECKIN PAGE
    ───────────────────────────────────────────────────────────── */
@@ -582,24 +581,10 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 .member-qr-card { background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius); padding:16px; text-align:center; cursor:pointer; transition:all var(--transition); }
 .member-qr-card:hover { border-color:var(--teal); transform:translateY(-2px); }
 .qr-box { width:80px; height:80px; margin:10px auto; background:white; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:10px; color:#000; overflow:hidden; }
-.checkin-success { background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3); border-radius:var(--radius); padding:16px; text-align:center; animation:fadeIn 0.3s ease; }
-
 /* ─────────────────────────────────────────────────────────────
    REPORTS PAGE
    ───────────────────────────────────────────────────────────── */
 .report-table th { background:var(--bg3); }
-
-/* ─────────────────────────────────────────────────────────────
-   SETTINGS PAGE
-   ───────────────────────────────────────────────────────────── */
-.setting-row { display:flex; align-items:center; justify-content:space-between; padding:16px 0; border-bottom:1px solid var(--border); }
-.setting-row:last-child { border-bottom:none; }
-.setting-label { font-size:14px; font-weight:600; }
-.setting-desc  { font-size:12px; color:var(--text-muted); margin-top:2px; }
-.toggle { width:44px; height:24px; border-radius:12px; background:var(--bg3); border:1px solid var(--border); position:relative; cursor:pointer; transition:background 0.2s; flex-shrink:0; }
-.toggle.on { background:var(--teal); border-color:var(--teal); }
-.toggle-thumb { width:18px; height:18px; border-radius:50%; background:white; position:absolute; top:2px; left:2px; transition:transform 0.2s; box-shadow:0 1px 4px rgba(0,0,0,0.3); }
-.toggle.on .toggle-thumb { transform:translateX(20px); }
 
 /* ─────────────────────────────────────────────────────────────
    INVOICE PRINT
@@ -608,10 +593,6 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 .invoice-preview .inv-logo { font-family:'Bebas Neue',sans-serif; font-size:36px; color:#e8420a; }
 .invoice-preview table th { background:#f0f2f7; color:#6070a0; }
 .invoice-preview table td { color:#1a1a2e; border-color:#e8eaf0; }
-
-/* ── CSS containment hints ── */
-.card-grid { content-visibility: auto; contain-intrinsic-size: 400px; }
-.section-card { content-visibility: auto; contain-intrinsic-size: 300px; }
 
 /* ── Animations unique to index.css ── */
 @keyframes fadeUp  { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
@@ -709,13 +690,9 @@ textarea.form-input { resize: vertical; min-height: 80px; }
     width: 100%; left: 0; right: 0;
   }
 
-  /* ── Settings ── */
-  .settings-layout { flex-direction: column; }
-  .settings-layout > div:first-child { width: 100% !important; }
-
   /* ── Action buttons in tables ── */
-  td > div[style*="gap: 6"] { gap: 4px !important; }
-  td > div[style*="gap: 6"] .btn-sm { padding: 4px 8px !important; font-size: 11px !important; }
+  .action-btns { gap: 4px; }
+  .action-btns .btn-sm { padding: 4px 8px; font-size: 11px; }
 }
 
 /* ═════════════════════════════════════════════════════════════
@@ -3561,19 +3538,10 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   .member-grid { grid-template-columns: 1fr; }
 
   /* ── Modal form grids collapse ── */
-  .modal [style*="gridTemplateColumns: '1fr 1fr 1fr'"],
-  .modal [style*="gridTemplateColumns: \"1fr 1fr 1fr\""] {
-    grid-template-columns: 1fr !important;
-  }
-  .modal [style*="gridTemplateColumns: 'repeat(4, 1fr)'"],
-  .modal [style*="gridTemplateColumns: \"repeat(4, 1fr)\""] {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
+  .modal-grid-3 { grid-template-columns: 1fr; }
+  .modal-grid-4 { grid-template-columns: repeat(2, 1fr); }
 
-  /* ── Tighten empty states further ── */
-  .card div[style*="padding: '60px 24px'"] {
-    padding: 32px 16px !important;
-  }
+  .tighten-empty-state { padding: 32px 16px; }
 }
 
 /* ═════════════════════════════════════════════════════════════

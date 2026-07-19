@@ -170,7 +170,7 @@ function StatCard({ label, value, icon, color, delay = 0 }) {
       transition: `all 0.5s cubic-bezier(0.16,1,0.3,1) ${delay * 50}ms`,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div className="spt-stat-icon" style={{ background: `${color}18`, color }}>{icon}</div>
+        <div className="spt-stat-icon" style={{ background: `${color}18`, color }} aria-hidden="true">{icon}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="spt-stat-label">{label}</div>
           <div className="spt-stat-value"><AnimatedCounter value={value} /></div>
@@ -216,7 +216,7 @@ function TicketDrawer({ ticket, open, onClose, drawerTab, setDrawerTab, replyTex
   return (
     <>
       <div className={`spt-drawer-overlay${open ? ' open' : ''}`} onClick={onClose} />
-      <div className={`spt-drawer${open ? ' open' : ''}`}>
+      <div className={`spt-drawer${open ? ' open' : ''}`} role="dialog" aria-modal="true" aria-label={ticket?.subject ? `Ticket: ${ticket.subject}` : 'Ticket details'}>
         <div className="spt-drawer-header">
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -228,7 +228,7 @@ function TicketDrawer({ ticket, open, onClose, drawerTab, setDrawerTab, replyTex
               <StatusBadge status={ticket?.status || 'Open'} />
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--border)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 14, flexShrink: 0 }}>✕</button>
+          <button onClick={onClose} aria-label="Close ticket drawer" style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--border)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 14, flexShrink: 0 }}>✕</button>
         </div>
 
         <div className="spt-drawer-body">
@@ -455,8 +455,8 @@ export default function Support() {
       </div>
 
       {error && (
-        <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, marginBottom: 16, fontSize: 13, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span>⚠️</span> {error}
+        <div role="alert" style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, marginBottom: 16, fontSize: 13, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span aria-hidden="true">⚠️</span> {error}
         </div>
       )}
 
@@ -464,7 +464,7 @@ export default function Support() {
         <div>
           <div className="spt-card" style={{ padding: 20, marginBottom: 16 }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 16 }}>📝</span> Raise a Ticket
+              <span aria-hidden="true" style={{ fontSize: 16 }}>📝</span> Raise a Ticket
             </h3>
             <div className="spt-form-card">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
@@ -504,15 +504,15 @@ export default function Support() {
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="2" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
                     <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                   </svg>
-                  <input className="form-input" style={{ paddingLeft: 28, height: 32, fontSize: 12, borderRadius: 8, maxWidth: 200 }} placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                  <input className="form-input" style={{ paddingLeft: 28, height: 32, fontSize: 12, borderRadius: 8, maxWidth: 200 }} placeholder="Search..." aria-label="Search tickets" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
                 </div>
-                <select className="form-select" style={{ height: 32, fontSize: 11, borderRadius: 8, padding: '4px 24px 4px 8px', maxWidth: 130 }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+                <select className="form-select" style={{ height: 32, fontSize: 11, borderRadius: 8, padding: '4px 24px 4px 8px', maxWidth: 130 }} aria-label="Filter by status" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
                   <option>All</option><option>Open</option><option>In Progress</option><option>Under Review</option><option>Resolved</option><option>Closed</option>
                 </select>
               </div>
               <div style={{ overflowX: 'auto' }}>
                 <table className="data-table">
-                  <thead><tr><th>Subject</th><th>Category</th><th>Status</th><th>Priority</th><th>Date</th></tr></thead>
+                  <thead><tr><th scope="col">Subject</th><th scope="col">Category</th><th scope="col">Status</th><th scope="col">Priority</th><th scope="col">Date</th></tr></thead>
                   <tbody>
                     {filteredTickets.length === 0 ? (
                       <tr><td colSpan={5} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>No matching tickets</td></tr>
@@ -533,7 +533,7 @@ export default function Support() {
 
           {!supportTicketsLoading && visibleTickets.length === 0 && (
             <div className="spt-card" style={{ padding: '40px 24px', textAlign: 'center' }}>
-              <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.5 }}>🎫</div>
+              <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.5 }} aria-hidden="true">🎫</div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>No Tickets Yet</h3>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Submitted tickets will appear here once created.</p>
             </div>
@@ -544,7 +544,7 @@ export default function Support() {
       {activeTab === 'bugs' && (
         <div className="spt-card" style={{ padding: 20 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 16 }}>🐛</span> Report a Bug
+            <span aria-hidden="true" style={{ fontSize: 16 }}>🐛</span> Report a Bug
           </h3>
           <div className="spt-form-card">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
@@ -578,7 +578,7 @@ export default function Support() {
         <div>
           <div className="spt-card" style={{ padding: 20, marginBottom: 16 }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 16 }}>💡</span> Submit a Feature Request
+              <span aria-hidden="true" style={{ fontSize: 16 }}>💡</span> Submit a Feature Request
             </h3>
             <div className="spt-form-card">
               <div style={{ marginBottom: 14 }}>
@@ -602,7 +602,7 @@ export default function Support() {
               </div>
               <div style={{ overflowX: 'auto' }}>
                 <table className="data-table">
-                  <thead><tr><th>Title</th><th>Status</th><th>Date</th></tr></thead>
+                  <thead><tr><th scope="col">Title</th><th scope="col">Status</th><th scope="col">Date</th></tr></thead>
                   <tbody>
                     {[...featureRequests].filter(f => f.type !== 'feedback').reverse().map(f => (
                       <tr key={f.id}>
@@ -623,7 +623,7 @@ export default function Support() {
         <div>
           <div className="spt-card" style={{ padding: 20, marginBottom: 16 }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 16 }}>💬</span> Send Feedback
+              <span aria-hidden="true" style={{ fontSize: 16 }}>💬</span> Send Feedback
             </h3>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>We'd love to hear your thoughts about IRONPULSE. Your feedback helps us improve.</p>
             <div className="spt-form-card">
@@ -648,7 +648,7 @@ export default function Support() {
               </div>
               <div style={{ overflowX: 'auto' }}>
                 <table className="data-table">
-                  <thead><tr><th>Subject</th><th>Status</th><th>Date</th></tr></thead>
+                  <thead><tr><th scope="col">Subject</th><th scope="col">Status</th><th scope="col">Date</th></tr></thead>
                   <tbody>
                     {[...featureRequests].filter(f => f.type === 'feedback').reverse().map(f => (
                       <tr key={f.id}>
@@ -668,7 +668,7 @@ export default function Support() {
       {activeTab === 'knowledge-base' && (
         <div className="spt-card" style={{ padding: 24 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 16 }}>📚</span> Knowledge Base
+            <span aria-hidden="true" style={{ fontSize: 16 }}>📚</span> Knowledge Base
           </h3>
           <div className="spt-kb-grid">
             {knowledgeBaseCards.map((card, i) => (
@@ -685,7 +685,7 @@ export default function Support() {
 
       {activeTab === 'announcements' && (
         <div className="spt-card" style={{ padding: '48px 24px', textAlign: 'center' }}>
-          <div style={{ fontSize: 44, marginBottom: 12, opacity: 0.4 }}>📢</div>
+          <div style={{ fontSize: 44, marginBottom: 12, opacity: 0.4 }} aria-hidden="true">📢</div>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>No Announcements</h3>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Platform announcements and updates will appear here.</p>
         </div>

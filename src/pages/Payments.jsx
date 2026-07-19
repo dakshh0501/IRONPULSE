@@ -216,7 +216,7 @@ function PaymentDetailsDrawer({ invoice, onClose, onMarkPaid, gymName, gymSettin
 
   return (
     <div className="member-drawer-overlay pay-drawer-overlay" onClick={onClose}>
-      <div className="pay-drawer" onClick={e => e.stopPropagation()}>
+        <div className="pay-drawer" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
         <div className="pay-drawer-header">
           <div>
             <div className="pay-drawer-invoice">{receiptNumber}</div>
@@ -224,7 +224,7 @@ function PaymentDetailsDrawer({ invoice, onClose, onMarkPaid, gymName, gymSettin
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <StatusBadge status={invoice.status} />
-            <button className="modal-close" onClick={onClose}>✕</button>
+            <button className="modal-close" onClick={onClose} aria-label="Close drawer">✕</button>
           </div>
         </div>
 
@@ -361,13 +361,13 @@ function NewInvoiceModal({ onSave, onClose, members, plans }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+        <div className="modal" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
         <div className="modal-header">
           <div>
             <h3>New Invoice</h3>
             <p>Generate a payment invoice</p>
           </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose} aria-label="Close modal">✕</button>
         </div>
         <div style={{ padding:'22px 24px', display:'flex', flexDirection:'column', gap:14 }}>
           <div>
@@ -376,7 +376,7 @@ function NewInvoiceModal({ onSave, onClose, members, plans }) {
               <option value="">Choose a member</option>
               {activeMembers.map(m => <option key={m.id} value={m.id}>{m.name} ({m.plan || 'No plan'})</option>)}
             </select>
-            {errors.memberId && <div style={errStyle}>{errors.memberId}</div>}
+            {errors.memberId && <div style={errStyle} role="alert">{errors.memberId}</div>}
           </div>
           <div>
             <label style={labelStyle}>Membership Plan</label>
@@ -388,12 +388,12 @@ function NewInvoiceModal({ onSave, onClose, members, plans }) {
             <div>
               <label style={labelStyle}>Amount (₹) *</label>
               <input type="number" min="0" value={form.amount} onChange={e => { setForm(f => ({ ...f, amount: e.target.value })); setErrors(err => ({ ...err, amount: '' })) }} placeholder="e.g. 1500" className="form-input" style={inputStyle('amount')} />
-              {errors.amount && <div style={errStyle}>{errors.amount}</div>}
+              {errors.amount && <div style={errStyle} role="alert">{errors.amount}</div>}
             </div>
             <div>
               <label style={labelStyle}>Due Date *</label>
               <input type="date" value={form.due} onChange={e => { setForm(f => ({ ...f, due: e.target.value })); setErrors(err => ({ ...err, due: '' })) }} className="form-input" style={inputStyle('due')} />
-              {errors.due && <div style={errStyle}>{errors.due}</div>}
+              {errors.due && <div style={errStyle} role="alert">{errors.due}</div>}
             </div>
           </div>
           <div>
@@ -402,7 +402,7 @@ function NewInvoiceModal({ onSave, onClose, members, plans }) {
               {METHODS.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
-          {saveError && <p style={{ color:'var(--red)', fontSize:12, margin:0, textAlign:'center' }}>{saveError}</p>}
+          {saveError && <p style={{ color:'var(--red)', fontSize:12, margin:0, textAlign:'center' }} role="alert">{saveError}</p>}
           <div style={{ display:'flex', gap:8, marginTop:4 }}>
             <button className="btn btn-ghost" onClick={onClose} style={{ flex:1 }} disabled={saving}>Cancel</button>
             <button className="btn btn-primary" onClick={handleSave} style={{ flex:2 }} disabled={saving}>
@@ -450,16 +450,16 @@ function QuickCollectionPanel({ members, plans, onCollect }) {
   return (
     <div className="pay-quick-card">
       <div className="pay-quick-header">
-        <span style={{ fontSize:24 }}>⚡</span>
+        <span style={{ fontSize:24 }} aria-hidden="true">⚡</span>
         <div>
           <div className="pay-quick-title">Quick Collection</div>
           <div className="pay-quick-desc">Fast payment from any member</div>
         </div>
       </div>
       <div className="pay-quick-search-wrap">
-        <span className="pay-quick-search-icon">🔍</span>
-        <input className="pay-quick-search" placeholder="Search member by name, email or phone..." value={q} onChange={e => setQ(e.target.value)} />
-        {q && <button className="pay-quick-clear" onClick={() => { setQ(''); setSelected(null) }}>✕</button>}
+        <span className="pay-quick-search-icon" aria-hidden="true">🔍</span>
+        <input className="pay-quick-search" placeholder="Search member by name, email or phone..." value={q} onChange={e => setQ(e.target.value)} aria-label="Search members" />
+        {q && <button className="pay-quick-clear" onClick={() => { setQ(''); setSelected(null) }} aria-label="Clear search">✕</button>}
       </div>
       {q && !selected && filtered.length > 0 && (
         <div className="pay-quick-results">
@@ -489,8 +489,8 @@ function QuickCollectionPanel({ members, plans, onCollect }) {
             <button className="pay-quick-change" onClick={() => { setSelected(null); setQ('') }}>Change</button>
           </div>
           <div className="pay-quick-calc-row"><span>Plan Price</span><span>{fmt(subtotal)}</span></div>
-          <div className="pay-quick-calc-row"><span>Discount (%)</span><input type="number" min="0" max="100" value={discount} onChange={e => setDiscount(Number(e.target.value)||0)} className="pay-calc-input" /></div>
-          <div className="pay-quick-calc-row"><span>Tax (%)</span><input type="number" min="0" max="100" value={tax} onChange={e => setTax(Number(e.target.value)||0)} className="pay-calc-input" /></div>
+          <div className="pay-quick-calc-row"><span>Discount (%)</span><input type="number" min="0" max="100" value={discount} onChange={e => setDiscount(Number(e.target.value)||0)} className="pay-calc-input" aria-label="Discount percentage" /></div>
+          <div className="pay-quick-calc-row"><span>Tax (%)</span><input type="number" min="0" max="100" value={tax} onChange={e => setTax(Number(e.target.value)||0)} className="pay-calc-input" aria-label="Tax percentage" /></div>
           <div className="pay-quick-calc-divider" />
           <div className="pay-quick-calc-row pay-quick-total"><span>Final Amount</span><span style={{ color:'var(--accent)', fontSize:18 }}>{fmt(finalAmount)}</span></div>
           <button className="btn btn-primary" onClick={handleCollect} style={{ width:'100%', justifyContent:'center' }}>💰 Collect Payment</button>
@@ -618,7 +618,7 @@ function PaymentTable({ invoices, search, onSelectInvoice, onDelete, readOnly })
         <div className="pay-table-toolbar-left">
           <span className="pay-table-title">Payment Records</span>
           <div className="pay-table-search-wrap">
-            <input className="pay-table-search" placeholder="Search member, invoice ID, plan..." value={localSearch} onChange={e => { setLocalSearch(e.target.value); setPage(1) }} />
+            <input className="pay-table-search" placeholder="Search member, invoice ID, plan..." value={localSearch} onChange={e => { setLocalSearch(e.target.value); setPage(1) }} aria-label="Search payment records" />
           </div>
         </div>
         <div className="pay-table-toolbar-right">
@@ -635,16 +635,16 @@ function PaymentTable({ invoices, search, onSelectInvoice, onDelete, readOnly })
         <table className="pay-table">
           <thead>
             <tr>
-              <th style={{ width:32 }}>#</th>
-              <th>Member</th>
-              <th>Plan</th>
-              <th style={{ textAlign:'right' }}>Amount</th>
-              <th style={{ textAlign:'right' }}>Paid</th>
-              <th style={{ textAlign:'right' }}>Balance</th>
-              <th>Method</th>
-              <th>Status</th>
-              <th>Due Date</th>
-              {!readOnly && <th style={{ width:50 }}></th>}
+              <th scope="col" style={{ width:32 }}>#</th>
+              <th scope="col">Member</th>
+              <th scope="col">Plan</th>
+              <th scope="col" style={{ textAlign:'right' }}>Amount</th>
+              <th scope="col" style={{ textAlign:'right' }}>Paid</th>
+              <th scope="col" style={{ textAlign:'right' }}>Balance</th>
+              <th scope="col">Method</th>
+              <th scope="col">Status</th>
+              <th scope="col">Due Date</th>
+              {!readOnly && <th scope="col" style={{ width:50 }}></th>}
             </tr>
           </thead>
           <tbody>
@@ -652,7 +652,7 @@ function PaymentTable({ invoices, search, onSelectInvoice, onDelete, readOnly })
               <tr>
                 <td colSpan={readOnly ? 9 : 10}>
                   <div className="pay-empty">
-                    <div className="pay-empty-icon">💳</div>
+                    <div className="pay-empty-icon" aria-hidden="true">💳</div>
                     <div className="pay-empty-title">No payments yet</div>
                     <div className="pay-empty-text">Create your first invoice to start tracking payments.</div>
                   </div>
@@ -683,7 +683,7 @@ function PaymentTable({ invoices, search, onSelectInvoice, onDelete, readOnly })
                     <td>
                       <button
                         onClick={(e) => { e.stopPropagation(); if (window.confirm('Delete this invoice?')) onDelete(inv.firestoreId) }}
-                        className="btn-delete-icon" title="Delete"
+                        className="btn-delete-icon" title="Delete" aria-label="Delete invoice"
                       >🗑️</button>
                     </td>
                   )}
@@ -838,24 +838,24 @@ export default function Payments() {
         </div>
 
         {paymentError && (
-          <div style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 10, padding: '11px 16px', marginBottom: 16, color: 'var(--red)', fontSize: 13, fontWeight: 500 }}>
+          <div style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 10, padding: '11px 16px', marginBottom: 16, color: 'var(--red)', fontSize: 13, fontWeight: 500 }} role="alert">
             ⚠️ {paymentError}
           </div>
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14, marginBottom: 24 }}>
           <div className="stat-card green">
-            <span className="stat-icon">💰</span>
+            <span className="stat-icon" aria-hidden="true">💰</span>
             <span className="stat-label">Total Paid</span>
             <span className="stat-value">{fmt(myPayments.totalPaid)}</span>
           </div>
           <div className="stat-card amber">
-            <span className="stat-icon">⏳</span>
+            <span className="stat-icon" aria-hidden="true">⏳</span>
             <span className="stat-label">Pending Dues</span>
             <span className="stat-value">{fmt(myPayments.totalDue)}</span>
           </div>
           <div className="stat-card purple">
-            <span className="stat-icon">📄</span>
+            <span className="stat-icon" aria-hidden="true">📄</span>
             <span className="stat-label">Transactions</span>
             <span className="stat-value">{myPayments.paymentCount}</span>
           </div>
@@ -889,7 +889,7 @@ export default function Payments() {
       </div>
 
       {paymentError && (
-        <div style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 10, padding: '11px 16px', marginBottom: 16, color: 'var(--red)', fontSize: 13, fontWeight: 500 }}>
+        <div style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 10, padding: '11px 16px', marginBottom: 16, color: 'var(--red)', fontSize: 13, fontWeight: 500 }} role="alert">
           ⚠️ {paymentError}
         </div>
       )}
@@ -898,42 +898,42 @@ export default function Payments() {
       <div className="pay-summary-grid">
         <div className="dash-kpi-card" style={{ cursor:'default' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-green">💰</span>
+            <span className="dash-kpi-icon dash-kpi-icon-green" aria-hidden="true">💰</span>
           </div>
           <span className="dash-kpi-value" style={{ fontSize:22 }}>{fmt(stats.todayCollected)}</span>
           <span className="dash-kpi-label">Today's Collection</span>
         </div>
         <div className="dash-kpi-card" style={{ cursor:'default' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-blue">📈</span>
+            <span className="dash-kpi-icon dash-kpi-icon-blue" aria-hidden="true">📈</span>
           </div>
           <span className="dash-kpi-value" style={{ fontSize:22 }}>{fmt(stats.monthly)}</span>
           <span className="dash-kpi-label">Monthly Revenue</span>
         </div>
         <div className="dash-kpi-card" style={{ cursor:'default' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-amber">⏳</span>
+            <span className="dash-kpi-icon dash-kpi-icon-amber" aria-hidden="true">⏳</span>
           </div>
           <span className="dash-kpi-value" style={{ fontSize:22 }}>{fmt(stats.pending)}</span>
           <span className="dash-kpi-label">Pending Dues</span>
         </div>
         <div className="dash-kpi-card" style={{ cursor:'default' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-red">🚨</span>
+            <span className="dash-kpi-icon dash-kpi-icon-red" aria-hidden="true">🚨</span>
           </div>
           <span className="dash-kpi-value" style={{ fontSize:22 }}>{stats.overdueMembers}</span>
           <span className="dash-kpi-label">Overdue Members</span>
         </div>
         <div className="dash-kpi-card" style={{ cursor:'default' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-green">✅</span>
+            <span className="dash-kpi-icon dash-kpi-icon-green" aria-hidden="true">✅</span>
           </div>
           <span className="dash-kpi-value" style={{ fontSize:22 }}>{stats.paidCount}</span>
           <span className="dash-kpi-label">Successful Payments</span>
         </div>
         <div className="dash-kpi-card" style={{ cursor:'default' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-red">❌</span>
+            <span className="dash-kpi-icon dash-kpi-icon-red" aria-hidden="true">❌</span>
           </div>
           <span className="dash-kpi-value" style={{ fontSize:22 }}>{stats.failedCount}</span>
           <span className="dash-kpi-label">Failed Payments</span>

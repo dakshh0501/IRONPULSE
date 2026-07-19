@@ -155,18 +155,21 @@ export default function Header({ search, setSearch, setMobileOpen }) {
         </div>
 
         {/* Search */}
-        <div className={`header-search${searchFocused ? ' focused' : ''}`}>
-          <Search size={16} className="header-search-icon" />
+        <div className={`header-search${searchFocused ? ' focused' : ''}`} role="search">
+          <Search size={16} className="header-search-icon" aria-hidden="true" />
+          <label htmlFor="header-search-input" className="sr-only">Search members, plans...</label>
           <input
+            id="header-search-input"
             placeholder="Search members, plans..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
+            aria-label="Search members, plans"
           />
           {search && (
-            <button className="header-search-clear" onClick={() => setSearch('')}>
-              <X size={14} />
+            <button className="header-search-clear" onClick={() => setSearch('')} aria-label="Clear search">
+              <X size={14} aria-hidden="true" />
             </button>
           )}
         </div>
@@ -187,40 +190,44 @@ export default function Header({ search, setSearch, setMobileOpen }) {
 
           <button
             className="header-icon-btn"
-            title={darkMode ? 'Light mode' : 'Dark mode'}
+            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             onClick={() => setDarkMode(d => !d)}
           >
-            {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+            {darkMode ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
           </button>
 
           <button
             ref={notifBtnRef}
             className="header-icon-btn header-notif-btn"
             onClick={() => setNotifOpen(p => !p)}
+            aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+            aria-expanded={notifOpen}
+            aria-controls="notification-panel"
           >
-            <Bell size={18} />
+            <Bell size={18} aria-hidden="true" />
             {unreadCount > 0 && (
-              <span className="header-notif-dot">
+              <span className="header-notif-dot" aria-hidden="true">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
           </button>
 
-          <div
+          <button
             className="header-avatar"
             onClick={() => navigate('/settings')}
-            title={userProfile?.name}
+            aria-label={`Settings: ${userProfile?.name || 'User'}`}
+            style={{ background:'none', border:'none', cursor:'pointer', padding:0 }}
           >
-            <div className="avatar av-orange" style={{ width:34, height:34, fontSize:13 }}>
+            <div className="avatar av-orange" style={{ width:34, height:34, fontSize:13 }} aria-hidden="true">
               {userProfile?.name?.[0] || 'U'}
             </div>
-          </div>
+          </button>
         </div>
       </header>
 
       {/* Notification Panel */}
       {notifOpen && (
-        <div className="notif-panel" ref={notifRef}>
+        <div className="notif-panel" ref={notifRef} id="notification-panel" role="dialog" aria-label="Notifications" aria-modal="true">
           <div className="notif-panel-header">
             <div>
               <h3>Notifications</h3>

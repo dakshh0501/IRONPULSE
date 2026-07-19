@@ -15,7 +15,7 @@ export default function LicenseRequiredScreen({ reason, subscription, onRetry })
       textAlign:'center', background:'var(--bg)', position:'relative', overflow:'hidden',
     }}>
       <HexBackground />
-      <div style={{ fontSize:80, marginBottom:16 }}>🔒</div>
+      <div aria-hidden="true" style={{ fontSize:80, marginBottom:16 }}>🔒</div>
       <h1 style={{ fontSize:24, fontWeight:800, margin:'0 0 8px' }}>License Required</h1>
       <p style={{ color:'var(--text-muted)', fontSize:14, margin:'0 0 24px', maxWidth:400 }}>
         {reason || 'Your license validation could not be completed.'}
@@ -30,11 +30,11 @@ export default function LicenseRequiredScreen({ reason, subscription, onRetry })
           <span style={{ fontSize:13, color:'var(--text-muted)' }}>License Status</span>
           <span style={{ fontWeight:700 }}>
             {subscription?.licenseStatus === 'active'
-              ? `Active ✅`
+              ? <>Active <span aria-hidden="true">✅</span></>
               : subscription?.licenseStatus === 'revoked'
-                ? `Revoked 🚫`
+                ? <>Revoked <span aria-hidden="true">🚫</span></>
                 : subscription?.licenseStatus === 'suspended'
-                  ? `Suspended ⚠️`
+                  ? <>Suspended <span aria-hidden="true">⚠️</span></>
                   : `—`}
           </span>
         </div>
@@ -42,11 +42,11 @@ export default function LicenseRequiredScreen({ reason, subscription, onRetry })
           <span style={{ fontSize:13, color:'var(--text-muted)' }}>Subscription Status</span>
           <span style={{ fontWeight:700 }}>
             {subscription?.status === 'active' || subscription?.status === 'trial'
-              ? `Active ✅`
+              ? <>Active <span aria-hidden="true">✅</span></>
               : subscription?.status === 'expired'
-                ? `Expired ❌`
+                ? <>Expired <span aria-hidden="true">❌</span></>
                 : subscription?.status === 'suspended'
-                  ? `Suspended ⚠️`
+                  ? <>Suspended <span aria-hidden="true">⚠️</span></>
                   : `—`}
           </span>
         </div>
@@ -65,17 +65,17 @@ export default function LicenseRequiredScreen({ reason, subscription, onRetry })
       <div style={{ display:'flex', gap:12, flexWrap:'wrap', justifyContent:'center' }}>
         {onRetry && (
           <button className="btn btn-primary" onClick={onRetry}>
-            🔄 Retry Validation
+            <span aria-hidden="true">🔄</span> Retry Validation
           </button>
         )}
         <a href="/subscription" className="btn btn-outline" style={{ textDecoration:'none' }}>
-          📋 Renew Subscription
+          <span aria-hidden="true">📋</span> Renew Subscription
         </a>
         <button className="btn btn-ghost" onClick={() => openSupportWhatsApp({ user: currentUser, gym: { ...gymSettings, plan: subscription?.planName || subscription?.planType }, page: 'License Validation', issue: 'License Activation', extra: reason })} style={{ textDecoration:'none' }}>
-          🆘 Contact Support
+          <span aria-hidden="true">🆘</span> Contact Support
         </button>
         <button className="btn btn-ghost" style={{ color:'var(--red)' }} onClick={logout}>
-          🚪 Sign Out
+          <span aria-hidden="true">🚪</span> Sign Out
         </button>
       </div>
     </div>

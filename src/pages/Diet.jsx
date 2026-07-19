@@ -67,7 +67,7 @@ function StatPill({ icon, value, label, color }) {
       background: 'var(--bg3)', border: '1px solid var(--border)',
       borderRadius: 10, padding: '10px 14px', minWidth: 70,
     }}>
-      <span style={{ fontSize: 18 }}>{icon}</span>
+      <span aria-hidden="true" style={{ fontSize: 18 }}>{icon}</span>
       <span style={{ fontSize: 15, fontWeight: 800, color: color || 'var(--text)', lineHeight: 1.2, marginTop: 2 }}>{value}</span>
       <span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</span>
     </div>
@@ -189,7 +189,7 @@ const PlanCard = memo(function PlanCard({ plan, onView, onEdit, onDelete, readOn
           {plan.calories.toLocaleString()}
         </span>
         <span style={{ color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>kcal / day</span>
-        <div style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-muted)' }}>⏱ {plan.duration}</div>
+        <div style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-muted)' }}><span aria-hidden="true">⏱</span> {plan.duration}</div>
       </div>
 
       {/* Macro bar */}
@@ -204,15 +204,15 @@ const PlanCard = memo(function PlanCard({ plan, onView, onEdit, onDelete, readOn
       }}>
         <div style={{ flex: 1, fontSize: 12 }}>
           <div style={{ color: 'var(--text-muted)', marginBottom: 1 }}>Member</div>
-          <div style={{ color: 'var(--text)', fontWeight: 600 }}>👤 {plan.assignedMember}</div>
+          <div style={{ color: 'var(--text)', fontWeight: 600 }}><span aria-hidden="true">👤</span> {plan.assignedMember}</div>
         </div>
         <div style={{ flex: 1, fontSize: 12 }}>
           <div style={{ color: 'var(--text-muted)', marginBottom: 1 }}>Trainer</div>
-          <div style={{ color: 'var(--text)', fontWeight: 600 }}>🏋️ {plan.assignedTrainer}</div>
+          <div style={{ color: 'var(--text)', fontWeight: 600 }}><span aria-hidden="true">🏋️</span> {plan.assignedTrainer}</div>
         </div>
         <div style={{ fontSize: 12 }}>
           <div style={{ color: 'var(--text-muted)', marginBottom: 1 }}>Meals</div>
-          <div style={{ color: 'var(--text)', fontWeight: 600 }}>🍽️ {plan.meals.length}</div>
+          <div style={{ color: 'var(--text)', fontWeight: 600 }}><span aria-hidden="true">🍽️</span> {plan.meals.length}</div>
         </div>
       </div>
 
@@ -257,7 +257,7 @@ function PlanDetailModal({ plan, onClose, onEdit, gymName }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
       <div style={{
         background: 'var(--bg2)', border: `1px solid ${gc.border}30`,
         borderRadius: 20, width: '100%', maxWidth: 740,
@@ -292,14 +292,14 @@ function PlanDetailModal({ plan, onClose, onEdit, gymName }) {
                 color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 6,
               }}>
-                💬 Share via WhatsApp
+                <span aria-hidden="true">💬</span> Share via WhatsApp
               </button>
               {onEdit && <button onClick={() => { onClose(); onEdit(plan) }} style={{
                 padding: '8px 16px', background: 'var(--hover)',
                 border: '1px solid var(--border)', borderRadius: 8,
                 color: 'var(--text)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-              }}>✏️ EDIT</button>}
-              <button onClick={onClose} style={{
+              }}><span aria-hidden="true">✏️</span> EDIT</button>}
+              <button onClick={onClose} aria-label="Close detail view" style={{
                 width: 36, height: 36, borderRadius: 8,
                 background: 'var(--orange)15', border: '1px solid var(--orange)30',
                 color: 'var(--orange)', fontSize: 18, cursor: 'pointer',
@@ -353,13 +353,13 @@ function PlanDetailModal({ plan, onClose, onEdit, gymName }) {
           <div style={{
             display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap',
           }}>
-            {[['👤 Member', plan.assignedMember], ['🏋️ Trainer', plan.assignedTrainer], ['📅 Created', plan.createdAt]].map(([label, val]) => (
-              <div key={label} style={{
+            {[['👤', 'Member', plan.assignedMember], ['🏋️', 'Trainer', plan.assignedTrainer], ['📅', 'Created', plan.createdAt]].map(([emoji, label, val]) => (
+              <div key={emoji + label} style={{
                 flex: 1, minWidth: 140,
                 background: 'var(--bg3)', border: '1px solid var(--border)',
                 borderRadius: 10, padding: '12px 16px',
               }}>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{label}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}><span aria-hidden="true">{emoji}</span> {label}</div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{val}</div>
               </div>
             ))}
@@ -482,7 +482,7 @@ function PlanFormModal({ existing, onSave, onClose, members = [], trainers = [] 
   const gridThree = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
       <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 20, width: '100%', maxWidth: 680, maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 30px 80px #000' }} onClick={e => e.stopPropagation()}>
 
         {/* Header */}
@@ -495,19 +495,19 @@ function PlanFormModal({ existing, onSave, onClose, members = [], trainers = [] 
               {existing ? `Editing: ${existing.name}` : 'Add a new nutrition plan for a member'}
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--orange)15', border: '1px solid var(--orange)30', color: 'var(--orange)', fontSize: 18, cursor: 'pointer' }}>×</button>
+          <button onClick={onClose} aria-label="Close form" style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--orange)15', border: '1px solid var(--orange)30', color: 'var(--orange)', fontSize: 18, cursor: 'pointer' }}>×</button>
         </div>
 
         {/* Step tabs */}
         <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)' }}>
-          {['📋 Plan Details', '🍽️ Meal Schedule'].map((label, i) => (
+            {[['📋', 'Plan Details'], ['🍽️', 'Meal Schedule']].map(([emoji, label], i) => (
             <button key={i} onClick={() => setStep(i)} style={{
               flex: 1, padding: '12px 0',
               background: step === i ? 'var(--orange)18' : 'transparent',
               border: 'none', borderBottom: `2px solid ${step === i ? 'var(--orange)' : 'transparent'}`,
               color: step === i ? 'var(--orange)' : 'var(--text-muted)',
               fontSize: 12, fontWeight: 700, cursor: 'pointer', letterSpacing: 0.5,
-            }}>{label}</button>
+            }}><span aria-hidden="true">{emoji}</span> {label}</button>
           ))}
         </div>
 
@@ -518,7 +518,7 @@ function PlanFormModal({ existing, onSave, onClose, members = [], trainers = [] 
               <div>
                 <label style={labelStyle}>Plan Name *</label>
                 <input {...inp('name', 'e.g. Lean Shred Protocol')} />
-                {errors.name && <div style={errStyle}>{errors.name}</div>}
+                {errors.name && <div role="alert" style={errStyle}>{errors.name}</div>}
               </div>
               <div style={gridTwo}>
                 <div>
@@ -537,14 +537,14 @@ function PlanFormModal({ existing, onSave, onClose, members = [], trainers = [] 
               <div>
                 <label style={labelStyle}>Total Daily Calories (kcal) *</label>
                 <input {...inp('calories', 'e.g. 2200', 'number')} min="0" />
-                {errors.calories && <div style={errStyle}>{errors.calories}</div>}
+                {errors.calories && <div role="alert" style={errStyle}>{errors.calories}</div>}
               </div>
               <div style={gridThree}>
                 {['protein', 'carbs', 'fat'].map(macro => (
                   <div key={macro}>
                     <label style={labelStyle}>{macro.charAt(0).toUpperCase() + macro.slice(1)} (g) *</label>
                     <input {...inp(macro, 'e.g. 150', 'number')} min="0" />
-                    {errors[macro] && <div style={errStyle}>{errors[macro]}</div>}
+                    {errors[macro] && <div role="alert" style={errStyle}>{errors[macro]}</div>}
                   </div>
                 ))}
               </div>
@@ -566,7 +566,7 @@ function PlanFormModal({ existing, onSave, onClose, members = [], trainers = [] 
                     <option value="">— Select member —</option>
                     {members.map(m => <option key={m.id} value={m.name} style={{ background: 'var(--bg2)' }}>{m.name} ({m.plan})</option>)}
                   </select>
-                  {errors.assignedMember && <div style={errStyle}>{errors.assignedMember}</div>}
+                  {errors.assignedMember && <div role="alert" style={errStyle}>{errors.assignedMember}</div>}
                   {form.assignedMember && members.find(x => x.name === form.assignedMember) && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, background: 'var(--hover)', borderRadius: 8, padding: '8px 12px' }}>
                       <div>
@@ -587,13 +587,13 @@ function PlanFormModal({ existing, onSave, onClose, members = [], trainers = [] 
                     <option value="">— Select trainer —</option>
                     {trainers.map(t => <option key={t.id} value={t.name} style={{ background: 'var(--bg2)' }}>{t.name}</option>)}
                   </select>
-                  {errors.assignedTrainer && <div style={errStyle}>{errors.assignedTrainer}</div>}
+                  {errors.assignedTrainer && <div role="alert" style={errStyle}>{errors.assignedTrainer}</div>}
                 </div>
               </div>
               <div>
                 <label style={labelStyle}>Duration *</label>
                 <input {...inp('duration', 'e.g. 8 weeks, Ongoing')} />
-                {errors.duration && <div style={errStyle}>{errors.duration}</div>}
+                {errors.duration && <div role="alert" style={errStyle}>{errors.duration}</div>}
               </div>
               <button onClick={() => setStep(1)} style={{
                 width: '100%', padding: '12px', background: 'linear-gradient(135deg,var(--orange),#F59E0B)',
@@ -610,14 +610,14 @@ function PlanFormModal({ existing, onSave, onClose, members = [], trainers = [] 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: 14 }}>Meal {mIdx + 1}</div>
                     {form.meals.length > 1 && (
-                      <button onClick={() => removeMeal(mIdx)} style={{ background: 'var(--orange)15', border: '1px solid var(--orange)30', color: 'var(--orange)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}>Remove</button>
+                      <button onClick={() => removeMeal(mIdx)} aria-label="Remove meal" style={{ background: 'var(--orange)15', border: '1px solid var(--orange)30', color: 'var(--orange)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}>Remove</button>
                     )}
                   </div>
                   <div style={{ ...gridThree, marginBottom: 12 }}>
                     <div>
                       <label style={labelStyle}>Meal Name *</label>
                       <input value={meal.name} onChange={e => updateMeal(mIdx, 'name', e.target.value)} placeholder="e.g. Breakfast" style={{ width: '100%', padding: '9px 11px', boxSizing: 'border-box', background: 'var(--input-bg)', border: `1px solid ${errors[`meal_name_${mIdx}`] ? 'var(--orange)60' : 'var(--input-border)'}`, borderRadius: 8, color: 'var(--text)', fontSize: 13, outline: 'none' }} />
-                      {errors[`meal_name_${mIdx}`] && <div style={errStyle}>{errors[`meal_name_${mIdx}`]}</div>}
+                      {errors[`meal_name_${mIdx}`] && <div role="alert" style={errStyle}>{errors[`meal_name_${mIdx}`]}</div>}
                     </div>
                     <div>
                       <label style={labelStyle}>Time</label>
@@ -628,7 +628,7 @@ function PlanFormModal({ existing, onSave, onClose, members = [], trainers = [] 
                     <div>
                       <label style={labelStyle}>Calories *</label>
                       <input value={meal.calories} onChange={e => updateMeal(mIdx, 'calories', e.target.value)} placeholder="kcal" type="number" min="0" style={{ width: '100%', padding: '9px 11px', boxSizing: 'border-box', background: 'var(--input-bg)', border: `1px solid ${errors[`meal_cal_${mIdx}`] ? 'var(--orange)60' : 'var(--input-border)'}`, borderRadius: 8, color: 'var(--text)', fontSize: 13, outline: 'none' }} />
-                      {errors[`meal_cal_${mIdx}`] && <div style={errStyle}>{errors[`meal_cal_${mIdx}`]}</div>}
+                      {errors[`meal_cal_${mIdx}`] && <div role="alert" style={errStyle}>{errors[`meal_cal_${mIdx}`]}</div>}
                     </div>
                   </div>
                   <div>
@@ -636,9 +636,9 @@ function PlanFormModal({ existing, onSave, onClose, members = [], trainers = [] 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {meal.items.map((item, iIdx) => (
                         <div key={iIdx} style={{ display: 'flex', gap: 6 }}>
-                          <input value={item} onChange={e => updateItem(mIdx, iIdx, e.target.value)} placeholder={`Item ${iIdx + 1}`} style={{ flex: 1, padding: '8px 11px', background: 'var(--hover)', border: '1px solid var(--border)', borderRadius: 7, color: 'var(--text)', fontSize: 12, outline: 'none' }} />
+                          <input value={item} onChange={e => updateItem(mIdx, iIdx, e.target.value)} placeholder={`Item ${iIdx + 1}`} aria-label={`Food item ${iIdx + 1}`} style={{ flex: 1, padding: '8px 11px', background: 'var(--hover)', border: '1px solid var(--border)', borderRadius: 7, color: 'var(--text)', fontSize: 12, outline: 'none' }} />
                           {meal.items.length > 1 && (
-                            <button onClick={() => removeItem(mIdx, iIdx)} style={{ background: 'var(--orange)10', border: '1px solid var(--orange)20', color: 'var(--orange)', borderRadius: 7, width: 32, cursor: 'pointer', fontSize: 14 }}>×</button>
+                            <button onClick={() => removeItem(mIdx, iIdx)} aria-label="Remove item" style={{ background: 'var(--orange)10', border: '1px solid var(--orange)20', color: 'var(--orange)', borderRadius: 7, width: 32, cursor: 'pointer', fontSize: 14 }}>×</button>
                           )}
                         </div>
                       ))}
@@ -650,7 +650,7 @@ function PlanFormModal({ existing, onSave, onClose, members = [], trainers = [] 
 
               <button onClick={addMeal} style={{ padding: '10px', background: 'var(--hover)', border: '1px dashed var(--border)', borderRadius: 10, color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer' }}>+ ADD MEAL</button>
 
-              {saveError && <p style={{ color:'var(--red)', fontSize:12, margin:0, textAlign:'center' }}>{saveError}</p>}
+              {saveError && <p role="alert" style={{ color:'var(--red)', fontSize:12, margin:0, textAlign:'center' }}>{saveError}</p>}
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button onClick={() => setStep(0)} disabled={saving} style={{ flex: 1, padding: '12px', background: 'var(--hover)', border: '1px solid var(--border)', borderRadius: 10, color: saving ? 'var(--text-muted)' : 'var(--text-muted)', fontWeight: 700, fontSize: 13, cursor: saving ? 'not-allowed' : 'pointer' }}>← BACK</button>
                 <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: '12px', background: saving ? 'var(--disabled)' : 'linear-gradient(135deg,var(--orange),#F59E0B)', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 800, fontSize: 14, cursor: saving ? 'not-allowed' : 'pointer', letterSpacing: 1 }}>
@@ -673,15 +673,15 @@ function DeleteConfirm({ plan, onConfirm, onCancel, error }) {
     return () => window.removeEventListener('keydown', handler)
   }, [onCancel])
   return (
-    <div className="modal-overlay" style={{ zIndex: 1100 }} onClick={onCancel}>
+    <div className="modal-overlay" role="dialog" aria-modal="true" style={{ zIndex: 1100 }} onClick={onCancel}>
       <div style={{ background: 'var(--bg2)', border: '1px solid var(--orange)30', borderRadius: 16, padding: 28, maxWidth: 380, width: '90%', textAlign: 'center', boxShadow: 'var(--shadow)' }}>
-        <div style={{ fontSize: 40, marginBottom: 12 }}>🗑️</div>
+        <div style={{ fontSize: 40, marginBottom: 12 }}><span aria-hidden="true">🗑️</span></div>
         <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, color: 'var(--text)', letterSpacing: 1, marginBottom: 8 }}>DELETE PLAN?</div>
         <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 22 }}>
           This will permanently delete <span style={{ color: 'var(--orange)', fontWeight: 700 }}>{plan.name}</span>. This action cannot be undone.
         </div>
         {error && (
-          <div style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 8, padding: '8px 12px', marginBottom: 14, color: 'var(--red)', fontSize: 12, fontWeight: 500 }}>⚠️ {error}</div>
+          <div role="alert" style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 8, padding: '8px 12px', marginBottom: 14, color: 'var(--red)', fontSize: 12, fontWeight: 500 }}><span aria-hidden="true">⚠️</span> {error}</div>
         )}
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={onCancel} style={{ flex: 1, padding: '11px', background: 'var(--hover)', border: '1px solid var(--border)', borderRadius: 9, color: 'var(--text-muted)', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
@@ -778,7 +778,7 @@ export default function Diet() {
         </div>
         {dietPlans.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🥗</div>
+            <div style={{ fontSize: 48, marginBottom: 12 }}><span aria-hidden="true">🥗</span></div>
             <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, letterSpacing: 1, marginBottom: 8 }}>NO DIET PLANS</div>
             <div style={{ fontSize: 13 }}>You don't have any diet plans assigned yet. Check back later.</div>
           </div>
@@ -814,7 +814,7 @@ export default function Diet() {
           fontWeight: 800, fontSize: 13, cursor: 'pointer', letterSpacing: 0.5,
           boxShadow: '0 4px 20px var(--orange)40',
         }}>
-          <span style={{ fontSize: 16 }}>+</span> CREATE PLAN
+          <span aria-hidden="true" style={{ fontSize: 16 }}>+</span> CREATE PLAN
         </button>
       </div>
 
@@ -831,7 +831,7 @@ export default function Diet() {
             borderRadius: 12, padding: '14px 18px',
             display: 'flex', alignItems: 'center', gap: 12,
           }}>
-            <span style={{ fontSize: 22 }}>{s.icon}</span>
+            <span aria-hidden="true" style={{ fontSize: 22 }}>{s.icon}</span>
             <div>
               <div style={{ fontSize: 20, fontWeight: 900, color: s.color, lineHeight: 1 }}>{s.value}</div>
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{s.label}</div>
@@ -843,11 +843,12 @@ export default function Diet() {
       {/* Search + filters */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 22, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
-          <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: 14 }}>🔍</span>
+          <span aria-hidden="true" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: 14 }}>🔍</span>
           <input
             value={localSearch}
             onChange={e => setLocalSearch(e.target.value)}
             placeholder="Search plans, members, trainers..."
+            aria-label="Search diet plans"
             style={{ width: '100%', paddingLeft: 36, paddingRight: 12, paddingTop: 10, paddingBottom: 10, boxSizing: 'border-box', background: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: 10, color: 'var(--text)', fontSize: 13, outline: 'none' }}
           />
         </div>
@@ -856,7 +857,7 @@ export default function Diet() {
             <button key={s} onClick={() => setFilterStatus(s)} style={filterBtn(filterStatus === s)}>{s}</button>
           ))}
         </div>
-        <select value={filterGoal} onChange={e => setFilterGoal(e.target.value)} style={{ padding: '8px 12px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: 10, color: filterGoal === 'All' ? 'var(--text-muted)' : 'var(--text)', fontSize: 12, cursor: 'pointer', outline: 'none' }}>
+        <select value={filterGoal} onChange={e => setFilterGoal(e.target.value)} aria-label="Filter by goal" style={{ padding: '8px 12px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: 10, color: filterGoal === 'All' ? 'var(--text-muted)' : 'var(--text)', fontSize: 12, cursor: 'pointer', outline: 'none' }}>
           <option value="All">All Goals</option>
           {GOALS.map(g => <option key={g} value={g}>{g}</option>)}
         </select>
@@ -865,7 +866,7 @@ export default function Diet() {
       {/* Plans grid */}
       {filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>🥗</div>
+          <div style={{ fontSize: 48, marginBottom: 12 }}><span aria-hidden="true">🥗</span></div>
           <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, letterSpacing: 1, marginBottom: 8 }}>NO PLANS FOUND</div>
           <div style={{ fontSize: 13 }}>Try adjusting your filters or create a new diet plan.</div>
         </div>

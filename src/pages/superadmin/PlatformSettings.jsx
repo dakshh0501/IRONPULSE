@@ -93,9 +93,9 @@ if (!document.getElementById('ps-styles')) {
   document.head.appendChild(psStyles)
 }
 
-function Toggle({ on, onChange }) {
+function Toggle({ on, onChange, ariaLabel }) {
   return (
-    <div className={`ps-toggle ${on ? 'on' : ''}`} onClick={() => onChange(!on)}>
+    <div className={`ps-toggle ${on ? 'on' : ''}`} onClick={() => onChange(!on)} role="switch" aria-checked={on} aria-label={ariaLabel || ''}>
       <div className="ps-toggle-thumb" />
     </div>
   )
@@ -106,7 +106,7 @@ function InputField({ label, k, type = 'text', state, setState, placeholder, sty
     <div>
       <input className="ps-input" type={type} value={state[k] ?? ''}
         onChange={e => setState(k, e.target.value)} placeholder={placeholder || ''}
-        style={{ width: '100%', ...style }} {...rest} />
+        style={{ width: '100%', ...style }} aria-label={label || placeholder || k || ''} {...rest} />
     </div>
   )
 }
@@ -117,7 +117,7 @@ function MaskedField({ label, k, state, setState, placeholder }) {
     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
       <input className="ps-input" type={show ? 'text' : 'password'}
         value={state[k] ?? ''} onChange={e => setState(k, e.target.value)}
-        placeholder={placeholder || ''} style={{ flex: 1 }} />
+        placeholder={placeholder || ''} style={{ flex: 1 }} aria-label={label || placeholder || k || ''} />
       <button className="ps-btn-secondary" type="button" onClick={() => setShow(s => !s)}>
         {show ? 'Hide' : 'Show'}
       </button>
@@ -128,7 +128,7 @@ function MaskedField({ label, k, state, setState, placeholder }) {
 function SelectField({ label, k, state, setState, options, style }) {
   return (
     <select className="ps-select" value={state[k] ?? ''}
-      onChange={e => setState(k, e.target.value)} style={style}>
+      onChange={e => setState(k, e.target.value)} style={style} aria-label={label || k || ''}>
       {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
   )
@@ -138,7 +138,7 @@ function SettingsCard({ icon, iconBg, title, subtitle, children, id }) {
   return (
     <div className="ps-card" key={id} style={{ animation: 'ps-fade-up 0.35s ease' }}>
       <div className="ps-card-header">
-        <div className="ps-card-icon" style={{ background: iconBg || 'rgba(232,66,10,0.08)' }}>{icon}</div>
+        <div className="ps-card-icon" style={{ background: iconBg || 'rgba(232,66,10,0.08)' }} aria-hidden="true">{icon}</div>
         <div>
           <h3 className="ps-card-title">{title}</h3>
           {subtitle && <p className="ps-card-subtitle">{subtitle}</p>}
@@ -299,11 +299,11 @@ export default function PlatformSettings() {
       <SettingRow label="Favicon URL" desc="Browser tab icon URL">
         <InputField k="faviconUrl" state={form} setState={set} placeholder="https://example.com/favicon.ico" style={{ width:280 }} />
       </SettingRow>
-      <SettingRow label="Accent Color" desc="Primary brand color used across the platform">
+        <SettingRow label="Accent Color" desc="Primary brand color used across the platform">
         <div style={{ display:'flex', gap:8, alignItems:'center' }}>
           <input className="ps-input" type="color" value={form.accentColor || '#e8420a'}
             onChange={e => set('accentColor', e.target.value)}
-            style={{ width:48, height:36, padding:2, cursor:'pointer' }} />
+            style={{ width:48, height:36, padding:2, cursor:'pointer' }} aria-label="Accent Color" />
           <span style={{ fontSize:12, fontFamily:'monospace', color:'#384860' }}>{form.accentColor || '#e8420a'}</span>
         </div>
       </SettingRow>
@@ -311,7 +311,7 @@ export default function PlatformSettings() {
         <div style={{ display:'flex', gap:8, alignItems:'center' }}>
           <input className="ps-input" type="color" value={form.secondaryColor || '#00c8b4'}
             onChange={e => set('secondaryColor', e.target.value)}
-            style={{ width:48, height:36, padding:2, cursor:'pointer' }} />
+            style={{ width:48, height:36, padding:2, cursor:'pointer' }} aria-label="Secondary Color" />
           <span style={{ fontSize:12, fontFamily:'monospace', color:'#384860' }}>{form.secondaryColor || '#00c8b4'}</span>
         </div>
       </SettingRow>
@@ -354,7 +354,7 @@ export default function PlatformSettings() {
       <SettingsCard icon="🔧" iconBg="rgba(245,158,11,0.08)" title="Operational Settings" subtitle="Maintenance mode, trials, and auto-backup">
         <SettingRow label="Default Trial Days" desc="Number of free trial days assigned to new gyms">
           <input className="ps-input" type="number" value={form.defaultTrialDays ?? 14}
-            onChange={e => set('defaultTrialDays', Number(e.target.value))} style={{ width:100 }} min={0} max={365} />
+            onChange={e => set('defaultTrialDays', Number(e.target.value))} style={{ width:100 }} min={0} max={365} aria-label="Default Trial Days" />
         </SettingRow>
         <SettingRow label="Maintenance Mode" desc="When enabled, non-admin users see a maintenance page">
           <Toggle on={form.maintenanceMode ?? false} onChange={v => set('maintenanceMode', v)} />
@@ -369,23 +369,23 @@ export default function PlatformSettings() {
   const renderPayments = () => (
     <SettingsCard icon="💳" iconBg="rgba(139,92,246,0.08)" title="Payment Gateway" subtitle="Configure the payment gateway used for gym subscription payments">
       <div style={{ background:'rgba(245,158,11,0.06)', border:'1px solid rgba(245,158,11,0.1)', borderRadius:8, padding:'12px 16px', marginBottom:16, fontSize:12, color:'#6070a0' }}>
-        ⚠️ Sensitive credentials (Merchant ID, Salt Key, Salt Index) are managed server-side via Firebase Secrets. Only the merchant ID and environment are stored here for display purposes.
+        <span aria-hidden="true">⚠️</span> Sensitive credentials (Merchant ID, Salt Key, Salt Index) are managed server-side via Firebase Secrets. Only the merchant ID and environment are stored here for display purposes.
       </div>
       <SettingRow label="PhonePe Merchant ID" desc="Reference merchant ID used by the platform">
         <InputField k="merchantId" state={form} setState={set} placeholder="Enter merchant ID" style={{ width:200 }} />
       </SettingRow>
       <SettingRow label="Environment" desc="Switch between sandbox testing and live production">
-        <select className="ps-select" value={form.environment || 'Sandbox'} onChange={e => set('environment', e.target.value)} style={{ minWidth:180 }}>
+        <select className="ps-select" value={form.environment || 'Sandbox'} onChange={e => set('environment', e.target.value)} style={{ minWidth:180 }} aria-label="Environment">
           <option value="Sandbox">Sandbox (Testing)</option>
           <option value="Production">Production (Live)</option>
         </select>
       </SettingRow>
       <SettingRow label="Webhook URL" desc="PhonePe payment callback URL">
-        <input className="ps-input" value={`${window.location.origin}/api/phonepe/callback`} readOnly style={{ width:320, color:'#384860', cursor:'not-allowed' }} />
+        <input className="ps-input" value={`${window.location.origin}/api/phonepe/callback`} readOnly style={{ width:320, color:'#384860', cursor:'not-allowed' }} aria-label="Webhook URL" />
       </SettingRow>
       <SettingRow label="" desc="">
         <div style={{ display:'flex', gap:8 }}>
-          <button className="ps-btn-primary" onClick={() => showTestResult('Connection test initiated - checking PhonePe API...')}>🔄 Test Connection</button>
+          <button className="ps-btn-primary" onClick={() => showTestResult('Connection test initiated - checking PhonePe API...')}><span aria-hidden="true">🔄</span> Test Connection</button>
           <StatusBadge status={form.environment === 'Production' ? 'connected' : 'disconnected'} />
         </div>
       </SettingRow>
@@ -396,19 +396,19 @@ export default function PlatformSettings() {
     <SettingsCard icon="📋" iconBg="rgba(16,185,129,0.08)" title="Subscription Plans" subtitle="Default subscription pricing and trial settings for new gyms">
       <SettingRow label="Trial Period (days)" desc="Number of free trial days for new gyms">
         <input className="ps-input" type="number" value={form.trialDays ?? 14}
-          onChange={e => set('trialDays', Number(e.target.value))} style={{ width:100 }} min={0} max={365} />
+          onChange={e => set('trialDays', Number(e.target.value))} style={{ width:100 }} min={0} max={365} aria-label="Trial Period (days)" />
       </SettingRow>
       <SettingRow label="Monthly Price (paise)" desc="Standard monthly subscription price in paise">
         <input className="ps-input" type="number" value={form.monthlyPrice ?? 9999}
-          onChange={e => set('monthlyPrice', Number(e.target.value))} style={{ width:120 }} min={0} />
+          onChange={e => set('monthlyPrice', Number(e.target.value))} style={{ width:120 }} min={0} aria-label="Monthly Price (paise)" />
       </SettingRow>
       <SettingRow label="Quarterly Price (paise)" desc="Quarterly subscription price in paise">
         <input className="ps-input" type="number" value={form.quarterlyPrice ?? 29999}
-          onChange={e => set('quarterlyPrice', Number(e.target.value))} style={{ width:120 }} min={0} />
+          onChange={e => set('quarterlyPrice', Number(e.target.value))} style={{ width:120 }} min={0} aria-label="Quarterly Price (paise)" />
       </SettingRow>
       <SettingRow label="Yearly Price (paise)" desc="Annual subscription price in paise (discounted)">
         <input className="ps-input" type="number" value={form.yearlyPrice ?? 99999}
-          onChange={e => set('yearlyPrice', Number(e.target.value))} style={{ width:120 }} min={0} />
+          onChange={e => set('yearlyPrice', Number(e.target.value))} style={{ width:120 }} min={0} aria-label="Yearly Price (paise)" />
       </SettingRow>
     </SettingsCard>
   )
@@ -417,14 +417,14 @@ export default function PlatformSettings() {
     <>
       <SettingsCard icon="📧" iconBg="rgba(59,130,246,0.08)" title="SMTP Configuration" subtitle="Configure outbound email for platform notifications, invoices, and alerts">
         <div style={{ background:'rgba(245,158,11,0.06)', border:'1px solid rgba(245,158,11,0.1)', borderRadius:8, padding:'12px 16px', marginBottom:16, fontSize:12, color:'#6070a0' }}>
-          ⚠️ Credentials are securely stored. For production, use Firebase Secrets or a dedicated secrets manager.
+          <span aria-hidden="true">⚠️</span> Credentials are securely stored. For production, use Firebase Secrets or a dedicated secrets manager.
         </div>
         <SettingRow label="SMTP Host" desc="Your email provider's SMTP server address">
           <InputField k="smtpHost" state={form} setState={set} placeholder="smtp.gmail.com" style={{ width:200 }} />
         </SettingRow>
         <SettingRow label="SMTP Port" desc="Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)">
           <input className="ps-input" type="number" value={form.smtpPort ?? 587}
-            onChange={e => set('smtpPort', Number(e.target.value))} style={{ width:100 }} min={1} max={65535} />
+            onChange={e => set('smtpPort', Number(e.target.value))} style={{ width:100 }} min={1} max={65535} aria-label="SMTP Port" />
         </SettingRow>
         <SettingRow label="Username" desc="SMTP authentication username">
           <InputField k="smtpUser" state={form} setState={set} placeholder="user@example.com" style={{ width:200 }} />
@@ -449,7 +449,7 @@ export default function PlatformSettings() {
         <SettingRow label="Send Test" desc="A test email will be sent to the address you provide">
           <div style={{ display:'flex', gap:8, alignItems:'center', width:'100%' }}>
             <input className="ps-input" type="email" placeholder="recipient@example.com"
-              value={form._testEmail ?? ''} onChange={e => set('_testEmail', e.target.value)} style={{ flex:1 }} />
+              value={form._testEmail ?? ''} onChange={e => set('_testEmail', e.target.value)} style={{ flex:1 }} aria-label="Test email recipient" />
             <button className="ps-btn-primary" onClick={() => {
               const addr = form._testEmail?.trim()
               if (!addr) { showTestResult('Enter a recipient email address', true); return }
@@ -465,7 +465,7 @@ export default function PlatformSettings() {
     <>
       <SettingsCard icon="✉️" iconBg="rgba(245,158,11,0.08)" title="SMS Configuration" subtitle="Configure SMS provider for transactional messages and alerts">
         <div style={{ background:'rgba(245,158,11,0.06)', border:'1px solid rgba(245,158,11,0.1)', borderRadius:8, padding:'12px 16px', marginBottom:16, fontSize:12, color:'#6070a0' }}>
-          ⚠️ Credentials are stored in Firestore. For production, use Firebase Secrets or a dedicated secrets manager.
+          <span aria-hidden="true">⚠️</span> Credentials are stored in Firestore. For production, use Firebase Secrets or a dedicated secrets manager.
         </div>
         <SettingRow label="Provider" desc="Choose your SMS service provider">
           <SelectField k="smsProvider" state={form} setState={set} options={SMS_PROVIDERS} style={{ minWidth:180 }} />
@@ -476,7 +476,7 @@ export default function PlatformSettings() {
         <SettingRow label="Sender ID" desc="Approved sender ID (max 6 chars)">
           <input className="ps-input" value={form.smsSenderId ?? ''}
             onChange={e => set('smsSenderId', e.target.value.toUpperCase().slice(0, 6))}
-            placeholder="IRONPL" style={{ width:100, textTransform:'uppercase' }} maxLength={6} />
+            placeholder="IRONPL" style={{ width:100, textTransform:'uppercase' }} maxLength={6} aria-label="Sender ID" />
         </SettingRow>
         <SettingRow label="Default Country Code" desc="Default country code for phone numbers">
           <SelectField k="smsDefaultCountryCode" state={form} setState={set} options={COUNTRY_CODES} style={{ minWidth:180 }} />
@@ -486,12 +486,12 @@ export default function PlatformSettings() {
         <SettingRow label="Send Test" desc="A test SMS will be sent to the phone number you provide">
           <div style={{ display:'flex', gap:8, alignItems:'center', width:'100%' }}>
             <select className="ps-select" value={form.smsDefaultCountryCode ?? '+91'}
-              onChange={e => set('smsDefaultCountryCode', e.target.value)} style={{ width:90, flexShrink:0 }}>
+              onChange={e => set('smsDefaultCountryCode', e.target.value)} style={{ width:90, flexShrink:0 }} aria-label="SMS country code">
               {COUNTRY_CODES.map(o => <option key={o.value} value={o.value}>{o.value}</option>)}
             </select>
             <input className="ps-input" type="tel" placeholder="9876543210"
               value={form._testSmsPhone ?? ''} onChange={e => set('_testSmsPhone', e.target.value.replace(/\D/g, '').slice(0, 10))}
-              style={{ flex:1 }} maxLength={10} />
+              style={{ flex:1 }} maxLength={10} aria-label="Test SMS phone number" />
             <button className="ps-btn-primary" onClick={() => {
               const phone = form._testSmsPhone?.trim()
               if (!phone || phone.length < 10) { showTestResult('Enter a valid 10-digit phone number', true); return }
@@ -507,11 +507,11 @@ export default function PlatformSettings() {
     <>
       <SettingsCard icon="💬" iconBg="rgba(16,185,129,0.08)" title="WhatsApp Business API" subtitle="Configure WhatsApp messaging for reminders, notifications, and alerts">
         <div style={{ background:'rgba(245,158,11,0.06)', border:'1px solid rgba(245,158,11,0.1)', borderRadius:8, padding:'12px 16px', marginBottom:16, fontSize:12, color:'#6070a0' }}>
-          ⚠️ Credentials are stored in Firestore. For production, use Firebase Secrets or a dedicated secrets manager.
+          <span aria-hidden="true">⚠️</span> Credentials are stored in Firestore. For production, use Firebase Secrets or a dedicated secrets manager.
         </div>
         <SettingRow label="Provider" desc="WhatsApp Business API provider">
           <select className="ps-select" value={form.whatsAppProvider ?? ''}
-            onChange={e => set('whatsAppProvider', e.target.value)} style={{ minWidth:180 }}>
+            onChange={e => set('whatsAppProvider', e.target.value)} style={{ minWidth:180 }} aria-label="WhatsApp provider">
             <option value="">Select Provider</option>
             <option value="twilio">Twilio</option>
             <option value="gupshup">Gupshup</option>
@@ -523,14 +523,14 @@ export default function PlatformSettings() {
         <SettingRow label="Business Number" desc="Your WhatsApp Business number with country code">
           <input className="ps-input" value={form.whatsAppNumber ?? ''}
             onChange={e => set('whatsAppNumber', e.target.value.replace(/\D/g, ''))}
-            placeholder="919876543210" style={{ width:200 }} />
+            placeholder="919876543210" style={{ width:200 }} aria-label="Business Number" />
         </SettingRow>
         <SettingRow label="Access Token" desc="API access token from your WhatsApp provider">
           <MaskedField k="whatsAppToken" state={form} setState={set} placeholder="Enter access token" />
         </SettingRow>
         <SettingRow label="Webhook URL" desc="Callback URL for incoming messages (auto-generated)">
           <input className="ps-input" value={form.whatsAppWebhookUrl || `${window.location.origin}/api/whatsapp/webhook`}
-            readOnly style={{ width:'100%', color:'#384860', cursor:'not-allowed' }} />
+            readOnly style={{ width:'100%', color:'#384860', cursor:'not-allowed' }} aria-label="WhatsApp Webhook URL" />
         </SettingRow>
       </SettingsCard>
       <SettingsCard icon="🔔" iconBg="rgba(245,158,11,0.08)" title="Notification Preferences" subtitle="Choose which events trigger WhatsApp notifications">
@@ -552,7 +552,7 @@ export default function PlatformSettings() {
           <div style={{ display:'flex', gap:8, alignItems:'center', width:'100%' }}>
             <input className="ps-input" type="tel" placeholder="919876543210"
               value={form._testWhatsAppPhone ?? ''} onChange={e => set('_testWhatsAppPhone', e.target.value.replace(/\D/g, ''))}
-              style={{ flex:1 }} />
+              style={{ flex:1 }} aria-label="Test WhatsApp phone number" />
             <button className="ps-btn-primary" onClick={() => {
               const phone = form._testWhatsAppPhone?.trim()
               if (!phone || phone.length < 10) { showTestResult('Enter a valid phone number with country code', true); return }
@@ -568,7 +568,7 @@ export default function PlatformSettings() {
     <SettingsCard icon="🧾" iconBg="rgba(139,92,246,0.08)" title="GST & Billing Configuration" subtitle="Tax settings applied to all subscription invoices">
       <SettingRow label="GST Rate (%)" desc="Goods and Services Tax percentage applied to invoices">
         <input className="ps-input" type="number" value={form.gstRate ?? 18}
-          onChange={e => set('gstRate', Number(e.target.value))} style={{ width:100 }} min={0} max={100} step={0.5} />
+          onChange={e => set('gstRate', Number(e.target.value))} style={{ width:100 }} min={0} max={100} step={0.5} aria-label="GST Rate (%)" />
       </SettingRow>
       <SettingRow label="GST Number" desc="Your registered GST identification number">
         <InputField k="gstNumber" state={form} setState={set} placeholder="22AAAAA0000A1Z5" style={{ width:200 }} />
@@ -590,7 +590,7 @@ export default function PlatformSettings() {
       <SettingsCard icon="🔒" iconBg="rgba(239,68,68,0.08)" title="Password Policy" subtitle="Configure password requirements for all platform users">
         <SettingRow label="Minimum Password Length" desc="Minimum character count for user passwords">
           <input className="ps-input" type="number" value={form.minPasswordLength ?? 8}
-            onChange={e => set('minPasswordLength', Number(e.target.value))} style={{ width:80 }} min={6} max={32} />
+            onChange={e => set('minPasswordLength', Number(e.target.value))} style={{ width:80 }} min={6} max={32} aria-label="Minimum Password Length" />
         </SettingRow>
         <SettingRow label="Require Special Characters" desc="Force passwords to include special characters">
           <Toggle on={form.requireSpecialChars ?? true} onChange={v => set('requireSpecialChars', v)} />
@@ -602,11 +602,11 @@ export default function PlatformSettings() {
       <SettingsCard icon="🛡️" iconBg="rgba(59,130,246,0.08)" title="Session & Access" desc="Session timeout, login attempts, and audit configuration">
         <SettingRow label="Session Timeout (minutes)" desc="Auto-logout after inactivity">
           <input className="ps-input" type="number" value={form.sessionTimeout ?? 60}
-            onChange={e => set('sessionTimeout', Number(e.target.value))} style={{ width:80 }} min={5} max={1440} />
+            onChange={e => set('sessionTimeout', Number(e.target.value))} style={{ width:80 }} min={5} max={1440} aria-label="Session Timeout (minutes)" />
         </SettingRow>
         <SettingRow label="Max Login Attempts" desc="Lock account after failed attempts">
           <input className="ps-input" type="number" value={form.maxLoginAttempts ?? 5}
-            onChange={e => set('maxLoginAttempts', Number(e.target.value))} style={{ width:80 }} min={3} max={20} />
+            onChange={e => set('maxLoginAttempts', Number(e.target.value))} style={{ width:80 }} min={3} max={20} aria-label="Max Login Attempts" />
         </SettingRow>
         <SettingRow label="Enable Audit Log" desc="Track all admin actions for compliance">
           <Toggle on={form.auditLogEnabled ?? true} onChange={v => set('auditLogEnabled', v)} />
@@ -658,8 +658,8 @@ export default function PlatformSettings() {
         </SettingRow>
         <SettingRow label="" desc="">
           <div style={{ display:'flex', gap:8 }}>
-            <button className="ps-btn-primary" onClick={() => showTestResult('Manual backup initiated (requires Cloud Function deployment)')}>💾 Run Backup</button>
-            <button className="ps-btn-secondary" onClick={() => showTestResult('Restore requires deployment of a backup restore Cloud Function')}>↩ Restore</button>
+            <button className="ps-btn-primary" onClick={() => showTestResult('Manual backup initiated (requires Cloud Function deployment)')}><span aria-hidden="true">💾</span> Run Backup</button>
+            <button className="ps-btn-secondary" onClick={() => showTestResult('Restore requires deployment of a backup restore Cloud Function')}><span aria-hidden="true">↩</span> Restore</button>
           </div>
         </SettingRow>
       </SettingsCard>
@@ -727,7 +727,7 @@ export default function PlatformSettings() {
       </SettingsCard>
       <SettingsCard icon="🔄" iconBg="rgba(59,130,246,0.08)" title="Last Checked" subtitle="System status was last updated a few seconds ago">
         <div style={{ display:'flex', gap:8 }}>
-          <button className="ps-btn-primary" onClick={() => showTestResult('Refreshing system status...')}>🔄 Refresh Status</button>
+          <button className="ps-btn-primary" onClick={() => showTestResult('Refreshing system status...')}><span aria-hidden="true">🔄</span> Refresh Status</button>
           <span style={{ fontSize:12, color:'#384860', display:'flex', alignItems:'center' }}>All services operational</span>
         </div>
       </SettingsCard>
@@ -781,8 +781,8 @@ export default function PlatformSettings() {
       </div>
 
       {error && (
-        <div style={{ background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.1)', borderRadius:10, padding:'10px 16px', marginBottom:16, fontSize:13, color:'#ef4444' }}>
-          ⚠ {error}
+        <div role="alert" style={{ background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.1)', borderRadius:10, padding:'10px 16px', marginBottom:16, fontSize:13, color:'#ef4444' }}>
+          <span aria-hidden="true">⚠</span> {error}
         </div>
       )}
 
@@ -794,7 +794,7 @@ export default function PlatformSettings() {
           {TABS.map(t => (
             <button key={t.key} className={`ps-sidebar-tab ${activeTab === t.key ? 'active' : ''}`}
               onClick={() => setActiveTab(t.key)}>
-              <span className="ps-sidebar-tab-icon">{t.icon}</span>
+              <span className="ps-sidebar-tab-icon" aria-hidden="true">{t.icon}</span>
               <div style={{ minWidth:0 }}>
                 <div className="ps-sidebar-tab-label">{t.label}</div>
                 <p className="ps-sidebar-tab-desc">{t.desc}</p>
@@ -808,7 +808,7 @@ export default function PlatformSettings() {
           {TAB_RENDERERS[activeTab]()}
 
           {testResult && (
-            <div style={{
+            <div role="alert" style={{
               background: testResult.isError ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
               border: `1px solid ${testResult.isError ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)'}`,
               borderRadius: 10, padding: '12px 16px', marginBottom: 16,

@@ -101,7 +101,7 @@ export default function Checkout() {
     return (
       <div className="page-container" style={{ padding: 32 }}>
         <div className="empty-state" style={{ textAlign: 'center', padding: 64, color: 'var(--text-muted)' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
+          <div style={{ fontSize: 48, marginBottom: 16 }} aria-hidden="true">🔍</div>
           <h3 style={{ marginBottom: 8 }}>Subscription Not Found</h3>
           <p>The subscription you're trying to pay for was not found.</p>
           <button className="btn btn-primary" onClick={() => navigate('/dashboard')} style={{ marginTop: 16 }}>
@@ -122,7 +122,7 @@ export default function Checkout() {
       {/* Order Summary */}
       <div className="card" style={{ marginBottom: 24, padding: 24 }}>
         <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span>📋</span> Order Summary
+          <span aria-hidden="true">📋</span> Order Summary
         </h3>
         <div style={{ display: 'grid', gap: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -147,7 +147,7 @@ export default function Checkout() {
       {/* Billing Details */}
       <div className="card" style={{ marginBottom: 24, padding: 24 }}>
         <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span>👤</span> Billing Details
+          <span aria-hidden="true">👤</span> Billing Details
         </h3>
         <div style={{ display: 'grid', gap: 16 }}>
           <div>
@@ -197,7 +197,7 @@ export default function Checkout() {
       </div>
 
       {error && (
-        <div style={{
+        <div role="alert" style={{
           background: 'rgba(239,68,68,0.08)',
           border: '1px solid rgba(239,68,68,0.2)',
           borderRadius: 8,

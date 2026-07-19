@@ -228,7 +228,7 @@ export default function Notifications() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="2" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
-            <input className="form-input" style={{ paddingLeft: 34, height: 36, fontSize: 13, borderRadius: 10 }} placeholder="Search notifications..." value={search || ''} onChange={e => setLocalSearch(e.target.value)} />
+            <input className="form-input" style={{ paddingLeft: 34, height: 36, fontSize: 13, borderRadius: 10 }} placeholder="Search notifications..." aria-label="Search notifications" value={search || ''} onChange={e => setLocalSearch(e.target.value)} />
           </div>
           {unreadCount > 0 && (
             <button className="btn btn-sm" style={{ background: 'linear-gradient(135deg,#e8420a,#ff5520)', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
@@ -278,7 +278,7 @@ export default function Notifications() {
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
             <select className="form-select" style={{ height: 32, fontSize: 11, borderRadius: 8, padding: '4px 24px 4px 8px' }}
-              value={priorityFilter} onChange={e => setPriorityFilter(e.target.value)}>
+              aria-label="Filter by priority" value={priorityFilter} onChange={e => setPriorityFilter(e.target.value)}>
               <option value="all">All Priority</option>
 
               <option value="high">High</option>
@@ -298,7 +298,7 @@ export default function Notifications() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {filtered.length === 0 ? (
           <div className="ntf-card" style={{ padding: '48px 24px', textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 12, opacity: 0.5 }}>🔕</div>
+            <div style={{ fontSize: 48, marginBottom: 12, opacity: 0.5 }} aria-hidden="true">🔕</div>
             <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6, color: 'var(--text)' }}>
               {showUnread ? 'No unread notifications' : 'No notifications found'}
             </h3>
@@ -365,15 +365,15 @@ export default function Notifications() {
       </div>
 
       {toast && (
-        <div style={{
+        <div role="alert" style={{
           position: 'fixed', top: 80, right: 24, zIndex: 9999,
           background: 'var(--card)', border: '1px solid rgba(0,200,180,0.3)',
           borderRadius: 12, padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 10,
           boxShadow: '0 8px 30px rgba(0,0,0,0.4)', animation: 'slideLeft 0.25s ease', maxWidth: 320,
         }}>
-          <span style={{ fontSize: 16 }}>✅</span>
+          <span style={{ fontSize: 16 }} aria-hidden="true">✅</span>
           <p style={{ fontSize: 13, color: 'var(--text)', flex: 1, margin: 0 }}>{toast}</p>
-          <button onClick={() => setToast(null)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: 14, cursor: 'pointer', padding: 4 }}>✕</button>
+          <button onClick={() => setToast(null)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: 14, cursor: 'pointer', padding: 4 }} aria-label="Dismiss">✕</button>
         </div>
       )}
     </div>

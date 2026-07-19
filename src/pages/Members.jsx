@@ -142,9 +142,9 @@ export default function Members() {
         </div>
         <div className="page-header-actions">
           <div className="members-search-wrap">
-            <span className="members-search-icon">🔍</span>
-            <input className="members-search-input" placeholder="Search members..." value={searchText} onChange={e => { setSearchText(e.target.value); setPage(1) }} />
-            {searchText && <button className="members-search-clear" onClick={() => setSearchText('')}>✕</button>}
+            <span className="members-search-icon" aria-hidden="true">🔍</span>
+            <input className="members-search-input" placeholder="Search members..." aria-label="Search members" value={searchText} onChange={e => { setSearchText(e.target.value); setPage(1) }} />
+            {searchText && <button className="members-search-clear" onClick={() => setSearchText('')} aria-label="Clear search">✕</button>}
           </div>
           <button className="btn btn-ghost btn-sm" onClick={handleExportCSV} title="Export CSV">📥 Export</button>
           {isAdmin && (
@@ -158,42 +158,42 @@ export default function Members() {
       <div className="members-summary-grid">
         <div className="dash-kpi-card" style={{ cursor:'default' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-orange">👥</span>
+            <span className="dash-kpi-icon dash-kpi-icon-orange" aria-hidden="true">👥</span>
           </div>
           <span className="dash-kpi-value">{summary.total}</span>
           <span className="dash-kpi-label">Total Members</span>
         </div>
         <div className="dash-kpi-card" style={{ cursor:'default' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-green">💪</span>
+            <span className="dash-kpi-icon dash-kpi-icon-green" aria-hidden="true">💪</span>
           </div>
           <span className="dash-kpi-value">{summary.active}</span>
           <span className="dash-kpi-label">Active Members</span>
         </div>
         <div className="dash-kpi-card" style={{ cursor:'default' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-amber">⏰</span>
+            <span className="dash-kpi-icon dash-kpi-icon-amber" aria-hidden="true">⏰</span>
           </div>
           <span className="dash-kpi-value">{summary.expiringSoon}</span>
           <span className="dash-kpi-label">Expiring Soon</span>
         </div>
         <div className="dash-kpi-card" style={{ cursor:'default' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-red">❌</span>
+            <span className="dash-kpi-icon dash-kpi-icon-red" aria-hidden="true">❌</span>
           </div>
           <span className="dash-kpi-value">{summary.expired}</span>
           <span className="dash-kpi-label">Expired</span>
         </div>
         <div className="dash-kpi-card" style={{ cursor:'default' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-purple">🧪</span>
+            <span className="dash-kpi-icon dash-kpi-icon-purple" aria-hidden="true">🧪</span>
           </div>
           <span className="dash-kpi-value">{summary.trial}</span>
           <span className="dash-kpi-label">Trial Members</span>
         </div>
         <div className="dash-kpi-card" style={{ cursor:'default' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-teal">📈</span>
+            <span className="dash-kpi-icon dash-kpi-icon-teal" aria-hidden="true">📈</span>
           </div>
           <span className="dash-kpi-value">{summary.newThisMonth}</span>
           <span className="dash-kpi-label">New This Month</span>
@@ -210,7 +210,7 @@ export default function Members() {
           <span className="members-count">{filtered.length} member{filtered.length !== 1 ? 's' : ''}</span>
         </div>
         <div className="members-toolbar-right">
-          <select className="form-select" style={{ width:140, padding:'6px 10px', fontSize:12 }} value={sortBy} onChange={e => setSortBy(e.target.value)}>
+          <select className="form-select" aria-label="Sort by" style={{ width:140, padding:'6px 10px', fontSize:12 }} value={sortBy} onChange={e => setSortBy(e.target.value)}>
             <option value="name">Sort by Name</option>
             <option value="plan">Sort by Plan</option>
             <option value="expiry">Sort by Expiry</option>
@@ -232,7 +232,7 @@ export default function Members() {
       ) : filtered.length === 0 ? (
         members.length === 0 ? (
           <div className="members-empty">
-            <div className="members-empty-icon">👥</div>
+            <div className="members-empty-icon" aria-hidden="true">👥</div>
             <h3 className="members-empty-title">No members yet</h3>
             <p className="members-empty-text">Get started by adding your first member.</p>
             {isAdmin && (
@@ -241,7 +241,7 @@ export default function Members() {
           </div>
         ) : (
           <div style={{textAlign:'center', padding:'40px 20px', color:'var(--text-tertiary)'}}>
-            <div style={{fontSize:40,marginBottom:12}}>🔍</div>
+            <div style={{fontSize:40,marginBottom:12}} aria-hidden="true">🔍</div>
             <p style={{fontSize:16,fontWeight:500,color:'var(--text)'}}>No matching members</p>
             <p style={{fontSize:13,marginTop:4}}>Try adjusting your search or filters</p>
           </div>
@@ -253,18 +253,18 @@ export default function Members() {
               <thead>
                 <tr>
                   {isAdmin && (
-                    <th style={{ width:36 }}>
-                      <input type="checkbox" checked={selectedIds.size === pagedMembers.length && pagedMembers.length > 0}
+                    <th scope="col" style={{ width:36 }}>
+                      <input type="checkbox" aria-label="Select all members" checked={selectedIds.size === pagedMembers.length && pagedMembers.length > 0}
                         onChange={selectAll} style={{ cursor:'pointer', accentColor:'var(--accent)' }} />
                     </th>
                   )}
-                  <th>Member</th>
-                  <th>Plan</th>
-                  <th>Trainer</th>
-                  <th>Joined</th>
-                  <th>Expiry</th>
-                  <th>Status</th>
-                  <th style={{ width:180 }}>Actions</th>
+                  <th scope="col">Member</th>
+                  <th scope="col">Plan</th>
+                  <th scope="col">Trainer</th>
+                  <th scope="col">Joined</th>
+                  <th scope="col">Expiry</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" style={{ width:180 }}>Actions</th>
                 </tr>
               </thead>
               <tbody>

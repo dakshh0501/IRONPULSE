@@ -83,7 +83,7 @@ export default function DeviceManagement() {
       </div>
 
       {actionError && (
-        <div style={{
+        <div role="alert" style={{
           display:'flex', alignItems:'center', justifyContent:'center', gap:8,
           padding:'10px 14px', marginBottom:20,
           background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)',
@@ -100,7 +100,7 @@ export default function DeviceManagement() {
       <div className="pay-summary-grid" style={{ marginBottom:24 }}>
         <div className="dash-kpi-card" style={{ cursor:'default', gridColumn:'span 2' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-green">📱</span>
+            <span className="dash-kpi-icon dash-kpi-icon-green" aria-hidden="true">📱</span>
             <span className="dash-kpi-trend">{activeCount} / {currentCount} active</span>
           </div>
           <span className="dash-kpi-value">{currentCount}</span>
@@ -108,14 +108,14 @@ export default function DeviceManagement() {
         </div>
         <div className="dash-kpi-card" style={{ cursor:'default', gridColumn:'span 2' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-blue">🔒</span>
+            <span className="dash-kpi-icon dash-kpi-icon-blue" aria-hidden="true">🔒</span>
           </div>
           <span className="dash-kpi-value">{unlimited ? '∞' : deviceLimit}</span>
           <span className="dash-kpi-label">Device Limit</span>
         </div>
         <div className="dash-kpi-card" style={{ cursor:'default', gridColumn:'span 2' }}>
           <div className="dash-kpi-top">
-            <span className="dash-kpi-icon dash-kpi-icon-amber">📊</span>
+            <span className="dash-kpi-icon dash-kpi-icon-amber" aria-hidden="true">📊</span>
           </div>
           <span className="dash-kpi-value">{currentCount}{!unlimited ? ` / ${deviceLimit}` : ' / ∞'}</span>
           <span className="dash-kpi-label">Usage</span>
@@ -128,13 +128,13 @@ export default function DeviceManagement() {
           <table className="pay-table">
             <thead>
               <tr>
-                <th>Device Name</th>
-                <th>Platform</th>
-                <th>App Version</th>
-                <th>Status</th>
-                <th>Registered</th>
-                <th>Last Seen</th>
-                {canManage && <th style={{ width:160 }}>Actions</th>}
+                <th scope="col">Device Name</th>
+                <th scope="col">Platform</th>
+                <th scope="col">App Version</th>
+                <th scope="col">Status</th>
+                <th scope="col">Registered</th>
+                <th scope="col">Last Seen</th>
+                {canManage && <th scope="col" style={{ width:160 }}>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -142,7 +142,7 @@ export default function DeviceManagement() {
                 <tr>
                   <td colSpan={canManage ? 7 : 6}>
                     <div className="pay-empty">
-                      <div className="pay-empty-icon">📱</div>
+                      <div className="pay-empty-icon" aria-hidden="true">📱</div>
                       <h3 className="pay-empty-title">No devices registered</h3>
                       <p className="pay-empty-text">Devices will appear here once they are registered under your license.</p>
                     </div>

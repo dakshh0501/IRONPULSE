@@ -23,7 +23,7 @@ const MemberRow = memo(({ member, selectedIds, toggleSelect, isAdmin, isTrainer,
     <tr className={selectedIds.has(m.id) ? 'selected' : ''}>
       {isAdmin && (
         <td>
-          <input type="checkbox" checked={selectedIds.has(m.id)} onChange={() => toggleSelect(m.id)}
+          <input type="checkbox" aria-label={`Select ${m.name}`} checked={selectedIds.has(m.id)} onChange={() => toggleSelect(m.id)}
             style={{ cursor:'pointer', accentColor:'var(--accent)' }} />
         </td>
       )}

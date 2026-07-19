@@ -118,7 +118,7 @@ export default function Security() {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="sec-btn-danger" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Requires Firebase Auth Admin SDK">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4, verticalAlign: 'middle' }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4, verticalAlign: 'middle' }} aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             Force Logout All
           </button>
           <button className="sec-btn-secondary" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Requires Firebase Auth Admin SDK">Revoke All Sessions</button>
@@ -128,7 +128,7 @@ export default function Security() {
       <div className="stats-grid" style={{ marginBottom: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 12 }}>
         <div className="sec-stat-card" style={{ opacity: 1, transform: 'translateY(0)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div className="sec-stat-icon" style={{ background: '#a855f718', color: '#a855f7' }}>🏢</div>
+            <div className="sec-stat-icon" style={{ background: '#a855f718', color: '#a855f7' }} aria-hidden="true">🏢</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="sec-stat-label">Total Gyms</div>
               <div className="sec-stat-value">{securityMetricsLoading ? <span className="sec-skeleton" style={{ display:'inline-block', width:40, height:20 }} /> : securityMetrics?.totalGyms ?? <NA />}</div>
@@ -137,7 +137,7 @@ export default function Security() {
         </div>
         <div className="sec-stat-card" style={{ opacity: 1, transform: 'translateY(0)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div className="sec-stat-icon" style={{ background: '#3b82f618', color: '#3b82f6' }}>👤</div>
+            <div className="sec-stat-icon" style={{ background: '#3b82f618', color: '#3b82f6' }} aria-hidden="true">👤</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="sec-stat-label">Total Users</div>
               <div className="sec-stat-value">{securityMetricsLoading ? <span className="sec-skeleton" style={{ display:'inline-block', width:40, height:20 }} /> : securityMetrics?.totalUsers ?? <NA />}</div>
@@ -146,7 +146,7 @@ export default function Security() {
         </div>
         <div className="sec-stat-card" style={{ opacity: 1, transform: 'translateY(0)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div className="sec-stat-icon" style={{ background: '#22c55e18', color: '#22c55e' }}>📋</div>
+            <div className="sec-stat-icon" style={{ background: '#22c55e18', color: '#22c55e' }} aria-hidden="true">📋</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="sec-stat-label">Active Subscriptions</div>
               <div className="sec-stat-value">{securityMetricsLoading ? <span className="sec-skeleton" style={{ display:'inline-block', width:40, height:20 }} /> : securityMetrics?.activeSubscriptions ?? <NA />}</div>
@@ -155,7 +155,7 @@ export default function Security() {
         </div>
         <div className="sec-stat-card" style={{ opacity: 1, transform: 'translateY(0)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div className="sec-stat-icon" style={{ background: '#00c8b418', color: '#00c8b4' }}>🔑</div>
+            <div className="sec-stat-icon" style={{ background: '#00c8b418', color: '#00c8b4' }} aria-hidden="true">🔑</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="sec-stat-label">Active Licenses</div>
               <div className="sec-stat-value">{securityMetricsLoading ? <span className="sec-skeleton" style={{ display:'inline-block', width:40, height:20 }} /> : securityMetrics?.activeLicenses ?? <NA />}</div>
@@ -164,7 +164,7 @@ export default function Security() {
         </div>
         <div className="sec-stat-card" style={{ opacity: 1, transform: 'translateY(0)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div className="sec-stat-icon" style={{ background: '#f59e0b18', color: '#f59e0b' }}>📱</div>
+            <div className="sec-stat-icon" style={{ background: '#f59e0b18', color: '#f59e0b' }} aria-hidden="true">📱</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="sec-stat-label">Registered Devices</div>
               <div className="sec-stat-value">{securityMetricsLoading ? <span className="sec-skeleton" style={{ display:'inline-block', width:40, height:20 }} /> : securityMetrics?.totalDevices ?? <NA />}</div>
@@ -173,7 +173,7 @@ export default function Security() {
         </div>
         <div className="sec-stat-card" style={{ opacity: 1, transform: 'translateY(0)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div className="sec-stat-icon" style={{ background: '#ef444418', color: '#ef4444' }}>🚫</div>
+            <div className="sec-stat-icon" style={{ background: '#ef444418', color: '#ef4444' }} aria-hidden="true">🚫</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="sec-stat-label">Blocked Users</div>
               <div className="sec-stat-value">{blockedUsers}</div>
@@ -186,7 +186,7 @@ export default function Security() {
         <div className="sec-card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-              <span style={{ marginRight: 8 }}>🟢</span> Active Sessions
+              <span style={{ marginRight: 8 }} aria-hidden="true">🟢</span> Active Sessions
             </h3>
             <span style={{ fontSize: 11, color: 'var(--text-dim)' }}><NA /></span>
           </div>
@@ -199,7 +199,7 @@ export default function Security() {
         <div className="sec-card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-              <span style={{ marginRight: 8 }}>📋</span> Audit Timeline
+              <span style={{ marginRight: 8 }} aria-hidden="true">📋</span> Audit Timeline
             </h3>
             <span style={{ fontSize: 11, color: 'var(--text-dim)' }}><NA /></span>
           </div>
@@ -213,7 +213,7 @@ export default function Security() {
       <div className="sec-card" style={{ padding: 0, overflow: 'hidden', marginBottom: 16 }}>
         <div className="sec-section-header">
           <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-            <span style={{ marginRight: 8 }}>🔑</span> Recent Logins
+            <span style={{ marginRight: 8 }} aria-hidden="true">🔑</span> Recent Logins
           </h3>
           <span style={{ fontSize: 11, color: 'var(--text-dim)' }}><NA /></span>
         </div>
@@ -225,7 +225,7 @@ export default function Security() {
       <div className="sec-card" style={{ padding: 0, overflow: 'hidden', marginBottom: 16 }}>
         <div className="sec-section-header">
           <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-            <span style={{ marginRight: 8 }}>💻</span> Devices
+            <span style={{ marginRight: 8 }} aria-hidden="true">💻</span> Devices
           </h3>
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{securityMetrics?.totalDevices != null ? `${securityMetrics.totalDevices} registered` : <NA />}</span>
         </div>
@@ -242,7 +242,7 @@ export default function Security() {
         <div className="sec-card" style={{ padding: 0, overflow: 'hidden' }}>
           <div className="sec-section-header">
             <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-              <span style={{ marginRight: 8 }}>🔐</span> Password Policy
+              <span style={{ marginRight: 8 }} aria-hidden="true">🔐</span> Password Policy
             </h3>
             <button className="sec-btn-secondary" style={{ padding: '5px 12px', fontSize: 11, opacity: 0.5, cursor: 'not-allowed' }} disabled title="Configure in Firebase Auth Console">Configure</button>
           </div>
@@ -287,7 +287,7 @@ export default function Security() {
         <div className="sec-card" style={{ padding: 0, overflow: 'hidden' }}>
           <div className="sec-section-header">
             <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-              <span style={{ marginRight: 8 }}>🛡️</span> Platform Status
+              <span style={{ marginRight: 8 }} aria-hidden="true">🛡️</span> Platform Status
             </h3>
             <StatusBadge status={securityMetrics?.platformStatus || 'operational'} />
           </div>
@@ -317,7 +317,7 @@ export default function Security() {
       {!isSuperAdmin && (
         <div className="sec-card" style={{ padding: '18px 20px', borderColor: 'rgba(239,68,68,0.12)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#ef4444' }}>⚠️</div>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#ef4444' }} aria-hidden="true">⚠️</div>
             <div>
               <h3 style={{ fontSize: 14, fontWeight: 700, color: '#ef4444', margin: 0 }}>Danger Zone</h3>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>Irreversible actions with platform-wide impact</p>
@@ -325,15 +325,15 @@ export default function Security() {
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button className="sec-btn-danger" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Requires Firebase Auth Admin SDK">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }} aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
               Force Logout All Users
             </button>
             <button className="sec-btn-danger" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Requires Firebase Auth Admin SDK">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }}><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }} aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
               Revoke All Sessions
             </button>
             <button className="sec-btn-danger" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Requires backend implementation">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }} aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               Reset Security Keys
             </button>
           </div>

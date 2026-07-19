@@ -30,6 +30,14 @@
       "collectionGroup": "attendance",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "date", "order": "DESCENDING" },
+        { "fieldPath": "time", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "attendance",
+      "queryScope": "COLLECTION",
+      "fields": [
         { "fieldPath": "gymId", "order": "ASCENDING" },
         { "fieldPath": "memberId", "order": "ASCENDING" },
         { "fieldPath": "date", "order": "DESCENDING" },
@@ -152,14 +160,6 @@
       ]
     },
     {
-      "collectionGroup": "users",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "role", "order": "ASCENDING" },
-        { "fieldPath": "email", "order": "ASCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "gyms",
       "queryScope": "COLLECTION",
       "fields": [
@@ -193,13 +193,6 @@
       ]
     },
     {
-      "collectionGroup": "users",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "referralCode", "order": "ASCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "rewardLedger",
       "queryScope": "COLLECTION",
       "fields": [
@@ -213,13 +206,6 @@
       "fields": [
         { "fieldPath": "gymId", "order": "ASCENDING" },
         { "fieldPath": "issuedAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "rewardLedger",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "referrerUid", "order": "ASCENDING" }
       ]
     },
     {
@@ -239,17 +225,18 @@
       ]
     },
     {
-      "collectionGroup": "discountCoupons",
+      "collectionGroup": "referrals",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "code", "order": "ASCENDING" }
+        { "fieldPath": "referrerUid", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
       ]
     },
     {
       "collectionGroup": "referrals",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "referrerUid", "order": "ASCENDING" },
+        { "fieldPath": "referredUid", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
     },
@@ -279,5 +266,27 @@
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "users",
+      "fieldPath": "referralCode",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" }
+      ]
+    },
+    {
+      "collectionGroup": "rewardLedger",
+      "fieldPath": "referrerUid",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" }
+      ]
+    },
+    {
+      "collectionGroup": "discountCoupons",
+      "fieldPath": "code",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" }
+      ]
+    }
+  ]
 }

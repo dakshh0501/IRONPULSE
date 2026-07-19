@@ -216,7 +216,7 @@ function PaymentStatusContent() {
 
         {status === 'error' && (
           <>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+            <div aria-hidden="true" style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
             <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: 'var(--red)' }}>
               Something Went Wrong
             </h2>
@@ -243,7 +243,7 @@ function PaymentStatusContent() {
 
         {status !== 'loading' && status !== 'error' && (
           <>
-            <div style={{ fontSize: 56, marginBottom: 16 }}>{config.icon}</div>
+            <div aria-hidden="true" style={{ fontSize: 56, marginBottom: 16 }}>{config.icon}</div>
 
             <h2 style={{
               fontSize: 22,
@@ -278,7 +278,7 @@ function PaymentStatusContent() {
             )}
 
             {error && (
-              <div style={{
+              <div role="alert" style={{
                 background: 'var(--bg2)',
                 borderRadius: 8,
                 padding: 12,

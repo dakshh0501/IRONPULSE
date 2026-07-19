@@ -136,7 +136,7 @@ function StatCard({ label, value, icon, color, accent, delay = 0 }) {
           width:42, height:42, borderRadius:12, flexShrink:0,
           background:`${color || '#00c8b4'}12`,
           display:'flex', alignItems:'center', justifyContent:'center', fontSize:18,
-        }}>{icon}</div>
+        }} aria-hidden="true">{icon}</div>
         <div style={{ flex:1, minWidth:0 }}>
           <p style={{ fontSize:10, color:'#506080', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em', margin:'0 0 2px' }}>{label}</p>
           <p style={{ fontSize:24, fontWeight:800, lineHeight:1.2, color: color || '#a0aac0', margin:0, fontFamily:"'Barlow Condensed', sans-serif" }}>{value}</p>
@@ -153,7 +153,7 @@ function StatCard({ label, value, icon, color, accent, delay = 0 }) {
 
 function SearchIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ opacity:0.3, flexShrink:0 }}>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ opacity:0.3, flexShrink:0 }} aria-hidden="true">
       <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
     </svg>
   )
@@ -161,7 +161,7 @@ function SearchIcon() {
 
 function CloseIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ opacity:0.4 }}>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ opacity:0.4 }} aria-hidden="true">
       <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
     </svg>
   )
@@ -169,7 +169,7 @@ function CloseIcon() {
 
 function ArrowLeft() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
       <polyline points="15 18 9 12 15 6" />
     </svg>
   )
@@ -178,7 +178,7 @@ function ArrowLeft() {
 function InfoRow({ label, value, icon }) {
   return (
     <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', background:'var(--bg3)', borderRadius:8, fontSize:13 }}>
-      <span style={{ fontSize:14, width:20, textAlign:'center', flexShrink:0 }}>{icon}</span>
+      <span style={{ fontSize:14, width:20, textAlign:'center', flexShrink:0 }} aria-hidden="true">{icon}</span>
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontSize:10, color:'#384860', marginBottom:1 }}>{label}</div>
         <div style={{ fontWeight:600, color:'#a0aac0' }}>{value}</div>
@@ -434,7 +434,7 @@ export default function SuperAdminGymOwners() {
             { label:'Rejected', value: statusCounts.rejected, icon:'❌', color:'#ef4444' },
           ].map(s => (
             <div key={s.label} className="go-card" style={{ padding:'12px 14px', display:'flex', alignItems:'center', gap:10 }}>
-              <span style={{ fontSize:16 }}>{s.icon}</span>
+              <span style={{ fontSize:16 }} aria-hidden="true">{s.icon}</span>
               <div>
                 <div style={{ fontSize:10, color:'#384860' }}>{s.label}</div>
                 <div style={{ fontSize:18, fontWeight:700, color: s.color, fontFamily:"'Barlow Condensed', sans-serif" }}>{s.value}</div>
@@ -446,10 +446,10 @@ export default function SuperAdminGymOwners() {
         {/* Search + Filter */}
         <div style={{ display:'flex', gap:6 }}>
           <div style={{ position:'relative', flex:1 }}>
-            <span style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', fontSize:12, opacity:0.3, pointerEvents:'none' }}>🔍</span>
-            <input className="go-input" placeholder="Search documents..." style={{ paddingLeft:28, fontSize:12, height:32 }} />
+            <span style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', fontSize:12, opacity:0.3, pointerEvents:'none' }} aria-hidden="true">🔍</span>
+            <input className="go-input" placeholder="Search documents..." aria-label="Search documents" style={{ paddingLeft:28, fontSize:12, height:32 }} />
           </div>
-          <select className="go-select" style={{ width:90, fontSize:11, height:32 }}>
+          <select className="go-select" aria-label="Filter by document status" style={{ width:90, fontSize:11, height:32 }}>
             <option value="all">All</option>
             <option value="verified">Verified</option>
             <option value="pending">Pending</option>
@@ -474,7 +474,7 @@ export default function SuperAdminGymOwners() {
                   padding:'12px 14px', cursor:'pointer', display:'flex', alignItems:'center', gap:10,
                   borderLeft: `3px solid ${meta.color}`,
                 }}>
-                  <span style={{ fontSize:20, flexShrink:0 }}>{d.icon}</span>
+                  <span style={{ fontSize:20, flexShrink:0 }} aria-hidden="true">{d.icon}</span>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontSize:13, fontWeight:600, color:'#a0aac0' }}>{d.label}</div>
                     <div style={{ fontSize:10, color:'#384860', marginTop:1 }}>{d.desc}</div>
@@ -486,12 +486,12 @@ export default function SuperAdminGymOwners() {
                     <span className="go-pill" style={{ background: meta.bg, color: meta.color, fontSize:10, padding:'2px 8px' }}>{meta.label}</span>
                     {st === 'pending' && (
                       <>
-                        <button className="go-btn-primary" style={{ padding:'4px 10px', fontSize:10 }} onClick={e => { e.stopPropagation(); updateDoc(doc(db, 'gyms', gId), { [`documents.${d.id}.status`]: 'approved', [`documents.${d.id}.reviewedAt`]: serverTimestamp() }) }}>✓</button>
-                        <button className="go-btn-secondary" style={{ padding:'4px 10px', fontSize:10, color:'#ef4444' }} onClick={e => { e.stopPropagation(); updateDoc(doc(db, 'gyms', gId), { [`documents.${d.id}.status`]: 'rejected', [`documents.${d.id}.reviewedAt`]: serverTimestamp() }) }}>✕</button>
+                        <button className="go-btn-primary" aria-label="Approve document" style={{ padding:'4px 10px', fontSize:10 }} onClick={e => { e.stopPropagation(); updateDoc(doc(db, 'gyms', gId), { [`documents.${d.id}.status`]: 'approved', [`documents.${d.id}.reviewedAt`]: serverTimestamp() }) }}>✓</button>
+                        <button className="go-btn-secondary" aria-label="Reject document" style={{ padding:'4px 10px', fontSize:10, color:'#ef4444' }} onClick={e => { e.stopPropagation(); updateDoc(doc(db, 'gyms', gId), { [`documents.${d.id}.status`]: 'rejected', [`documents.${d.id}.reviewedAt`]: serverTimestamp() }) }}>✕</button>
                       </>
                     )}
                     {st === 'verified' && (
-                      <button className="go-btn-secondary" style={{ padding:'4px 10px', fontSize:10 }} onClick={e => { e.stopPropagation(); const b = new Blob([`${d.label} for ${g.gymName || g.name} — generated ${new Date().toISOString()}`], {type:'text/plain'}); const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = `${d.id}.txt`; a.click(); URL.revokeObjectURL(u) }}>⬇</button>
+                      <button className="go-btn-secondary" aria-label="Download document" style={{ padding:'4px 10px', fontSize:10 }} onClick={e => { e.stopPropagation(); const b = new Blob([`${d.label} for ${g.gymName || g.name} — generated ${new Date().toISOString()}`], {type:'text/plain'}); const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = `${d.id}.txt`; a.click(); URL.revokeObjectURL(u) }}>⬇</button>
                     )}
                   </div>
                 </div>
@@ -503,11 +503,11 @@ export default function SuperAdminGymOwners() {
         {/* Empty state — no documents at all */}
         {filteredTypes.length > 0 && Object.values(docStatuses).every(s => s === 'missing') && (
           <div style={{ textAlign:'center', padding:'16px 12px', background:'var(--bg3)', borderRadius:10 }}>
-            <div style={{ fontSize:28, marginBottom:8 }}>📄</div>
+            <div style={{ fontSize:28, marginBottom:8 }} aria-hidden="true">📄</div>
             <div style={{ fontSize:13, fontWeight:600, color:'#6070a0', marginBottom:4 }}>No documents uploaded</div>
             <div style={{ fontSize:11, color:'#384860', marginBottom:12 }}>Gym owners can upload documents for verification in their settings.</div>
             <button className="go-btn-secondary" style={{ fontSize:11 }} onClick={() => { if (fireNotif) fireNotif('document_reminder', { gymId: gId, userId: g.ownerUid, title: 'Documents Required', message: 'Please upload your gym documents for verification.' }).catch(() => {}) }}>
-              🔔 Notify Owner
+              <span aria-hidden="true">🔔</span> Notify Owner
             </button>
           </div>
         )}
@@ -519,13 +519,13 @@ export default function SuperAdminGymOwners() {
             <div style={{ position:'absolute', left:5, top:4, bottom:0, width:2, background:'var(--border)' }} />
             {hasGst ? (
               <div style={{ position:'relative', paddingBottom:14 }}>
-                <div style={{ position:'absolute', left:-15, top:0, width:18, height:18, borderRadius:'50%', background:'var(--card)', border:'2px solid rgba(16,185,129,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9 }}>🧾</div>
+                  <div style={{ position:'absolute', left:-15, top:0, width:18, height:18, borderRadius:'50%', background:'var(--card)', border:'2px solid rgba(16,185,129,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9 }} aria-hidden="true">🧾</div>
                 <div style={{ fontSize:12, fontWeight:600, color:'#a0aac0' }}>GST Added</div>
                 <div style={{ fontSize:10, color:'#384860' }}>GST number provided during registration</div>
               </div>
             ) : (
               <div style={{ position:'relative', paddingBottom:14 }}>
-                <div style={{ position:'absolute', left:-15, top:0, width:18, height:18, borderRadius:'50%', background:'var(--card)', border:'2px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9 }}>📄</div>
+                <div style={{ position:'absolute', left:-15, top:0, width:18, height:18, borderRadius:'50%', background:'var(--card)', border:'2px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9 }} aria-hidden="true">📄</div>
                 <div style={{ fontSize:12, color:'#384860' }}>No document activity yet</div>
                 <div style={{ fontSize:10, color:'#384860' }}>Documents will appear here when uploaded</div>
               </div>
@@ -563,7 +563,7 @@ export default function SuperAdminGymOwners() {
       <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
         {/* Drawer header */}
         <div style={{ padding:'16px 20px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:12 }}>
-          <button className="go-btn-secondary" onClick={() => setDrawerGym(null)} style={{ padding:6, lineHeight:0 }}>
+          <button className="go-btn-secondary" aria-label="Close drawer" onClick={() => setDrawerGym(null)} style={{ padding:6, lineHeight:0 }}>
             <ArrowLeft />
           </button>
           <div style={{ flex:1, minWidth:0 }}>
@@ -581,7 +581,7 @@ export default function SuperAdminGymOwners() {
                 className={`go-drawer-tab ${drawerTab === tab.id ? 'active' : ''}`}
                 onClick={() => setDrawerTab(tab.id)}
               >
-                <span style={{ fontSize:14 }}>{tab.icon}</span>
+                <span style={{ fontSize:14 }} aria-hidden="true">{tab.icon}</span>
                 {tab.label}
               </button>
             ))}
@@ -598,7 +598,7 @@ export default function SuperAdminGymOwners() {
                   background:'linear-gradient(135deg, #e8420a, #ff6a2a)',
                   display:'flex', alignItems:'center', justifyContent:'center',
                   fontSize:20, fontWeight:800, color:'#fff',
-                }}>{(g.gymName || 'G')[0].toUpperCase()}</div>
+                }} aria-hidden="true">{(g.gymName || 'G')[0].toUpperCase()}</div>
                 <div>
                   <div style={{ fontWeight:700, fontSize:15, color:'#e4e8f0' }}>{g.gymName || g.name || '—'}</div>
                   <Pill color={STATUS_COLORS[sub?.status || g.approvalStatus || g.status || 'pending']}>
@@ -644,9 +644,9 @@ export default function SuperAdminGymOwners() {
                     </div>
                   </div>
                   <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-                    <button className="go-btn-primary" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Manage in Settings → Gym Subscription">⬆ Upgrade</button>
-                    <button className="go-btn-secondary" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Manage in Settings → Gym Subscription">⬇ Downgrade</button>
-                    <button className="go-btn-secondary" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Manage in Settings → Gym Subscription">🔄 Renew</button>
+                    <button className="go-btn-primary" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Manage in Settings → Gym Subscription"><span aria-hidden="true">⬆</span> Upgrade</button>
+                    <button className="go-btn-secondary" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Manage in Settings → Gym Subscription"><span aria-hidden="true">⬇</span> Downgrade</button>
+                    <button className="go-btn-secondary" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Manage in Settings → Gym Subscription"><span aria-hidden="true">🔄</span> Renew</button>
                   </div>
                 </>
               ) : (
@@ -690,7 +690,7 @@ export default function SuperAdminGymOwners() {
               {/* Mini chart */}
               <div style={{ marginTop:12, padding:'12px 0', display:'flex', alignItems:'flex-end', gap:4, height:40 }}>
                 {[35, 50, 42, 68, 55, 72, 60, 80, 65, 75, 58, 45].map((h, i) => (
-                  <div key={i} style={{ flex:1, height:`${h}%`, borderRadius:'3px 3px 0 0', background: i % 3 === 0 ? '#ff6a2a' : 'rgba(255,255,255,0.05)' }} />
+                  <div key={i} style={{ flex:1, height:`${h}%`, borderRadius:'3px 3px 0 0', background: i % 3 === 0 ? '#ff6a2a' : 'rgba(255,255,255,0.05)' }} aria-hidden="true" />
                 ))}
               </div>
             </div>
@@ -753,7 +753,7 @@ export default function SuperAdminGymOwners() {
                       position:'absolute', left:-17, top:0, width:20, height:20, borderRadius:'50%',
                       background:'var(--card)', border:'2px solid var(--border)',
                       display:'flex', alignItems:'center', justifyContent:'center', fontSize:10,
-                    }}>{item.icon}</div>
+                    }} aria-hidden="true">{item.icon}</div>
                     <div style={{ fontSize:13, fontWeight:600, color:'#a0aac0' }}>{item.title}</div>
                     <div style={{ fontSize:11, color:'#384860' }}>{item.desc}</div>
                   </div>
@@ -770,26 +770,26 @@ export default function SuperAdminGymOwners() {
             <div style={{ display: section('settings') }}>
               <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                 <button className="go-btn-primary" style={{ textAlign:'center', width:'100%' }} onClick={() => { setConfirmAction({ type:'approve', gym:g }) }}>
-                  ✅ Approve
+                  <span aria-hidden="true">✅</span> Approve
                 </button>
                 <button className="go-btn-secondary" style={{ textAlign:'center', width:'100%', color:'#f59e0b' }} onClick={() => { setConfirmAction({ type:'suspend', gym:g }) }}>
-                  ⏸ Suspend
+                  <span aria-hidden="true">⏸</span> Suspend
                 </button>
                 <button className="go-btn-secondary" style={{ textAlign:'center', width:'100%', color:'#10b981' }} onClick={() => { setConfirmAction({ type:'activate', gym:g }) }}>
-                  ▶ Activate
+                  <span aria-hidden="true">▶</span> Activate
                 </button>
                 <button className="go-btn-secondary" style={{ textAlign:'center', width:'100%' }} onClick={() => {
                   const newName = prompt('Edit Gym Name:', g.gymName || g.name || '')
                   if (newName && newName.trim()) handleEdit(g, 'gymName', newName.trim())
                 }}>
-                  ✏️ Edit Name
+                  <span aria-hidden="true">✏️</span> Edit Name
                 </button>
                 <button className="go-btn-secondary" style={{ textAlign:'center', width:'100%', color:'#f59e0b' }} onClick={() => { setConfirmAction({ type:'resetLicense', gym:g }) }}>
-                  🔑 Reset License
+                  <span aria-hidden="true">🔑</span> Reset License
                 </button>
                 <div style={{ borderTop:'1px solid rgba(239,68,68,0.15)', marginTop:12, paddingTop:12 }}>
                   <button className="go-btn-secondary" style={{ textAlign:'center', width:'100%', color:'#ef4444', borderColor:'rgba(239,68,68,0.15)' }} onClick={() => { setConfirmAction({ type:'delete', gym:g }) }}>
-                    🗑 Delete Gym
+                    <span aria-hidden="true">🗑</span> Delete Gym
                   </button>
                 </div>
               </div>
@@ -809,7 +809,7 @@ export default function SuperAdminGymOwners() {
           <p style={{ fontSize:13, color:'#506080', margin:0 }}>Manage every registered gym from one unified platform.</p>
         </div>
         <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-          <button className="go-btn-primary" onClick={() => setConfirmAction({ type:'approve', gym: null })}>✅ Approve Gym</button>
+                <button className="go-btn-primary" onClick={() => setConfirmAction({ type:'approve', gym: null })}><span aria-hidden="true">✅</span> Approve Gym</button>
           <button className="go-btn-secondary" onClick={() => {
             const csv = [['Gym','Owner','Email','Phone','Plan','Status','Members','Trainers','Revenue'].join(',')]
             filtered.forEach(g => {
@@ -820,7 +820,7 @@ export default function SuperAdminGymOwners() {
             const url = URL.createObjectURL(blob)
             const a = document.createElement('a'); a.href = url; a.download = 'gym-owners.csv'; a.click()
             URL.revokeObjectURL(url)
-          }}>📥 Export CSV</button>
+          }}><span aria-hidden="true">📥</span> Export CSV</button>
         </div>
       </div>
 
@@ -841,19 +841,20 @@ export default function SuperAdminGymOwners() {
             <SearchIcon />
             <input
               placeholder="Search gyms, owners, email..."
+              aria-label="Search gyms, owners, email"
               value={localSearch}
               onChange={e => { setLocalSearch(e.target.value); setPage(1) }}
               className="go-input"
               style={{ paddingLeft:34 }}
             />
             {localSearch && (
-              <button onClick={() => { setLocalSearch(''); setPage(1) }} style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'#384860', padding:0, lineHeight:0 }}>
+              <button aria-label="Clear search" onClick={() => { setLocalSearch(''); setPage(1) }} style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'#384860', padding:0, lineHeight:0 }}>
                 <CloseIcon />
               </button>
             )}
           </div>
           <div className="go-filter-row" style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
-            <select className="go-select" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }} style={{ width:120 }}>
+            <select className="go-select" aria-label="Filter by status" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }} style={{ width:120 }}>
               <option value="all">All Status</option>
               <option value="active">Active</option>
               <option value="trial">Trial</option>
@@ -862,11 +863,11 @@ export default function SuperAdminGymOwners() {
               <option value="expired">Expired</option>
               <option value="rejected">Rejected</option>
             </select>
-            <select className="go-select" value={planFilter} onChange={e => { setPlanFilter(e.target.value); setPage(1) }} style={{ width:120 }}>
+            <select className="go-select" aria-label="Filter by plan" value={planFilter} onChange={e => { setPlanFilter(e.target.value); setPage(1) }} style={{ width:120 }}>
               <option value="all">All Plans</option>
               {allPlans.filter(p => p !== 'all').map(p => <option key={p} value={p}>{p}</option>)}
             </select>
-            <select className="go-select" value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ width:120 }}>
+            <select className="go-select" aria-label="Sort by" value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ width:120 }}>
               <option value="newest">Newest</option>
               <option value="oldest">Oldest</option>
               <option value="name">Name A-Z</option>
@@ -876,7 +877,7 @@ export default function SuperAdminGymOwners() {
             </select>
             {(search || statusFilter !== 'all' || planFilter !== 'all' || sortBy !== 'newest') && (
               <button className="go-btn-secondary" onClick={() => { setLocalSearch(''); setStatusFilter('all'); setPlanFilter('all'); setSortBy('newest'); setPage(1) }} style={{ fontSize:11 }}>
-                ✕ Clear
+                <span aria-hidden="true">✕</span> Clear
               </button>
             )}
           </div>
@@ -890,7 +891,7 @@ export default function SuperAdminGymOwners() {
             <thead>
               <tr>
                 {['Gym','Owner','Phone','Email','Plan','Members','Revenue','Expiry','Status','Actions'].map(h => (
-                  <th key={h}>{h}</th>
+                  <th key={h} scope="col">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -900,7 +901,7 @@ export default function SuperAdminGymOwners() {
               ) : paginated.length === 0 ? (
                 <tr>
                   <td colSpan={10} style={{ textAlign:'center', padding:'48px 24px', color:'#384860', fontSize:13 }}>
-                    <div style={{ fontSize:40, marginBottom:12 }}>🏢</div>
+                    <div style={{ fontSize:40, marginBottom:12 }} aria-hidden="true">🏢</div>
                     {search || statusFilter !== 'all' || planFilter !== 'all'
                       ? 'No gyms match your filters'
                       : 'No gyms registered yet. Register or approve your first gym.'}
@@ -926,7 +927,7 @@ export default function SuperAdminGymOwners() {
                           background: `linear-gradient(135deg, ${planColor}, ${planColor}66)`,
                           display:'flex', alignItems:'center', justifyContent:'center',
                           fontSize:12, fontWeight:700, color:'#fff',
-                        }}>{(g.gymName || g.name || 'G')[0].toUpperCase()}</div>
+                        }} aria-hidden="true">{(g.gymName || g.name || 'G')[0].toUpperCase()}</div>
                         <div style={{ minWidth:0 }}>
                           <div style={{ fontWeight:600, fontSize:13, color:'#e4e8f0' }}>{g.gymName || g.name || '—'}</div>
                           <div style={{ fontSize:10, color:'#384860' }}>ID: {(g.id || '').slice(-6)}</div>
@@ -946,7 +947,7 @@ export default function SuperAdminGymOwners() {
                         padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:600,
                         background:`${statusColor}14`, color: statusColor,
                       }}>
-                        <span style={{ width:6, height:6, borderRadius:'50%', background: statusColor, animation: st === 'pending' ? 'go-pulse 1.5s ease-in-out infinite' : 'none' }} />
+                        <span style={{ width:6, height:6, borderRadius:'50%', background: statusColor, animation: st === 'pending' ? 'go-pulse 1.5s ease-in-out infinite' : 'none' }} aria-hidden="true" />
                         {st}
                       </div>
                     </td>
@@ -956,7 +957,7 @@ export default function SuperAdminGymOwners() {
                           <button className="go-btn-primary" style={{ padding:'4px 12px', fontSize:11 }}
                             onClick={() => setConfirmAction({ type:'approve', gym: g })}>Approve</button>
                         )}
-                        <button className="go-btn-secondary" style={{ padding:'4px 8px', fontSize:13, lineHeight:0 }}
+                        <button className="go-btn-secondary" aria-label="Settings" style={{ padding:'4px 8px', fontSize:13, lineHeight:0 }}
                           onClick={() => { setDrawerGym(g); setDrawerTab('settings') }}>⚙</button>
                       </div>
                     </td>
@@ -976,7 +977,7 @@ export default function SuperAdminGymOwners() {
                 padding:'5px 12px', borderRadius:6, border:'1px solid var(--border)',
                 background:'transparent', cursor: safePage > 1 ? 'pointer' : 'default',
                 color: safePage > 1 ? '#a0aac0' : '#384860', fontSize:12, fontWeight:500,
-              }}>← Prev</button>
+              }}><span aria-hidden="true">←</span> Prev</button>
               {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
                 let p
                 if (totalPages <= 7) p = i + 1
@@ -996,7 +997,7 @@ export default function SuperAdminGymOwners() {
                 padding:'5px 12px', borderRadius:6, border:'1px solid var(--border)',
                 background:'transparent', cursor: safePage < totalPages ? 'pointer' : 'default',
                 color: safePage < totalPages ? '#a0aac0' : '#384860', fontSize:12, fontWeight:500,
-              }}>Next →</button>
+              }}>Next <span aria-hidden="true">→</span></button>
             </div>
           </div>
         )}
@@ -1006,7 +1007,7 @@ export default function SuperAdminGymOwners() {
       {drawerGym && (
         <>
           <div style={{ position:'fixed', inset:0, zIndex:99, background:'rgba(0,0,0,0.5)', backdropFilter:'blur(4px)' }} onClick={() => setDrawerGym(null)} />
-          <div className="go-drawer" style={{
+          <div className="go-drawer" role="dialog" aria-modal="true" aria-label="Gym details drawer" style={{
             position:'fixed', top:0, right:0, bottom:0, zIndex:100,
             width:520, maxWidth:'100vw',
             background:'var(--bg2)',
@@ -1023,7 +1024,7 @@ export default function SuperAdminGymOwners() {
       {/* ── CONFIRM MODAL ── */}
       {confirmAction && (
         <div className="modal-overlay" onClick={() => setConfirmAction(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth:380, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:16 }}>
+          <div className="modal" role="dialog" aria-modal="true" aria-label={confirmAction.type === 'approve' ? 'Approve Gym' : confirmAction.type === 'suspend' ? 'Suspend Gym' : confirmAction.type === 'activate' ? 'Activate Gym' : confirmAction.type === 'delete' ? 'Delete Gym' : 'Reset License Key'} onClick={e => e.stopPropagation()} style={{ maxWidth:380, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:16 }}>
             <h3 style={{ marginBottom:8, fontSize:16, color:'#e4e8f0' }}>
               {confirmAction.type === 'approve' && 'Approve Gym'}
               {confirmAction.type === 'suspend' && 'Suspend Gym'}

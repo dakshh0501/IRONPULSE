@@ -55,8 +55,8 @@ export default function MemberDrawer({ member, onClose, onEdit, onCheckIn, onRen
   ]
 
   return (
-    <div className="member-drawer-overlay" onClick={onClose}>
-      <div className="member-drawer" onClick={e => e.stopPropagation()}>
+    <div className="member-drawer-overlay" onClick={onClose} role="presentation">
+      <div className="member-drawer" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={`Member details: ${member?.name || 'Member'}`}>
         <div className="member-drawer-header">
           <div style={{ display:'flex', alignItems:'center', gap:12 }}>
             <MemberAvatar member={member} size={44} fontSize={14} />
@@ -65,12 +65,12 @@ export default function MemberDrawer({ member, onClose, onEdit, onCheckIn, onRen
               <p className="member-drawer-email">{member.email} · {member.contact}</p>
             </div>
           </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose} aria-label="Close drawer"><span aria-hidden="true">✕</span></button>
         </div>
 
         <div className="member-drawer-tabs">
           {TABS.map(t => (
-            <button key={t.key} className={`member-drawer-tab${tab === t.key ? ' active' : ''}`} onClick={() => setTab(t.key)}>
+                <button key={t.key} className={`member-drawer-tab${tab === t.key ? ' active' : ''}`} onClick={() => setTab(t.key)} role="tab" aria-selected={tab === t.key ? 'true' : 'false'}>
               {t.label}
             </button>
           ))}
@@ -117,7 +117,7 @@ export default function MemberDrawer({ member, onClose, onEdit, onCheckIn, onRen
                   <thead><tr><th>Date</th><th>Time</th><th>Method</th></tr></thead>
                   <tbody>
                     {memberAttendance.map((a, i) => (
-                      <tr key={i}><td>{a.date}</td><td>{a.time}</td><td><span className="badge badge-teal" style={{ fontSize:9 }}>{a.method||'—'}</span></td></tr>
+                      <tr key={a.id || i}><td>{a.date}</td><td>{a.time}</td><td><span className="badge badge-teal" style={{ fontSize:9 }}>{a.method||'—'}</span></td></tr>
                     ))}
                   </tbody>
                 </table>
@@ -134,7 +134,7 @@ export default function MemberDrawer({ member, onClose, onEdit, onCheckIn, onRen
                   <thead><tr><th>Date</th><th>Amount</th><th>Status</th><th>Method</th></tr></thead>
                   <tbody>
                     {memberPayments.map((p, i) => (
-                      <tr key={i}>
+                      <tr key={p.id || i}>
                         <td>{p.date}</td>
                         <td style={{ fontWeight:700 }}>₹{p.paid||p.amount||0}</td>
                         <td><span className={`badge ${p.status==='paid'||p.status==='Paid'?'badge-green':'badge-amber'}`} style={{ fontSize:9 }}>{p.status}</span></td>
@@ -154,7 +154,7 @@ export default function MemberDrawer({ member, onClose, onEdit, onCheckIn, onRen
               ) : (
                 <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                   {memberProgress.map((p, i) => (
-                    <div key={i} className="members-progress-card">
+                    <div key={p.id || i} className="members-progress-card">
                       <div className="members-progress-date">{p.date||p.createdAt?.toDate?.()?.toLocaleDateString()||'—'}</div>
                       <div className="members-progress-stats">
                         {p.weight !== undefined && <span>⚖️ {p.weight} kg</span>}
@@ -228,10 +228,10 @@ export default function MemberDrawer({ member, onClose, onEdit, onCheckIn, onRen
 
         <div className="member-drawer-footer">
           {isAdmin && (
-            <button className="btn btn-primary btn-sm" onClick={() => { onEdit(member); onClose() }}>✏️ Edit</button>
+            <button className="btn btn-primary btn-sm" onClick={() => { onEdit(member); onClose() }} aria-label={`Edit ${member?.name || 'member'}`}><span aria-hidden="true">✏️</span> Edit</button>
           )}
           {(isAdmin || isTrainer) && (
-            <button className="btn btn-outline btn-sm" onClick={() => onCheckIn(member).catch(e => console.error('Check-in failed:', e))}>✅ Check In</button>
+            <button className="btn btn-outline btn-sm" onClick={() => onCheckIn(member).catch(e => console.error('Check-in failed:', e))} aria-label={`Check in ${member?.name || 'member'}`}><span aria-hidden="true">✅</span> Check In</button>
           )}
           {isAdmin && onRenew && (
             <button className="btn btn-ghost btn-sm" onClick={() => onRenew(member)}>🔄 Renew</button>

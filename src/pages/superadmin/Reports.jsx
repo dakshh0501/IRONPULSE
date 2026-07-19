@@ -67,7 +67,7 @@ function RevenueReport({ payments, gyms, subscriptions }) {
       </div>
       <div className="card" style={{ marginBottom:20 }}>
         <p className="card-title">Revenue by Gym</p>
-        <ResponsiveContainer width="100%" height={250}>
+        <ResponsiveContainer width="100%" height={250} role="img" aria-label="Revenue by gym bar chart">
           <BarChart data={revenueByGym} margin={{ top:5, right:10, bottom:0, left:-15 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false}/>
             <XAxis dataKey="gymName" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
@@ -81,8 +81,8 @@ function RevenueReport({ payments, gyms, subscriptions }) {
         <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
           <thead>
             <tr>
-              <th style={thStyle}>Gym</th>
-              <th style={thStyle}>Revenue</th>
+              <th scope="col" style={thStyle}>Gym</th>
+              <th scope="col" style={thStyle}>Revenue</th>
             </tr>
           </thead>
           <tbody>
@@ -120,7 +120,7 @@ function SubscriptionsReport({ subscriptions, gyms }) {
       <div className="grid-2" style={{ marginBottom:20 }}>
         <div className="card">
           <p className="card-title">Status Distribution</p>
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="100%" height={200} role="img" aria-label="Subscription status distribution pie chart">
             <PieChart>
               <Pie data={statusData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" label={({name,value}) => `${name} (${value})`}>
                 {statusData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
@@ -181,7 +181,7 @@ function MembersReport({ members, gyms }) {
       </div>
       <div className="card" style={{ marginBottom:20 }}>
         <p className="card-title">Members by Gym</p>
-        <ResponsiveContainer width="100%" height={250}>
+        <ResponsiveContainer width="100%" height={250} role="img" aria-label="Members by gym bar chart">
           <BarChart data={byGym} margin={{ top:5, right:10, bottom:0, left:-15 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false}/>
             <XAxis dataKey="gymName" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
@@ -217,7 +217,7 @@ function GymsReport({ gyms, subscriptions }) {
       </div>
       <div className="card" style={{ marginBottom:20 }}>
         <p className="card-title">Gym Status Distribution</p>
-        <ResponsiveContainer width="100%" height={200}>
+        <ResponsiveContainer width="100%" height={200} role="img" aria-label="Gym status distribution pie chart">
           <PieChart>
             <Pie data={statusData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({name,value}) => `${name} (${value})`}>
               {statusData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
@@ -253,7 +253,7 @@ function ActivityReport({ attendance, members }) {
       </div>
       <div className="card" style={{ marginBottom:20 }}>
         <p className="card-title">Peak Hours</p>
-        <ResponsiveContainer width="100%" height={200}>
+        <ResponsiveContainer width="100%" height={200} role="img" aria-label="Peak hours line chart">
           <LineChart data={peakHourData} margin={{ top:5, right:10, bottom:0, left:-15 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
             <XAxis dataKey="hour" tick={{ fill:'var(--text-muted)', fontSize:10 }} axisLine={false} tickLine={false} interval={3}/>

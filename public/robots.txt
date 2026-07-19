@@ -1,0 +1,49 @@
+# IRONPULSE — robots.txt
+# Production: https://ironpulse.app
+
+User-agent: *
+Allow: /
+Allow: /features
+Allow: /pricing
+Allow: /contact
+Allow: /about
+Allow: /privacy
+Allow: /terms
+
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /members
+Disallow: /trainers
+Disallow: /payments
+Disallow: /attendance
+Disallow: /reception
+Disallow: /workouts
+Disallow: /diet
+Disallow: /progress
+Disallow: /reports
+Disallow: /settings
+Disallow: /notifications
+Disallow: /whatsapp
+Disallow: /support
+Disallow: /subscription
+Disallow: /devices
+Disallow: /referral
+Disallow: /referrals
+Disallow: /gymOwners
+Disallow: /subscriptions
+Disallow: /pending
+Disallow: /analytics
+Disallow: /revenue
+Disallow: /security
+Disallow: /license
+Disallow: /member/*
+Disallow: /trainer/*
+Disallow: /payment-status
+Disallow: /checkout
+Disallow: /verify-email
+Disallow: /rejected
+Disallow: /api/
+
+Sitemap: https://ironpulse.app/sitemap.xml
+
+# Crawl-delay: 1

@@ -68,7 +68,7 @@ function StatusBadge({ status }) {
 }
 
 export default function Referral() {
-  const { userProfile } = useAuth()
+  const { userProfile, currentUser } = useAuth()
   const { referrals, referralsLoading, referralSettings } = useApp()
 
   const [filter, setFilter] = useState('All')
@@ -80,7 +80,13 @@ export default function Referral() {
   const referralCode = userProfile?.referralCode || ''
   const referralLink = buildReferralLink(referralCode)
 
-  const stats = useMemo(() => getReferralStats(referrals), [referrals])
+  // For admin roles, filter to personal referrals; member already gets server-filtered
+  const myReferrals = useMemo(() => {
+    if (!currentUser?.uid) return referrals
+    return referrals.filter(r => r.referrerUid === currentUser.uid)
+  }, [referrals, currentUser])
+
+  const stats = useMemo(() => getReferralStats(myReferrals), [myReferrals])
 
   const filters = useMemo(() => [
     { key: 'All',      label: 'All',      count: stats.total },
@@ -91,7 +97,7 @@ export default function Referral() {
   ], [stats])
 
   const filtered = useMemo(() => {
-    return referrals.filter(r => {
+    return myReferrals.filter(r => {
       if (filter !== 'All' && r.status !== filter) return false
       if (!searchText) return true
       const q = searchText.toLowerCase()
@@ -99,7 +105,7 @@ export default function Referral() {
       const uid = (r.referredUid || '').toLowerCase()
       return name.includes(q) || uid.includes(q)
     })
-  }, [referrals, filter, searchText])
+  }, [myReferrals, filter, searchText])
 
   const handleCopyCode = useCallback(async () => {
     if (!referralCode) return
@@ -178,8 +184,8 @@ export default function Referral() {
   return (
     <div className="page-container">
       {/* ── Error Banner (from referralsLoading) ── */}
-      {!referralsLoading && referrals.length > 0 && filtered.length === 0 && searchText && (
-        <div className="alert alert-info" style={{ marginBottom: 16 }}>
+      {!referralsLoading && myReferrals.length > 0 && filtered.length === 0 && searchText && (
+        <div className="alert alert-info" role="alert" style={{ marginBottom: 16 }}>
           No referrals match your search. Try a different query.
         </div>
       )}
@@ -348,7 +354,7 @@ export default function Referral() {
                     onChange={e => setSearchText(e.target.value)}
                     aria-label="Search referrals"
                   />
-                  <span style={{
+                  <span aria-hidden="true" style={{
                     position: 'absolute', left: 8, fontSize: 12,
                     color: 'var(--text-dim)', pointerEvents: 'none',
                   }}>🔍</span>
@@ -367,7 +373,7 @@ export default function Referral() {
             </div>
 
             {/* ── Empty / Table ── */}
-            {referrals.length === 0 ? (
+            {myReferrals.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-state-icon">
                   <Award size={48} strokeWidth={1.5} />
@@ -396,14 +402,14 @@ export default function Referral() {
                 <table className="data-table" style={{ minWidth: 700 }}>
                   <thead>
                     <tr>
-                      <th>Referred User</th>
-                      <th>Gym</th>
-                      <th>Created</th>
-                      <th>Status</th>
-                      <th>Reward</th>
-                      <th>Payment Date</th>
-                      <th>Reward Date</th>
-                      <th>Timeline</th>
+                      <th scope="col">Referred User</th>
+                      <th scope="col">Gym</th>
+                      <th scope="col">Created</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Reward</th>
+                      <th scope="col">Payment Date</th>
+                      <th scope="col">Reward Date</th>
+                      <th scope="col">Timeline</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -448,7 +454,7 @@ export default function Referral() {
                 marginTop: 12, fontSize: 11, color: 'var(--text-dim)',
                 textAlign: 'right',
               }}>
-                Showing {filtered.length} of {referrals.length} referral{referrals.length !== 1 ? 's' : ''}
+                Showing {filtered.length} of {myReferrals.length} referral{myReferrals.length !== 1 ? 's' : ''}
               </div>
             )}
           </div>

@@ -4,7 +4,7 @@
 // No duplicate logic, no role defaults
 
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
-import { addDoc, collection, getDocs, query, where } from 'firebase/firestore'
+import { addDoc, collection, doc, getDocs, query, setDoc, where } from 'firebase/firestore'
 import { db } from '../firebase'
 import {
   subscribeToAuthState,
@@ -18,6 +18,7 @@ import {
 } from '../services/authService'
 import { getSettings } from '../services/firestoreService'
 import { createReferral, hasPendingReferral, isReferralExpired, logReferralAudit } from '../services/referralService'
+import { generateUniqueReferralCode } from '../utils/referralCode'
 import { applyAccentColor, DEFAULT_ACCENT } from '../utils/theme'
 import { getEffectiveRole } from '../utils/rbac'
 import {
@@ -181,6 +182,17 @@ export function AuthProvider({ children }) {
           setAuthError('Your account is awaiting admin approval.')
           setAuthLoading(false)
           return
+        }
+
+        // Auto-generate referralCode if missing
+        if (!profile.referralCode) {
+          try {
+            const code = await generateUniqueReferralCode()
+            await setDoc(doc(db, 'users', firebaseUser.uid), { referralCode: code }, { merge: true })
+            profile = { ...profile, referralCode: code }
+          } catch (err) {
+            console.warn('[AUTH] Failed to generate referral code:', err)
+          }
         }
 
         // Approved — set state

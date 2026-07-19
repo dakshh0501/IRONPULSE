@@ -169,7 +169,7 @@ function StatCard({ label, value, icon, color, delay = 0 }) {
       transition: `all 0.5s cubic-bezier(0.16,1,0.3,1) ${delay * 50}ms`,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div className="sspt-stat-icon" style={{ background: `${color}18`, color }}>{icon}</div>
+        <div className="sspt-stat-icon" style={{ background: `${color}18`, color }} aria-hidden="true">{icon}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="sspt-stat-label">{label}</div>
           <div className="sspt-stat-value"><AnimatedCounter value={value} /></div>
@@ -236,7 +236,7 @@ function TicketDrawer({ ticket, gymName, onClose }) {
   return (
     <>
       <DrawerOverlay open={!closing} onClose={handleClose} />
-      <div className={`sspt-drawer${closing ? ' closing' : ''}`}>
+      <div className={`sspt-drawer${closing ? ' closing' : ''}`} role="dialog" aria-modal="true">
         <div className="sspt-drawer-header">
           <div style={{ flex: 1, minWidth: 0 }}>
             <h3>{ticket.subject || 'Support Ticket'}</h3>
@@ -244,13 +244,13 @@ function TicketDrawer({ ticket, gymName, onClose }) {
               {gymName} &middot; {ticket.category || 'General'} &middot; {priorityBadge(ticket.priority)}
             </div>
           </div>
-          <button className="sspt-drawer-close" onClick={handleClose}>✕</button>
+          <button className="sspt-drawer-close" onClick={handleClose} aria-label="Close drawer">✕</button>
         </div>
 
         <div className="sspt-drawer-tabs">
           {detailTabs.map(t => (
             <button key={t.key} className={`sspt-drawer-tab${drawerTab === t.key ? ' active' : ''}`} onClick={() => setDrawerTab(t.key)}>
-              {t.icon} {t.label}
+              <span aria-hidden="true">{t.icon}</span> {t.label}
             </button>
           ))}
         </div>
@@ -292,9 +292,9 @@ function TicketDrawer({ ticket, gymName, onClose }) {
 
               <div style={{ marginTop: 'auto', paddingTop: 12 }}>
                 <div className="sspt-reply-box">
-                  <textarea placeholder="Type your reply..." value={replyText} onChange={e => { setReplyText(e.target.value); setDrawerMsg('') }} />
+                  <textarea placeholder="Type your reply..." value={replyText} onChange={e => { setReplyText(e.target.value); setDrawerMsg('') }} aria-label="Type your reply" />
                   <button className="sspt-reply-btn" onClick={() => { if (replyText.trim()) setDrawerMsg('Reply functionality will be available after Firestore replies collection is implemented.'); else setDrawerMsg('Type a reply first') }}>Send Reply</button>
-                  {drawerMsg && <div style={{ fontSize: 11, color: drawerMsg === 'Type a reply first' ? 'var(--text-muted)' : 'var(--teal)', marginTop: 4, position: 'absolute', bottom: -18, left: 0 }}>{drawerMsg}</div>}
+                  {drawerMsg && <div role="alert" style={{ fontSize: 11, color: drawerMsg === 'Type a reply first' ? 'var(--text-muted)' : 'var(--teal)', marginTop: 4, position: 'absolute', bottom: -18, left: 0 }}>{drawerMsg}</div>}
                 </div>
               </div>
             </>
@@ -317,13 +317,13 @@ function TicketDrawer({ ticket, gymName, onClose }) {
           {drawerTab === 'notes' && (
             <>
               <div className="sspt-empty-state">
-                <div className="sspt-empty-state-icon">📝</div>
+                <div className="sspt-empty-state-icon" aria-hidden="true">📝</div>
                 <div className="sspt-empty-state-title">No Internal Notes</div>
                 <p className="sspt-empty-state-desc">Internal notes are visible only to staff. Add a note below.</p>
               </div>
               <div style={{ marginTop: 'auto', paddingTop: 8 }}>
                 <div className="sspt-reply-box" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-                  <textarea placeholder="Add an internal note..." value={noteText} onChange={e => { setNoteText(e.target.value); setDrawerMsg('') }} style={{ minHeight: 80 }} />
+                  <textarea placeholder="Add an internal note..." value={noteText} onChange={e => { setNoteText(e.target.value); setDrawerMsg('') }} style={{ minHeight: 80 }} aria-label="Add an internal note" />
                   <button className="sspt-reply-btn" style={{ alignSelf: 'flex-end' }} onClick={() => { if (noteText.trim()) setDrawerMsg('Note saved. Internal notes will be visible after a Firestore notes collection is added.'); else setDrawerMsg('Type a note first') }}>Save Note</button>
                 </div>
               </div>
@@ -332,11 +332,11 @@ function TicketDrawer({ ticket, gymName, onClose }) {
 
           {drawerTab === 'attachments' && (
             <div className="sspt-empty-state">
-              <div className="sspt-empty-state-icon">📎</div>
+              <div className="sspt-empty-state-icon" aria-hidden="true">📎</div>
               <div className="sspt-empty-state-title">No Attachments</div>
               <p className="sspt-empty-state-desc">Drag and drop files here or click to upload.</p>
               <div className="sspt-upload-hint" style={{ marginTop: 8 }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="1.5" style={{ margin: '0 auto 4px', display: 'block' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="1.5" style={{ margin: '0 auto 4px', display: 'block' }} aria-hidden="true">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
                 <p>Click to browse or drop files here</p>
@@ -362,7 +362,7 @@ function KnowledgeBaseTab() {
     <div className="sspt-kb-grid">
       {KB_ITEMS.map((item, i) => (
         <div key={i} className="sspt-kb-card" style={{ animation: `sspt-fade-up 0.4s ease ${i * 0.08}s both` }}>
-          <div className="sspt-kb-icon">{item.icon}</div>
+          <div className="sspt-kb-icon" aria-hidden="true">{item.icon}</div>
           <h4>{item.title}</h4>
           <p>{item.desc}</p>
           <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
@@ -445,7 +445,7 @@ export default function SuperAdminSupport() {
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         {tabs.map(t => (
           <button key={t.key} className={`sspt-tab ${tab === t.key ? 'active' : ''}`} onClick={() => setTab(t.key)}>
-            {t.icon} {t.label}
+            <span aria-hidden="true">{t.icon}</span> {t.label}
             {t.count !== null && (
               <span style={{ marginLeft: 4, background: 'rgba(255,255,255,0.06)', padding: '1px 6px', borderRadius: 8, fontSize: 10 }}>{t.count}</span>
             )}
@@ -460,10 +460,10 @@ export default function SuperAdminSupport() {
             <span style={{ fontSize: 11, color: '#6070a0' }}>({supportTickets.length})</span>
             <div style={{ flex: 1 }} />
             <div style={{ position: 'relative', width: 200 }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="2" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="2" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} aria-hidden="true">
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
-              <input className="form-input" style={{ paddingLeft: 28, height: 32, fontSize: 12, borderRadius: 8, maxWidth: 200 }} placeholder="Search tickets..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+              <input className="form-input" style={{ paddingLeft: 28, height: 32, fontSize: 12, borderRadius: 8, maxWidth: 200 }} placeholder="Search tickets..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} aria-label="Search tickets" />
             </div>
             <select className="form-select" style={{ height: 32, fontSize: 11, borderRadius: 8, padding: '4px 24px 4px 8px', maxWidth: 130 }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
               <option>All</option><option>Open</option><option>In Progress</option><option>Under Review</option><option>Resolved</option><option>Closed</option>
@@ -475,14 +475,14 @@ export default function SuperAdminSupport() {
             </div>
           ) : supportTickets.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 24px' }}>
-              <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.5 }}>🎫</div>
+              <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.5 }} aria-hidden="true">🎫</div>
               <p style={{ fontSize: 14, color: '#6070a0', margin: '0 0 4px' }}>No support tickets yet</p>
               <p style={{ fontSize: 12, color: '#384860', margin: 0 }}>Tickets from all gyms will appear here once submitted.</p>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table className="data-table">
-                <thead><tr><th>Gym</th><th>Subject</th><th>Category</th><th>Status</th><th>Priority</th><th>Date</th></tr></thead>
+                <thead><tr><th scope="col">Gym</th><th scope="col">Subject</th><th scope="col">Category</th><th scope="col">Status</th><th scope="col">Priority</th><th scope="col">Date</th></tr></thead>
                 <tbody>
                   {ticketsWithGym.map(t => (
                     <tr key={t.id} onClick={() => setSelectedTicket(t)} style={{ cursor: 'pointer' }}>
@@ -513,14 +513,14 @@ export default function SuperAdminSupport() {
           </div>
           {featureCount === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 24px' }}>
-              <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.5 }}>💡</div>
+              <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.5 }} aria-hidden="true">💡</div>
               <p style={{ fontSize: 14, color: '#6070a0', margin: '0 0 4px' }}>No feature requests yet</p>
               <p style={{ fontSize: 12, color: '#384860', margin: 0 }}>Feature requests from all gyms will appear here.</p>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table className="data-table">
-                <thead><tr><th>Gym</th><th>Request</th><th>Type</th><th>Status</th><th>Date</th></tr></thead>
+                <thead><tr><th scope="col">Gym</th><th scope="col">Request</th><th scope="col">Type</th><th scope="col">Status</th><th scope="col">Date</th></tr></thead>
                 <tbody>
                   {[...featureRequests].reverse().map(f => {
                     const gym = gyms.find(g => g.id === f.gymId || g.gymId === f.gymId)
@@ -553,14 +553,14 @@ export default function SuperAdminSupport() {
             </div>
           ) : contactMessages.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 24px' }}>
-              <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.5 }}>✉️</div>
+              <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.5 }} aria-hidden="true">✉️</div>
               <p style={{ fontSize: 14, color: '#6070a0', margin: '0 0 4px' }}>No contact messages yet</p>
               <p style={{ fontSize: 12, color: '#384860', margin: 0 }}>Messages submitted from the landing page contact form will appear here.</p>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table className="data-table">
-                <thead><tr><th>Date</th><th>Name</th><th>Email</th><th>Phone</th><th>Message</th><th>Status</th><th>Action</th></tr></thead>
+                <thead><tr><th scope="col">Date</th><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Message</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
                 <tbody>
                   {[...contactMessages].reverse().map(m => (
                     <tr key={m.id}>

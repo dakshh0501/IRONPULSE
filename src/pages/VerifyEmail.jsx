@@ -106,13 +106,13 @@ export default function VerifyEmail() {
     }}>
       <HexBackground />
       {particles.map(p => (
-        <div key={p.id} style={{
+        <div key={p.id} aria-hidden="true" style={{
           position: 'absolute', left: p.left, top: p.top, width: p.size, height: p.size,
           borderRadius: '50%', background: '#e8420a', opacity: 0.12,
           animation: `auth-float ${p.dur} ease-in-out ${p.delay} infinite`, pointerEvents: 'none'
         }} />
       ))}
-      <div style={{ position: 'absolute', top: '15%', left: '10%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(232,66,10,0.06), transparent 70%)', pointerEvents: 'none', animation: 'auth-float-d 12s ease-in-out infinite' }} />
+      <div aria-hidden="true" style={{ position: 'absolute', top: '15%', left: '10%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(232,66,10,0.06), transparent 70%)', pointerEvents: 'none', animation: 'auth-float-d 12s ease-in-out infinite' }} />
       <div className="auth-glass" style={{ padding: '36px 32px', maxWidth: 440, width: '100%', animation: 'auth-fade-in 0.5s ease' }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 16 }}>
@@ -138,7 +138,7 @@ export default function VerifyEmail() {
         </div>
 
         {error && (
-          <div style={{
+          <div role="alert" style={{
             background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)',
             borderRadius: 10, padding: '10px 14px', marginBottom: 16,
             fontSize: 13, color: '#f87171', textAlign: 'center'
@@ -153,7 +153,7 @@ export default function VerifyEmail() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               animation: 'auth-check 0.5s ease'
             }}>
-              <span style={{ fontSize: 24, color: '#00c8b4' }}>✓</span>
+              <span aria-hidden="true" style={{ fontSize: 24, color: '#00c8b4' }}>✓</span>
             </div>
             <p style={{ fontSize: 13, color: '#a0aac0', marginBottom: 20 }}>
               Your email has been confirmed.
@@ -171,7 +171,7 @@ export default function VerifyEmail() {
               <button onClick={handleResend} disabled={cooldown > 0 || sending} className="auth-btn-secondary" style={{ width: '100%', opacity: cooldown > 0 || sending ? 0.5 : 1 }}>
                 {sending ? (
                   <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                    <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.2)', borderTopColor: 'white', borderRadius: '50%', animation: 'lv-spin 0.6s linear infinite' }} />
+                    <span aria-hidden="true" style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.2)', borderTopColor: 'white', borderRadius: '50%', animation: 'lv-spin 0.6s linear infinite' }} />
                     Sending…
                   </span>
                 ) : cooldown > 0 ? (
@@ -186,7 +186,7 @@ export default function VerifyEmail() {
               <button onClick={() => logout()} style={{
                 background: 'none', border: 'none', color: '#ff6a2a',
                 cursor: 'pointer', fontSize: 13, fontWeight: 600
-              }}>← Back to Sign In</button>
+              }}><span aria-hidden="true">←</span> Back to Sign In</button>
               <button onClick={() => openSupportWhatsApp({ page: 'Verify Email', issue: 'Verification Help' })} style={{
                 background: 'none', border: 'none', color: '#6070a0',
                 cursor: 'pointer', fontSize: 11, marginTop: 4

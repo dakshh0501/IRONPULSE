@@ -407,7 +407,7 @@ function StatCard({ label, value, icon, color, delay = 0 }) {
       transition: `all 0.5s cubic-bezier(0.16,1,0.3,1) ${delay * 50}ms`,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <div className="lic-stat-icon" style={{ background: `${color}18`, color }}>{icon}</div>
+        <div className="lic-stat-icon" aria-hidden="true" style={{ background: `${color}18`, color }}>{icon}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="lic-stat-label">{label}</div>
           <div className="lic-stat-value"><AnimatedCounter value={value} /></div>
@@ -704,9 +704,9 @@ export default function LicenseKeys() {
       <style>{licStyles.textContent}</style>
 
       {actionError && (
-        <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:10, padding:'10px 14px', marginBottom:16, fontSize:13, color:'#f87171', textAlign:'center', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+        <div role="alert" style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:10, padding:'10px 14px', marginBottom:16, fontSize:13, color:'#f87171', textAlign:'center', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
           <span>✗ {actionError}</span>
-          <button onClick={() => setActionError('')} style={{ background:'none', border:'none', color:'#f87171', cursor:'pointer', fontSize:14, padding:'0 4px' }}>✕</button>
+          <button onClick={() => setActionError('')} style={{ background:'none', border:'none', color:'#f87171', cursor:'pointer', fontSize:14, padding:'0 4px' }} aria-label="Dismiss error">✕</button>
         </div>
       )}
 
@@ -716,7 +716,7 @@ export default function LicenseKeys() {
           <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Manage license keys, activation and compliance across all gyms.</p>
         </div>
         <button className="lic-btn-primary" onClick={() => setShowGenerate(true)}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" style={{ marginRight: 6, verticalAlign: 'middle' }}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           Generate License Key
         </button>
       </div>
@@ -733,17 +733,17 @@ export default function LicenseKeys() {
       <div className="lic-card" style={{ padding: '12px 16px', marginBottom: 16 }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: 200, maxWidth: 300 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="2" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="2" aria-hidden="true" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
-            <input className="lic-input" style={{ paddingLeft: 34 }} placeholder="Search by gym, key or plan..." value={localSearch} onChange={e => { setLocalSearch(e.target.value); setPage(1) }} />
+            <input className="lic-input" style={{ paddingLeft: 34 }} placeholder="Search by gym, key or plan..." value={localSearch} onChange={e => { setLocalSearch(e.target.value); setPage(1) }} aria-label="Search by gym, key or plan" />
             {localSearch && (
-              <button onClick={() => setLocalSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: 4 }}>
+              <button onClick={() => setLocalSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: 4 }} aria-label="Clear search">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             )}
           </div>
-          <select className="lic-select" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }} style={{ minWidth: 120 }}>
+          <select className="lic-select" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }} style={{ minWidth: 120 }} aria-label="Filter by status">
             <option value="All">All Status</option>
             <option value="Active">Active</option>
             <option value="Trial">Trial</option>
@@ -752,7 +752,7 @@ export default function LicenseKeys() {
             <option value="Revoked">Revoked</option>
             <option value="Pending">Pending</option>
           </select>
-          <select className="lic-select" value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }} style={{ minWidth: 130 }}>
+          <select className="lic-select" value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }} style={{ minWidth: 130 }} aria-label="Sort by">
             {SORT_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           {hasFilters && (
@@ -768,12 +768,12 @@ export default function LicenseKeys() {
           <table className="lic-table">
             <thead>
               <tr>
-                <th>License Key</th>
-                <th>Gym</th>
-                <th>Status</th>
-                <th>Plan</th>
-                <th>Devices</th>
-                <th>Expiry</th>
+                <th scope="col">License Key</th>
+                <th scope="col">Gym</th>
+                <th scope="col">Status</th>
+                <th scope="col">Plan</th>
+                <th scope="col">Devices</th>
+                <th scope="col">Expiry</th>
               </tr>
             </thead>
             <tbody>
@@ -782,7 +782,7 @@ export default function LicenseKeys() {
               ) : paginated.length === 0 ? (
                 <tr>
                   <td colSpan={6} style={{ padding: 48, textAlign: 'center' }}>
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.5 }}>
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="1.5" aria-hidden="true" style={{ marginBottom: 12, opacity: 0.5 }}>
                       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                     </svg>
                     <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: '0 0 4px' }}>No license keys found</p>
@@ -842,11 +842,11 @@ export default function LicenseKeys() {
       {drawerGym && (
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 99, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => setDrawerGym(null)} />
-          <div className="lic-drawer">
+          <div className="lic-drawer" role="dialog" aria-modal="true">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <button className="lic-btn-secondary" style={{ padding: '6px 10px', fontSize: 11 }} onClick={() => setDrawerGym(null)}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                <button className="lic-btn-secondary" style={{ padding: '6px 10px', fontSize: 11 }} onClick={() => setDrawerGym(null)} aria-label="Close drawer">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
                 </button>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{drawerGym.gymName}</div>
@@ -857,8 +857,8 @@ export default function LicenseKeys() {
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
               <div style={{ width: 130, flexShrink: 0, padding: '12px 8px', borderRight: '1px solid var(--border)', overflowY: 'auto' }}>
                 {drawerTabs.map(tab => (
-                  <button key={tab.id} className={`lic-drawer-tab ${drawerTab === tab.id ? 'active' : ''}`} onClick={() => setDrawerTab(tab.id)}>
-                    <span style={{ fontSize: 14 }}>{tab.icon}</span> {tab.label}
+                    <button key={tab.id} className={`lic-drawer-tab ${drawerTab === tab.id ? 'active' : ''}`} onClick={() => setDrawerTab(tab.id)}>
+                    <span aria-hidden="true" style={{ fontSize: 14 }}>{tab.icon}</span> {tab.label}
                   </button>
                 ))}
               </div>
@@ -876,7 +876,7 @@ export default function LicenseKeys() {
                       ['📈', 'Current Usage', '—'],
                     ].map(([icon, label, value]) => (
                       <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--surface)', borderRadius: 10, fontSize: 13 }}>
-                        <span style={{ fontSize: 14, width: 20, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
+                        <span aria-hidden="true" style={{ fontSize: 14, width: 20, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 1 }}>{label}</div>
                           <div style={{ fontWeight: 600, color: 'var(--text-muted)' }}>{value}</div>
@@ -891,7 +891,7 @@ export default function LicenseKeys() {
                   <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 16px' }}>Registered Devices</h3>
                   {drawerDevices.length === 0 ? (
                     <div className="empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
-                      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.5 }}>
+                      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="1.5" aria-hidden="true" style={{ marginBottom: 12, opacity: 0.5 }}>
                         <rect x="2" y="2" width="20" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/>
                       </svg>
                       <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 4px' }}>No devices registered</p>
@@ -901,7 +901,7 @@ export default function LicenseKeys() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {drawerDevices.map(dev => (
                         <div key={dev.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--surface)', borderRadius: 10, fontSize: 13 }}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ flexShrink: 0 }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true" style={{ flexShrink: 0 }}>
                             <rect x="2" y="2" width="20" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/>
                           </svg>
                           <div style={{ flex: 1, minWidth: 0 }}>
@@ -997,7 +997,7 @@ export default function LicenseKeys() {
       )}
 
       {showGenerate === true && (
-        <div className="modal-overlay" onClick={() => setShowGenerate(null)}>
+        <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setShowGenerate(null)}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Generate License Key</h3>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>Select a gym to generate a new license key for:</p>
@@ -1024,7 +1024,7 @@ export default function LicenseKeys() {
       )}
 
       {showRegen && (
-        <div className="modal-overlay" onClick={() => setShowRegen(null)}>
+        <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setShowRegen(null)}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Regenerate License Key</h3>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>

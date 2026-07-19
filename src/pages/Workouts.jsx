@@ -70,7 +70,7 @@ function StatPill({ icon, value, label }) {
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       background: 'var(--bg3)', borderRadius: 8, padding: '10px 8px', flex: 1,
     }}>
-      <span style={{ fontSize: 16 }}>{icon}</span>
+      <span aria-hidden="true" style={{ fontSize: 16 }}>{icon}</span>
       <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', fontFamily: "'Barlow Condensed',sans-serif" }}>
         {value}
       </span>
@@ -307,7 +307,7 @@ function WorkoutDetailModal({ plan, members, trainers, onEdit, onClose, gymName 
   }
 
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="modal-overlay" role="dialog" aria-modal="true" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal modal-lg">
         {/* Header */}
         <div className="modal-header">
@@ -322,7 +322,7 @@ function WorkoutDetailModal({ plan, members, trainers, onEdit, onClose, gymName 
             <button className="btn btn-sm" onClick={handleWhatsAppShare} style={{ background: '#25D366', border: 'none', color: '#fff' }}>
               💬 Share via WhatsApp
             </button>
-            <button className="modal-close" onClick={onClose}>✕</button>
+            <button className="modal-close" aria-label="Close modal" onClick={onClose}>✕</button>
           </div>
         </div>
 
@@ -337,7 +337,7 @@ function WorkoutDetailModal({ plan, members, trainers, onEdit, onClose, gymName 
             <div key={s.label} style={{
               background: 'var(--bg3)', borderRadius: 8, padding: 14, textAlign: 'center',
             }}>
-              <div style={{ fontSize: 24, marginBottom: 4 }}>{s.icon}</div>
+              <div aria-hidden="true" style={{ fontSize: 24, marginBottom: 4 }}>{s.icon}</div>
               <div style={{ fontSize: 20, fontWeight: 700, color: s.color, fontFamily: "'Barlow Condensed',sans-serif" }}>
                 {s.value}
               </div>
@@ -451,6 +451,7 @@ function ExerciseEditor({ exercises, onChange }) {
               {/* Name */}
               <input
                 className="form-input"
+                aria-label="Exercise name"
                 placeholder="Exercise name"
                 value={ex.name}
                 onChange={e => updateExercise(i, 'name', e.target.value)}
@@ -461,41 +462,45 @@ function ExerciseEditor({ exercises, onChange }) {
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: '0 0 60px' }}>
                 <input
                   className="form-input"
+                  aria-label="Sets"
                   type="number" min="1" max="20"
                   value={ex.sets}
                   onChange={e => updateExercise(i, 'sets', Number(e.target.value))}
                   style={{ textAlign: 'center', padding: '8px 4px' }}
                 />
-                <span style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2, textTransform: 'uppercase' }}>Sets</span>
+                <span aria-hidden="true" style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2, textTransform: 'uppercase' }}>Sets</span>
               </div>
 
               {/* Reps */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: '0 0 72px' }}>
                 <input
                   className="form-input"
+                  aria-label="Reps"
                   placeholder="12"
                   value={ex.reps}
                   onChange={e => updateExercise(i, 'reps', e.target.value)}
                   style={{ textAlign: 'center', padding: '8px 4px' }}
                 />
-                <span style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2, textTransform: 'uppercase' }}>Reps</span>
+                <span aria-hidden="true" style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2, textTransform: 'uppercase' }}>Reps</span>
               </div>
 
               {/* Rest */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: '0 0 72px' }}>
                 <input
                   className="form-input"
+                  aria-label="Rest"
                   placeholder="60s"
                   value={ex.rest}
                   onChange={e => updateExercise(i, 'rest', e.target.value)}
                   style={{ textAlign: 'center', padding: '8px 4px' }}
                 />
-                <span style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2, textTransform: 'uppercase' }}>Rest</span>
+                <span aria-hidden="true" style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2, textTransform: 'uppercase' }}>Rest</span>
               </div>
 
               {/* Muscle */}
               <select
                 className="form-select"
+                aria-label="Muscle group"
                 value={ex.muscle}
                 onChange={e => updateExercise(i, 'muscle', e.target.value)}
                 style={{ flex: '1 1 110px', minWidth: 90 }}
@@ -507,6 +512,7 @@ function ExerciseEditor({ exercises, onChange }) {
               <button
                 type="button"
                 className="btn btn-sm btn-red"
+                aria-label="Remove exercise"
                 onClick={() => removeExercise(i)}
                 style={{ flexShrink: 0 }}
               >
@@ -592,7 +598,7 @@ function PlanFormModal({ plan, members, trainers, onSave, onClose }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="modal-overlay" role="dialog" aria-modal="true" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal modal-lg" style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
         <div className="modal-header" style={{ flexShrink: 0 }}>
@@ -600,7 +606,7 @@ function PlanFormModal({ plan, members, trainers, onSave, onClose }) {
             <h3>{isEdit ? 'Edit Workout Plan' : 'Create Workout Plan'}</h3>
             <p>{isEdit ? 'Update this plan' : 'Build a new routine and assign it'}</p>
           </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" aria-label="Close modal" onClick={onClose}>✕</button>
         </div>
 
         {/* Tabs */}
@@ -635,7 +641,7 @@ function PlanFormModal({ plan, members, trainers, onSave, onClose }) {
                 <label className="form-label">Plan Name *</label>
                 <input className="form-input" placeholder="e.g. Strength Building Phase 1"
                   value={form.name} onChange={e => set('name', e.target.value)} />
-                {errors.name && <p style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>⚠ {errors.name}</p>}
+                {errors.name && <p role="alert" style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>⚠ {errors.name}</p>}
               </div>
 
               <div className="form-row" style={{ marginBottom: 14 }}>
@@ -749,7 +755,7 @@ function PlanFormModal({ plan, members, trainers, onSave, onClose }) {
               </div>
 
               {errors.exercises && (
-                <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: 13, color: 'var(--red)' }}>
+                <div role="alert" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: 13, color: 'var(--red)' }}>
                   ⚠ {errors.exercises}
                 </div>
               )}
@@ -815,7 +821,7 @@ function PlanFormModal({ plan, members, trainers, onSave, onClose }) {
 
         {/* Footer */}
         <div className="modal-footer" style={{ flexShrink: 0 }}>
-          {saveError && <p style={{ color:'var(--red)', fontSize:12, margin:0, textAlign:'center', width:'100%' }}>{saveError}</p>}
+          {saveError && <p role="alert" style={{ color:'var(--red)', fontSize:12, margin:0, textAlign:'center', width:'100%' }}>{saveError}</p>}
           <button className="btn btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
           {tab === 'info' && (
             <button className="btn btn-outline" onClick={() => setTab('exercises')} disabled={saving}>
@@ -841,10 +847,10 @@ function DeleteModal({ plan, onConfirm, onClose, error }) {
     return () => window.removeEventListener('keydown', handler)
   }, [onClose])
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="modal-overlay" role="dialog" aria-modal="true" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal modal-sm">
         <div style={{ textAlign: 'center', padding: '8px 0 20px' }}>
-          <div style={{ fontSize: 52, marginBottom: 12 }}>🗑️</div>
+          <div aria-hidden="true" style={{ fontSize: 52, marginBottom: 12 }}>🗑️</div>
           <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Delete Plan</h3>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
             Delete <strong style={{ color: 'var(--text)' }}>{plan.name}</strong>?<br />
@@ -852,7 +858,7 @@ function DeleteModal({ plan, onConfirm, onClose, error }) {
           </p>
         </div>
         {error && (
-          <div style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 8, padding: '8px 12px', margin: '0 24px 14px', color: 'var(--red)', fontSize: 12, fontWeight: 500 }}>⚠️ {error}</div>
+          <div role="alert" style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 8, padding: '8px 12px', margin: '0 24px 14px', color: 'var(--red)', fontSize: 12, fontWeight: 500 }}>⚠️ {error}</div>
         )}
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
@@ -925,7 +931,7 @@ export default function Workouts() {
         </div>
         {workouts.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 24px', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>💪</div>
+            <div aria-hidden="true" style={{ fontSize: 48, marginBottom: 12 }}>💪</div>
             <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, letterSpacing: 1, marginBottom: 8 }}>NO WORKOUT PLANS</div>
             <div style={{ fontSize: 13 }}>You don't have any workout plans assigned yet. Check back later.</div>
           </div>
@@ -976,23 +982,23 @@ export default function Workouts() {
       {/* Summary stats */}
       <div className="stats-grid" style={{ marginBottom: 24 }}>
         <div className="stat-card orange">
-          <span className="stat-icon">📋</span>
+          <span className="stat-icon" aria-hidden="true">📋</span>
           <span className="stat-label">Total Plans</span>
           <span className="stat-value">{workouts.length}</span>
         </div>
         <div className="stat-card teal">
-          <span className="stat-icon">👥</span>
+          <span className="stat-icon" aria-hidden="true">👥</span>
           <span className="stat-label">Assigned</span>
           <span className="stat-value">{assigned}</span>
           <span className="stat-sub">of {workouts.length} plans</span>
         </div>
         <div className="stat-card green">
-          <span className="stat-icon">💪</span>
+          <span className="stat-icon" aria-hidden="true">💪</span>
           <span className="stat-label">Total Exercises</span>
           <span className="stat-value">{totalExercises}</span>
         </div>
         <div className="stat-card amber">
-          <span className="stat-icon">🎯</span>
+          <span className="stat-icon" aria-hidden="true">🎯</span>
           <span className="stat-label">Goals Covered</span>
           <span className="stat-value">{new Set(workouts.map(w => w.goal)).size}</span>
         </div>
@@ -1046,7 +1052,7 @@ export default function Workouts() {
           background: 'var(--card)', borderRadius: 'var(--radius)',
           border: '1px solid var(--card-border)',
         }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>💪</div>
+          <div aria-hidden="true" style={{ fontSize: 48, marginBottom: 12 }}>💪</div>
           <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>No workout plans found</h3>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>
             {search ? 'Try a different search term.' : 'Create your first workout plan to get started.'}

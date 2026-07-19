@@ -386,9 +386,9 @@ export default function Auth() {
           {/* Main mockup */}
           <div className="auth-glass" style={{ padding: 20, overflow: 'hidden' }}>
             <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ff5f56' }} />
-              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ffbd2e' }} />
-              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#27c93f' }} />
+                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ff5f56' }} aria-hidden="true" />
+                              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ffbd2e' }} aria-hidden="true" />
+                              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#27c93f' }} aria-hidden="true" />
             </div>
             <div style={{ display: 'flex', gap: 12 }}>
               <div style={{ width: 32, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -596,7 +596,7 @@ export default function Auth() {
               <>
                 {/* ── ERROR DISPLAY ── */}
                 {authError && (
-                  <div style={{
+                  <div role="alert" style={{
                     background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)',
                     borderRadius: 10, padding: '10px 14px', marginBottom: 16,
                     fontSize: 13, color: '#f87171', textAlign: 'center'
@@ -662,28 +662,34 @@ export default function Auth() {
                     {mode === 'signup' && signupStep === 1 && (
                       <div className="auth-step" style={{ animation: 'auth-slide-up 0.3s ease' }}>
                         <div style={{ position: 'relative', marginBottom: 14 }}>
-                          <span style={inpIcon}>👤</span>
-                          <input name="name" placeholder="Full Name" value={form.name} onChange={handleChange} required className="auth-input" />
+                          <span style={inpIcon} aria-hidden="true">👤</span>
+                          <label htmlFor="auth-name" className="sr-only">Full Name</label>
+                          <input id="auth-name" name="name" placeholder="Full Name" value={form.name} onChange={handleChange} required className="auth-input" aria-required="true" />
                         </div>
                         <div style={{ position: 'relative', marginBottom: 14 }}>
-                          <span style={inpIcon}>✉</span>
-                          <input name="email" type="email" placeholder="Email address" value={form.email} onChange={handleChange} required className="auth-input" />
+                          <span style={inpIcon} aria-hidden="true">✉</span>
+                          <label htmlFor="auth-email" className="sr-only">Email address</label>
+                          <input id="auth-email" name="email" type="email" placeholder="Email address" value={form.email} onChange={handleChange} required className="auth-input" aria-required="true" />
                         </div>
                         <div style={{ position: 'relative', marginBottom: 14 }}>
-                          <span style={inpIcon}>📞</span>
-                          <input name="phone" type="tel" placeholder="Phone Number" value={form.phone} onChange={handleChange} required className="auth-input" />
+                          <span style={inpIcon} aria-hidden="true">📞</span>
+                          <label htmlFor="auth-phone" className="sr-only">Phone Number</label>
+                          <input id="auth-phone" name="phone" type="tel" placeholder="Phone Number" value={form.phone} onChange={handleChange} required className="auth-input" aria-required="true" />
                         </div>
                         <div style={{ position: 'relative', marginBottom: 14 }}>
-                          <span style={inpIcon}>🔒</span>
-                          <input name="password" type={showPw ? 'text' : 'password'} placeholder="Password (min 6 chars)" value={form.password} onChange={handleChange} required minLength={6} className="auth-input" />
-                          <button type="button" onClick={() => setShowPw(s => !s)} style={{
+                          <span style={inpIcon} aria-hidden="true">🔒</span>
+                          <label htmlFor="auth-password" className="sr-only">Password (min 6 chars)</label>
+                          <input id="auth-password" name="password" type={showPw ? 'text' : 'password'} placeholder="Password (min 6 chars)" value={form.password} onChange={handleChange} required minLength={6} className="auth-input" aria-required="true" aria-describedby="auth-password-desc" />
+                          <span id="auth-password-desc" className="sr-only">Minimum 6 characters</span>
+                          <button type="button" onClick={() => setShowPw(s => !s)} aria-label={showPw ? 'Hide password' : 'Show password'} style={{
                             position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
                             background: 'none', border: 'none', color: '#384860', cursor: 'pointer', fontSize: 13
                           }}>{showPw ? '🙈' : '👁'}</button>
                         </div>
                         <div style={{ position: 'relative', marginBottom: 14 }}>
-                          <span style={inpIcon}>🔒</span>
-                          <input name="confirmPassword" type={showPw ? 'text' : 'password'} placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className={`auth-input${confirmPassword && form.password !== confirmPassword ? ' error' : ''}`} />
+                          <span style={inpIcon} aria-hidden="true">🔒</span>
+                          <label htmlFor="auth-confirm-password" className="sr-only">Confirm Password</label>
+                          <input id="auth-confirm-password" name="confirmPassword" type={showPw ? 'text' : 'password'} placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className={`auth-input${confirmPassword && form.password !== confirmPassword ? ' error' : ''}`} aria-required="true" aria-invalid={confirmPassword && form.password !== confirmPassword ? 'true' : 'false'} />
                         </div>
                       </div>
                     )}
@@ -692,20 +698,22 @@ export default function Auth() {
                     {mode === 'signup' && signupStep === 2 && (
                       <div className="auth-step" style={{ animation: 'auth-slide-up 0.3s ease' }}>
                         <div style={{ position: 'relative', marginBottom: 14 }}>
-                          <span style={inpIcon}>🏢</span>
-                          <input name="gymName" placeholder="Gym Name" value={form.gymName} onChange={handleChange} required className="auth-input" />
+                          <span style={inpIcon} aria-hidden="true">🏢</span>
+                          <label htmlFor="auth-gym-name" className="sr-only">Gym Name</label>
+                          <input id="auth-gym-name" name="gymName" placeholder="Gym Name" value={form.gymName} onChange={handleChange} required className="auth-input" aria-required="true" />
                         </div>
                         <div style={{ position: 'relative', marginBottom: 14 }}>
-                          <span style={inpIcon}>{referredByLocked ? '🔒' : '🎁'}</span>
-                          <input name="referredBy" placeholder="Referral Code (Optional)" value={form.referredBy} onChange={handleChange} className={`auth-input${referralCodeValid === false ? ' error' : ''}${referredByLocked ? '' : ''}`} style={{ textTransform: 'uppercase' }} readOnly={referredByLocked} title={referredByLocked ? 'Pre-filled from referral link. Clear to change.' : ''} />
+                          <span style={inpIcon} aria-hidden="true">{referredByLocked ? '🔒' : '🎁'}</span>
+                          <label htmlFor="auth-referral" className="sr-only">Referral Code (Optional)</label>
+                          <input id="auth-referral" name="referredBy" placeholder="Referral Code (Optional)" value={form.referredBy} onChange={handleChange} className={`auth-input${referralCodeValid === false ? ' error' : ''}${referredByLocked ? '' : ''}`} style={{ textTransform: 'uppercase' }} readOnly={referredByLocked} title={referredByLocked ? 'Pre-filled from referral link. Clear to change.' : ''} aria-describedby="auth-referral-status" />
                           {referredByLocked && !referralCodeChecking && (
-                            <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#6070a0', cursor: 'pointer' }} onClick={() => { setForm(prev => ({ ...prev, referredBy: '' })); setReferredByLocked(false); setReferralCodeValid(null); }} title="Clear">
+                            <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#6070a0', cursor: 'pointer' }} onClick={() => { setForm(prev => ({ ...prev, referredBy: '' })); setReferredByLocked(false); setReferralCodeValid(null); }} aria-label="Clear referral code" role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setForm(prev => ({ ...prev, referredBy: '' })); setReferredByLocked(false); setReferralCodeValid(null); } }}>
                               ✕
                             </span>
                           )}
-                          {!referredByLocked && referralCodeChecking && <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#6070a0' }}>Checking...</span>}
-                          {!referredByLocked && referralCodeValid === true && <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: '#00c8b4' }}>✓</span>}
-                          {!referredByLocked && referralCodeValid === false && <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#f87171' }}>Invalid</span>}
+                          {!referredByLocked && referralCodeChecking && <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#6070a0' }} aria-live="polite">Checking...</span>}
+                          {!referredByLocked && referralCodeValid === true && <span id="auth-referral-status" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: '#00c8b4' }} aria-live="polite">✓ Valid</span>}
+                          {!referredByLocked && referralCodeValid === false && <span id="auth-referral-status" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#f87171' }} aria-live="polite">Invalid code</span>}
                           {referredByLocked && (
                             <div style={{ fontSize: 10, color: '#6070a0', marginTop: 2, paddingLeft: 2 }}>
                               Auto-filled from referral link
@@ -748,13 +756,15 @@ export default function Auth() {
                     {mode === 'login' && (
                       <>
                         <div style={{ position: 'relative', marginBottom: 14 }}>
-                          <span style={inpIcon}>✉</span>
-                          <input name="email" type="email" placeholder="Email address" value={form.email} onChange={handleChange} required className="auth-input" />
+                          <span style={inpIcon} aria-hidden="true">✉</span>
+                          <label htmlFor="login-email" className="sr-only">Email address</label>
+                          <input id="login-email" name="email" type="email" placeholder="Email address" value={form.email} onChange={handleChange} required className="auth-input" aria-required="true" />
                         </div>
                         <div style={{ position: 'relative', marginBottom: 8 }}>
-                          <span style={inpIcon}>🔒</span>
-                          <input name="password" type={showPw ? 'text' : 'password'} placeholder="Password" value={form.password} onChange={handleChange} required className="auth-input" />
-                          <button type="button" onClick={() => setShowPw(s => !s)} style={{
+                          <span style={inpIcon} aria-hidden="true">🔒</span>
+                          <label htmlFor="login-password" className="sr-only">Password</label>
+                          <input id="login-password" name="password" type={showPw ? 'text' : 'password'} placeholder="Password" value={form.password} onChange={handleChange} required className="auth-input" aria-required="true" />
+                          <button type="button" onClick={() => setShowPw(s => !s)} aria-label={showPw ? 'Hide password' : 'Show password'} style={{
                             position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
                             background: 'none', border: 'none', color: '#384860', cursor: 'pointer', fontSize: 13
                           }}>{showPw ? '🙈' : '👁'}</button>
@@ -776,8 +786,9 @@ export default function Auth() {
                     {/* ── RESET FIELDS ── */}
                     {mode === 'reset' && !resetSent && (
                       <div style={{ position: 'relative', marginBottom: 14 }}>
-                        <span style={inpIcon}>✉</span>
-                        <input name="email" type="email" placeholder="Email address" value={form.email} onChange={handleChange} required className="auth-input" autoFocus />
+                        <span style={inpIcon} aria-hidden="true">✉</span>
+                        <label htmlFor="reset-email" className="sr-only">Email address</label>
+                        <input id="reset-email" name="email" type="email" placeholder="Email address" value={form.email} onChange={handleChange} required className="auth-input" autoFocus aria-required="true" />
                       </div>
                     )}
 

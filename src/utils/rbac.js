@@ -41,6 +41,7 @@ export const NAVIGATION = {
   super_admin: [
     { section:'Platform' },
     { key:'dashboard',     label:'Dashboard',       icon:'📊' },
+    { key:'referral',      label:'Refer & Earn',    icon:'🎁' },
     { key:'gymOwners',      label:'Gym Owners',      icon:'🏢' },
     { key:'subscriptions',  label:'Subscriptions',   icon:'📋' },
     { key:'pending',       label:'Approval Requests',icon:'⏳', badge:'pending' },
@@ -82,6 +83,7 @@ export const NAVIGATION = {
     { key:'attendance',    label:'Attendance',      icon:'📋' },
     { key:'reception',     label:'Reception Mode',  icon:'🚪' },
     { section:'Referral' },
+    { key:'referral', label:'Refer & Earn',icon:'🎁' },
     { key:'referrals/dashboard', label:'Referral Dashboard',icon:'📊' },
     { key:'referrals/fraud',     label:'Fraud Monitoring',icon:'🛡️' },
     { key:'referrals/coupons',   label:'Coupons',icon:'🎟️' },
@@ -114,7 +116,7 @@ export const NAVIGATION = {
     { key:'payments',      label:'My Payments',     icon:'💳' },
     { key:'attendance',    label:'Check In',        icon:'📱' },
     { key:'referral',      label:'Refer & Earn',    icon:'🎁' },
-    { key:'member/rewards',label:'My Rewards',      icon:'💰' },
+    { key:'rewards',label:'My Rewards',      icon:'💰' },
     { key:'notifications', label:'Notifications',   icon:'🔔', badge:'notifs' },
   ],
 }

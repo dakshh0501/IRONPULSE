@@ -38,7 +38,7 @@ function StatCard({ label, value, icon, accent }) {
   const c = colors[accent] || colors.orange
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 20 }}>
-      <div style={{ fontSize: 24 }}>{icon}</div>
+      <div style={{ fontSize: 24 }} aria-hidden="true">{icon}</div>
       <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, letterSpacing: '0.03em' }}>{label}</div>
       <div style={{ fontSize: 22, fontWeight: 700, color: c.text, lineHeight: 1.2 }}>{value}</div>
     </div>
@@ -202,9 +202,9 @@ export default function ReferralManagement() {
   return (
     <div className="page-container">
       {error && (
-        <div className="alert alert-error" style={{ marginBottom: 16 }}>
+        <div className="alert alert-error" style={{ marginBottom: 16 }} role="alert">
           {error}
-          <button className="btn btn-ghost btn-sm" onClick={() => setError('')} style={{ marginLeft: 12, padding: '2px 8px' }}>✕</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setError('')} style={{ marginLeft: 12, padding: '2px 8px' }} aria-label="Dismiss error">✕</button>
         </div>
       )}
 
@@ -242,7 +242,7 @@ export default function ReferralManagement() {
             className={`tab-btn ${activeTab === tab.key ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.key)}
           >
-            {tab.icon} {tab.label}
+            <span aria-hidden="true">{tab.icon}</span> {tab.label}
           </button>
         ))}
       </div>
@@ -257,6 +257,7 @@ export default function ReferralManagement() {
                 className="form-input"
                 type="text"
                 placeholder="Search by name, UID, or code…"
+                aria-label="Search referrals by name, UID, or code"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 style={{ width: 220, padding: '6px 12px', fontSize: 12 }}
@@ -278,7 +279,7 @@ export default function ReferralManagement() {
 
           {filteredReferrals.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>📨</div>
+              <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }} aria-hidden="true">📨</div>
               <p style={{ fontSize: 15, fontWeight: 600, margin: '0 0 4px' }}>
                 {searchQuery || statusFilter !== 'All' ? 'No matching referrals found' : 'No referrals in the system yet'}
               </p>
@@ -291,15 +292,15 @@ export default function ReferralManagement() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th style={{ width: 36 }}>#</th>
-                    <th style={{ width: 90 }}>Date</th>
-                    <th>Referrer Name</th>
-                    <th>Referred Name</th>
-                    <th style={{ width: 110 }}>Code</th>
-                    <th style={{ width: 90 }}>Status</th>
-                    <th style={{ width: 80 }}>Reward (₹)</th>
-                    <th style={{ width: 70 }}>Issued</th>
-                    <th>Timeline</th>
+                    <th scope="col" style={{ width: 36 }}>#</th>
+                    <th scope="col" style={{ width: 90 }}>Date</th>
+                    <th scope="col">Referrer Name</th>
+                    <th scope="col">Referred Name</th>
+                    <th scope="col" style={{ width: 110 }}>Code</th>
+                    <th scope="col" style={{ width: 90 }}>Status</th>
+                    <th scope="col" style={{ width: 80 }}>Reward (₹)</th>
+                    <th scope="col" style={{ width: 70 }}>Issued</th>
+                    <th scope="col">Timeline</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -467,7 +468,7 @@ export default function ReferralManagement() {
 
           {topReferrers.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: 56, marginBottom: 16, opacity: 0.4 }}>🏆</div>
+              <div style={{ fontSize: 56, marginBottom: 16, opacity: 0.4 }} aria-hidden="true">🏆</div>
               <p style={{ fontSize: 15, fontWeight: 600, margin: '0 0 4px' }}>No referrers yet</p>
               <p style={{ fontSize: 12, margin: 0, color: 'var(--text-dim)' }}>Referrers will appear here as members share their codes and earn rewards.</p>
             </div>
@@ -476,12 +477,12 @@ export default function ReferralManagement() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th style={{ width: 36 }}>#</th>
-                    <th style={{ width: 40 }}>Rank</th>
-                    <th>Name</th>
-                    <th style={{ width: 130 }}>Total Referrals</th>
-                    <th style={{ width: 140 }}>Rewards Earned (₹)</th>
-                    <th style={{ width: 110 }}>Conversion Rate</th>
+                    <th scope="col" style={{ width: 36 }}>#</th>
+                    <th scope="col" style={{ width: 40 }}>Rank</th>
+                    <th scope="col">Name</th>
+                    <th scope="col" style={{ width: 130 }}>Total Referrals</th>
+                    <th scope="col" style={{ width: 140 }}>Rewards Earned (₹)</th>
+                    <th scope="col" style={{ width: 110 }}>Conversion Rate</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -522,7 +523,7 @@ export default function ReferralManagement() {
 
           {fraudReports.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: 56, marginBottom: 16, opacity: 0.4 }}>🛡️</div>
+              <div style={{ fontSize: 56, marginBottom: 16, opacity: 0.4 }} aria-hidden="true">🛡️</div>
               <p style={{ fontSize: 15, fontWeight: 600, margin: '0 0 4px' }}>No suspicious activity detected</p>
               <p style={{ fontSize: 12, margin: 0, color: 'var(--text-dim)' }}>The referral system is clean. Fraud alerts will appear here automatically.</p>
             </div>
@@ -531,14 +532,14 @@ export default function ReferralManagement() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th style={{ width: 36 }}>#</th>
-                    <th style={{ width: 120 }}>Referral ID</th>
-                    <th>Referrer</th>
-                    <th>Referred</th>
-                    <th>Fraud Score</th>
-                    <th>Flags</th>
-                    <th style={{ width: 90 }}>Status</th>
-                    <th style={{ width: 90 }}>Actions</th>
+                    <th scope="col" style={{ width: 36 }}>#</th>
+                    <th scope="col" style={{ width: 120 }}>Referral ID</th>
+                    <th scope="col">Referrer</th>
+                    <th scope="col">Referred</th>
+                    <th scope="col">Fraud Score</th>
+                    <th scope="col">Flags</th>
+                    <th scope="col" style={{ width: 90 }}>Status</th>
+                    <th scope="col" style={{ width: 90 }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>

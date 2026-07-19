@@ -211,19 +211,22 @@ export async function recoverUserProfile(uid, email) {
     ))
     if (!membersSnap.empty) {
       const m = membersSnap.docs[0].data()
+      let code = ''
+      try { code = await generateUniqueReferralCode() } catch (_) {}
       const userData = {
         uid,
         email: email || m.email || '',
         name: m.name || '',
         role: 'member',
         gymId: m.gymId || 'default',
+        referralCode: code,
         createdAt: serverTimestamp(),
       }
       await setDoc(doc(db, 'users', uid), userData)
       return userData
     }
 
-    // ── 2. Try trainers ──
+    // ── 2. Try trainers (no referral code) ──
     const trainersSnap = await getDocs(query(
       collection(db, 'trainers'),
       where('authUid', '==', uid)
@@ -256,12 +259,15 @@ export async function recoverUserProfile(uid, email) {
                  : status === 'rejected'  ? 'rejected'
                  : status === 'pending'   ? 'gym_owner_pending'
                                           : 'gym_owner_pending'
+      let code = ''
+      try { code = await generateUniqueReferralCode() } catch (_) {}
       const userData = {
         uid,
         email: email || g.email || '',
         name: g.ownerName || g.name || '',
         role,
         gymId: g.gymId || g.id || 'default',
+        referralCode: code,
         createdAt: serverTimestamp(),
       }
       await setDoc(doc(db, 'users', uid), userData)

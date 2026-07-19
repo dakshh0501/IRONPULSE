@@ -111,7 +111,7 @@ function SubscriptionDetailModal({ sub, gymName, ownerName, onClose, onAction, o
   }
 
   return (
-    <div className="modal-overlay" style={{
+    <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Subscription details" style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
     }} onClick={onClose}>
@@ -121,7 +121,7 @@ function SubscriptionDetailModal({ sub, gymName, ownerName, onClose, onAction, o
       }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h3 style={{ fontSize: 18, fontWeight: 700 }}>Subscription Details</h3>
-          <button onClick={onClose} className="btn btn-sm btn-outline" style={{ padding: '4px 10px' }}>✕</button>
+          <button onClick={onClose} className="btn btn-sm btn-outline" style={{ padding: '4px 10px' }} aria-label="Close subscription details">✕</button>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px', marginBottom: 20 }}>
@@ -369,6 +369,7 @@ export default function Subscriptions() {
           <input
             type="text"
             placeholder="Search by gym name or owner..."
+            aria-label="Search subscriptions"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="form-input"
@@ -376,7 +377,7 @@ export default function Subscriptions() {
           />
         </div>
         <div style={{ minWidth: 150 }}>
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="form-select" style={{ width: '100%' }}>
+          <select aria-label="Filter by status" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="form-select" style={{ width: '100%' }}>
             <option value="all">All Status</option>
             <option value="trial">Trial</option>
             <option value="active">Active</option>
@@ -386,7 +387,7 @@ export default function Subscriptions() {
           </select>
         </div>
         <div style={{ minWidth: 150 }}>
-          <select value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)} className="form-select" style={{ width: '100%' }}>
+          <select aria-label="Filter by payment status" value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)} className="form-select" style={{ width: '100%' }}>
             <option value="all">All Payments</option>
             <option value="paid">Paid</option>
             <option value="pending">Pending</option>
@@ -425,13 +426,13 @@ export default function Subscriptions() {
       {/* Table */}
       {subscriptions.length === 0 ? (
         <div className="empty-state" style={{ textAlign: 'center', padding: 64, color: 'var(--text-muted)' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>📋</div>
+          <div style={{ fontSize: 48, marginBottom: 16 }} aria-hidden="true">📋</div>
           <h3 style={{ marginBottom: 8 }}>No Subscriptions Yet</h3>
           <p>Subscriptions will appear here once gym owners are approved.</p>
         </div>
       ) : filteredSubs.length === 0 ? (
         <div className="empty-state" style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
+          <div style={{ fontSize: 48, marginBottom: 16 }} aria-hidden="true">🔍</div>
           <h3 style={{ marginBottom: 8 }}>No Results Found</h3>
           <p>No subscriptions match your search or filter criteria.</p>
         </div>
@@ -524,7 +525,7 @@ export default function Subscriptions() {
 
                 {/* Auto Renew */}
                 <div style={{ textAlign: 'center' }}>
-                  {sub.autoRenew ? '🔄' : '—'}
+                  {sub.autoRenew ? <span aria-hidden="true">🔄</span> : '—'}
                 </div>
 
                 {/* Actions */}

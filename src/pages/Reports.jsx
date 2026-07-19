@@ -55,7 +55,7 @@ function ReportCard({ icon, label, value, sub, color, onClick }) {
   return (
     <div className="dash-kpi-card" style={{ cursor: onClick ? 'pointer' : 'default', background:'var(--surface)', padding:'16px', borderRadius:18, border:'1px solid var(--border)', boxShadow:'0 1px 3px rgba(0,0,0,0.04)' }} onClick={onClick}>
       <div className="dash-kpi-top">
-        <span className="dash-kpi-icon" style={{ fontSize:20, background:`${color}18`, color }}>{icon}</span>
+        <span className="dash-kpi-icon" style={{ fontSize:20, background:`${color}18`, color }} aria-hidden="true">{icon}</span>
         {sub && (
           <span className="dash-kpi-trend" style={{ color: sub.startsWith('↑')?'var(--green)':sub.startsWith('↓')?'var(--red)':'var(--text-muted)', fontSize:10 }}>
             {sub}
@@ -146,7 +146,7 @@ function BusinessInsights({ members, payments, trainers, attendance }) {
     <div className="rpt-insights-grid">
       {insights.map((ins, i) => (
         <div key={i} className="rpt-insight-card" style={{ borderLeft:`3px solid ${ins.color}` }}>
-          <div className="rpt-insight-icon">{ins.icon}</div>
+          <div className="rpt-insight-icon" aria-hidden="true">{ins.icon}</div>
           <div className="rpt-insight-info">
             <div className="rpt-insight-title" style={{ color: ins.color }}>{ins.title}</div>
             <div className="rpt-insight-desc">{ins.desc}</div>
@@ -237,7 +237,7 @@ function MembersReport({ members }) {
           {planData.length === 0 ? (
             <div className="rpt-empty-chart">No member data yet.</div>
           ) : (
-            <div style={{ display:'flex', alignItems:'center', gap:20, flexWrap:'wrap' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:20, flexWrap:'wrap' }} role="img" aria-label="Plan-wise distribution chart showing number of members per plan">
               <ResponsiveContainer width="50%" height={200}>
                 <PieChart>
                   <Pie data={planData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value">
@@ -260,7 +260,7 @@ function MembersReport({ members }) {
             </div>
           )}
         </div>
-        <div className="rpt-chart-card">
+        <div className="rpt-chart-card" role="img" aria-label="Monthly registrations chart showing new member signups over the last 12 months">
           <p className="rpt-chart-title">Monthly Registrations (12 Months)</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={registrationData} margin={{ top:5, right:10, bottom:0, left:-20 }}>
@@ -358,7 +358,7 @@ function FinancialReport({ payments, members, attendance }) {
         <ReportCard icon="😴" label="Inactive Members"  value={inactiveCount} sub="no check-in in 14 days" color="var(--purple)" />
       </div>
       <div className="rpt-charts-2col">
-        <div className="rpt-chart-card">
+        <div className="rpt-chart-card" role="img" aria-label="Revenue vs pending chart comparing collected and pending revenue over 6 months">
           <p className="rpt-chart-title">Revenue vs Pending (6 months)</p>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={revenueChartData} margin={{ top:5, right:10, bottom:0, left:-15 }}>
@@ -376,7 +376,7 @@ function FinancialReport({ payments, members, attendance }) {
             </AreaChart>
           </ResponsiveContainer>
         </div>
-        <div className="rpt-chart-card">
+        <div className="rpt-chart-card" role="img" aria-label="Daily revenue bar chart for the last 30 days">
           <p className="rpt-chart-title">Daily Revenue (30 days)</p>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={dailyRevenue} margin={{ top:5, right:10, bottom:0, left:-15 }}>
@@ -397,7 +397,7 @@ function FinancialReport({ payments, members, attendance }) {
             <div className="rpt-empty-chart" style={{ padding:32 }}>No payment data yet.</div>
           ) : (
             <table className="rpt-table">
-              <thead><tr>{['Month','Total Revenue','Paid','Pending / Overdue','Growth'].map(h => <th key={h}>{h}</th>)}</tr></thead>
+              <thead><tr>{['Month','Total Revenue','Paid','Pending / Overdue','Growth'].map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
               <tbody>
                 {monthlyTable.map((r,i) => (
                   <tr key={r.key}>
@@ -472,7 +472,7 @@ function AttendanceReport({ members, attendance, dateRange = 'month' }) {
         <ReportCard icon="🏃" label="Today"           value={todayCount} sub="check-ins today" color="var(--purple)" />
       </div>
       <div className="rpt-charts-2col">
-        <div className="rpt-chart-card">
+        <div className="rpt-chart-card" role="img" aria-label="Weekly check-ins bar chart for the last 7 days">
           <p className="rpt-chart-title">Weekly Check-ins (Last 7 Days)</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={weeklyData} margin={{ top:5, right:10, bottom:0, left:-20 }}>
@@ -484,7 +484,7 @@ function AttendanceReport({ members, attendance, dateRange = 'month' }) {
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <div className="rpt-chart-card">
+        <div className="rpt-chart-card" role="img" aria-label="Monthly attendance trend area chart">
           <p className="rpt-chart-title">Monthly Attendance Trend</p>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={monthlyAttendance} margin={{ top:5, right:10, bottom:0, left:-20 }}>
@@ -504,16 +504,18 @@ function AttendanceReport({ members, attendance, dateRange = 'month' }) {
           {peakHoursData.length === 0 ? (
             <div className="rpt-empty-chart">No attendance time data yet.</div>
           ) : (
-            <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={peakHoursData} margin={{ top:5, right:10, bottom:0, left:-20 }}>
-                <defs><linearGradient id="phGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#00c8b4" stopOpacity={0.3}/><stop offset="95%" stopColor="#00c8b4" stopOpacity={0}/></linearGradient></defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)"/>
-                <XAxis dataKey="hour" tick={{ fill:'var(--text-muted)', fontSize:9 }} axisLine={false} tickLine={false}/>
-                <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
-                <Tooltip content={<ChartTooltip />}/>
-                <Area type="monotone" dataKey="count" name="Members" stroke="#00c8b4" fill="url(#phGrad)" strokeWidth={2}/>
-              </AreaChart>
-            </ResponsiveContainer>
+            <div role="img" aria-label="Peak hours chart showing member attendance by time of day">
+              <ResponsiveContainer width="100%" height={200}>
+                <AreaChart data={peakHoursData} margin={{ top:5, right:10, bottom:0, left:-20 }}>
+                  <defs><linearGradient id="phGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#00c8b4" stopOpacity={0.3}/><stop offset="95%" stopColor="#00c8b4" stopOpacity={0}/></linearGradient></defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)"/>
+                  <XAxis dataKey="hour" tick={{ fill:'var(--text-muted)', fontSize:9 }} axisLine={false} tickLine={false}/>
+                  <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
+                  <Tooltip content={<ChartTooltip />}/>
+                  <Area type="monotone" dataKey="count" name="Members" stroke="#00c8b4" fill="url(#phGrad)" strokeWidth={2}/>
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           )}
         </div>
       </div>
@@ -521,11 +523,11 @@ function AttendanceReport({ members, attendance, dateRange = 'month' }) {
         <div className="rpt-table-header"><p className="rpt-chart-title" style={{ margin:0 }}>Most Active Members</p></div>
         <div style={{ overflowX:'auto' }}>
           <table className="rpt-table">
-            <thead><tr>{['Rank','Member','Plan','Trainer','Check-ins','/wk'].map(h=><th key={h}>{h}</th>)}</tr></thead>
+            <thead><tr>{['Rank','Member','Plan','Trainer','Check-ins','/wk'].map(h=><th key={h} scope="col">{h}</th>)}</tr></thead>
             <tbody>
               {topMembers.map((m, i) => (
                 <tr key={m.id}>
-                  <td style={{ fontWeight:700 }}>{i < 3 ? <span style={{ fontSize:18 }}>{['🥇','🥈','🥉'][i]}</span> : `#${i+1}`}</td>
+                  <td style={{ fontWeight:700 }}>{i < 3 ? <span style={{ fontSize:18 }} aria-hidden="true">{['🥇','🥈','🥉'][i]}</span> : `#${i+1}`}</td>
                   <td style={{ fontWeight:600 }}>{m.name}</td>
                   <td><span className={`badge ${m.plan==='Premium'?'badge-orange':m.plan==='Trial'?'badge-amber':'badge-teal'}`}>{m.plan}</span></td>
                   <td style={{ fontSize:12, color:'var(--text-dim)' }}>{m.trainerName||m.trainer||'—'}</td>
@@ -567,22 +569,24 @@ function TrainerReport({ members, trainers }) {
         {trainerPerf.length === 0 ? (
           <div className="rpt-empty-chart">No trainer data yet.</div>
         ) : (
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={trainerPerf} margin={{ top:5, right:10, bottom:0, left:-20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false}/>
-              <XAxis dataKey="name" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
-              <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
-              <Tooltip content={<ChartTooltip />}/>
-              <Bar dataKey="clients" name="Clients" fill="#00c8b4" radius={[4,4,0,0]} opacity={0.85}/>
-            </BarChart>
-          </ResponsiveContainer>
+          <div role="img" aria-label="Clients assigned per trainer bar chart">
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={trainerPerf} margin={{ top:5, right:10, bottom:0, left:-20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false}/>
+                <XAxis dataKey="name" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
+                <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false}/>
+                <Tooltip content={<ChartTooltip />}/>
+                <Bar dataKey="clients" name="Clients" fill="#00c8b4" radius={[4,4,0,0]} opacity={0.85}/>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         )}
       </div>
       <div className="rpt-table-card">
         <div className="rpt-table-header"><p className="rpt-chart-title" style={{ margin:0 }}>Trainer Performance Table</p></div>
         <div style={{ overflowX:'auto' }}>
           <table className="rpt-table">
-            <thead><tr>{['Trainer','Specialization','Total Clients','Active Clients','Rating'].map(h=><th key={h}>{h}</th>)}</tr></thead>
+            <thead><tr>{['Trainer','Specialization','Total Clients','Active Clients','Rating'].map(h=><th key={h} scope="col">{h}</th>)}</tr></thead>
             <tbody>
               {trainerPerf.length === 0 ? (
                 <tr><td colSpan={5}><div className="rpt-empty-chart" style={{ padding:32 }}>No trainers found.</div></td></tr>
@@ -592,7 +596,7 @@ function TrainerReport({ members, trainers }) {
                   <td style={{ fontSize:12, color:'var(--text-dim)' }}>{t.spec}</td>
                   <td style={{ fontWeight:600, color:'var(--teal)' }}>{t.clients}</td>
                   <td style={{ fontWeight:600, color:'var(--green)' }}>{t.activeClients}</td>
-                  <td>{typeof t.rating === 'number' ? <span style={{ color:'var(--amber)', fontWeight:700 }}>⭐ {t.rating}</span> : <span style={{ color:'var(--text-muted)' }}>—</span>}</td>
+                  <td>{typeof t.rating === 'number' ? <span style={{ color:'var(--amber)', fontWeight:700 }}><span aria-hidden="true">⭐ </span>{t.rating}</span> : <span style={{ color:'var(--text-muted)' }}>—</span>}</td>
                 </tr>
               ))}
             </tbody>
@@ -650,7 +654,7 @@ function MembershipReport({ members }) {
         <ReportCard icon="📊" label="Retention Rate" value={`${(100 - Number(churnRate)).toFixed(1)}%`} sub="members retained" color="var(--green)"/>
       </div>
       <div className="rpt-charts-2col">
-        <div className="rpt-chart-card">
+        <div className="rpt-chart-card" role="img" aria-label="Growth trend chart showing new members vs members who left over 6 months">
           <p className="rpt-chart-title">Growth Trend (New vs Left)</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={growthData} margin={{ top:5, right:10, bottom:0, left:-20 }}>
@@ -669,7 +673,7 @@ function MembershipReport({ members }) {
           {planData.length === 0 ? (
             <div className="rpt-empty-chart">No member data yet.</div>
           ) : (
-            <div style={{ display:'flex', alignItems:'center', gap:20, flexWrap:'wrap' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:20, flexWrap:'wrap' }} role="img" aria-label="Plan distribution chart showing membership plan breakdown">
               <ResponsiveContainer width="50%" height={200}>
                 <PieChart><Pie data={planData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value">{planData.map((d,i) => <Cell key={i} fill={d.color}/>)}</Pie><Tooltip formatter={(v,n) => [`${v} members`, n]}/></PieChart>
               </ResponsiveContainer>
@@ -692,7 +696,7 @@ function MembershipReport({ members }) {
             <div className="rpt-empty-chart" style={{ padding:32 }}>No members expiring in the next 30 days.</div>
           ) : (
             <table className="rpt-table">
-              <thead><tr>{['Member','Plan','Expiry Date','Days Left','Trainer'].map(h=><th key={h}>{h}</th>)}</tr></thead>
+              <thead><tr>{['Member','Plan','Expiry Date','Days Left','Trainer'].map(h=><th key={h} scope="col">{h}</th>)}</tr></thead>
               <tbody>
                 {expiringSoon.map(m => { const diff = Math.ceil((new Date(m.expiry)-today)/(1000*60*60*24)); return (
                   <tr key={m.id}>
@@ -824,10 +828,10 @@ export default function Reports() {
           <p>Business insights for your gym.</p>
         </div>
         <div className="page-header-actions">
-          <button className="btn btn-ghost btn-sm" onClick={exportCSV}>📥 CSV</button>
-          <button className="btn btn-ghost btn-sm" onClick={exportExcel}>📊 TSV (Excel)</button>
-          <button className="btn btn-ghost btn-sm" onClick={exportPDF}>📄 PDF</button>
-          <button className="btn btn-ghost btn-sm" onClick={exportPrint}>🖨️ Print</button>
+          <button className="btn btn-ghost btn-sm" onClick={exportCSV}><span aria-hidden="true">📥</span> CSV</button>
+          <button className="btn btn-ghost btn-sm" onClick={exportExcel}><span aria-hidden="true">📊</span> TSV (Excel)</button>
+          <button className="btn btn-ghost btn-sm" onClick={exportPDF}><span aria-hidden="true">📄</span> PDF</button>
+          <button className="btn btn-ghost btn-sm" onClick={exportPrint}><span aria-hidden="true">🖨️</span> Print</button>
         </div>
       </div>
 
@@ -847,12 +851,12 @@ export default function Reports() {
       <div className="rpt-tabs">
         {TABS.map(t => (
           <button key={t} className={`rpt-tab ${activeTab===t?'active':''}`} onClick={() => setActiveTab(t)}>
-            {t === 'Dashboard'  && '📊 '}
-            {t === 'Members'    && '👥 '}
-            {t === 'Financial'  && '💰 '}
-            {t === 'Attendance' && '📅 '}
-            {t === 'Trainers'   && '🏋️ '}
-            {t === 'Membership' && '🔔 '}
+            {t === 'Dashboard'  && <span aria-hidden="true">📊 </span>}
+            {t === 'Members'    && <span aria-hidden="true">👥 </span>}
+            {t === 'Financial'  && <span aria-hidden="true">💰 </span>}
+            {t === 'Attendance' && <span aria-hidden="true">📅 </span>}
+            {t === 'Trainers'   && <span aria-hidden="true">🏋️ </span>}
+            {t === 'Membership' && <span aria-hidden="true">🔔 </span>}
             {t}
           </button>
         ))}

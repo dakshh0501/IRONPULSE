@@ -4,8 +4,6 @@ import HexBackground from './HexBackground'
 
 const styles = document.createElement('style')
 styles.textContent = `
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Poppins:wght@400;500;600&display=swap');
-
 @keyframes ls-logo-in {
   0% { opacity: 0; transform: scale(0.8); }
   100% { opacity: 1; transform: scale(1); }
@@ -74,7 +72,7 @@ export default function LoadingScreen({ onReady, ready = true }) {
       {/* Logo with spinner ring */}
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {/* Spinner ring */}
-        <svg width="96" height="96" viewBox="0 0 96 96" style={{ position: 'absolute', animation: 'ls-spin 1.2s linear infinite' }}>
+        <svg aria-hidden="true" width="96" height="96" viewBox="0 0 96 96" style={{ position: 'absolute', animation: 'ls-spin 1.2s linear infinite' }}>
           <circle cx="48" cy="48" r="42" fill="none" stroke="rgba(232,66,10,0.12)" strokeWidth="3" />
           <circle
             cx="48" cy="48" r="42" fill="none"
@@ -88,7 +86,7 @@ export default function LoadingScreen({ onReady, ready = true }) {
 
         {/* Logo */}
         <div style={{ animation: 'ls-logo-in 0.5s ease-out forwards' }}>
-          <svg width="48" height="48" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg aria-hidden="true" width="48" height="48" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="ls-logo-grad" x1="0" y1="0" x2="72" y2="72">
                 <stop offset="0%" stopColor="#e8420a" />
@@ -115,7 +113,7 @@ export default function LoadingScreen({ onReady, ready = true }) {
       </div>
 
       {/* Thin animated loading bar */}
-      <div style={{
+      <div aria-hidden="true" style={{
         width: 180, height: 2,
         borderRadius: 2,
         overflow: 'hidden',

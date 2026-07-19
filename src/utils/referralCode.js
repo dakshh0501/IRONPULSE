@@ -51,21 +51,25 @@ export async function getReferrerByCode(code) {
 }
 
 export async function backfillMissingReferralCodes() {
-  const q = query(collection(db, 'users'), where('role', '==', 'member'))
-  const snap = await getDocs(q)
+  // Backfill all roles except trainer (trainers don't get referral codes)
+  const roles = ['member', 'gym_admin', 'gym_owner', 'admin', 'super_admin', 'pending', 'rejected', 'gym_owner_pending']
   let updated = 0
-  for (const docSnap of snap.docs) {
-    const data = docSnap.data()
-    if (data.referralCode) continue
-    try {
-      const code = await generateUniqueReferralCode()
-      await updateDoc(doc(db, 'users', docSnap.id), {
-        referralCode: code,
-        referralCodeGeneratedAt: serverTimestamp(),
-      })
-      updated++
-    } catch (err) {
-      console.error(`backfillMissingReferralCodes: failed for ${docSnap.id}:`, err)
+  for (const role of roles) {
+    const q = query(collection(db, 'users'), where('role', '==', role))
+    const snap = await getDocs(q)
+    for (const docSnap of snap.docs) {
+      const data = docSnap.data()
+      if (data.referralCode) continue
+      try {
+        const code = await generateUniqueReferralCode()
+        await updateDoc(doc(db, 'users', docSnap.id), {
+          referralCode: code,
+          referralCodeGeneratedAt: serverTimestamp(),
+        })
+        updated++
+      } catch (err) {
+        console.error(`backfillMissingReferralCodes: failed for ${docSnap.id}:`, err)
+      }
     }
   }
   return updated

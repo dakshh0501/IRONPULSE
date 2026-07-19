@@ -92,11 +92,11 @@ export default function QRScanner({ onScanSuccess }) {
         {/* Scan overlay corners (visible only while active) */}
         {active && (
           <>
-            <div style={{ position: 'absolute', top: 16, left: 16, width: 24, height: 24, borderTop: '2px solid var(--teal)', borderLeft: '2px solid var(--teal)', borderRadius: '3px 0 0 0' }} />
-            <div style={{ position: 'absolute', top: 16, right: 16, width: 24, height: 24, borderTop: '2px solid var(--teal)', borderRight: '2px solid var(--teal)', borderRadius: '0 3px 0 0' }} />
-            <div style={{ position: 'absolute', bottom: 16, left: 16, width: 24, height: 24, borderBottom: '2px solid var(--teal)', borderLeft: '2px solid var(--teal)', borderRadius: '0 0 0 3px' }} />
-            <div style={{ position: 'absolute', bottom: 16, right: 16, width: 24, height: 24, borderBottom: '2px solid var(--teal)', borderRight: '2px solid var(--teal)', borderRadius: '0 0 3px 0' }} />
-            <div style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', fontSize: 11, color: 'var(--teal)', letterSpacing: '0.1em', textTransform: 'uppercase', background: 'rgba(0,0,0,0.6)', padding: '2px 10px', borderRadius: 10 }}>
+            <div aria-hidden="true" style={{ position: 'absolute', top: 16, left: 16, width: 24, height: 24, borderTop: '2px solid var(--teal)', borderLeft: '2px solid var(--teal)', borderRadius: '3px 0 0 0' }} />
+            <div aria-hidden="true" style={{ position: 'absolute', top: 16, right: 16, width: 24, height: 24, borderTop: '2px solid var(--teal)', borderRight: '2px solid var(--teal)', borderRadius: '0 3px 0 0' }} />
+            <div aria-hidden="true" style={{ position: 'absolute', bottom: 16, left: 16, width: 24, height: 24, borderBottom: '2px solid var(--teal)', borderLeft: '2px solid var(--teal)', borderRadius: '0 0 0 3px' }} />
+            <div aria-hidden="true" style={{ position: 'absolute', bottom: 16, right: 16, width: 24, height: 24, borderBottom: '2px solid var(--teal)', borderRight: '2px solid var(--teal)', borderRadius: '0 0 3px 0' }} />
+            <div aria-hidden="true" style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', fontSize: 11, color: 'var(--teal)', letterSpacing: '0.1em', textTransform: 'uppercase', background: 'rgba(0,0,0,0.6)', padding: '2px 10px', borderRadius: 10 }}>
               Point at member QR code
             </div>
           </>
@@ -105,7 +105,7 @@ export default function QRScanner({ onScanSuccess }) {
 
       {/* Error message */}
       {error && (
-        <div style={{ width: '100%', maxWidth: 320, background: 'var(--bg-error)', border: '1px solid var(--border-error)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--red)', textAlign: 'center' }}>
+        <div role="alert" style={{ width: '100%', maxWidth: 320, background: 'var(--bg-error)', border: '1px solid var(--border-error)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--red)', textAlign: 'center' }}>
           {error}
         </div>
       )}
@@ -117,7 +117,7 @@ export default function QRScanner({ onScanSuccess }) {
         className={`btn ${active ? 'btn-red' : 'btn-teal'}`}
         style={{ minWidth: 180 }}
       >
-        {active ? '⏹ Stop Scanner' : '📷 Start QR Scanner'}
+        {active ? <><span aria-hidden="true">⏹</span> Stop Scanner</> : <><span aria-hidden="true">📷</span> Start QR Scanner</>}
       </button>
 
       {permDenied && (

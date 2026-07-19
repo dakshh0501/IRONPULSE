@@ -80,10 +80,7 @@ service cloud.firestore {
     }
 
     function isOwnMemberDoc(resourceMemberId) {
-      let memberPath = /databases/$(database)/documents/members/$(resourceMemberId);
-      return isMember() &&
-        exists(memberPath) &&
-        get(memberPath).data.authUid == request.auth.uid;
+      return isMember() && resourceMemberId == request.auth.uid;
     }
 
     // Helper: check if the resource belongs to the caller's gym (super_admin bypasses)
@@ -114,11 +111,20 @@ service cloud.firestore {
 
       allow create: if (isAuthed() && request.auth.uid == uid) || isStaff();
 
+      // ── Own-user update: protected fields (role, gymId, email, authUid,
+      //    referredBy) must never change. referralCode can only be set when
+      //    it's null or empty (one-time set). Changing an existing code is blocked.
+      // ── Staff update: existing restrictions preserved (cannot change referralCode).
       allow update: if isAuthed() && (
         (request.auth.uid == uid &&
           request.resource.data.role == resource.data.role &&
-          request.resource.data.referralCode == resource.data.referralCode &&
-          request.resource.data.referredBy == resource.data.referredBy)
+          request.resource.data.gymId == resource.data.gymId &&
+          request.resource.data.email == resource.data.email &&
+          request.resource.data.authUid == resource.data.authUid &&
+          request.resource.data.referredBy == resource.data.referredBy &&
+          (request.resource.data.referralCode == resource.data.referralCode ||
+           resource.data.referralCode == null ||
+           resource.data.referralCode == ''))
         || (isStaff() &&
           request.resource.data.referralCode == resource.data.referralCode &&
           request.resource.data.referredBy == resource.data.referredBy)
@@ -233,10 +239,13 @@ service cloud.firestore {
     // ════════════════════════════════════════════════════════
     match /progressLogs/{logId} {
 
-      allow read: if (isStaff() && inCallersGym()) || isOwnMemberDoc(resource.data.memberId);
+      allow read: if (isStaff() && inCallersGym()) || isOwnMemberDoc(resource.data.memberId) || (
+        isMember() && resource.data.authUid == request.auth.uid
+      );
       allow create: if (isStaff() && inCallersGymCreate()) || (
         isMember() &&
-        isOwnMemberDoc(request.resource.data.memberId)
+        (isOwnMemberDoc(request.resource.data.memberId) ||
+         request.resource.data.authUid == request.auth.uid)
       );
       allow update: if isAdminOrOwner() && inCallersGym();
       allow delete: if isAdminOrOwner() && inCallersGym();
@@ -307,7 +316,9 @@ service cloud.firestore {
         isAuthed() &&
         request.resource.data.ownerUid == request.auth.uid
       );
-      allow update: if isAdminOrOwner() && inCallersGym();
+      // NOTE: use gymId (doc ID wildcard) here instead of inCallersGym() because
+      // gym documents store their identity as the document ID, not a gymId field.
+      allow update: if isAdminOrOwner() && (isSuperAdmin() || getCallerGymId() == gymId);
       allow delete: if isSuperAdmin();
     }
 
@@ -407,6 +418,8 @@ service cloud.firestore {
 
       allow create: if isSuperAdmin() || (
         isGymAdmin() && inCallersGymCreate()
+      ) || (
+        isAuthed() && request.resource.data.referredUid == request.auth.uid
       );
 
       allow update: if isSuperAdmin() || (
@@ -501,6 +514,8 @@ service cloud.firestore {
         isSuperAdmin() || isGymAdmin() || (
           request.resource.data.userId == request.auth.uid &&
           request.resource.data.gymId == getCallerGymId()
+        ) || (
+          request.resource.data.type == 'referral'
         )
       ) || (
         !isAuthed() &&

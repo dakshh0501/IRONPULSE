@@ -65,7 +65,7 @@ export default function ApprovalRequests() {
 
       {pending.length === 0 ? (
         <div className="card" style={{ textAlign:'center', padding:48 }}>
-          <p style={{ fontSize:32, marginBottom:8 }}>✅</p>
+          <p style={{ fontSize:32, marginBottom:8 }} aria-hidden="true">✅</p>
           <p style={{ color:'var(--text-muted)' }}>No pending approval requests</p>
         </div>
       ) : (
@@ -93,6 +93,7 @@ export default function ApprovalRequests() {
                   value={remarks[g.id] || ''}
                   onChange={e => setRemarks(r => ({ ...r, [g.id]: e.target.value }))}
                   style={{ width:'100%', marginBottom:8 }}
+                  aria-label="Remarks"
                 />
                 <div style={{ display:'flex', gap:8 }}>
                   <button
@@ -101,7 +102,7 @@ export default function ApprovalRequests() {
                     onClick={() => handleApprove(g.id)}
                     disabled={actionLoading === g.id}
                   >
-                    {actionLoading === g.id ? 'Approving...' : '✅ Approve'}
+                    {actionLoading === g.id ? 'Approving...' : <><span aria-hidden="true">✅</span> Approve</>}
                   </button>
                   <button
                     className="btn btn-sm"
@@ -109,7 +110,7 @@ export default function ApprovalRequests() {
                     onClick={() => handleReject(g.id)}
                     disabled={actionLoading === g.id}
                   >
-                    {actionLoading === g.id ? 'Rejecting...' : '❌ Reject'}
+                    {actionLoading === g.id ? 'Rejecting...' : <><span aria-hidden="true">❌</span> Reject</>}
                   </button>
                 </div>
               </div>

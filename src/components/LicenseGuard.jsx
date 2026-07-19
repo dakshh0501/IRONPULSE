@@ -119,7 +119,7 @@ export default function LicenseGuard({ children }) {
         display:'flex', alignItems:'center', justifyContent:'center',
         minHeight:'60vh', flexDirection:'column', gap:16,
       }}>
-        <div style={{
+        <div aria-hidden="true" style={{
           width:40, height:40, borderRadius:'50%',
           border:'3px solid var(--border)',
           borderTopColor:'var(--primary)',

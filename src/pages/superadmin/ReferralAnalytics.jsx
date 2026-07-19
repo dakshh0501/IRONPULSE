@@ -140,16 +140,18 @@ export default function ReferralAnalytics() {
             <div className="sa-chart-title">Monthly Referrals</div>
             <div className="sa-chart-desc">{referrals.length} total referrals</div>
           </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={monthlyData} margin={{ top: 5, right: 5, bottom: 0, left: -15 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-              <XAxis dataKey="month" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
-              <Tooltip />
-              <Bar dataKey="total" name="Total" fill="#e8420a" radius={[4, 4, 0, 0]} opacity={0.85} />
-              <Bar dataKey="rewarded" name="Rewarded" fill="#22c55e" radius={[4, 4, 0, 0]} opacity={0.85} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div role="img" aria-label="Monthly referrals bar chart showing total and rewarded referrals over the last 12 months">
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={monthlyData} margin={{ top: 5, right: 5, bottom: 0, left: -15 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+                <XAxis dataKey="month" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip />
+                <Bar dataKey="total" name="Total" fill="#e8420a" radius={[4, 4, 0, 0]} opacity={0.85} />
+                <Bar dataKey="rewarded" name="Rewarded" fill="#22c55e" radius={[4, 4, 0, 0]} opacity={0.85} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         <div className="sa-chart-card">
@@ -157,21 +159,23 @@ export default function ReferralAnalytics() {
             <div className="sa-chart-title">Daily Referrals (Last 30 Days)</div>
             <div className="sa-chart-desc">{dailyData.reduce((s, d) => s + d.count, 0)} total</div>
           </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={dailyData} margin={{ top: 5, right: 5, bottom: 0, left: -15 }}>
-              <defs>
-                <linearGradient id="dailyRef" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-              <XAxis dataKey="date" tick={{ fill: 'var(--text-muted)', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => v.slice(5)} />
-              <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
-              <Tooltip />
-              <Area type="monotone" dataKey="count" name="Referrals" stroke="#a855f7" fill="url(#dailyRef)" strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
+          <div role="img" aria-label="Daily referrals area chart for the last 30 days">
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={dailyData} margin={{ top: 5, right: 5, bottom: 0, left: -15 }}>
+                <defs>
+                  <linearGradient id="dailyRef" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+                <XAxis dataKey="date" tick={{ fill: 'var(--text-muted)', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => v.slice(5)} />
+                <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip />
+                <Area type="monotone" dataKey="count" name="Referrals" stroke="#a855f7" fill="url(#dailyRef)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 
@@ -184,10 +188,10 @@ export default function ReferralAnalytics() {
             <table className="data-table" style={{ minWidth: 500 }}>
               <thead>
                 <tr>
-                  <th>#</th>
-                  <th>Referrer</th>
-                  <th>Successful Referrals</th>
-                  <th>Total Rewards</th>
+                  <th scope="col">#</th>
+                  <th scope="col">Referrer</th>
+                  <th scope="col">Successful Referrals</th>
+                  <th scope="col">Total Rewards</th>
                 </tr>
               </thead>
               <tbody>
@@ -222,9 +226,9 @@ export default function ReferralAnalytics() {
           </div>
           <div className="table-toolbar-right">
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <input className="form-input" style={{ width: 200, padding: '6px 10px 6px 28px', fontSize: 12 }} placeholder="Search by UID or code..." value={searchText} onChange={e => setSearchText(e.target.value)} />
+              <input className="form-input" style={{ width: 200, padding: '6px 10px 6px 28px', fontSize: 12 }} placeholder="Search by UID or code..." aria-label="Search referrals by UID or code" value={searchText} onChange={e => setSearchText(e.target.value)} />
               {searchText && (
-                <button style={{ position: 'absolute', right: 4, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-dim)', padding: '2px 4px' }} onClick={() => setSearchText('')}>✕</button>
+                <button aria-label="Clear search" style={{ position: 'absolute', right: 4, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-dim)', padding: '2px 4px' }} onClick={() => setSearchText('')}>✕</button>
               )}
             </div>
           </div>
@@ -241,12 +245,12 @@ export default function ReferralAnalytics() {
             <table className="data-table" style={{ minWidth: 700 }}>
               <thead>
                 <tr>
-                  <th>Referrer</th>
-                  <th>Referred</th>
-                  <th>Code</th>
-                  <th>Created</th>
-                  <th>Status</th>
-                  <th>Reward</th>
+                  <th scope="col">Referrer</th>
+                  <th scope="col">Referred</th>
+                  <th scope="col">Code</th>
+                  <th scope="col">Created</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Reward</th>
                 </tr>
               </thead>
               <tbody>

@@ -4,8 +4,6 @@ import HexBackground from './HexBackground'
 
 const styles = document.createElement('style')
 styles.textContent = `
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Poppins:wght@400;500;600&display=swap');
-
 @keyframes ss-logo-in {
   0% { opacity: 0; transform: scale(0.7); }
   100% { opacity: 1; transform: scale(1); }

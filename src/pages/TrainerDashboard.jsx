@@ -76,15 +76,15 @@ export default function TrainerDashboard() {
   }, [myMembers])
 
   const errorBanner = snapshotErrors?.length > 0 ? (
-    <div className="error-banner" style={{ background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:12, padding:'12px 16px', marginBottom:16, display:'flex', alignItems:'center', gap:8, fontSize:13, color:'#ef4444' }}>
-      <span>⚠</span> Some data failed to load. Check your connection.
+    <div className="error-banner" role="alert" style={{ background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:12, padding:'12px 16px', marginBottom:16, display:'flex', alignItems:'center', gap:8, fontSize:13, color:'#ef4444' }}>
+      <span aria-hidden="true">⚠</span> Some data failed to load. Check your connection.
     </div>
   ) : null
 
   if (!dataLoaded && members.length === 0 && trainers.length === 0) {
     return (
       <div className="dashboard-page">
-        <div className="hero-card"><h1>Trainer Dashboard 💪</h1><p>Loading your dashboard...</p></div>
+        <div className="hero-card"><h1>Trainer Dashboard <span aria-hidden="true">💪</span></h1><p>Loading your dashboard...</p></div>
         <div className="stats-grid">
           {[1,2,3].map(i => <div key={i} className="skeleton-row" style={{ height:80, borderRadius:12, background:'var(--skeleton)' }} />)}
         </div>
@@ -97,7 +97,7 @@ export default function TrainerDashboard() {
     <div className="dashboard-page">
 
       <div className="hero-card">
-        <h1>Trainer Dashboard 💪</h1>
+        <h1>Trainer Dashboard <span aria-hidden="true">💪</span></h1>
         <p>Manage your assigned clients and gym activity.</p>
       </div>
 
@@ -150,7 +150,7 @@ export default function TrainerDashboard() {
             const member = memberMap[item.memberId]
             return (
               <div key={item.id} className="activity-item">
-                <div>✅ {member?.name || 'Member'} checked in</div>
+                <div><span aria-hidden="true">✅</span> {member?.name || 'Member'} checked in</div>
                 <div className="muted">{item.time || ''}</div>
               </div>
             )

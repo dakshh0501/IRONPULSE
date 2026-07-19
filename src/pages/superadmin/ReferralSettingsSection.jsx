@@ -14,7 +14,7 @@ function SettingsCard({ icon, iconBg, title, subtitle, children }) {
   return (
     <div className="ps-card" style={{ animation: 'ps-fade-up 0.35s ease' }}>
       <div className="ps-card-header">
-        <div className="ps-card-icon" style={{ background: iconBg || 'rgba(232,66,10,0.08)' }}>{icon}</div>
+        <div className="ps-card-icon" aria-hidden="true" style={{ background: iconBg || 'rgba(232,66,10,0.08)' }}>{icon}</div>
         <div>
           <h3 className="ps-card-title">{title}</h3>
           {subtitle && <p className="ps-card-subtitle">{subtitle}</p>}
@@ -201,14 +201,14 @@ export default function ReferralSettingsSection() {
       </SettingsCard>
 
       {error && (
-        <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.1)', borderRadius: 10, padding: '10px 16px', marginBottom: 16, fontSize: 13, color: '#ef4444' }}>
-          ⚠ {error}
+        <div role="alert" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.1)', borderRadius: 10, padding: '10px 16px', marginBottom: 16, fontSize: 13, color: '#ef4444' }}>
+          <span aria-hidden="true">⚠</span> {error}
         </div>
       )}
 
       <div className="ps-save-bar" style={{ marginTop: 16 }}>
         <div>
-          {saved && <span style={{ fontSize: 12, color: '#10b981', display: 'flex', alignItems: 'center', gap: 6 }}>✓ Referral settings saved</span>}
+          {saved && <span style={{ fontSize: 12, color: '#10b981', display: 'flex', alignItems: 'center', gap: 6 }}><span aria-hidden="true">✓</span> Referral settings saved</span>}
         </div>
         <div>
           <button className="ps-btn-primary" onClick={handleSave} disabled={saving}>

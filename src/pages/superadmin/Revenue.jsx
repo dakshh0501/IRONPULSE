@@ -5,7 +5,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 function Widget({ label, value, icon, color }) {
   return (
     <div className="stat-card">
-      <div className="stat-icon" style={{ background:`${color}18`, color }}>{icon}</div>
+      <div className="stat-icon" aria-hidden="true" style={{ background:`${color}18`, color }}>{icon}</div>
       <div>
         <p className="stat-label">{label}</p>
         <p className="stat-value">{value ?? '—'}</p>
@@ -99,7 +99,7 @@ export default function PlatformRevenue() {
               No revenue data yet
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={200} role="img" aria-label="Revenue growth chart">
               <LineChart data={revenueChart} margin={{ top:5, right:10, bottom:0, left:-15 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
                 <XAxis dataKey="month" tick={{ fill:'var(--text-muted)', fontSize:10 }} axisLine={false} tickLine={false} />
@@ -138,10 +138,10 @@ export default function PlatformRevenue() {
             <table className="sa-table">
               <thead>
                 <tr>
-                  <th style={{ fontSize:11, color:'var(--text-muted)' }}>Gym</th>
-                  <th style={{ fontSize:11, color:'var(--text-muted)' }}>Amount</th>
-                  <th style={{ fontSize:11, color:'var(--text-muted)' }}>Date</th>
-                  <th style={{ fontSize:11, color:'var(--text-muted)' }}>Status</th>
+                  <th scope="col" style={{ fontSize:11, color:'var(--text-muted)' }}>Gym</th>
+                  <th scope="col" style={{ fontSize:11, color:'var(--text-muted)' }}>Amount</th>
+                  <th scope="col" style={{ fontSize:11, color:'var(--text-muted)' }}>Date</th>
+                  <th scope="col" style={{ fontSize:11, color:'var(--text-muted)' }}>Status</th>
                 </tr>
               </thead>
               <tbody>

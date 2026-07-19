@@ -416,7 +416,7 @@ function StatCard({ label, value, icon, color, delay = 0 }) {
       transition: `all 0.5s cubic-bezier(0.16,1,0.3,1) ${delay * 50}ms`,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <div className="sub-stat-icon" style={{ background: `${color}18`, color }}>
+        <div className="sub-stat-icon" aria-hidden="true" style={{ background: `${color}18`, color }}>
           {icon}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -758,14 +758,14 @@ export default function SuperAdminSubscriptions() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="2" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
-            <input className="sub-input" style={{ paddingLeft: 34 }} placeholder="Search by gym, plan or ID..." value={localSearch} onChange={e => { setLocalSearch(e.target.value); setPage(1) }} />
+            <input className="sub-input" style={{ paddingLeft: 34 }} placeholder="Search by gym, plan or ID..." aria-label="Search subscriptions" value={localSearch} onChange={e => { setLocalSearch(e.target.value); setPage(1) }} />
             {localSearch && (
-              <button onClick={() => setLocalSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: 4 }}>
+              <button onClick={() => setLocalSearch('')} aria-label="Clear search" style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: 4 }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             )}
           </div>
-          <select className="sub-select" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }} style={{ minWidth: 110 }}>
+          <select className="sub-select" aria-label="Filter by status" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }} style={{ minWidth: 110 }}>
             <option value="All">All Status</option>
             <option value="Active">Active</option>
             <option value="Trial">Trial</option>
@@ -774,14 +774,14 @@ export default function SuperAdminSubscriptions() {
             <option value="Suspended">Suspended</option>
             <option value="Cancelled">Cancelled</option>
           </select>
-          <select className="sub-select" value={planFilter} onChange={e => { setPlanFilter(e.target.value); setPage(1) }} style={{ minWidth: 110 }}>
+          <select className="sub-select" aria-label="Filter by plan" value={planFilter} onChange={e => { setPlanFilter(e.target.value); setPage(1) }} style={{ minWidth: 110 }}>
             <option value="All">All Plans</option>
             {PLAN_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
-          <select className="sub-select" value={billingFilter} onChange={e => { setBillingFilter(e.target.value); setPage(1) }} style={{ minWidth: 110 }}>
+          <select className="sub-select" aria-label="Filter by billing cycle" value={billingFilter} onChange={e => { setBillingFilter(e.target.value); setPage(1) }} style={{ minWidth: 110 }}>
             {BILLING_CYCLES.map(b => <option key={b} value={b}>{b}</option>)}
           </select>
-          <select className="sub-select" value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }} style={{ minWidth: 130 }}>
+          <select className="sub-select" aria-label="Sort by" value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }} style={{ minWidth: 130 }}>
             {SORT_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           {hasFilters && (
@@ -797,13 +797,13 @@ export default function SuperAdminSubscriptions() {
           <table className="sub-table">
             <thead>
               <tr>
-                <th>Gym</th>
-                <th>Plan</th>
-                <th>Status</th>
-                <th>MRR</th>
-                <th>Renewal</th>
-                <th>Payment</th>
-                <th>Actions</th>
+                <th scope="col">Gym</th>
+                <th scope="col">Plan</th>
+                <th scope="col">Status</th>
+                <th scope="col">MRR</th>
+                <th scope="col">Renewal</th>
+                <th scope="col">Payment</th>
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -914,10 +914,10 @@ export default function SuperAdminSubscriptions() {
       {selectedSub && !actionType && (
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 99, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => setSelectedSubId(null)} />
-          <div className="sub-drawer" ref={drawerRef}>
+          <div className="sub-drawer" ref={drawerRef} role="dialog" aria-modal="true" aria-label="Subscription details">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <button className="sub-btn-secondary" style={{ padding: '6px 10px', fontSize: 11 }} onClick={() => setSelectedSubId(null)}>
+                <button className="sub-btn-secondary" aria-label="Close drawer" style={{ padding: '6px 10px', fontSize: 11 }} onClick={() => setSelectedSubId(null)}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
                 </button>
                 <div>
@@ -931,8 +931,8 @@ export default function SuperAdminSubscriptions() {
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
               <div style={{ width: 130, flexShrink: 0, padding: '12px 8px', borderRight: '1px solid var(--border)', overflowY: 'auto' }}>
                 {drawerTabs.map(tab => (
-                  <button key={tab.id} className={`sub-drawer-tab ${drawerTab === tab.id ? 'active' : ''}`} onClick={() => setDrawerTab(tab.id)}>
-                    <span style={{ fontSize: 14 }}>{tab.icon}</span> {tab.label}
+                    <button key={tab.id} className={`sub-drawer-tab ${drawerTab === tab.id ? 'active' : ''}`} onClick={() => setDrawerTab(tab.id)}>
+                    <span aria-hidden="true" style={{ fontSize: 14 }}>{tab.icon}</span> {tab.label}
                   </button>
                 ))}
               </div>
@@ -963,7 +963,7 @@ export default function SuperAdminSubscriptions() {
                       })()],
                     ].map(([icon, label, value]) => (
                       <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg3)', borderRadius: 10, fontSize: 13 }}>
-                        <span style={{ fontSize: 14, width: 20, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
+                        <span aria-hidden="true" style={{ fontSize: 14, width: 20, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 1 }}>{label}</div>
                           <div style={{ fontWeight: 600, color: 'var(--text-muted)' }}>{value}</div>
@@ -1052,7 +1052,7 @@ export default function SuperAdminSubscriptions() {
                       { label: 'End Date', value: selectedSub?.endDate ? formatDate(selectedSub.endDate) : '—', color: '#e8420a', icon: '⏰' },
                     ].map((item, i) => (
                       <div key={i} style={{ padding: '12px', background: 'var(--bg3)', borderRadius: 10, textAlign: 'center' }}>
-                        <div style={{ fontSize: 20, marginBottom: 4 }}>{item.icon}</div>
+                        <div aria-hidden="true" style={{ fontSize: 20, marginBottom: 4 }}>{item.icon}</div>
                         <div style={{ fontSize: 14, fontWeight: 700, color: item.color, fontFamily: "'Barlow Condensed', sans-serif", wordBreak: 'break-word' }}>{item.value}</div>
                         <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>{item.label}</div>
                       </div>
@@ -1112,7 +1112,7 @@ export default function SuperAdminSubscriptions() {
 
       {confirmAction && (
         <div className="modal-overlay" onClick={() => setConfirmAction(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
+          <div className="modal" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
             <h3 style={{ marginBottom: 12, color: 'var(--text)', fontSize: 16 }}>
               {confirmAction.type === 'activate' && 'Activate Subscription'}
               {confirmAction.type === 'trial' && 'Assign Trial'}
@@ -1155,7 +1155,7 @@ export default function SuperAdminSubscriptions() {
             </select>
             <label className="form-label">Duration (days)</label>
             <input className="form-input" type="number" value={formDays} onChange={e => setFormDays(Math.max(1, Number(e.target.value)))} style={{ marginBottom: 16 }} />
-            {actionError && <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, padding:'8px 12px', marginBottom:12, fontSize:12, color:'#f87171' }}>{actionError}</div>}
+            {actionError && <div role="alert" style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, padding:'8px 12px', marginBottom:12, fontSize:12, color:'#f87171' }}>{actionError}</div>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="sub-btn-secondary" onClick={() => { setActionType(null); setActionError('') }} disabled={loading}>Cancel</button>
               <button className="sub-btn-primary" onClick={() => handleAction(actionType)} disabled={loading}>
@@ -1168,11 +1168,11 @@ export default function SuperAdminSubscriptions() {
 
       {actionType === 'extend' && (
         <div className="modal-overlay" onClick={() => setActionType(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+          <div className="modal" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Extend Expiry</h3>
             <label className="form-label">Extend by (days)</label>
             <input className="form-input" type="number" value={formDays} onChange={e => setFormDays(Math.max(1, Number(e.target.value)))} style={{ marginBottom: 16 }} />
-            {actionError && <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, padding:'8px 12px', marginBottom:12, fontSize:12, color:'#f87171' }}>{actionError}</div>}
+            {actionError && <div role="alert" style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, padding:'8px 12px', marginBottom:12, fontSize:12, color:'#f87171' }}>{actionError}</div>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="sub-btn-secondary" onClick={() => { setActionType(null); setActionError('') }} disabled={loading}>Cancel</button>
               <button className="sub-btn-primary" onClick={() => handleAction('extend')} disabled={loading}>{loading ? 'Processing...' : 'Confirm'}</button>
@@ -1183,10 +1183,10 @@ export default function SuperAdminSubscriptions() {
 
       {actionType === 'activate' && (
         <div className="modal-overlay" onClick={() => { setActionType(null); setActionError('') }}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+          <div className="modal" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
             <h3 style={{ marginBottom: 16, color: '#22c55e', fontSize: 16 }}>Activate Subscription</h3>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>Activate this subscription for the gym. This will set status to active and payment to paid.</p>
-            {actionError && <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, padding:'8px 12px', marginBottom:12, fontSize:12, color:'#f87171' }}>{actionError}</div>}
+            {actionError && <div role="alert" style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, padding:'8px 12px', marginBottom:12, fontSize:12, color:'#f87171' }}>{actionError}</div>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="sub-btn-secondary" onClick={() => { setActionType(null); setActionError('') }} disabled={loading}>Cancel</button>
               <button className="sub-btn-primary" style={{ background: '#22c55e' }} onClick={() => handleAction('activate')} disabled={loading}>{loading ? 'Processing...' : 'Activate'}</button>
@@ -1197,10 +1197,10 @@ export default function SuperAdminSubscriptions() {
 
       {actionType === 'suspend' && (
         <div className="modal-overlay" onClick={() => { setActionType(null); setActionError('') }}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+          <div className="modal" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
             <h3 style={{ marginBottom: 16, color: '#a855f7', fontSize: 16 }}>Suspend Subscription</h3>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>Suspending will restrict gym access. This action can be reversed by activating again.</p>
-            {actionError && <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, padding:'8px 12px', marginBottom:12, fontSize:12, color:'#f87171' }}>{actionError}</div>}
+            {actionError && <div role="alert" style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, padding:'8px 12px', marginBottom:12, fontSize:12, color:'#f87171' }}>{actionError}</div>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="sub-btn-secondary" onClick={() => { setActionType(null); setActionError('') }} disabled={loading}>Cancel</button>
               <button className="sub-btn-primary" style={{ background: '#a855f7' }} onClick={() => handleAction('suspend')} disabled={loading}>{loading ? 'Processing...' : 'Suspend'}</button>
@@ -1211,10 +1211,10 @@ export default function SuperAdminSubscriptions() {
 
       {actionType === 'expire' && (
         <div className="modal-overlay" onClick={() => { setActionType(null); setActionError('') }}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+          <div className="modal" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
             <h3 style={{ marginBottom: 16, color: '#ef4444', fontSize: 16 }}>Expire Subscription</h3>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>Mark this subscription as expired. The gym will lose access to premium features.</p>
-            {actionError && <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, padding:'8px 12px', marginBottom:12, fontSize:12, color:'#f87171' }}>{actionError}</div>}
+            {actionError && <div role="alert" style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, padding:'8px 12px', marginBottom:12, fontSize:12, color:'#f87171' }}>{actionError}</div>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="sub-btn-secondary" onClick={() => { setActionType(null); setActionError('') }} disabled={loading}>Cancel</button>
               <button className="sub-btn-primary" style={{ background: '#ef4444' }} onClick={() => handleAction('expire')} disabled={loading}>{loading ? 'Processing...' : 'Expire'}</button>
@@ -1225,11 +1225,11 @@ export default function SuperAdminSubscriptions() {
 
       {actionType === 'trial' && (
         <div className="modal-overlay" onClick={() => setActionType(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+          <div className="modal" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Assign Trial</h3>
             <label className="form-label">Trial Days</label>
             <input className="form-input" type="number" value={formDays} onChange={e => setFormDays(Math.max(1, Number(e.target.value)))} style={{ marginBottom: 16 }} />
-            {actionError && <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, padding:'8px 12px', marginBottom:12, fontSize:12, color:'#f87171' }}>{actionError}</div>}
+            {actionError && <div role="alert" style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, padding:'8px 12px', marginBottom:12, fontSize:12, color:'#f87171' }}>{actionError}</div>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="sub-btn-secondary" onClick={() => { setActionType(null); setActionError('') }} disabled={loading}>Cancel</button>
               <button className="sub-btn-primary" onClick={() => handleAction('trial')} disabled={loading}>{loading ? 'Processing...' : 'Confirm'}</button>

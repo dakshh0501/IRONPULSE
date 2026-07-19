@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext'
 function Widget({ label, value, icon, color }) {
   return (
     <div className="stat-card">
-      <div className="stat-icon" style={{ background:`${color}18`, color }}>{icon}</div>
+      <div className="stat-icon" aria-hidden="true" style={{ background:`${color}18`, color }}>{icon}</div>
       <div>
         <p className="stat-label">{label}</p>
         <p className="stat-value">{value ?? '—'}</p>
@@ -133,9 +133,9 @@ export default function UsageAnalytics() {
             <table className="sa-table">
               <thead>
                 <tr>
-                  <th style={{ fontSize:11, color:'var(--text-muted)' }}>Month</th>
-                  <th style={{ fontSize:11, color:'var(--text-muted)' }}>New Gyms</th>
-                  <th style={{ fontSize:11, color:'var(--text-muted)' }}>New Members</th>
+                  <th scope="col" style={{ fontSize:11, color:'var(--text-muted)' }}>Month</th>
+                  <th scope="col" style={{ fontSize:11, color:'var(--text-muted)' }}>New Gyms</th>
+                  <th scope="col" style={{ fontSize:11, color:'var(--text-muted)' }}>New Members</th>
                 </tr>
               </thead>
               <tbody>

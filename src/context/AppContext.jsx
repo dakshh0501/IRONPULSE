@@ -74,7 +74,7 @@ import {
   refreshPaymentStatus as refreshPaymentStatusService,
   cleanupExpiredPaymentAttempts,
 } from '../services/paymentService'
-import { doc, getDoc, updateDoc, deleteDoc, query, where, getDocs, collection, serverTimestamp, onSnapshot, orderBy, limit } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, deleteDoc, query, where, collection, serverTimestamp, onSnapshot, orderBy, limit } from 'firebase/firestore'
 import { db } from '../firebase'
 import {
   subscribeToNotifications,
@@ -136,7 +136,6 @@ export function AppProvider({ children }) {
   const [attendance,    setAttendance]    = useState([])
   const [oldPendingCount, setOldPendingCount] = useState(0)
   const [gymOwnersPending, setGymOwnersPending] = useState([])
-  const [checkinLog, setCheckinLog] = useState([])
   const pendingCount = useMemo(() => oldPendingCount + gymOwnersPending.length, [oldPendingCount, gymOwnersPending])
   const [gymSettings,   setGymSettings]   = useState({ name: 'IronForge Gym' })
   const [progressLogs,  setProgressLogs]  = useState([])
@@ -153,10 +152,11 @@ export function AppProvider({ children }) {
   const [paymentAttempts, setPaymentAttempts] = useState([])
   const [notifications, setNotifications] = useState([])
   const [notifLoading, setNotifLoading] = useState(true)
+  const [securityMetricsLoading, setSecurityMetricsLoading] = useState(true)
+  const [referralsLoading, setReferralsLoading] = useState(true)
   const [snapshotErrors, setSnapshotErrors] = useState([])
   const [referrals, setReferrals] = useState([])
   const [referralSettings, setReferralSettings] = useState(null)
-  const [referralsLoading, setReferralsLoading] = useState(true)
   const [rewardLedger, setRewardLedger] = useState([])
   const [discountCoupons, setDiscountCoupons] = useState([])
 
@@ -193,7 +193,7 @@ export function AppProvider({ children }) {
       setGymOwnersPending(pendingOwners)
     }, reportSnapshotError)
     return unsubscribe
-  }, [currentUser, authLoading, effectiveRole])
+  }, [currentUser, authLoading, effectiveRole, reportSnapshotError])
 
   // ── Admins: approve gym owner (single source of truth) ──
   const approveGymOwner = async (gymId, newSubscription = 'Trial', remarks = '') => {
@@ -216,7 +216,6 @@ export function AppProvider({ children }) {
         const userSnap = await getDoc(doc(db, 'users', ownerUid))
         if (userSnap.exists() && userSnap.data().role === 'gym_owner_pending') {
           await updateDoc(doc(db, 'users', ownerUid), { role: 'gym_owner' })
-          userRoleWasUpdated = true
           stepsCompleted.push('user_role_updated')
         }
       }
@@ -403,7 +402,7 @@ export function AppProvider({ children }) {
     if (effectiveRole !== 'super_admin') return
     const unsubscribe = subscribeToSubscriptions((data) => setSubscriptions(data), reportSnapshotError)
     return unsubscribe
-  }, [currentUser, authLoading, effectiveRole])
+  }, [currentUser, authLoading, effectiveRole, reportSnapshotError])
 
   // ── Gym Subscription listener (gym_admin/gym_owner/super_admin) ───
   useEffect(() => {
@@ -439,7 +438,7 @@ export function AppProvider({ children }) {
     const subGymId = effectiveRole === 'super_admin' ? null : gymId
     const unsubscribe = subscribeToPaymentAttempts((data) => setPaymentAttempts(data), subGymId, reportSnapshotError)
     return unsubscribe
-  }, [currentUser, authLoading, effectiveRole, gymId])
+  }, [currentUser, authLoading, effectiveRole, gymId, reportSnapshotError])
 
   // ── Cleanup expired payment attempts on mount + periodic ──
   useEffect(() => {
@@ -455,7 +454,6 @@ export function AppProvider({ children }) {
   // ── Notifications listener (deferred) ─────────────────
   useEffect(() => {
     if (authLoading || !currentUser?.uid) return
-    setNotifLoading(true)
     let unsubs = []
     let timerId
     const schedule = () => {
@@ -504,17 +502,16 @@ export function AppProvider({ children }) {
       unsubs = []
       setNotifLoading(false)
     }
-  }, [currentUser, authLoading, gymId, effectiveRole])
+  }, [currentUser, authLoading, gymId, effectiveRole, reportSnapshotError])
 
   // ── Security Metrics (super_admin only) ────────────────
   const [securityMetrics, setSecurityMetrics] = useState(null)
-  const [securityMetricsLoading, setSecurityMetricsLoading] = useState(false)
+
 
   useEffect(() => {
     if (authLoading || !currentUser) return
     if (effectiveRole !== 'super_admin') return
     let mounted = true
-    setSecurityMetricsLoading(true)
     fetchSecurityMetricsFromService().then(metrics => {
       if (!mounted) return
       setSecurityMetrics(metrics)
@@ -566,7 +563,7 @@ export function AppProvider({ children }) {
       reportSnapshotError
     )
     return unsubscribe
-  }, [currentUser, authLoading, effectiveRole, queryGymId])
+  }, [currentUser, authLoading, effectiveRole, queryGymId, reportSnapshotError])
 
   // ── Member self-subscription (member role — own record) ──
   useEffect(() => {
@@ -577,7 +574,7 @@ export function AppProvider({ children }) {
       reportSnapshotError
     )
     return unsubscribe
-  }, [currentUser, authLoading, effectiveRole])
+  }, [currentUser, authLoading, effectiveRole, reportSnapshotError])
 
   // ── Payments listener (admin) ──────────────────────────
   useEffect(() => {
@@ -585,7 +582,7 @@ export function AppProvider({ children }) {
     if (!canSubscribe(effectiveRole, 'payments')) return
     const unsubscribe = subscribeToPayments((data) => setPayments(data), queryGymId, reportSnapshotError)
     return unsubscribe
-  }, [currentUser, authLoading, effectiveRole, queryGymId])
+  }, [currentUser, authLoading, effectiveRole, queryGymId, reportSnapshotError])
 
   // ── Member self-payments (member role — own records) ───
   useEffect(() => {
@@ -595,10 +592,10 @@ export function AppProvider({ children }) {
       (data) => { setPayments(data) },
       gymId,
       reportSnapshotError
+
     )
     return unsubscribe
-  }, [currentUser, authLoading, effectiveRole, gymId])
-
+  }, [currentUser, authLoading, effectiveRole, gymId, reportSnapshotError])
   // ── Trainers listener ──────────────────────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
@@ -609,7 +606,7 @@ export function AppProvider({ children }) {
       reportSnapshotError
     )
     return unsubscribe
-  }, [currentUser, authLoading, effectiveRole, queryGymId])
+  }, [currentUser, authLoading, effectiveRole, queryGymId, reportSnapshotError])
 
   // ── Plans listener ─────────────────────────────────────
   useEffect(() => {
@@ -625,7 +622,7 @@ export function AppProvider({ children }) {
 
     const unsubscribe = subscribeToPlans((data) => setPlans(data), queryGymId, reportSnapshotError)
     return unsubscribe
-  }, [currentUser, authLoading, effectiveRole, queryGymId])
+  }, [currentUser, authLoading, effectiveRole, queryGymId, reportSnapshotError])
 
   // ── Progress Logs listener (deferred) ──────────────────
   useEffect(() => {
@@ -651,7 +648,7 @@ export function AppProvider({ children }) {
       }
       if (unsub) unsub()
     }
-  }, [currentUser, authLoading, effectiveRole, queryGymId])
+  }, [currentUser, authLoading, effectiveRole, queryGymId, reportSnapshotError])
 
   // ── Diet Plans listener (deferred) ─────────────────────
   useEffect(() => {
@@ -679,7 +676,7 @@ export function AppProvider({ children }) {
       }
       if (unsub) unsub()
     }
-  }, [currentUser, authLoading, effectiveRole, queryGymId])
+  }, [currentUser, authLoading, effectiveRole, queryGymId, reportSnapshotError])
 
   // ── Workout Plans listener (deferred) ──────────────────
   useEffect(() => {
@@ -707,7 +704,7 @@ export function AppProvider({ children }) {
       }
       if (unsub) unsub()
     }
-  }, [currentUser, authLoading, effectiveRole, queryGymId])
+  }, [currentUser, authLoading, effectiveRole, queryGymId, reportSnapshotError])
 
   // ── Support Tickets listener ──────────────────────────
   useEffect(() => {
@@ -715,7 +712,7 @@ export function AppProvider({ children }) {
     if (!canSubscribe(effectiveRole, 'supportTickets')) return
     const unsubscribe = subscribeToSupportTickets((data) => { setSupportTickets(data); setSupportTicketsLoading(false) }, queryGymId, reportSnapshotError)
     return unsubscribe
-  }, [currentUser, authLoading, effectiveRole, queryGymId])
+  }, [currentUser, authLoading, effectiveRole, queryGymId, reportSnapshotError])
 
   // ── Feature Requests listener ──────────────────────────
   useEffect(() => {
@@ -723,12 +720,11 @@ export function AppProvider({ children }) {
     if (!canSubscribe(effectiveRole, 'featureRequests')) return
     const unsubscribe = subscribeToFeatureRequests((data) => { setFeatureRequests(data); setFeatureRequestsLoading(false) }, queryGymId, reportSnapshotError)
     return unsubscribe
-  }, [currentUser, authLoading, effectiveRole, queryGymId])
+  }, [currentUser, authLoading, effectiveRole, queryGymId, reportSnapshotError])
 
   // ── Referrals listener ─────────────────────────────
   useEffect(() => {
     if (authLoading || !currentUser) return
-    setReferralsLoading(true)
     let unsub
     if (effectiveRole === 'super_admin') {
       unsub = subscribeToAllReferrals((data) => { setReferrals(data); setReferralsLoading(false) }, reportSnapshotError)
@@ -740,7 +736,7 @@ export function AppProvider({ children }) {
       setReferralsLoading(false)
     }
     return () => { if (unsub) unsub() }
-  }, [currentUser, authLoading, effectiveRole, gymId])
+  }, [currentUser, authLoading, effectiveRole, gymId, reportSnapshotError])
 
   // ── Referral Settings listener (super_admin / gym_admin / member) ──
   useEffect(() => {
@@ -748,7 +744,7 @@ export function AppProvider({ children }) {
     if (effectiveRole !== 'super_admin' && effectiveRole !== 'gym_admin' && effectiveRole !== 'member') return
     const unsub = subscribeToReferralSettings(setReferralSettings, reportSnapshotError)
     return () => unsub()
-  }, [currentUser, authLoading, effectiveRole])
+  }, [currentUser, authLoading, effectiveRole, reportSnapshotError])
 
   // ── Reward Ledger listener (gym_admin / member) ──────
   useEffect(() => {
@@ -760,7 +756,7 @@ export function AppProvider({ children }) {
       unsub = subscribeToGymRewardLedger(gymId, (data) => setRewardLedger(data), reportSnapshotError)
     }
     return () => { if (unsub) unsub() }
-  }, [currentUser, authLoading, effectiveRole, gymId])
+  }, [currentUser, authLoading, effectiveRole, gymId, reportSnapshotError])
 
   // ── Discount Coupons listener (gym_admin / member) ──
   useEffect(() => {
@@ -772,7 +768,7 @@ export function AppProvider({ children }) {
       unsub = subscribeToGymDiscountCoupons(gymId, (data) => setDiscountCoupons(data), reportSnapshotError)
     }
     return () => { if (unsub) unsub() }
-  }, [currentUser, authLoading, effectiveRole, gymId])
+  }, [currentUser, authLoading, effectiveRole, gymId, reportSnapshotError])
 
   // ── Attendance listener ────────────────────────────────
   useEffect(() => {
@@ -789,7 +785,7 @@ export function AppProvider({ children }) {
       const unsubscribe = subscribeMyAttendance(currentUser.uid, (data) => setAttendance(data), queryGymId)
       return unsubscribe
     }
-  }, [currentUser, authLoading, effectiveRole, queryGymId])
+  }, [currentUser, authLoading, effectiveRole, queryGymId, reportSnapshotError])
 
   // ── Pending approvals count — SUPER_ADMIN ONLY ──────────
   useEffect(() => {
@@ -1349,21 +1345,6 @@ export function AppProvider({ children }) {
     } catch (error) {
       console.error('Error deleting workout plan:', error)
       throw error
-    }
-  }
-
-  // ── Local check-in log ─────────────────────────────────
-  const checkIn = async (member) => {
-    const now     = new Date()
-    const timeStr = now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' })
-    setCheckinLog(p => [{
-      id: Date.now(), name: member.name,
-      avatar: member.avatar, time: timeStr, out: '✓',
-    }, ...p.slice(0, 49)])
-    try {
-      await updateMember(member.id, { checkins: Number(member.checkins || 0) + 1 })
-    } catch (err) {
-      console.error('Failed to update checkin count:', err)
     }
   }
 

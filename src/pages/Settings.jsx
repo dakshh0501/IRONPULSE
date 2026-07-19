@@ -21,6 +21,23 @@ function Toggle({ on, onChange }) {
   )
 }
 
+function Section({ icon, title, desc, children, className='' }) {
+  return (
+    <div className={`settings-section ${className}`}>
+      <div className="settings-section-header">
+        <div>
+          <div className="settings-section-title-row">
+            <span className="settings-section-icon" aria-hidden="true">{icon}</span>
+            <h3 className="settings-section-title">{title}</h3>
+          </div>
+          {desc && <p className="settings-section-desc">{desc}</p>}
+        </div>
+      </div>
+      <div className="settings-section-body">{children}</div>
+    </div>
+  )
+}
+
 const ACCENT_COLORS = [
   { name:'Orange', value:'#e8420a' },
   { name:'Teal',   value:'#00c8b4' },
@@ -354,23 +371,6 @@ export default function Settings() {
   const sub = currentSubscription
   const daysRemaining = sub?.expiryDate ? Math.ceil((new Date(sub.expiryDate)-new Date())/(1000*60*60*24)) : null
 
-  function Section({ icon, title, desc, children, className='' }) {
-    return (
-      <div className={`settings-section ${className}`}>
-        <div className="settings-section-header">
-          <div>
-            <div className="settings-section-title-row">
-              <span className="settings-section-icon">{icon}</span>
-              <h3 className="settings-section-title">{title}</h3>
-            </div>
-            {desc && <p className="settings-section-desc">{desc}</p>}
-          </div>
-        </div>
-        <div className="settings-section-body">{children}</div>
-      </div>
-    )
-  }
-
   return (
     <div className="page-container">
       <div className="page-header">
@@ -384,15 +384,18 @@ export default function Settings() {
       </div>
 
       <div className="settings-layout">
-        <div className="settings-sidebar-new">
+        <div className="settings-sidebar-new" role="tablist">
           {allowedNav.map(item => (
             <button
               key={item.key}
+              role="tab"
+              aria-selected={activeTab === item.key}
+              aria-controls={item.key}
               className={`settings-nav-item${activeTab === item.key ? ' active' : ''}`}
               onClick={() => setActiveTab(item.key)}
             >
               <div className="settings-nav-icon-wrap">
-                <span className="settings-nav-icon">{item.icon}</span>
+                <span className="settings-nav-icon" aria-hidden="true">{item.icon}</span>
               </div>
               <div className="settings-nav-text">
                 <span className="settings-nav-title">{item.title}</span>
@@ -403,7 +406,7 @@ export default function Settings() {
           <div className="settings-nav-spacer" />
           <button className="settings-nav-item settings-nav-signout" onClick={() => { if (window.confirm('Sign out?')) logout() }}>
             <div className="settings-nav-icon-wrap">
-              <span className="settings-nav-icon">🚪</span>
+              <span className="settings-nav-icon" aria-hidden="true">🚪</span>
             </div>
             <div className="settings-nav-text">
               <span className="settings-nav-title">Sign Out</span>
@@ -416,7 +419,7 @@ export default function Settings() {
 
           {/* ── PROFILE ── */}
           {activeTab === 'profile' && (
-            <>
+            <div role="tabpanel" id="profile">
               <Section icon="👤" title="Profile" desc="Your personal account information">
                 {profileLoading ? (
                   <div style={{ padding:'16px 0' }}>
@@ -430,7 +433,7 @@ export default function Settings() {
                     <div className="settings-profile-top">
                       <div className="settings-avatar-section">
                       {profile.photoURL ? (
-                        <img src={profile.photoURL} alt=""
+                        <img src={profile.photoURL} alt="Profile photo" loading="lazy"
                           style={{ width:64, height:64, borderRadius:'50%', objectFit:'cover' }}
                           onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex' }}
                         />
@@ -469,7 +472,7 @@ export default function Settings() {
                             }}>Remove</button>
                         )}
                         <p className="settings-field-hint">JPG or PNG, max 5MB</p>
-                        {profilePhotoError && <p className="settings-field-error">⚠ {profilePhotoError}</p>}
+                        {profilePhotoError && <p className="settings-field-error" role="alert"><span aria-hidden="true">⚠</span> {profilePhotoError}</p>}
                       </div>
                     </div>
                     </div>
@@ -494,8 +497,8 @@ export default function Settings() {
                       </div>
                     </div>
                     <div className="settings-section-actions">
-                      {profileSaved && <span className="save-success">✓ Saved</span>}
-                      {profileError && <span className="save-error">✗ {profileError}</span>}
+                      {profileSaved && <span className="save-success"><span aria-hidden="true">✓</span> Saved</span>}
+                      {profileError && <span className="save-error" role="alert"><span aria-hidden="true">✗</span> {profileError}</span>}
                       <button className="btn btn-ghost" onClick={resetProfile}>Reset</button>
                       <button className="btn btn-primary" onClick={saveProfile}>Save Changes</button>
                     </div>
@@ -520,8 +523,8 @@ export default function Settings() {
                     </div>
                   )}
                 </div>
-                {profileEmailError && <p className="settings-field-error">⚠ {profileEmailError}</p>}
-                {profileEmailSaved && <p className="settings-field-success">✓ Email updated. Check your new inbox for verification.</p>}
+                {profileEmailError && <p className="settings-field-error" role="alert"><span aria-hidden="true">⚠</span> {profileEmailError}</p>}
+                {profileEmailSaved && <p className="settings-field-success"><span aria-hidden="true">✓</span> Email updated. Check your new inbox for verification.</p>}
                 {isAdmin && (
                   <div className="settings-section-actions" style={{ marginTop:0 }}>
                     <button className="btn btn-primary btn-sm"
@@ -570,9 +573,9 @@ export default function Settings() {
                     <input className="form-input" type="password" placeholder="Repeat new password" value={pwForm.confirm} onChange={e => setPw('confirm', e.target.value)} />
                   </div>
                 </div>
-                {pwError && <p className="settings-field-error">⚠ {pwError}</p>}
+                {pwError && <p className="settings-field-error" role="alert"><span aria-hidden="true">⚠</span> {pwError}</p>}
                 <div className="settings-section-actions">
-                  {pwSaved && <span className="save-success">✓ Password updated</span>}
+                  {pwSaved && <span className="save-success"><span aria-hidden="true">✓</span> Password updated</span>}
                   <button className="btn btn-primary" onClick={savePassword} disabled={pwSaving}>{pwSaving ? 'Updating...' : 'Update Password'}</button>
                 </div>
               </Section>
@@ -602,12 +605,13 @@ export default function Settings() {
                   </div>
                 </SettingRow>
               </Section>
-            </>
+            </div>
           )}
 
           {/* ── GYM ── */}
           {activeTab === 'gym' && (
-            <Section icon="🏋" title="Gym Information" desc="Your gym details and contact information">
+            <div role="tabpanel" id="gym">
+              <Section icon="🏋" title="Gym Information" desc="Your gym details and contact information">
               {gymLoading ? null : (
                 <>
                   <div className="form-row">
@@ -695,24 +699,25 @@ export default function Settings() {
                         {logoProgress > 0 && (
                           <div className="settings-progress"><div className="settings-progress-bar" style={{ width:`${logoProgress}%` }} /></div>
                         )}
-                        {logoError && <p className="settings-field-error">⚠ {logoError}</p>}
+                        {logoError && <p className="settings-field-error" role="alert"><span aria-hidden="true">⚠</span> {logoError}</p>}
                       </div>
                     </div>
                   </div>
                   <div className="settings-section-actions">
-                    {gymSaved && <span className="save-success">✓ Saved</span>}
-                    {gymError && <span className="save-error">✗ {gymError}</span>}
+                    {gymSaved && <span className="save-success"><span aria-hidden="true">✓</span> Saved</span>}
+                    {gymError && <span className="save-error" role="alert"><span aria-hidden="true">✗</span> {gymError}</span>}
                     <button className="btn btn-ghost" onClick={resetGym}>Reset</button>
                     <button className="btn btn-primary" onClick={saveGym}>Save Changes</button>
                   </div>
                 </>
               )}
             </Section>
+            </div>
           )}
 
           {/* ── PLANS ── */}
           {activeTab === 'plans' && (
-            <>
+            <div role="tabpanel" id="plans">
               <Section icon="💳" title="Plans" desc="Membership pricing and subscription status">
                 {sub && (
                   <div className="settings-sub-banner">
@@ -764,8 +769,8 @@ export default function Settings() {
                           <td>{plan.active===false ? <span className="badge badge-red">Inactive</span> : <span className="badge badge-green">Active</span>}</td>
                           <td>
                             <div className="action-group">
-                              <button className="btn btn-sm btn-ghost" title="Edit" onClick={() => openPlanModal(plan)}>✏️</button>
-                              <button className="btn btn-sm btn-danger" title="Delete" onClick={async () => { if (!window.confirm(`Delete plan "${plan.name}"?`)) return; try { await deletePlan(plan.id) } catch (err) { console.error('Settings: delete plan failed:', err) } }}>🗑</button>
+                              <button className="btn btn-sm btn-ghost" title="Edit" aria-label="Edit plan" onClick={() => openPlanModal(plan)}><span aria-hidden="true">✏️</span></button>
+                              <button className="btn btn-sm btn-danger" title="Delete" aria-label="Delete plan" onClick={async () => { if (!window.confirm(`Delete plan "${plan.name}"?`)) return; try { await deletePlan(plan.id) } catch (err) { console.error('Settings: delete plan failed:', err) } }}><span aria-hidden="true">🗑</span></button>
                             </div>
                           </td>
                         </tr>
@@ -786,12 +791,12 @@ export default function Settings() {
                   </div>
                 </div>
               </Section>
-            </>
+            </div>
           )}
 
           {/* ── NOTIFICATIONS ── */}
           {activeTab === 'notifications' && (
-            <>
+            <div role="tabpanel" id="notifications">
               <Section icon="🔔" title="Notification Settings" desc="Manage how and when you receive alerts">
                 {notifLoading ? null : (
                   <>
@@ -805,7 +810,7 @@ export default function Settings() {
                         ].map(s => (
                           <div key={s.key} className="settings-notif-card">
                             <div className="settings-notif-card-top">
-                              <span className="settings-notif-card-icon">{s.icon}</span>
+                              <span className="settings-notif-card-icon" aria-hidden="true">{s.icon}</span>
                               <Toggle on={notifSettings[s.key]} onChange={() => toggleNotif(s.key)} />
                             </div>
                             <p className="settings-notif-card-label">{s.label}</p>
@@ -833,8 +838,8 @@ export default function Settings() {
                       ))}
                     </div>
                     <div className="settings-section-actions">
-                      {notifSaved && <span className="save-success">✓ Saved</span>}
-                      {notifError && <span className="save-error">✗ {notifError}</span>}
+                      {notifSaved && <span className="save-success"><span aria-hidden="true">✓</span> Saved</span>}
+                      {notifError && <span className="save-error" role="alert"><span aria-hidden="true">✗</span> {notifError}</span>}
                       <button className="btn btn-ghost" onClick={resetNotifs}>Reset</button>
                       <button className="btn btn-primary" onClick={saveNotifs}>Save Changes</button>
                     </div>
@@ -858,12 +863,13 @@ export default function Settings() {
                   <a href="/dashboard?page=whatsapp" className="btn btn-outline btn-sm" style={{ textDecoration:'none' }}>📤 Open Reminders</a>
                 </div>
               </Section>
-            </>
+            </div>
           )}
 
           {/* ── APPEARANCE ── */}
           {activeTab === 'appearance' && (
-            <Section icon="🎨" title="Appearance" desc="Theme, colors, and display preferences">
+            <div role="tabpanel" id="appearance">
+              <Section icon="🎨" title="Appearance" desc="Theme, colors, and display preferences">
               {themeLoading ? null : (
                 <>
                   <div className="settings-appearance-grid">
@@ -894,10 +900,10 @@ export default function Settings() {
                     <div className="settings-appearance-card">
                       <p className="settings-appearance-card-title">Preview</p>
                       <div className="settings-preview-box">
-                        <div className="settings-preview-header">
-                          <div className="settings-preview-dot" style={{ background:'var(--orange)' }} />
-                          <div className="settings-preview-dot" style={{ background:'var(--teal)' }} />
-                          <div className="settings-preview-dot" style={{ background:'var(--green)' }} />
+                          <div className="settings-preview-header">
+                            <div className="settings-preview-dot" aria-hidden="true" style={{ background:'var(--orange)' }} />
+                            <div className="settings-preview-dot" aria-hidden="true" style={{ background:'var(--teal)' }} />
+                            <div className="settings-preview-dot" aria-hidden="true" style={{ background:'var(--green)' }} />
                         </div>
                         <div className="settings-preview-line" />
                         <div className="settings-preview-line" style={{ width:'60%' }} />
@@ -905,19 +911,20 @@ export default function Settings() {
                     </div>
                   </div>
                   <div className="settings-section-actions">
-                    {themeSaved && <span className="save-success">✓ Saved</span>}
-                    {themeError && <span className="save-error">✗ {themeError}</span>}
+                    {themeSaved && <span className="save-success"><span aria-hidden="true">✓</span> Saved</span>}
+                    {themeError && <span className="save-error" role="alert"><span aria-hidden="true">✗</span> {themeError}</span>}
                     <button className="btn btn-ghost" onClick={resetTheme}>Reset</button>
                     <button className="btn btn-primary" onClick={saveTheme}>Save Changes</button>
                   </div>
                 </>
               )}
             </Section>
+            </div>
           )}
 
           {/* ── BILLING ── */}
           {activeTab === 'billing' && (
-            <>
+            <div role="tabpanel" id="billing">
               <Section icon="💰" title="Billing" desc="Taxes, invoices, and payment gateway">
                 {billingLoading ? null : (
                   <>
@@ -965,8 +972,8 @@ export default function Settings() {
                     </div>
 
                     <div className="settings-section-actions">
-                      {billingSaved && <span className="save-success">✓ Saved</span>}
-                      {billingError && <span className="save-error">✗ {billingError}</span>}
+                      {billingSaved && <span className="save-success"><span aria-hidden="true">✓</span> Saved</span>}
+                      {billingError && <span className="save-error" role="alert"><span aria-hidden="true">✗</span> {billingError}</span>}
                       <button className="btn btn-ghost" onClick={resetBilling}>Reset</button>
                       <button className="btn btn-primary" onClick={saveBilling}>Save Changes</button>
                     </div>
@@ -993,7 +1000,7 @@ export default function Settings() {
 
               <Section icon="🔗" title="Share" desc={`Spread the word about ${WEBSITE_NAME}`}>
                 <SettingRow label="Website URL" desc="Share this link with others">
-                  <input className="form-input" value={WEBSITE_URL} readOnly style={{ width: 280, fontSize: 12 }} />
+                  <input className="form-input" value={WEBSITE_URL} readOnly aria-label="Website URL" style={{ width: 280, fontSize: 12 }} />
                 </SettingRow>
                 <div className="setting-row">
                   <div className="setting-row-info" />
@@ -1003,12 +1010,12 @@ export default function Settings() {
                   </div>
                 </div>
               </Section>
-            </>
+            </div>
           )}
 
           {/* ── SECURITY ── */}
           {activeTab === 'security' && (
-            <>
+            <div role="tabpanel" id="security">
               <Section icon="🔒" title="Security" desc="Password, sessions, and access control">
                 {!currentUser?.emailVerified && (
                   <SettingRow label="Email Verification" desc="Your email is not yet verified">
@@ -1020,12 +1027,12 @@ export default function Settings() {
                 )}
                 <SettingRow label="Two-Factor Authentication" desc="Add extra security with OTP on login">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 11, color: 'var(--text-dim)', padding: '2px 8px', background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 10, cursor: 'default' }}>🔜 Requires email provider setup</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-dim)', padding: '2px 8px', background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 10, cursor: 'default' }}><span aria-hidden="true">🔜</span> Requires email provider setup</span>
                   </div>
                 </SettingRow>
 
                 <SettingRow label="Session Timeout" desc="Auto log out after inactivity">
-                  <select className="form-select" style={{ width:160, opacity: 0.6, cursor: 'not-allowed' }} disabled><option>30 minutes</option><option>1 hour</option><option>4 hours</option><option>Never</option></select>
+                  <select className="form-select" aria-label="Session Timeout" style={{ width:160, opacity: 0.6, cursor: 'not-allowed' }} disabled><option>30 minutes</option><option>1 hour</option><option>4 hours</option><option>Never</option></select>
                 </SettingRow>
                 <SettingRow label="Active Sessions" desc="View and manage active login sessions">
                   <span className="btn btn-ghost btn-sm" style={{ opacity: 0.5, cursor: 'not-allowed' }}>View Sessions <span style={{ fontSize: 10, background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 8, padding: '1px 6px', marginLeft: 4 }}>Requires Admin SDK</span></span>
@@ -1075,8 +1082,8 @@ export default function Settings() {
               </Section>
 
               {deleteError && (
-                <div style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 10, padding: '11px 16px', marginBottom: 16, color: 'var(--red)', fontSize: 13, fontWeight: 500 }}>
-                  ⚠️ {deleteError}
+                <div role="alert" style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 10, padding: '11px 16px', marginBottom: 16, color: 'var(--red)', fontSize: 13, fontWeight: 500 }}>
+                  <span aria-hidden="true">⚠️</span> {deleteError}
                 </div>
               )}
               <Section icon="⚠️" title="Danger Zone" desc="Irreversible actions — proceed with caution" className="settings-danger-section">
@@ -1094,12 +1101,12 @@ export default function Settings() {
                   </div>
                 ))}
               </Section>
-            </>
+            </div>
           )}
 
           {/* ── SUPPORT ── */}
           {activeTab === 'support' && (
-            <>
+            <div role="tabpanel" id="support">
               <Section icon="📞" title="Contact Support" desc="Reach out to the team directly">
                 <div className="settings-contact-row" style={{ flexDirection:'column', alignItems:'flex-start', gap:12 }}>
                   <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
@@ -1133,8 +1140,8 @@ export default function Settings() {
                   <textarea className="form-input" rows={3} placeholder="Describe the issue in detail..." value={ticketForm.description}
                     onChange={e => { setTicketForm(p=>({...p,description:e.target.value})); setTicketError('') }} />
                 </div>
-                {ticketError && <p className="settings-field-error" style={{ marginBottom:8 }}>⚠ {ticketError}</p>}
-                {ticketSaved && <p className="settings-field-success" style={{ marginBottom:8 }}>✓ Ticket submitted successfully</p>}
+                {ticketError && <p className="settings-field-error" style={{ marginBottom:8 }} role="alert"><span aria-hidden="true">⚠</span> {ticketError}</p>}
+                {ticketSaved && <p className="settings-field-success" style={{ marginBottom:8 }}><span aria-hidden="true">✓</span> Ticket submitted successfully</p>}
                 <div className="settings-section-actions">
                   <button className="btn btn-primary" onClick={handleSubmitTicket} disabled={ticketSaving}>{ticketSaving?'Submitting…':'Submit Ticket'}</button>
                 </div>
@@ -1151,8 +1158,8 @@ export default function Settings() {
                   <textarea className="form-input" rows={3} placeholder="Describe the feature and how it would help..." value={featureForm.description}
                     onChange={e => { setFeatureForm(p=>({...p,description:e.target.value})); setFeatureError('') }} />
                 </div>
-                {featureError && <p className="settings-field-error" style={{ marginBottom:8 }}>⚠ {featureError}</p>}
-                {featureSaved && <p className="settings-field-success" style={{ marginBottom:8 }}>✓ Feature request submitted</p>}
+                {featureError && <p className="settings-field-error" style={{ marginBottom:8 }} role="alert"><span aria-hidden="true">⚠</span> {featureError}</p>}
+                {featureSaved && <p className="settings-field-success" style={{ marginBottom:8 }}><span aria-hidden="true">✓</span> Feature request submitted</p>}
                 <div className="settings-section-actions">
                   <button className="btn btn-primary" onClick={handleSubmitFeature} disabled={featureSaving}>{featureSaving?'Submitting…':'Submit Request'}</button>
                 </div>
@@ -1177,7 +1184,7 @@ export default function Settings() {
                   <div key={i} className="settings-faq-item">
                     <button className="settings-faq-btn" onClick={() => setFaqOpen(faqOpen===i ? null : i)}>
                       <span>{faq.q}</span>
-                      <span className={`settings-faq-arrow${faqOpen===i ? ' open' : ''}`}>▾</span>
+                      <span className={`settings-faq-arrow${faqOpen===i ? ' open' : ''}`} aria-hidden="true">▾</span>
                     </button>
                     {faqOpen===i && <div className="settings-faq-answer">{faq.a}</div>}
                   </div>
@@ -1194,7 +1201,7 @@ export default function Settings() {
                   ))}
                 </div>
               </Section>
-            </>
+            </div>
           )}
 
         </div>
@@ -1203,13 +1210,13 @@ export default function Settings() {
       {/* ── Plan Modal ── */}
       {planModal !== null && (
         <div className="modal-overlay" onClick={() => setPlanModal(null)}>
-          <div className="modal modal-md" onClick={e => e.stopPropagation()}>
+          <div className="modal modal-md" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <div>
                 <h3>{planModal?.id ? 'Edit Plan' : 'Add New Plan'}</h3>
                 <p>{planModal?.id ? 'Update plan details' : 'Create a new membership plan'}</p>
               </div>
-              <button className="modal-close" onClick={() => setPlanModal(null)}>✕</button>
+              <button className="modal-close" aria-label="Close modal" onClick={() => setPlanModal(null)}>✕</button>
             </div>
             <div style={{ padding:'16px 24px' }}>
               <div className="form-row" style={{ marginBottom:16 }}>
@@ -1244,7 +1251,7 @@ export default function Settings() {
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={() => setPlanModal(null)}>Cancel</button>
               <button className="btn btn-primary" onClick={savePlan} disabled={planSaving||!planForm.name.trim()||!planForm.price}>
-                {planSaving ? 'Saving…' : planModal?.id ? '💾 Save Changes' : '+ Add Plan'}
+                {planSaving ? 'Saving…' : planModal?.id ? <span><span aria-hidden="true">💾</span> Save Changes</span> : '+ Add Plan'}
               </button>
             </div>
           </div>
@@ -1254,24 +1261,24 @@ export default function Settings() {
       {/* ── User Guide Modal ── */}
       {showUserGuide && (
         <div className="modal-overlay" onClick={() => setShowUserGuide(false)}>
-          <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
+          <div className="modal modal-lg" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <div>
-                <h3>📘 IRONPULSE User Guide</h3>
+                <h3><span aria-hidden="true">📘</span> IRONPULSE User Guide</h3>
                 <p>Quick start guide for gym administrators</p>
               </div>
-              <button className="modal-close" onClick={() => setShowUserGuide(false)}>✕</button>
+              <button className="modal-close" aria-label="Close modal" onClick={() => setShowUserGuide(false)}>✕</button>
             </div>
             <div style={{ padding:'16px 24px', maxHeight:'60vh', overflowY:'auto' }}>
               {[
-                { title:'👥 Managing Members', steps:['Navigate to Members from the sidebar.','Click "+ Add Member" to register a new member.','Fill in personal info, assign a plan and trainer.','A Firebase account is auto-created so members can sign in.','Use the 🔄 button to renew memberships.'] },
-                { title:'💳 Payments & Billing', steps:['Go to Payments to view all invoices.','Click "New Invoice" to generate a bill for any member.','Use filters to view Paid, Pending, or Overdue invoices.','Click an invoice to view details, print, or send via WhatsApp.','Revenue charts show monthly collection vs targets.'] },
-                { title:'🏋️ Trainer Management', steps:['Go to Trainers to add or edit trainers.','Assign members to trainers from the Members page.','Each trainer can log in and view their assigned clients.','Trainer performance metrics are shown on the Dashboard.'] },
-                { title:'📱 QR Check-in', steps:['Each member has a unique QR code.','Open QR Check-in from the sidebar and scan the code.','Check-ins are logged and visible in the attendance report.'] },
-                { title:'💬 WhatsApp Reminders', steps:['Open WhatsApp Reminders from the sidebar.','The system auto-detects memberships expiring soon.','Click the WhatsApp button to send a pre-filled reminder.','Customize the gym name in Settings → Gym Information.'] },
-                { title:'🎨 Customizing the App', steps:['Go to Settings → Appearance to switch dark/light mode.','Pick an accent color to match your brand.','Update gym name, address, and contact in Settings → Gym Information.','Configure notification preferences in Settings → Notifications.'] },
-                { title:'📊 Reports & Analytics', steps:['Open Reports to view business insights.','Track membership growth, revenue, and trainer performance.','Export data as needed for offline analysis.'] },
-                { title:'📲 Install as App', steps:['Open IRONPULSE in Chrome or Edge.','Click "Install App" in Settings or use the browser install prompt.','The app launches in standalone mode with no browser chrome.','Works offline for cached pages.'] },
+                { title:<><span aria-hidden="true">👥</span> Managing Members</>, steps:['Navigate to Members from the sidebar.','Click "+ Add Member" to register a new member.','Fill in personal info, assign a plan and trainer.','A Firebase account is auto-created so members can sign in.','Use the 🔄 button to renew memberships.'] },
+                { title:<><span aria-hidden="true">💳</span> Payments & Billing</>, steps:['Go to Payments to view all invoices.','Click "New Invoice" to generate a bill for any member.','Use filters to view Paid, Pending, or Overdue invoices.','Click an invoice to view details, print, or send via WhatsApp.','Revenue charts show monthly collection vs targets.'] },
+                { title:<><span aria-hidden="true">🏋️</span> Trainer Management</>, steps:['Go to Trainers to add or edit trainers.','Assign members to trainers from the Members page.','Each trainer can log in and view their assigned clients.','Trainer performance metrics are shown on the Dashboard.'] },
+                { title:<><span aria-hidden="true">📱</span> QR Check-in</>, steps:['Each member has a unique QR code.','Open QR Check-in from the sidebar and scan the code.','Check-ins are logged and visible in the attendance report.'] },
+                { title:<><span aria-hidden="true">💬</span> WhatsApp Reminders</>, steps:['Open WhatsApp Reminders from the sidebar.','The system auto-detects memberships expiring soon.','Click the WhatsApp button to send a pre-filled reminder.','Customize the gym name in Settings → Gym Information.'] },
+                { title:<><span aria-hidden="true">🎨</span> Customizing the App</>, steps:['Go to Settings → Appearance to switch dark/light mode.','Pick an accent color to match your brand.','Update gym name, address, and contact in Settings → Gym Information.','Configure notification preferences in Settings → Notifications.'] },
+                { title:<><span aria-hidden="true">📊</span> Reports & Analytics</>, steps:['Open Reports to view business insights.','Track membership growth, revenue, and trainer performance.','Export data as needed for offline analysis.'] },
+                { title:<><span aria-hidden="true">📲</span> Install as App</>, steps:['Open IRONPULSE in Chrome or Edge.','Click "Install App" in Settings or use the browser install prompt.','The app launches in standalone mode with no browser chrome.','Works offline for cached pages.'] },
               ].map(section => (
                 <div key={section.title} style={{ marginBottom:20 }}>
                   <h4 style={{ fontSize:14, fontWeight:700, marginBottom:8 }}>{section.title}</h4>

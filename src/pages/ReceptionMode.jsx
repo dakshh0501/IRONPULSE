@@ -56,7 +56,7 @@ function FeedbackBanner({ fb }) {
   const cfg = FB_CFG[fb.type]
   if (!cfg) return null
   return (
-    <div style={{
+    <div role="alert" style={{
       display: 'flex', alignItems: 'center', gap: 12,
       background: cfg.bg, border: '1px solid ' + cfg.border,
       borderRadius: 12, padding: '14px 16px',
@@ -109,7 +109,7 @@ function StatTile({ icon, value, label, color }) {
       background: 'var(--card)', border: '1px solid var(--card-border)',
       borderRadius: 12, padding: '12px 14px', minWidth: 0,
     }}>
-      <span style={{ fontSize: 22, flexShrink: 0 }}>{icon}</span>
+      <span style={{ fontSize: 22, flexShrink: 0 }} aria-hidden="true">{icon}</span>
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 26, fontWeight: 900, color, fontFamily: "'Bebas Neue', sans-serif", lineHeight: 1 }}>
           {value}
@@ -187,7 +187,7 @@ function ManualModal({ members, checkedInIds, onCheckIn, onClose }) {
   }
 
   return (
-    <div onClick={onClose} style={{
+    <div role="dialog" aria-modal="true" onClick={onClose} style={{
       position: 'fixed', inset: 0, zIndex: 2000,
       background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -212,7 +212,7 @@ function ManualModal({ members, checkedInIds, onCheckIn, onClose }) {
               Search for a member to check in
             </div>
           </div>
-          <button onClick={onClose} style={{
+          <button onClick={onClose} aria-label="Close modal" style={{
             width: 30, height: 30, borderRadius: 6,
             background: 'var(--hover)', border: '1px solid var(--border)',
             color: 'var(--text-muted)', fontSize: 18, cursor: 'pointer',
@@ -221,8 +221,8 @@ function ManualModal({ members, checkedInIds, onCheckIn, onClose }) {
         </div>
 
         <div style={{ position: 'relative', flexShrink: 0 }}>
-          <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: 14 }}>🔍</span>
-          <input autoFocus className="form-input" value={query} onChange={e => setQuery(e.target.value)} placeholder="Name or email…" style={{ paddingLeft: 36 }} />
+          <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: 14 }} aria-hidden="true">🔍</span>
+          <input autoFocus className="form-input" value={query} onChange={e => setQuery(e.target.value)} placeholder="Name or email…" aria-label="Search members" style={{ paddingLeft: 36 }} />
         </div>
 
         <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -290,7 +290,7 @@ export default function ReceptionMode() {
   if (effectiveRole !== 'super_admin' && effectiveRole !== 'gym_admin' && effectiveRole !== 'trainer') {
     return (
       <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
+        <div style={{ fontSize: 48, marginBottom: 16 }} aria-hidden="true">🔒</div>
         <h3>Access Restricted</h3>
         <p style={{ marginTop: 8 }}>Only staff can access Reception mode.</p>
       </div>
@@ -507,7 +507,7 @@ export default function ReceptionMode() {
               background: 'var(--card)', border: '1px solid var(--card-border)',
               borderRadius: 12, padding: '12px 16px', flexShrink: 0,
             }}>
-              <span style={{ fontSize: 18, flexShrink: 0 }}>📷</span>
+              <span style={{ fontSize: 18, flexShrink: 0 }} aria-hidden="true">📷</span>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Ready to scan</div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
@@ -545,12 +545,13 @@ export default function ReceptionMode() {
               QUICK MEMBER SEARCH
             </div>
             <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: 14, pointerEvents: 'none' }}>🔍</span>
+              <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: 14, pointerEvents: 'none' }} aria-hidden="true">🔍</span>
               <input
                 className="form-input"
                 value={quickSearch}
                 onChange={e => setQuickSearch(e.target.value)}
                 placeholder="Type name or email…"
+                aria-label="Quick member search"
                 style={{ paddingLeft: 36 }}
               />
             </div>
@@ -621,7 +622,7 @@ export default function ReceptionMode() {
           <div style={{ flex: 1, overflowY: 'auto', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 5 }}>
             {todayLogs.length === 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, color: 'var(--text-muted)', gap: 8, paddingTop: 32, textAlign: 'center' }}>
-                <span style={{ fontSize: 28 }}>📭</span>
+                <span style={{ fontSize: 28 }} aria-hidden="true">📭</span>
                 <div style={{ fontSize: 13 }}>No check-ins yet today</div>
                 <div style={{ fontSize: 11 }}>Scan a member QR to get started</div>
               </div>

@@ -124,6 +124,7 @@ export default function CouponManagement() {
               className="form-input"
               type="text"
               placeholder="Search by code or user ID..."
+              aria-label="Search coupons by code or user ID"
               value={searchText}
               onChange={e => setSearchText(e.target.value)}
               style={{ width: 220, padding: '6px 12px', fontSize: 12 }}
@@ -146,7 +147,7 @@ export default function CouponManagement() {
 
         {filteredCoupons.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>🎟️</div>
+            <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }} aria-hidden="true">🎟️</div>
             <p style={{ fontSize: 15, fontWeight: 600, margin: '0 0 4px' }}>No coupons found</p>
             <p style={{ fontSize: 12, margin: 0, color: 'var(--text-dim)' }}>Coupons will appear here as referral rewards are issued.</p>
           </div>
@@ -155,14 +156,14 @@ export default function CouponManagement() {
             <table className="data-table" style={{ minWidth: 700 }}>
               <thead>
                 <tr>
-                  <th>Code</th>
-                  <th>User ID</th>
-                  <th>Discount</th>
-                  <th>Status</th>
-                  <th>Created</th>
-                  <th>Expires</th>
-                  <th>Redeemed At</th>
-                  <th style={{ width: 60 }}>Copy</th>
+                  <th scope="col">Code</th>
+                  <th scope="col">User ID</th>
+                  <th scope="col">Discount</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Created</th>
+                  <th scope="col">Expires</th>
+                  <th scope="col">Redeemed At</th>
+                  <th scope="col" style={{ width: 60 }}>Copy</th>
                 </tr>
               </thead>
               <tbody>
@@ -197,6 +198,7 @@ export default function CouponManagement() {
                         onClick={() => handleCopyCode(c.code)}
                         style={{ padding: '2px 8px', fontSize: 11 }}
                         title="Copy code"
+                        aria-label={copied === c.code ? 'Copied' : 'Copy coupon code'}
                       >
                         {copied === c.code ? '✓' : <Copy size={12} />}
                       </button>

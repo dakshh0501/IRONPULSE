@@ -54,7 +54,7 @@ function PlatformInsights({ stats, gyms, subscriptions }) {
     <div className="sa-insights-grid">
       {insights.map((ins, i) => (
         <div key={i} className="sa-insight-card" style={{ borderLeft:`3px solid ${ins.color}` }}>
-          <div className="sa-insight-icon">{ins.icon}</div>
+          <div className="sa-insight-icon" aria-hidden="true">{ins.icon}</div>
           <div className="sa-insight-info">
             <div className="sa-insight-title" style={{ color: ins.color }}>{ins.title}</div>
             <div className="sa-insight-desc">{ins.desc}</div>
@@ -181,10 +181,10 @@ function GymTable({ gyms, subscriptions, gymMemberCount, gymRevenue }) {
       <div className="sa-table-header"><span className="sa-table-title">Gym Overview</span><span className="sa-table-count">{gyms.length} gyms</span></div>
       <div className="sa-table-scroll">
         <table className="sa-table">
-          <thead><tr><th style={{ width:32 }}>#</th><th>Gym</th><th>Owner</th><th>Plan</th><th style={{ textAlign:'center' }}>Members</th><th>Revenue</th><th>Expiry</th><th>Status</th><th style={{ width:70 }}>Actions</th></tr></thead>
+          <thead><tr><th scope="col" style={{ width:32 }}>#</th><th scope="col">Gym</th><th scope="col">Owner</th><th scope="col">Plan</th><th scope="col" style={{ textAlign:'center' }}>Members</th><th scope="col">Revenue</th><th scope="col">Expiry</th><th scope="col">Status</th><th scope="col" style={{ width:70 }}>Actions</th></tr></thead>
           <tbody>
             {gyms.length === 0 ? (
-              <tr><td colSpan={9}><div className="sa-empty"><div className="sa-empty-icon">🏢</div><div className="sa-empty-title">No gyms registered yet</div><div className="sa-empty-text">Gyms will appear here as they sign up.</div></div></td></tr>
+              <tr><td colSpan={9}><div className="sa-empty"><div className="sa-empty-icon" aria-hidden="true">🏢</div><div className="sa-empty-title">No gyms registered yet</div><div className="sa-empty-text">Gyms will appear here as they sign up.</div></div></td></tr>
             ) : [...gyms].sort((a,b) => { const ta = a.createdAt?.seconds||0; const tb = b.createdAt?.seconds||0; return tb - ta }).map((g, i) => {
               const sub = subscriptions.find(s => s.gymId === g.id)
               const plan = sub?.plan || '—'
@@ -195,7 +195,7 @@ function GymTable({ gyms, subscriptions, gymMemberCount, gymRevenue }) {
               return (
                 <tr key={g.id}>
                   <td style={{ color:'var(--text-dim)', fontSize:11 }}>{i+1}</td>
-                  <td><div className="sa-cell-gym"><div className="sa-gym-icon">{g.gymName?.charAt(0)||g.name?.charAt(0)||'G'}</div><span className="sa-gym-name">{g.gymName||g.name||'Unnamed'}</span></div></td>
+                  <td><div className="sa-cell-gym"><div className="sa-gym-icon" aria-hidden="true">{g.gymName?.charAt(0)||g.name?.charAt(0)||'G'}</div><span className="sa-gym-name">{g.gymName||g.name||'Unnamed'}</span></div></td>
                   <td style={{ fontSize:12, color:'var(--text-dim)' }}>{g.ownerName||g.ownerEmail||'—'}</td>
                   <td><span className="sa-plan-badge">{plan}</span></td>
                   <td style={{ textAlign:'center' }}><span className="sa-member-count">{gymMemberCount[g.id] || 0}</span></td>
@@ -203,8 +203,8 @@ function GymTable({ gyms, subscriptions, gymMemberCount, gymRevenue }) {
                   <td style={{ fontSize:11, color:'var(--text-dim)' }}>{endTime ? <span style={{ color: daysLeft !== null && daysLeft <= 7 ? 'var(--red)' : daysLeft !== null && daysLeft <= 30 ? 'var(--amber)' : 'var(--text-dim)' }}>{expiryStr}{daysLeft !== null ? ` (${daysLeft}d)` : ''}</span> : '—'}</td>
                   <td><span className={`badge ${status==='Active'?'badge-green':status==='Pending'?'badge-amber':'badge-red'}`} style={{ fontSize:9 }}>{status}</span></td>
                   <td><div style={{ display:'flex', gap:2 }}>
-                    <button className="sa-action-btn" title="View" onClick={() => navigate('/gymOwners')}>👁️</button>
-                    <button className="sa-action-btn" title="Settings" onClick={() => navigate('/settings')}>⚙️</button>
+                    <button className="sa-action-btn" title="View" aria-label="View gym" onClick={() => navigate('/gymOwners')}>👁️</button>
+                    <button className="sa-action-btn" title="Settings" aria-label="Settings" onClick={() => navigate('/settings')}>⚙️</button>
                   </div></td>
                 </tr>
               )
@@ -240,7 +240,7 @@ function RecentActivity({ gyms, payments }) {
           <div className="sa-empty-sm">No recent activity.</div>
         ) : activities.map((a, i) => (
           <div key={i} className="sa-activity-item">
-            <div className="sa-activity-icon" style={{ background:`${a.color}18`, color:a.color }}>{a.icon}</div>
+            <div className="sa-activity-icon" aria-hidden="true" style={{ background:`${a.color}18`, color:a.color }}>{a.icon}</div>
             <div className="sa-activity-info"><span className="sa-activity-label">{a.label}</span><span className="sa-activity-date">{a.date.toLocaleDateString('en-IN', { day:'2-digit', month:'short' })}</span></div>
           </div>
         ))}
@@ -266,7 +266,7 @@ function SystemHealth() {
       <div className="sa-health-list">
         {services.map(s => (
           <div key={s.name} className="sa-health-item">
-            <span className="sa-health-icon">{s.icon}</span>
+            <span className="sa-health-icon" aria-hidden="true">{s.icon}</span>
             <span className="sa-health-name">{s.name}</span>
             <span className="sa-health-status" style={{ color:s.color }}>● {s.status}</span>
           </div>
@@ -359,9 +359,9 @@ export default function PlatformDashboard() {
           <p>Platform overview and business health.</p>
         </div>
         <div className="page-header-actions">
-          <button className="btn btn-outline btn-sm" onClick={() => navigate('/notifications')}>📢 Announcements</button>
-          <button className="btn btn-ghost btn-sm" onClick={handleExport}>📥 Export</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => window.location.reload()}>🔄 Refresh</button>
+          <button className="btn btn-outline btn-sm" aria-label="Announcements" onClick={() => navigate('/notifications')}><span aria-hidden="true">📢</span> Announcements</button>
+          <button className="btn btn-ghost btn-sm" aria-label="Export" onClick={handleExport}><span aria-hidden="true">📥</span> Export</button>
+          <button className="btn btn-ghost btn-sm" aria-label="Refresh" onClick={() => window.location.reload()}><span aria-hidden="true">🔄</span> Refresh</button>
         </div>
       </div>
 
@@ -369,7 +369,7 @@ export default function PlatformDashboard() {
       <div className="sa-kpi-grid">
         {kpiCards.map(k => (
           <div key={k.label} className="dash-kpi-card" style={{ cursor:'default' }}>
-            <div className="dash-kpi-top"><span className={`dash-kpi-icon ${k.color}`}>{k.icon}</span></div>
+            <div className="dash-kpi-top"><span className={`dash-kpi-icon ${k.color}`} aria-hidden="true">{k.icon}</span></div>
             <span className="dash-kpi-value" style={{ fontSize:20 }}>{k.value}</span>
             <span className="dash-kpi-label">{k.label}</span>
           </div>
@@ -386,17 +386,17 @@ export default function PlatformDashboard() {
       <div className="sa-actions-card">
         <div className="sa-actions-label">Quick Actions</div>
         <div className="sa-actions-grid">
-          <button className="btn btn-primary btn-sm" onClick={() => navigate('/pending')}>✅ Approve Gym</button>
-          <button className="btn btn-outline btn-sm" onClick={() => navigate('/gymOwners')}>🏢 Gym Owners</button>
-          <button className="btn btn-outline btn-sm" onClick={() => navigate('/subscriptions')}>📋 Subscriptions</button>
-          <button className="btn btn-outline btn-sm" onClick={() => navigate('/analytics')}>📈 Usage Analytics</button>
-          <button className="btn btn-outline btn-sm" onClick={() => navigate('/revenue')}>💰 Revenue</button>
-          <button className="btn btn-outline btn-sm" onClick={() => navigate('/notifications')}>📢 Notifications</button>
-          <button className="btn btn-outline btn-sm" onClick={() => navigate('/support')}>🎫 Support</button>
-          <button className="btn btn-outline btn-sm" onClick={() => navigate('/reports')}>📊 Revenue Report</button>
-          <button className="btn btn-outline btn-sm" onClick={() => navigate('/settings')}>⚙️ Platform Settings</button>
-          <button className="btn btn-outline btn-sm" onClick={() => navigate('/license')}>🔑 License Keys</button>
-          <button className="btn btn-outline btn-sm" onClick={() => navigate('/devices')}>📱 Device Management</button>
+          <button className="btn btn-primary btn-sm" onClick={() => navigate('/pending')}><span aria-hidden="true">✅</span> Approve Gym</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/gymOwners')}><span aria-hidden="true">🏢</span> Gym Owners</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/subscriptions')}><span aria-hidden="true">📋</span> Subscriptions</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/analytics')}><span aria-hidden="true">📈</span> Usage Analytics</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/revenue')}><span aria-hidden="true">💰</span> Revenue</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/notifications')}><span aria-hidden="true">📢</span> Notifications</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/support')}><span aria-hidden="true">🎫</span> Support</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/reports')}><span aria-hidden="true">📊</span> Revenue Report</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/settings')}><span aria-hidden="true">⚙️</span> Platform Settings</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/license')}><span aria-hidden="true">🔑</span> License Keys</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/devices')}><span aria-hidden="true">📱</span> Device Management</button>
         </div>
       </div>
 

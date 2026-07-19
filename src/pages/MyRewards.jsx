@@ -33,7 +33,7 @@ function RewardCard({ reward, type, onRedeem, redeeming }) {
             background: status === 'redeemed' ? 'rgba(0,200,180,0.1)' : status === 'expired' ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
           }}>
-            {isCoupon ? '🎟️' : '💰'}
+            {isCoupon ? <span aria-hidden="true">🎟️</span> : <span aria-hidden="true">💰</span>}
           </div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
@@ -138,13 +138,13 @@ export default function MyRewards() {
   return (
     <div className="page-container">
       {error && (
-        <div className="alert alert-error" style={{ marginBottom: 16 }}>
+        <div className="alert alert-error" role="alert" style={{ marginBottom: 16 }}>
           {error}
-          <button className="btn btn-ghost btn-sm" onClick={() => setError('')} style={{ marginLeft: 12, padding: '2px 8px' }}>✕</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setError('')} style={{ marginLeft: 12, padding: '2px 8px' }} aria-label="Dismiss error">✕</button>
         </div>
       )}
       {successMsg && (
-        <div className="alert alert-success" style={{ marginBottom: 16 }}>
+        <div className="alert alert-success" role="alert" style={{ marginBottom: 16 }}>
           {successMsg}
         </div>
       )}

@@ -16,7 +16,7 @@ export default function Rejected() {
       <div className="auth-glass" style={{
         maxWidth: 420, width: '100%', padding: 48, textAlign: 'center',
       }}>
-        <div style={{
+        <div aria-hidden="true" style={{
           width: 72, height: 72, borderRadius: '50%', margin: '0 auto 24px',
           background: 'rgba(239,68,68,0.1)', border: '2px solid rgba(239,68,68,0.2)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',

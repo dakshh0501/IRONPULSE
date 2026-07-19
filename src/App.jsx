@@ -1,6 +1,8 @@
 // src/App.jsx
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom'
+import { Helmet, HelmetProvider } from 'react-helmet-async'
+import SEOHead from './components/SEOHead'
 import { AppProvider } from './context/AppContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import StartupScreen from './components/StartupScreen'
@@ -128,6 +130,7 @@ function AppShell() {
     else setSearchParams({}, { replace: true })
   }, [setSearchParams])
   const [mobileOpen, setMobileOpen] = useState(false)
+  const skipRef = useRef(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => sessionStorage.getItem('ironpulse-sidebar') === 'collapsed'
   )
@@ -176,9 +179,15 @@ function AppShell() {
 
   return (
     <>
+      <SEOHead />
+      <a href="#main-content" className="skip-to-content" ref={skipRef}>
+        Skip to main content
+      </a>
       {mobileOpen && (
         <div
           onClick={() => setMobileOpen(false)}
+          role="presentation"
+          aria-hidden="true"
           style={{
             position:'fixed', inset:0, zIndex:90,
             background:'rgba(0,0,0,0.5)',
@@ -199,7 +208,7 @@ function AppShell() {
             setSearch={setSearch}
             setMobileOpen={setMobileOpen}
           />
-          <main className="page-content">
+          <main className="page-content" id="main-content" tabIndex={-1}>
             <Outlet />
           </main>
         </div>
@@ -247,17 +256,24 @@ function PublicRoute({ children }) {
 
 function RouterTree() {
   return (
+    <HelmetProvider>
     <Suspense fallback={<LoadingScreen />}>
       <Routes>
         {/* ── Public ── */}
-        <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
-        <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/rejected" element={<Rejected />} />
+        <Route path="/" element={<PublicRoute><SEOHead /><Landing /></PublicRoute>} />
+        <Route path="/auth" element={<PublicRoute><SEOHead /><Auth /></PublicRoute>} />
+        <Route path="/features" element={<PublicRoute><SEOHead /><Landing /></PublicRoute>} />
+        <Route path="/pricing" element={<PublicRoute><SEOHead /><Landing /></PublicRoute>} />
+        <Route path="/contact" element={<PublicRoute><SEOHead /><Landing /></PublicRoute>} />
+        <Route path="/about" element={<PublicRoute><SEOHead /><Landing /></PublicRoute>} />
+        <Route path="/privacy" element={<PublicRoute><SEOHead /><Landing /></PublicRoute>} />
+        <Route path="/terms" element={<PublicRoute><SEOHead /><Landing /></PublicRoute>} />
+        <Route path="/verify-email" element={<><SEOHead /><VerifyEmail /></>} />
+        <Route path="/rejected" element={<><SEOHead /><Rejected /></>} />
 
         {/* ── Standalone authenticated (no sidebar) ── */}
-        <Route path="/payment-status" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']}><PaymentStatus /></ProtectedRoute>} />
-        <Route path="/checkout" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']}><Checkout /></ProtectedRoute>} />
+        <Route path="/payment-status" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']}><SEOHead /><PaymentStatus /></ProtectedRoute>} />
+        <Route path="/checkout" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']}><SEOHead /><Checkout /></ProtectedRoute>} />
 
         {/* ── Authenticated with AppShell (sidebar + header) ── */}
         <Route element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']} />}>
@@ -282,7 +298,7 @@ function RouterTree() {
             <Route path="devices" element={<RoleGate allowedRoles={['super_admin','gym_admin']}><Guarded><DevicesPage /></Guarded></RoleGate>} />
 
             {/* Referral routes */}
-            <Route path="referral" element={<RoleGate allowedRoles={['member']}><Referral /></RoleGate>} />
+            <Route path="referral" element={<RoleGate allowedRoles={['super_admin','gym_admin','member']}><Referral /></RoleGate>} />
             <Route path="member/rewards" element={<RoleGate allowedRoles={['member']}><MyRewards /></RoleGate>} />
             <Route path="referrals" element={<RoleGate allowedRoles={['super_admin']}><ReferralManagement /></RoleGate>} />
             <Route path="referrals/analytics" element={<RoleGate allowedRoles={['super_admin']}><ReferralAnalytics /></RoleGate>} />
@@ -322,9 +338,10 @@ function RouterTree() {
         </Route>
 
         {/* ── Catch-all ── */}
-        <Route path="*" element={<NotFound />} />
+        <Route path="*" element={<><SEOHead /><NotFound /></>} />
       </Routes>
     </Suspense>
+    </HelmetProvider>
   )
 }
 

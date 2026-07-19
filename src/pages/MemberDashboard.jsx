@@ -53,7 +53,7 @@ function StatCard({ label, value, icon, accent }) {
       flexDirection: 'column',
       gap: 8,
     }}>
-      <div style={{ fontSize: 24 }}>{icon}</div>
+        <div style={{ fontSize: 24 }} aria-hidden="true">{icon}</div>
       <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, letterSpacing: '0.03em' }}>
         {label}
       </div>
@@ -87,7 +87,7 @@ function MembershipCard({ me }) {
   return (
     <div className="card">
       <div className="section-title" style={{ marginBottom: 18 }}>
-        🪪 Membership Information
+          <span aria-hidden="true">🪪</span> Membership Information
       </div>
       <div style={{
         display: 'grid',
@@ -151,7 +151,7 @@ function AttendanceHistory({ records }) {
   return (
     <div className="card">
       <div className="section-title" style={{ marginBottom: 18 }}>
-        📋 Attendance History
+          <span aria-hidden="true">📋</span> Attendance History
         <span style={{
           marginLeft: 10,
           fontSize: 12,
@@ -184,7 +184,7 @@ function AttendanceHistory({ records }) {
               gap: 8,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 18 }}>✅</span>
+                <span style={{ fontSize: 18 }} aria-hidden="true">✅</span>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
                     Checked In
@@ -318,7 +318,7 @@ export default function MemberDashboard() {
     return sorted[0]?.date ? formatDate(sorted[0].date) : '--'
   }, [myAttendance])
 
-  const membershipStatus = isExpired(me?.expiry) ? '❌ Expired' : '✅ Active'
+  const membershipStatus = isExpired(me?.expiry) ? <span><span aria-hidden="true">❌</span> Expired</span> : <span><span aria-hidden="true">✅</span> Active</span>
 
   const latestPayment = [...myPayments].sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt))[0]
 
@@ -343,8 +343,8 @@ export default function MemberDashboard() {
     <div className="dashboard-page">
 
       {errorMsg && (
-        <div style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 10, padding: '12px 16px', marginBottom: 16, color: 'var(--red)', fontSize: 13, fontWeight: 500 }}>
-          ⚠️ {typeof errorMsg === 'string' ? errorMsg : 'Some data failed to load. Please refresh.'}
+        <div role="alert" style={{ background: 'var(--red)15', border: '1px solid var(--red)30', borderRadius: 10, padding: '12px 16px', marginBottom: 16, color: 'var(--red)', fontSize: 13, fontWeight: 500 }}>
+          <span aria-hidden="true">⚠️</span> {typeof errorMsg === 'string' ? errorMsg : 'Some data failed to load. Please refresh.'}
         </div>
       )}
 
@@ -352,7 +352,7 @@ export default function MemberDashboard() {
       <div className="hero-card" style={{ display:'flex', alignItems:'center', gap:18 }}>
         <MemberAvatar member={me} size={64} fontSize={22} />
         <div>
-          <h1>Welcome back 👋</h1>
+          <h1>Welcome back <span aria-hidden="true">👋</span></h1>
           <p>Track your fitness journey and gym activity.</p>
         </div>
       </div>
@@ -370,7 +370,7 @@ export default function MemberDashboard() {
 
       {/* ── Current Diet Plan ── */}
       <div className="card">
-        <div className="section-title" style={{ marginBottom: 18 }}>🥗 Current Diet Plan</div>
+        <div className="section-title" style={{ marginBottom: 18 }}><span aria-hidden="true">🥗</span> Current Diet Plan</div>
         {myDietPlans.length === 0 ? (
           <p className="muted-text">No diet plan assigned yet.</p>
         ) : (
@@ -395,7 +395,7 @@ export default function MemberDashboard() {
 
       {/* ── Current Workout Plan ── */}
       <div className="card">
-        <div className="section-title" style={{ marginBottom: 18 }}>💪 Current Workout Plan</div>
+        <div className="section-title" style={{ marginBottom: 18 }}><span aria-hidden="true">💪</span> Current Workout Plan</div>
         {myWorkoutPlans.length === 0 ? (
           <p className="muted-text">No workout plan assigned yet.</p>
         ) : (
@@ -420,7 +420,7 @@ export default function MemberDashboard() {
 
       {/* ── Latest Progress ── */}
       <div className="card">
-        <div className="section-title" style={{ marginBottom: 18 }}>📊 Latest Progress</div>
+        <div className="section-title" style={{ marginBottom: 18 }}><span aria-hidden="true">📊</span> Latest Progress</div>
         {myProgressLogs.length === 0 ? (
           <p className="muted-text">No progress entries yet.</p>
         ) : (
@@ -434,10 +434,10 @@ export default function MemberDashboard() {
                 display: 'flex', gap: 16, padding: '10px 14px',
                 background: 'var(--hover)', borderRadius: 8, flexWrap: 'wrap'
               }}>
-                {log.weight && <span style={{ fontSize: 13 }}>⚖️ {log.weight} kg</span>}
-                {log.bodyFat && <span style={{ fontSize: 13 }}>📉 {log.bodyFat}%</span>}
-                {log.bench && <span style={{ fontSize: 13 }}>🏋️ Bench {log.bench} kg</span>}
-                {log.squat && <span style={{ fontSize: 13 }}>🦵 Squat {log.squat} kg</span>}
+                {log.weight && <span style={{ fontSize: 13 }}><span aria-hidden="true">⚖️</span> {log.weight} kg</span>}
+                {log.bodyFat && <span style={{ fontSize: 13 }}><span aria-hidden="true">📉</span> {log.bodyFat}%</span>}
+                {log.bench && <span style={{ fontSize: 13 }}><span aria-hidden="true">🏋️</span> Bench {log.bench} kg</span>}
+                {log.squat && <span style={{ fontSize: 13 }}><span aria-hidden="true">🦵</span> Squat {log.squat} kg</span>}
                 {!log.weight && !log.bodyFat && !log.bench && !log.squat && (
                   <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Progress recorded</span>
                 )}
@@ -468,7 +468,7 @@ export default function MemberDashboard() {
 
       {/* ── Payment History Summary ── */}
       <div className="card">
-        <div className="section-title" style={{ marginBottom: 18 }}>💳 Latest Payment</div>
+        <div className="section-title" style={{ marginBottom: 18 }}><span aria-hidden="true">💳</span> Latest Payment</div>
         {latestPayment ? (
           <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',

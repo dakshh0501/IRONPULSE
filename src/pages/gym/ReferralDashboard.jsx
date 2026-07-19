@@ -141,16 +141,18 @@ export default function ReferralDashboard() {
             <div className="sa-chart-title">Monthly Referrals</div>
             <div className="sa-chart-desc">{referrals.length} total</div>
           </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={monthlyData} margin={{ top: 5, right: 5, bottom: 0, left: -15 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-              <XAxis dataKey="month" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
-              <Tooltip />
-              <Bar dataKey="total" name="Total" fill="#e8420a" radius={[4, 4, 0, 0]} opacity={0.85} />
-              <Bar dataKey="rewarded" name="Rewarded" fill="#22c55e" radius={[4, 4, 0, 0]} opacity={0.85} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div role="img" aria-label="Monthly referrals bar chart showing total and rewarded referrals over the last 12 months">
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={monthlyData} margin={{ top: 5, right: 5, bottom: 0, left: -15 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+                <XAxis dataKey="month" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip />
+                <Bar dataKey="total" name="Total" fill="#e8420a" radius={[4, 4, 0, 0]} opacity={0.85} />
+                <Bar dataKey="rewarded" name="Rewarded" fill="#22c55e" radius={[4, 4, 0, 0]} opacity={0.85} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         <div className="sa-chart-card">
@@ -158,17 +160,19 @@ export default function ReferralDashboard() {
             <div className="sa-chart-title">Reward Distribution</div>
             <div className="sa-chart-desc">{referrals.length} referrals</div>
           </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <PieChart>
-              <Pie data={rewardDistribution} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2} dataKey="value">
-                {rewardDistribution.map((entry, i) => (
-                  <Cell key={entry.name} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend wrapperStyle={{ fontSize: 10 }} />
-            </PieChart>
-          </ResponsiveContainer>
+          <div role="img" aria-label="Pie chart showing reward distribution by status">
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie data={rewardDistribution} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2} dataKey="value">
+                  {rewardDistribution.map((entry, i) => (
+                    <Cell key={entry.name} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 
@@ -181,11 +185,11 @@ export default function ReferralDashboard() {
             <table className="data-table" style={{ minWidth: 500 }}>
               <thead>
                 <tr>
-                  <th>#</th>
-                  <th>Name</th>
-                  <th>Successful Referrals</th>
-                  <th>Conversion %</th>
-                  <th>Rewards Earned</th>
+                  <th scope="col">#</th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Successful Referrals</th>
+                  <th scope="col">Conversion %</th>
+                  <th scope="col">Rewards Earned</th>
                 </tr>
               </thead>
               <tbody>
@@ -216,6 +220,7 @@ export default function ReferralDashboard() {
               className="form-input"
               type="text"
               placeholder="Search by name or code..."
+              aria-label="Search referrals by name or code"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               style={{ width: 200, padding: '6px 12px', fontSize: 12 }}
@@ -237,7 +242,7 @@ export default function ReferralDashboard() {
 
         {filteredReferrals.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>📨</div>
+            <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }} aria-hidden="true">📨</div>
             <p style={{ fontSize: 15, fontWeight: 600, margin: '0 0 4px' }}>No referrals found</p>
             <p style={{ fontSize: 12, margin: 0, color: 'var(--text-dim)' }}>Try adjusting your search or filter.</p>
           </div>
@@ -246,12 +251,12 @@ export default function ReferralDashboard() {
             <table className="data-table" style={{ minWidth: 600 }}>
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Referrer</th>
-                  <th>Referred</th>
-                  <th>Code</th>
-                  <th>Status</th>
-                  <th>Reward</th>
+                  <th scope="col">Date</th>
+                  <th scope="col">Referrer</th>
+                  <th scope="col">Referred</th>
+                  <th scope="col">Code</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Reward</th>
                 </tr>
               </thead>
               <tbody>

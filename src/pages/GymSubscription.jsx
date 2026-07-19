@@ -124,7 +124,7 @@ export default function GymSubscription() {
             background: 'linear-gradient(135deg, rgba(232,66,10,0.12), rgba(255,106,42,0.08))',
             border: '1px solid rgba(232,66,10,0.12)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24
-          }}>{sub?.status === 'expired' ? '🚫' : '🔑'}</div>
+          }} aria-hidden="true">{sub?.status === 'expired' ? '🚫' : '🔑'}</div>
           <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 36, fontWeight: 800, color: '#e4e8f0', margin: '0 0 6px' }}>Subscription</h1>
           <p style={{ fontSize: 14, color: '#6070a0', margin: 0 }}>{sub ? 'Manage your gym\'s subscription plan' : 'No subscription found for this gym'}</p>
         </div>
@@ -146,10 +146,10 @@ export default function GymSubscription() {
                 background: `${statusColor}12`, border: `1px solid ${statusColor}22`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
               }}>
-                {sub?.status === 'active' ? <span style={{ fontSize: 32, color: '#10b981' }}>✓</span>
-                  : sub?.status === 'expired' ? <span style={{ fontSize: 32, color: '#ef4444' }}>!</span>
-                  : sub?.status === 'trial' ? <span style={{ fontSize: 32, color: '#00c8b4' }}>★</span>
-                  : <span style={{ fontSize: 32, color: '#8b5cf6' }}>●</span>}
+                {sub?.status === 'active' ? <span aria-hidden="true" style={{ fontSize: 32, color: '#10b981' }}>✓</span>
+                  : sub?.status === 'expired' ? <span aria-hidden="true" style={{ fontSize: 32, color: '#ef4444' }}>!</span>
+                  : sub?.status === 'trial' ? <span aria-hidden="true" style={{ fontSize: 32, color: '#00c8b4' }}>★</span>
+                  : <span aria-hidden="true" style={{ fontSize: 32, color: '#8b5cf6' }}>●</span>}
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 12, color: '#506080', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Current Plan</div>
@@ -221,7 +221,7 @@ export default function GymSubscription() {
               </div>
             )}
             {actionError && (
-              <div style={{
+              <div role="alert" style={{
                 background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)',
                 borderRadius: 10, padding: '10px 14px', marginBottom: 16,
                 fontSize: 13, color: '#f87171', textAlign: 'center'
@@ -234,7 +234,7 @@ export default function GymSubscription() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
                 {benefits.map(b => (
                   <div key={b.title} className="sub-glass" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{ fontSize: 18 }}>{b.icon}</span>
+                    <span aria-hidden="true" style={{ fontSize: 18 }}>{b.icon}</span>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: '#a0aac0' }}>{b.title}</div>
                       <div style={{ fontSize: 11, color: '#506080' }}>{b.desc}</div>
@@ -255,7 +255,7 @@ export default function GymSubscription() {
                     <thead>
                       <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
                         {['Action', 'Plan', 'Amount', 'Date', 'Status'].map(h => (
-                          <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#384860', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
+                          <th key={h} scope="col" style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#384860', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -288,7 +288,7 @@ export default function GymSubscription() {
 
       {/* Modals */}
       {showRenew && (
-        <div className="modal-overlay" onClick={() => setShowRenew(false)}>
+        <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setShowRenew(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h3 style={{ marginBottom: 16 }}>Renew Subscription</h3>
             <label className="form-label">Select Plan</label>
@@ -303,7 +303,7 @@ export default function GymSubscription() {
         </div>
       )}
       {showUpgrade && (
-        <div className="modal-overlay" onClick={() => setShowUpgrade(false)}>
+        <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setShowUpgrade(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h3 style={{ marginBottom: 16 }}>Upgrade Plan</h3>
             <label className="form-label">Select New Plan</label>
@@ -318,7 +318,7 @@ export default function GymSubscription() {
         </div>
       )}
       {showExtend && (
-        <div className="modal-overlay" onClick={() => setShowExtend(false)}>
+        <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setShowExtend(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h3 style={{ marginBottom: 16 }}>Extend Expiry</h3>
             <label className="form-label">Extend by (days)</label>

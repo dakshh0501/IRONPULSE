@@ -1174,15 +1174,17 @@ export function subscribeToGyms(callback, onError) {
 }
 
 export async function addGym(gymData, ownerUid) {
+  const gymRef = doc(collection(db, 'gyms'))
   const data = {
     ...gymData,
+    gymId: gymRef.id,
     ownerUid,
     approvalStatus: 'pending',
     createdAt: serverTimestamp(),
   }
   try {
-    const docRef = await addDoc(collection(db, 'gyms'), data)
-    return docRef.id
+    await setDoc(gymRef, data)
+    return gymRef.id
   } catch (e) {
     console.error('addGym error:', e)
     throw e

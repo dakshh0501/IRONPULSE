@@ -120,14 +120,14 @@ export default function MemberModal({ member, trainers, onSave, onClose, plans }
   }
 
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()} role="dialog" aria-modal="true" aria-label={isEdit ? 'Edit Member' : 'Add New Member'}>
       <div className="modal modal-lg">
         <div className="modal-header">
           <div>
-            <h3>{isEdit ? 'Edit Member' : 'Add New Member'}</h3>
+            <h3 id="member-modal-title">{isEdit ? 'Edit Member' : 'Add New Member'}</h3>
             <p>{isEdit ? 'Update member information' : 'Fill in the details to add a new member'}</p>
           </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose} aria-label="Close modal"><span aria-hidden="true">✕</span></button>
         </div>
 
         <div style={{ padding:'0 24px 24px', display:'flex', flexDirection:'column', gap:20 }}>
@@ -135,10 +135,12 @@ export default function MemberModal({ member, trainers, onSave, onClose, plans }
             <div className="members-modal-section-title">Personal Information</div>
             <div className="form-row">
               <Field label="Full Name *" error={errors.name}>
-                <input className="form-input" placeholder="e.g. Rohan Sharma" value={form.name} onChange={e => set('name', e.target.value)} />
+                <input className="form-input" placeholder="e.g. Rohan Sharma" value={form.name} onChange={e => set('name', e.target.value)} aria-invalid={errors.name ? 'true' : 'false'} aria-describedby={errors.name ? 'err-name' : undefined} />
+                {errors.name && <span id="err-name" className="sr-only">{errors.name}</span>}
               </Field>
               <Field label="Email *" error={errors.email}>
-                <input className="form-input" type="email" placeholder="email@example.com" value={form.email} onChange={e => set('email', e.target.value)} />
+                <input className="form-input" type="email" placeholder="email@example.com" value={form.email} onChange={e => set('email', e.target.value)} aria-invalid={errors.email ? 'true' : 'false'} aria-describedby={errors.email ? 'err-email' : undefined} />
+                {errors.email && <span id="err-email" className="sr-only">{errors.email}</span>}
               </Field>
             </div>
             <div className="form-row">
