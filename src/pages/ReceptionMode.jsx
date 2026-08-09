@@ -287,15 +287,6 @@ function ManualModal({ members, checkedInIds, onCheckIn, onClose }) {
 export default function ReceptionMode() {
   const { attendance, members, gymSettings, gymId } = useApp()
   const { effectiveRole } = useAuth()
-  if (effectiveRole !== 'super_admin' && effectiveRole !== 'gym_admin' && effectiveRole !== 'trainer') {
-    return (
-      <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }} aria-hidden="true">🔒</div>
-        <h3>Access Restricted</h3>
-        <p style={{ marginTop: 8 }}>Only staff can access Reception mode.</p>
-      </div>
-    )
-  }
   const gymName = gymSettings?.name || 'IronForge Gym'
 
   const safeAttendance = attendance || []
@@ -399,6 +390,16 @@ export default function ReceptionMode() {
     }
     handleCheckIn(member, 'QR')
   }, [safeMembers, handleCheckIn, pushFeedback])
+
+  if (effectiveRole !== 'super_admin' && effectiveRole !== 'gym_admin' && effectiveRole !== 'trainer') {
+    return (
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }} aria-hidden="true">🔒</div>
+        <h3>Access Restricted</h3>
+        <p style={{ marginTop: 8 }}>Only staff can access Reception mode.</p>
+      </div>
+    )
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)', fontFamily: "'Barlow', sans-serif", color: 'var(--text)' }}>

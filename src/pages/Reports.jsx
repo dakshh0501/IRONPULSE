@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { jsPDF } from 'jspdf'
 import {
@@ -8,6 +8,7 @@ import {
   CartesianGrid, Legend,
 } from 'recharts'
 import { useSearchParams } from 'react-router-dom'
+import { registerActionHandlers } from '../services/ai/actionBus'
 
 const formatDate = (date) => date.toISOString().split('T')[0]
 const hasStatus = (obj, status) => (obj?.status || '').toLowerCase() === status
@@ -751,6 +752,12 @@ export default function Reports() {
   const { members, payments, trainers, attendance } = useApp()
   const [activeTab, setActiveTab] = useState('Dashboard')
   const [dateRange, setDateRange] = useState('month')
+
+  // AI Action Engine — Reports is reachable via "open reports".
+  useEffect(() => registerActionHandlers('reports', {
+    open() {},
+    setPreset({ preset }) { if (preset) setDateRange(preset) },
+  }), [])
 
   const cutoff = getCutoffDate(dateRange)
   const filteredPayments = useMemo(() => payments.filter(p => {

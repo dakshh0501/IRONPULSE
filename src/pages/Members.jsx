@@ -6,6 +6,7 @@ import DeleteConfirm from '../components/DeleteConfirm'
 import MemberDrawer from '../components/MemberDrawer'
 import MemberRow from '../components/MemberRow'
 import { useSearchParams } from 'react-router-dom'
+import { registerActionHandlers } from '../services/ai/actionBus'
 
 export default function Members() {
   const [searchParams] = useSearchParams(); const propSearch = searchParams.get('q') || ''
@@ -18,6 +19,7 @@ export default function Members() {
   const [filter,     setFilter]     = useState('All')
   const [modalOpen,  setModalOpen]  = useState(false)
   const [editMember, setEditMember] = useState(null)
+  const [modalPrefill, setModalPrefill] = useState(null)
   const [delMember,  setDelMember]  = useState(null)
   const [viewMember, setViewMember] = useState(null)
   const [searchText, setSearchText] = useState(propSearch || '')
@@ -33,7 +35,22 @@ export default function Members() {
   }, [members.length, dataLoaded])
   const pageSize = 15
 
-  const statuses = ['All', 'Active', 'Expired', 'Trial']
+  // AI Action Engine handlers — scoped, DOM-level only.
+  useEffect(() => registerActionHandlers('members', {
+    openAdd() { setSearchText(''); setFilter('All'); setPage(1); setEditMember(null); setModalPrefill(null); setModalOpen(true) },
+    openAddPrefill({ name }) {
+      setSearchText(''); setFilter('All'); setPage(1); setEditMember(null)
+      setModalPrefill(name ? { name } : null)
+      setModalOpen(true)
+    },
+    open() { setPage(1) },
+    applyPreset({ preset }) {
+      if (preset === 'expiring') { setFilter('Expiring'); setPage(1) }
+    },
+    focusSearch() { document.querySelector('.members-search-input')?.focus() },
+  }), [])
+
+  const statuses = ['All', 'Active', 'Expiring', 'Expired', 'Trial']
 
   const normalizedMembers = useMemo(() =>
     members.map(member => {
@@ -42,6 +59,16 @@ export default function Members() {
       return { ...member, status: expired ? 'Expired' : member.status }
     }),
   [members])
+
+  const expiringSoonIds = useMemo(() => new Set(
+    normalizedMembers
+      .filter(m => {
+        if (!m.expiry) return false
+        const d = Math.ceil((new Date(m.expiry) - new Date()) / 86400000)
+        return d >= 0 && d <= 7
+      })
+      .map(m => m.id)
+  ), [normalizedMembers])
 
   const currentTrainer = useMemo(() => {
     const t = trainers.find(t => t.authUid === currentUser?.uid)
@@ -52,7 +79,9 @@ export default function Members() {
   const filtered = useMemo(() => {
     return normalizedMembers.filter(m => {
       const matchTrainer = effectiveRole === 'trainer' ? m.trainerId === currentTrainer?.id : true
-      const matchFilter  = filter === 'All' || m.status === filter
+      const matchFilter  = filter === 'All' ? true
+        : filter === 'Expiring' ? expiringSoonIds.has(m.id)
+        : m.status === filter
       const q = (searchText || '').toLowerCase()
       const matchSearch = !q || m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q) || (m.goal||'').toLowerCase().includes(q) || (m.plan||'').toLowerCase().includes(q) || (m.contact||'').includes(q)
       return matchTrainer && matchFilter && matchSearch
@@ -62,7 +91,7 @@ export default function Members() {
       if (sortBy === 'expiry') return (a.expiry||'').localeCompare(b.expiry||'')
       return 0
     })
-  }, [normalizedMembers, filter, searchText, effectiveRole, currentTrainer, trainers, sortBy])
+  }, [normalizedMembers, filter, searchText, effectiveRole, currentTrainer, trainers, sortBy, expiringSoonIds])
 
   const totalPages = Math.ceil(filtered.length / pageSize)
   const pagedMembers = filtered.slice((page - 1) * pageSize, page * pageSize)
@@ -148,7 +177,7 @@ export default function Members() {
           </div>
           <button className="btn btn-ghost btn-sm" onClick={handleExportCSV} title="Export CSV">📥 Export</button>
           {isAdmin && (
-            <button className="btn btn-primary" onClick={() => { setEditMember(null); setModalOpen(true) }}>
+            <button className="btn btn-primary" onClick={() => { setEditMember(null); setModalPrefill(null); setModalOpen(true) }}>
               + Add Member
             </button>
           )}
@@ -236,7 +265,7 @@ export default function Members() {
             <h3 className="members-empty-title">No members yet</h3>
             <p className="members-empty-text">Get started by adding your first member.</p>
             {isAdmin && (
-              <button className="btn btn-primary" onClick={() => { setEditMember(null); setModalOpen(true) }}>+ Add Member</button>
+              <button className="btn btn-primary" onClick={() => { setEditMember(null); setModalPrefill(null); setModalOpen(true) }}>+ Add Member</button>
             )}
           </div>
         ) : (
@@ -327,10 +356,11 @@ export default function Members() {
       {modalOpen && (
         <MemberModal
           member={editMember}
+          prefill={modalPrefill}
           trainers={trainers}
           plans={plans}
           onSave={data => editMember ? updateMember(editMember.id, data) : addMember(data)}
-          onClose={() => { setModalOpen(false); setEditMember(null) }}
+          onClose={() => { setModalOpen(false); setEditMember(null); setModalPrefill(null) }}
         />
       )}
 

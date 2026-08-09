@@ -4,6 +4,7 @@ import { useAuth }           from '../context/AuthContext'
 import { addAttendance as addAttendanceService } from '../services/attendanceService'
 import QRScanner             from '../components/QRScanner'
 import { useSearchParams } from 'react-router-dom'
+import { registerActionHandlers } from '../services/ai/actionBus'
 
 function getTodayStr() { return new Date().toISOString().split('T')[0] }
 
@@ -370,6 +371,12 @@ export default function Attendance() {
   const [todayStr, setTodayStr] = useState(getTodayStr)
   const [errorMsg, setErrorMsg] = useState('')
 
+  // AI Action Engine — Attendance is reachable via the assistant.
+  useEffect(() => registerActionHandlers('attendance', {
+    openScanner() { setShowScanner(true) },
+    open() {},
+  }), [])
+
   useEffect(() => {
     const id = setInterval(() => {
       const ts = getTodayStr()
@@ -462,21 +469,23 @@ export default function Attendance() {
   }, [handleScanSuccess])
 
   // ── Member view ──
+  const myStreak = useMemo(() => {
+    const uid = (members?.[0]?.authUid || members?.[0]?.uid || members?.[0]?.id || '')
+    const days = new Set(attendance.filter(l => l.memberId === uid).map(l => l.date))
+    let s = 0
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(); d.setDate(d.getDate() - i)
+      if (days.has(d.toISOString().split('T')[0])) s++; else break
+    }
+    return s
+  }, [attendance, members])
+
   if (isMember) {
     const myAuthUid = (members?.[0]?.authUid || members?.[0]?.uid || members?.[0]?.id || '')
     const myLogs = attendance.filter(l => l.memberId === myAuthUid)
     const checkedInToday = myLogs.some(l => l.date === todayStr)
     const myLastCheckin = [...myLogs].sort((a, b) => ((b.date||'')+(b.time||'')).localeCompare((a.date||'')+(a.time||'')))[0]
     const thisMonthLogs = myLogs.filter(l => l.date?.startsWith(todayStr.slice(0, 7)))
-    const myStreak = useMemo(() => {
-      const days = new Set(myLogs.map(l => l.date))
-      let s = 0
-      for (let i = 0; i < 30; i++) {
-        const d = new Date(); d.setDate(d.getDate() - i)
-        if (days.has(d.toISOString().split('T')[0])) s++; else break
-      }
-      return s
-    }, [myLogs])
 
     return (
       <div className="page-container">

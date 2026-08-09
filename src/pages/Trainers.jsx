@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, memo } from 'react'
 import { useApp } from '../context/AppContext'
 import { useSearchParams } from 'react-router-dom'
+import { registerActionHandlers } from '../services/ai/actionBus'
 
 const SPECIALIZATIONS = Object.freeze([
   'Strength & Conditioning', 'Yoga & Flexibility', 'CrossFit & HIIT',
@@ -486,6 +487,12 @@ export default function Trainers() {
   const [delTrainer, setDelTrainer] = useState(null)
   const [localSearch, setLocalSearch] = useState('')
   const [page, setPage] = useState(1)
+
+  // AI Action Engine handlers — open the Add Trainer form.
+  useEffect(() => registerActionHandlers('trainers', {
+    openAdd() { setEditTrainer(null); setFormOpen(true) },
+    open() { setPage(1) },
+  }), [])
 
   useEffect(() => {
     if (trainers.length > 0) setLoading(false)

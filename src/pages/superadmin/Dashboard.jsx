@@ -3,6 +3,8 @@ import { useApp } from '../../context/AppContext'
 import { useAuth } from '../../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, AreaChart, Area } from 'recharts'
+import { computePlatformHealth, generatePlatformInsights } from '../../services/ai/insightEngine'
+import { InsightsPanel } from '../../components/ai/InsightCards'
 
 const fmt = n => n ? `₹${Number(n).toLocaleString('en-IN')}` : '₹0'
 const PLAN_COLORS = { Trial: '#f59e0b', Basic: '#00c8b4', Pro: '#e8420a', Premium: '#a855f7', Enterprise: '#22c55e' }
@@ -279,8 +281,18 @@ function SystemHealth() {
 // ─── Main Page ───────────────────────────────────────────────
 export default function PlatformDashboard() {
   const navigate = useNavigate()
-  const { gyms, subscriptions, payments, members, trainers, pendingCount, supportTickets } = useApp()
+  const { gyms, subscriptions, payments, members, trainers, pendingCount, supportTickets, whatsappCampaigns = [] } = useApp()
   const { effectiveRole } = useAuth()
+
+  // ── AI Platform Insights (Sprint 79E) — memoized, live data ──
+  const platformInsightData = useMemo(() => ({
+    gyms,
+    subscriptions,
+    whatsappCampaigns,
+  }), [gyms, subscriptions, whatsappCampaigns])
+
+  const platformInsights = useMemo(() => generatePlatformInsights(platformInsightData), [platformInsightData])
+  const platformHealth = useMemo(() => computePlatformHealth(platformInsightData), [platformInsightData])
 
   const gymMemberCount = useMemo(() => {
     if (!members || !gyms) return {}
@@ -381,6 +393,9 @@ export default function PlatformDashboard() {
 
       {/* ═══════════════ BUSINESS INSIGHTS ═══════════════ */}
       <PlatformInsights stats={stats} gyms={gyms} subscriptions={subscriptions} />
+
+      {/* ═══════════════ AI HEALTH & INSIGHTS ═══════════════ */}
+      <InsightsPanel health={platformHealth} insights={platformInsights} title="Platform Health & Insights" limit={4} />
 
       {/* ═══════════════ QUICK ACTIONS ═══════════════ */}
       <div className="sa-actions-card">

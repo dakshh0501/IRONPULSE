@@ -2,6 +2,9 @@
 import { Helmet } from 'react-helmet-async'
 import { useLocation } from 'react-router-dom'
 import { buildPageMeta, SITE_URL, SITE_NAME } from '../utils/seo'
+import { SUPPORT_WHATSAPP } from '../config/support'
+
+const SUPPORT_PHONE = `+91-${SUPPORT_WHATSAPP}`
 
 const SCHEMA_ORG = {
   '@context': 'https://schema.org',
@@ -16,7 +19,7 @@ const SCHEMA_ORG = {
       foundingDate: '2024',
       contactPoint: {
         '@type': 'ContactPoint',
-        telephone: '+91-XXXXXXXXXX',
+        telephone: SUPPORT_PHONE,
         contactType: 'customer support',
         availableLanguage: ['English', 'Hindi'],
       },

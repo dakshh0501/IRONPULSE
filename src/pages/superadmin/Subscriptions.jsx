@@ -1044,7 +1044,7 @@ export default function SuperAdminSubscriptions() {
                   <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 16px' }}>Usage Overview</h3>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
                     {[
-                      { label: 'Gym Name', value: selectedGymName || selectedSub?.gymId || '—', color: '#3b82f6', icon: '🏢' },
+                      { label: 'Gym Name', value: (gyms.find(g => g.id === selectedSub.gymId || g.gymId === selectedSub.gymId)?.gymName) || selectedSub?.gymId || '—', color: '#3b82f6', icon: '🏢' },
                       { label: 'Plan', value: selectedSub?.plan || '—', color: '#22c55e', icon: '📋' },
                       { label: 'Status', value: selectedSub?.status || '—', color: '#f59e0b', icon: selectedSub?.status === 'active' ? '✅' : selectedSub?.status === 'expired' ? '❌' : '⏳' },
                       { label: 'Plan Type', value: selectedSub?.planType || '—', color: '#a855f7', icon: '📊' },

@@ -4,6 +4,8 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getReferralStats } from '../services/referralService'
+import { computeGymHealth, generateGymInsights } from '../services/ai/insightEngine'
+import { InsightsPanel } from '../components/ai/InsightCards'
 
 const todayDate = new Date()
 let todayDateCache = { date: todayDate, str: todayDate.toLocaleDateString('en-CA'), dateStr: todayDate.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' }), hour: todayDate.getHours() }
@@ -11,7 +13,7 @@ let todayDateCache = { date: todayDate, str: todayDate.toLocaleDateString('en-CA
 export default function AdminDashboard() {
   const navigate = useNavigate()
 
-  const { members, trainers, payments, attendance, gymSettings, gyms, subscriptions, notifications, referrals } = useApp()
+  const { members, trainers, payments, attendance, gymSettings, gyms, subscriptions, notifications, referrals, whatsappLogs = [], whatsappCampaigns = [] } = useApp()
   const { currentUser, effectiveRole } = useAuth()
 
   const isAdmin = effectiveRole === 'super_admin' || effectiveRole === 'gym_admin'
@@ -194,6 +196,20 @@ export default function AdminDashboard() {
     })
     .reduce((sum, p) => sum + (Number(p.paid) || 0), 0), [payments, todayDate])
   const revenueTrend = trendIcon(todayRevenue, yesterdayRevenue)
+
+  // ── AI Insights (Sprint 79E) — memoized, live data only ──
+  const insightData = useMemo(() => ({
+    members,
+    trainers,
+    payments,
+    attendance,
+    referrals,
+    whatsappLogs,
+    whatsappCampaigns,
+  }), [members, trainers, payments, attendance, referrals, whatsappLogs, whatsappCampaigns])
+
+  const gymInsights = useMemo(() => generateGymInsights(insightData), [insightData])
+  const gymHealth = useMemo(() => computeGymHealth(insightData), [insightData])
 
   return (
     <div className="page-container">
@@ -577,6 +593,11 @@ export default function AdminDashboard() {
             )
           })()}
         </div>
+      )}
+
+      {/* ═══════════════════ AI INSIGHTS (gym scope) ═══════════════════ */}
+      {isAdmin && !isSuperAdmin && (
+        <InsightsPanel health={gymHealth} insights={gymInsights} title="Gym Health & Insights" limit={4} />
       )}
 
       {/* ═══════════════════ QUICK ACTIONS ═══════════════════ */}

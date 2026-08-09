@@ -3,6 +3,9 @@ import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import MemberQR from '../components/MemberQR'
 import MemberAvatar from '../components/MemberAvatar'
+import { registerActionHandlers } from '../services/ai/actionBus'
+import { computeMemberHealth, generateMemberInsights } from '../services/ai/insightEngine'
+import { InsightsPanel } from '../components/ai/InsightCards'
 
 // ─── helpers ────────────────────────────────────────────────
 function monthKey(dateStr) {
@@ -260,6 +263,14 @@ export default function MemberDashboard() {
   const { currentUser, userProfile } = useAuth()
   const [dataLoaded, setDataLoaded] = useState(false)
 
+  // AI Action Engine — "Show my QR" scrolls to the QR card.
+  useEffect(() => registerActionHandlers('member-dashboard', {
+    scrollToQr() {
+      document.getElementById('member-qr-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    },
+    open() {},
+  }), [])
+
   useEffect(() => {
     const timer = setTimeout(() => setDataLoaded(true), 4000)
     return () => clearTimeout(timer)
@@ -299,6 +310,26 @@ export default function MemberDashboard() {
   const myProgressLogs = useMemo(
     () => progressLogs.filter(p => p.authUid === currentUser?.uid),
     [progressLogs, currentUser?.uid]
+  )
+
+  // ── AI Insights (Sprint 79E) — memoized, from live data ──
+  const insightData = useMemo(() => ({
+    members: me ? [me] : [],
+    attendance: myAttendance,
+    progressLogs: myProgressLogs,
+    workoutPlans: myWorkoutPlans,
+    dietPlans: myDietPlans,
+    payments: myPayments,
+  }), [me, myAttendance, myProgressLogs, myWorkoutPlans, myDietPlans, myPayments])
+
+  const myInsights = useMemo(
+    () => (me ? generateMemberInsights(me, insightData) : []),
+    [me, insightData]
+  )
+
+  const myHealth = useMemo(
+    () => (me ? computeMemberHealth(me, insightData) : null),
+    [me, insightData]
   )
 
   // ── derived stats
@@ -367,6 +398,9 @@ export default function MemberDashboard() {
 
       {/* ── Membership Info Card ── */}
       <MembershipCard me={me} />
+
+      {/* ── AI Health & Insights ── */}
+      <InsightsPanel health={myHealth} insights={myInsights} title="My Health & Insights" limit={3} />
 
       {/* ── Current Diet Plan ── */}
       <div className="card">
@@ -451,7 +485,7 @@ export default function MemberDashboard() {
       </div>
 
       {/* ── QR Card ── */}
-      <div className="card">
+      <div className="card" id="member-qr-section">
         <div className="section-title" style={{ marginBottom: 20 }}>My QR Check-in</div>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <MemberQR

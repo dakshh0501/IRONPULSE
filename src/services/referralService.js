@@ -191,7 +191,9 @@ export function getReferralStats(referrals) {
     .filter(r => r.status === 'Rewarded' && r.rewardIssued)
     .reduce((sum, r) => sum + (Number(r.rewardValue) || 0), 0)
   const conversionRate = total > 0 ? ((rewarded / total) * 100).toFixed(1) : '0.0'
-  const rewardCost = rewarded * (referrals.find(r => r.rewardValue)?.rewardValue || 0)
+  const rewardCost = referrals
+    .filter(r => r.status === 'Rewarded')
+    .reduce((sum, r) => sum + (Number(r.rewardValue) || 0), 0)
   return { total, pending, qualified, rewarded, rejected, rewardsEarned, conversionRate, rewardCost }
 }
 

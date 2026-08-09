@@ -58,6 +58,7 @@ import {
   deleteGym as deleteGymFromFirestore,
   getSubscriptionByGymId,
   addSubscription,
+  subscribeToWhatsappLogs,
 } from '../services/firestoreService'
 import {
   subscribeAttendance,
@@ -114,6 +115,14 @@ import {
   subscribeToGymDiscountCoupons,
 } from '../services/referralService'
 import { fetchSecurityMetrics as fetchSecurityMetricsFromService } from '../services/securityService'
+import whatsappService, {
+  init as initWhatsAppService,
+  saveConfig as saveWhatsAppConfig,
+  triggerEvent as triggerWhatsAppEvent,
+  setSweepData as setWhatsAppSweepData,
+  setCampaignFeedData as setWhatsAppCampaignFeed,
+  syncCampaigns as syncWhatsAppCampaigns,
+} from '../services/whatsapp/whatsappService'
 
 const AppContext = createContext()
 
@@ -159,6 +168,9 @@ export function AppProvider({ children }) {
   const [referralSettings, setReferralSettings] = useState(null)
   const [rewardLedger, setRewardLedger] = useState([])
   const [discountCoupons, setDiscountCoupons] = useState([])
+  const [whatsappConfig, setWhatsappConfig] = useState(null)
+  const [whatsappLogs, setWhatsappLogs] = useState([])
+  const [whatsappCampaigns, setWhatsappCampaigns] = useState([])
 
   const errorSeq = useRef(0)
   const errorTimers = useRef([])
@@ -787,6 +799,37 @@ export function AppProvider({ children }) {
     }
   }, [currentUser, authLoading, effectiveRole, queryGymId, reportSnapshotError])
 
+  // ── WhatsApp automation (Sprint 79A): config init + log listener ──
+  useEffect(() => {
+    if (authLoading || !currentUser || !gymId) return
+    let mounted = true
+    let unsubLogs
+    initWhatsAppService(gymId).then(cfg => {
+      if (mounted) setWhatsappConfig(cfg)
+    }).catch(() => {})
+    if (isAdmin) {
+      unsubLogs = subscribeToWhatsappLogs((logs) => setWhatsappLogs(logs), gymId, reportSnapshotError)
+    }
+    return () => { mounted = false; if (unsubLogs) unsubLogs() }
+  }, [authLoading, currentUser, gymId, isAdmin, reportSnapshotError])
+
+  // ── Feed sweep data once members/payments arrive (no polling) ──
+  useEffect(() => {
+    if (!members.length && !payments.length) return
+    setWhatsAppSweepData(members, payments)
+    setWhatsAppCampaignFeed(members, payments)
+  }, [members, payments])
+
+  // ── Campaigns: one-shot sync (no realtime listeners — Sprint 79B) ──
+  useEffect(() => {
+    if (authLoading || !currentUser || !isAdmin) return
+    let mounted = true
+    syncWhatsAppCampaigns(gymId).then(list => {
+      if (mounted) setWhatsappCampaigns(list)
+    }).catch(() => {})
+    return () => { mounted = false }
+  }, [authLoading, currentUser, isAdmin, gymId])
+
   // ── Pending approvals count — SUPER_ADMIN ONLY ──────────
   useEffect(() => {
     if (authLoading || !currentUser) return
@@ -966,6 +1009,14 @@ export function AppProvider({ children }) {
             relatedDocumentId: memberId,
           }).catch(() => {})
         }
+        if (memberData.phone) {
+          triggerWhatsAppEvent('welcome', {
+            memberId,
+            memberName: memberData.name || '',
+            phone: memberData.phone,
+            planName: memberData.plan || '',
+          })
+        }
       }
       return memberId
     } catch (error) {
@@ -1074,6 +1125,15 @@ export function AppProvider({ children }) {
             relatedDocumentId: paymentId || '',
           }).catch(err => console.error('[AppContext]', err))
         }
+      }
+      if (paymentData.phone) {
+        triggerWhatsAppEvent('payment_created', {
+          memberId: paymentData.memberId || '',
+          memberName: paymentData.memberName || '',
+          phone: paymentData.phone,
+          amount: paymentData.amount,
+          planName: paymentData.plan,
+        })
       }
       return paymentId
     } catch (error) {
@@ -1276,7 +1336,7 @@ export function AppProvider({ children }) {
   const addDietPlan = async (planData) => {
     try {
       const planId = await addDietPlanToFirestore({ ...planData, gymId })
-      if (planData.authUid) {
+      if (planData.authUid && planData.ownerType !== 'draft') {
         fireNotif('diet_assigned', {
           userId: planData.authUid,
           title: 'Diet Plan Assigned',
@@ -1284,6 +1344,15 @@ export function AppProvider({ children }) {
           relatedDocumentId: planId || '',
           actionUrl: '/diet',
         }).catch(err => console.error('[AppContext]', err))
+        const waMember = members.find(m => (m.authUid || m.id) === planData.authUid)
+        if (waMember?.phone) {
+          triggerWhatsAppEvent('diet_assigned', {
+            memberId: waMember.id,
+            memberName: waMember.name || '',
+            phone: waMember.phone,
+            planName: planData.name || '',
+          })
+        }
       }
       return planId
     } catch (error) {
@@ -1314,7 +1383,7 @@ export function AppProvider({ children }) {
   const addWorkoutPlan = async (planData) => {
     try {
       const planId = await addWorkoutPlanToFirestore({ ...planData, gymId })
-      if (planData.authUid) {
+      if (planData.authUid && planData.ownerType !== 'draft') {
         fireNotif('workout_assigned', {
           userId: planData.authUid,
           title: 'Workout Plan Assigned',
@@ -1322,6 +1391,15 @@ export function AppProvider({ children }) {
           relatedDocumentId: planId || '',
           actionUrl: '/workouts',
         }).catch(err => console.error('[AppContext]', err))
+        const waMember = members.find(m => (m.authUid || m.id) === planData.authUid)
+        if (waMember?.phone) {
+          triggerWhatsAppEvent('workout_assigned', {
+            memberId: waMember.id,
+            memberName: waMember.name || '',
+            phone: waMember.phone,
+            planName: planData.name || '',
+          })
+        }
       }
       return planId
     } catch (error) {
@@ -1521,6 +1599,19 @@ export function AppProvider({ children }) {
   }
 
   // ── Stable actions ref (always has latest functions, stable identity) ──
+  const createReferralAction = async (referralData) => {
+    const ref = await createReferralInFirestore(referralData)
+    const referrer = members.find(m => (m.authUid || m.id) === (referralData.referrerUid || ''))
+    if (referrer?.phone) {
+      triggerWhatsAppEvent('referral_reward', {
+        memberId: referrer.id,
+        memberName: referrer.name || '',
+        phone: referrer.phone,
+      })
+    }
+    return ref
+  }
+
   actionsRef.current = {
     setDarkMode,
     addMember, updateMember, deleteMember,
@@ -1539,7 +1630,7 @@ export function AppProvider({ children }) {
     approveGymOwner, rejectGymOwner,
     addSupportTicket, addFeatureRequest,
     addGym, updateGym, deleteGym,
-    createReferral: createReferralInFirestore,
+    createReferral: createReferralAction,
     updateReferral: updateReferralInFirestore,
   }
 
@@ -1556,6 +1647,27 @@ export function AppProvider({ children }) {
     referrals, referralSettings, referralsLoading,
     rewardLedger, discountCoupons,
     securityMetrics, securityMetricsLoading, unreadCount,
+    whatsappConfig, whatsappLogs, whatsappCampaigns, whatsapp:
+      {
+        saveConfig: (cfg) => saveWhatsAppConfig(cfg, gymId).then(saved => { setWhatsappConfig(saved); return saved; }),
+        triggerEvent: triggerWhatsAppEvent,
+        sendTest: (args) => whatsappService.testSend(args),
+        announceTo: (args) => whatsappService.announceTo(args),
+        retryEntry: (id) => whatsappService.retryEntry(id),
+        getProviderStatus: () => whatsappService.getProviderStatus(),
+        setMockScenario: (s) => whatsappService.setMockScenario(s),
+        getStats: () => whatsappService.getStats(),
+        getLastExecutions: () => whatsappService.getLastExecutions(),
+        runSweepsNow: (m, p) => whatsappService.runSweepsNow(m, p),
+        campaigns: {
+          async create(c) { const r = await whatsappService.createCampaign(c); await syncWhatsAppCampaigns(gymId).then(setWhatsappCampaigns).catch(() => {}); return r },
+          async cancel(id) { await whatsappService.cancelCampaign(id); await syncWhatsAppCampaigns(gymId).then(setWhatsappCampaigns).catch(() => {}) },
+          async runNow(id) { const q = await whatsappService.runCampaignNow(id); await syncWhatsAppCampaigns(gymId).then(setWhatsappCampaigns).catch(() => {}); return q },
+          async remove(id) { await whatsappService.removeCampaign(id); setWhatsappCampaigns(prev => prev.filter(c => c.id !== id)) },
+          preview: (audience) => whatsappService.previewCampaign(audience, members, payments),
+          list: whatsappCampaigns,
+        },
+      },
     ...actionsRef.current,
   }), [
     darkMode, gymId,
@@ -1570,6 +1682,7 @@ export function AppProvider({ children }) {
     referrals, referralSettings, referralsLoading,
     rewardLedger, discountCoupons,
     securityMetrics, securityMetricsLoading, unreadCount,
+    whatsappConfig, whatsappLogs, whatsappCampaigns,
   ])
 
   return (

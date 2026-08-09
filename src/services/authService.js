@@ -40,6 +40,8 @@ export async function signUp({ name, email, password, gymData, role, referredBy 
     authUser = authResult.user
   } catch (e) {
     console.error('[SIGNUP AUTH] createUserWithEmailAndPassword', '', e.code, e.message, e)
+    // auth/email-already-in-use: no Auth/Firestore resource was created or
+    // rolled back here — surface the original error for a clean retry path.
     throw e
   }
 
@@ -55,7 +57,32 @@ export async function signUp({ name, email, password, gymData, role, referredBy 
     console.error('[SIGNUP AUTH] sendEmailVerification failed:', e.code, e.message)
   }
 
-  // ───── Step 2: setDoc(users/{uid}) ─────
+  // ───── Step 2 (gym owners): create the gym FIRST ─────
+  // The users/{uid} doc must reference the real gym doc ID from the very
+  // first create — the own-user update rule forbids changing gymId, so the
+  // old flow (create users with 'default' gymId, then updateDoc gymId) was
+  // permission-denied and rolled back while leaving an orphaned gym doc.
+  let gymDocId = null
+  if (role === 'gym_owner_pending') {
+    try {
+      gymDocId = await addGym(gymData, authUser.uid)
+    } catch (e) {
+      console.error('[SIGNUP FIRESTORE] addGym FAILED', {
+        operation: 'addDoc',
+        collection: 'gyms',
+        code: e.code,
+        message: e.message,
+        error: e,
+      })
+      // Rollback: gym was never created — only the Auth user needs cleanup
+      try { await authUser.delete() } catch (cleanupErr) {
+        console.error('[SIGNUP ROLLBACK] Failed to delete orphaned Auth user:', cleanupErr)
+      }
+      throw e
+    }
+  }
+
+  // ───── Step 3: setDoc(users/{uid}) — single create with the real gymId ─────
   let referralCode = null
   try {
     referralCode = await generateUniqueReferralCode()
@@ -68,7 +95,7 @@ export async function signUp({ name, email, password, gymData, role, referredBy 
     email: authUser.email,
     name: name || '',
     role: role || 'pending',
-    gymId: gymData?.gymId || 'default',
+    gymId: gymDocId || gymData?.gymId || 'default',
     referralCode: referralCode || '',
     referredBy: referredBy || '',
     createdAt: serverTimestamp(),
@@ -85,44 +112,30 @@ export async function signUp({ name, email, password, gymData, role, referredBy 
       message: e.message,
       error: e,
     })
-    // Rollback: delete the orphaned Auth user
+    // Rollback — remove EVERY resource created in this attempt (gym doc,
+    // users doc, Auth user) so a retry starts clean with no orphans.
+    if (gymDocId) {
+      try { await deleteDoc(doc(db, 'gyms', gymDocId)) } catch (cleanupErr) {
+        console.error('[SIGNUP ROLLBACK] Failed to delete orphaned gyms doc:', cleanupErr)
+      }
+    }
+    try { await deleteDoc(doc(db, 'users', authUser.uid)) } catch (cleanupErr) {
+      console.error('[SIGNUP ROLLBACK] Failed to delete orphaned users doc:', cleanupErr)
+    }
     try { await authUser.delete() } catch (cleanupErr) {
       console.error('[SIGNUP ROLLBACK] Failed to delete orphaned Auth user:', cleanupErr)
     }
     throw e
   }
 
-  // ───── Step 3: addDoc(gyms) via addGym() ─────
-  if (role === 'gym_owner_pending') {
-    try {
-      const gymDocId = await addGym(gymData, authUser.uid)
-      // Update user doc with actual gym ID
-      await updateDoc(doc(db, 'users', authUser.uid), { gymId: gymDocId })
-    } catch (e) {
-      console.error('[SIGNUP FIRESTORE] addGym FAILED', {
-        operation: 'addDoc',
-        collection: 'gyms',
-        code: e.code,
-        message: e.message,
-        error: e,
-      })
-      // Rollback: delete the orphaned Auth user and users/{uid} doc
-      try { await authUser.delete() } catch (cleanupErr) {
-        console.error('[SIGNUP ROLLBACK] Failed to delete orphaned Auth user:', cleanupErr)
-      }
-      try { await deleteDoc(doc(db, 'users', authUser.uid)) } catch (cleanupErr) {
-        console.error('[SIGNUP ROLLBACK] Failed to delete orphaned users doc:', cleanupErr)
-      }
-      throw e
-    }
-  }
-
   // ───── Step 4: signOut (Auth API, not Firestore) ─────
+  // Best-effort: the account is fully created at this point; a local signOut
+  // failure must not surface as a failed signup (retry would hit
+  // auth/email-already-in-use on a completed account).
   try {
     await signOut(auth)
   } catch (e) {
-    console.error('[SIGNUP AUTH] signOut FAILED', e.code, e.message, e)
-    throw e
+    console.warn('[SIGNUP AUTH] signOut FAILED (account already created):', e.code, e.message)
   }
 
   return { uid: authUser.uid, email }

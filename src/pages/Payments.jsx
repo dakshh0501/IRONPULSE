@@ -7,6 +7,7 @@ import {
 } from '../utils/whatsappReminders'
 import { jsPDF } from 'jspdf'
 import { useSearchParams } from 'react-router-dom'
+import { registerActionHandlers } from '../services/ai/actionBus'
 
 const METHODS  = Object.freeze(['UPI', 'Credit Card', 'Debit Card', 'Cash', 'Bank Transfer', 'Net Banking'])
 const STATUSES = Object.freeze(['Paid', 'Pending', 'Overdue', 'Partial'])
@@ -573,12 +574,13 @@ function OutstandingDues({ members, payments, onSelectMember }) {
 }
 
 // ─── Payment Table ───────────────────────────────────────────
-function PaymentTable({ invoices, search, onSelectInvoice, onDelete, readOnly }) {
+function PaymentTable({ invoices, search, onSelectInvoice, onDelete, readOnly, statusFilter, onManualStatusChange }) {
   const [filterStatus, setFilterStatus] = useState('All')
   const [localSearch, setLocalSearch] = useState('')
   const [page, setPage] = useState(1)
   const pageSize = 12
   const searchTerm = (search || localSearch).toLowerCase()
+  const searchStatus = (statusFilter && statusFilter !== 'All') ? statusFilter : filterStatus
 
   const filtered = useMemo(() => {
     let list = invoices.filter(inv => {
@@ -587,14 +589,14 @@ function PaymentTable({ invoices, search, onSelectInvoice, onDelete, readOnly })
         name.includes(searchTerm) ||
         (inv.firestoreId || '').toLowerCase().includes(searchTerm) ||
         (inv.plan || '').toLowerCase().includes(searchTerm)
-      const matchStatus = filterStatus === 'All' || inv.status === filterStatus
+      const matchStatus = searchStatus === 'All' || inv.status === searchStatus
       return matchSearch && matchStatus
     })
     return [...list].sort((a, b) => {
       const da = a.due || ''; const db = b.due || ''
       return db.localeCompare(da)
     })
-  }, [invoices, searchTerm, filterStatus])
+  }, [invoices, searchTerm, searchStatus])
   const totalPages = Math.ceil(filtered.length / pageSize)
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
 
@@ -624,7 +626,7 @@ function PaymentTable({ invoices, search, onSelectInvoice, onDelete, readOnly })
         <div className="pay-table-toolbar-right">
           <div className="pay-table-filters">
             {['All', ...STATUSES].map(s => (
-              <button key={s} onClick={() => { setFilterStatus(s); setPage(1) }} className={`btn btn-sm ${filterStatus===s?'btn-primary':'btn-ghost'}`} style={{ fontSize:11 }}>{s}</button>
+              <button key={s} onClick={() => { setFilterStatus(s); onManualStatusChange?.(s); setPage(1) }} className={`btn btn-sm ${searchStatus===s?'btn-primary':'btn-ghost'}`} style={{ fontSize:11 }}>{s}</button>
             ))}
           </div>
           <button className="btn btn-ghost btn-sm" onClick={handleExport}>📥 Export CSV</button>
@@ -727,6 +729,16 @@ export default function Payments() {
   const [showNew, setShowNew] = useState(false)
   const [showCollect, setShowCollect] = useState(false)
   const [paymentError, setPaymentError] = useState('')
+  const [aiStatusFilter, setAiStatusFilter] = useState(null)
+
+  // AI Action Engine handlers — filter presets from the assistant.
+  useEffect(() => registerActionHandlers('payments', {
+    open() {},
+    applyFilter({ status }) {
+      setAiStatusFilter(status && status !== 'All' ? status : null)
+    },
+    focusSearch() { document.querySelector('.pay-search-input, input[type=search]')?.focus() },
+  }), [])
 
   // Member-specific stat
   const myPayments = useMemo(() => {
@@ -862,7 +874,7 @@ export default function Payments() {
         </div>
 
         {/* Simple payment history table (read-only) */}
-        <PaymentTable invoices={invoices} search={search} onSelectInvoice={setViewInvoice} onDelete={null} readOnly />
+        <PaymentTable invoices={invoices} search={search} onSelectInvoice={setViewInvoice} onDelete={null} readOnly statusFilter={aiStatusFilter} onManualStatusChange={() => setAiStatusFilter(null)} />
 
         {viewInvoice && (
           <PaymentDetailsDrawer
@@ -1002,7 +1014,7 @@ export default function Payments() {
       </div>
 
       {/* ═══════════════ PAYMENT TABLE ═══════════════ */}
-      <PaymentTable invoices={invoices} search={search} onSelectInvoice={setViewInvoice} onDelete={deletePayment} />
+      <PaymentTable invoices={invoices} search={search} onSelectInvoice={setViewInvoice} onDelete={deletePayment} statusFilter={aiStatusFilter} onManualStatusChange={() => setAiStatusFilter(null)} />
 
       {/* ═══════════════ MODALS / DRAWERS ═══════════════ */}
       {viewInvoice && (

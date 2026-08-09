@@ -214,8 +214,19 @@ service cloud.firestore {
         (resource.data.memberId == request.auth.uid ||
          resource.data.authUid == request.auth.uid)
       );
-      allow create: if isStaff() && inCallersGymCreate();
-      allow update: if isStaff() && inCallersGym();
+      allow create: if (isStaff() && inCallersGymCreate()) || (
+        isMember() &&
+        request.resource.data.ownerType == 'draft' &&
+        request.resource.data.ownerId == request.auth.uid &&
+        inCallersGymCreate()
+      );
+      allow update: if (isStaff() && inCallersGym()) || (
+        isMember() &&
+        resource.data.ownerType == 'draft' &&
+        resource.data.ownerId == request.auth.uid &&
+        request.resource.data.ownerId == request.auth.uid &&
+        inCallersGymCreate()
+      );
       allow delete: if isAdminOrOwner() && inCallersGym();
     }
 
@@ -229,9 +240,32 @@ service cloud.firestore {
         (resource.data.memberId == request.auth.uid ||
          resource.data.authUid == request.auth.uid)
       );
+      allow create: if (isStaff() && inCallersGymCreate()) || (
+        isMember() &&
+        request.resource.data.ownerType == 'draft' &&
+        request.resource.data.ownerId == request.auth.uid &&
+        inCallersGymCreate()
+      );
+      allow update: if (isStaff() && inCallersGym()) || (
+        isMember() &&
+        resource.data.ownerType == 'draft' &&
+        resource.data.ownerId == request.auth.uid &&
+        request.resource.data.ownerId == request.auth.uid &&
+        inCallersGymCreate()
+      );
+      allow delete: if isAdminOrOwner() && inCallersGym();
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  PLAN TEMPLATES (staff reusable AI plan templates)
+    // ════════════════════════════════════════════════════════
+    match /planTemplates/{templateId} {
+
+      // Members are NOT granted template access — staff can read own gym.
+      allow read: if isStaff() && inCallersGym();
       allow create: if isStaff() && inCallersGymCreate();
       allow update: if isStaff() && inCallersGym();
-      allow delete: if isAdminOrOwner() && inCallersGym();
+      allow delete: if isStaff() && inCallersGym();
     }
 
     // ════════════════════════════════════════════════════════
@@ -303,6 +337,33 @@ service cloud.firestore {
       );
       allow create: if isAdminOrOwner() && inCallersGymCreate();
       allow update: if isSuperAdmin() || (isAdminOrOwner() && inCallersGym());
+      allow delete: if isSuperAdmin();
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  WHATSAPP CAMPAIGNS (Sprint 79B — admin-only)
+    //  Campaign docs contain audience + schedule + stats.
+    // ════════════════════════════════════════════════════════
+    match /whatsappCampaigns/{campaignId} {
+
+      allow read: if isAdminOrOwner() && inCallersGym();
+      allow create: if isAdminOrOwner() && inCallersGymCreate();
+      allow update: if isAdminOrOwner() && inCallersGym();
+      allow delete: if isAdminOrOwner() && inCallersGym();
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  WHATSAPP LOGS (Sprint 79A — admin-only, phones protected)
+    //  Only admins can READ these records because they contain
+    //  phone numbers; the engine writes them with server pushes.
+    // ════════════════════════════════════════════════════════
+    match /whatsappLogs/{logId} {
+
+      allow read: if isAdminOrOwner() && inCallersGym();
+      allow create: if (isAdminOrOwner() && inCallersGymCreate()) || (
+        isAuthed() && isStaff() && request.resource.data.gymId == getCallerGymId()
+      );
+      allow update: if isAdminOrOwner() && inCallersGym();
       allow delete: if isSuperAdmin();
     }
 
@@ -470,7 +531,11 @@ service cloud.firestore {
       );
 
       allow create: if isSuperAdmin() || (isGymAdmin() && inCallersGymCreate());
-      allow update: if isSuperAdmin() || (isGymAdmin() && resource.data.gymId == getCallerGymId());
+      allow update: if isSuperAdmin() || (isGymAdmin() && resource.data.gymId == getCallerGymId()) || (
+        isMember() &&
+        resource.data.userId == request.auth.uid &&
+        (resource.data.status == 'available' || resource.data.status == 'active')
+      );
       allow delete: if isSuperAdmin();
     }
 
@@ -515,7 +580,8 @@ service cloud.firestore {
           request.resource.data.userId == request.auth.uid &&
           request.resource.data.gymId == getCallerGymId()
         ) || (
-          request.resource.data.type == 'referral'
+          request.resource.data.type == 'referral' &&
+          request.resource.data.gymId == getCallerGymId()
         )
       ) || (
         !isAuthed() &&
@@ -534,6 +600,38 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid &&
         resource.data.gymId == getCallerGymId()
       );
+    }
+
+  // ════════════════════════════════════════════════════════
+    //  AI CONVERSATIONS (Sprint 79C — persistent assistant chats)
+    //  Owner-only: a user can read/write ONLY their own chats.
+    //  Gym admins / trainers / super admins can never read member
+    //  chats. `delete` is denied everywhere — chat removal is a
+    //  soft delete (deleted: true) implemented at the app layer.
+    //  Messages are an append-only log (create only, no update).
+    // ════════════════════════════════════════════════════════
+    match /aiConversations/{convId} {
+
+      allow read: if isAuthed() && resource.data.userId == request.auth.uid;
+
+      allow create: if isAuthed() &&
+        request.resource.data.userId == request.auth.uid;
+
+      allow update: if isAuthed() &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid &&
+        resource.data.deleted == false;
+
+      allow delete: if false; // no permanent deletion — soft delete only
+
+      match /messages/{messageId} {
+
+        allow read, create: if isAuthed() && (
+          get(/databases/$(database)/documents/aiConversations/$(convId)).data.userId == request.auth.uid
+        );
+
+        allow update, delete: if false; // immutable transcript
+      }
     }
 
   } // end match /databases/{database}/documents

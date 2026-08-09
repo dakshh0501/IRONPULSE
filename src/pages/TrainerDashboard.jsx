@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
+import { computeTrainerHealth, generateTrainerInsights } from '../services/ai/insightEngine'
+import { InsightsPanel } from '../components/ai/InsightCards'
 
 export default function TrainerDashboard() {
 
-  const { members, attendance, trainers, snapshotErrors } = useApp()
+  const { members, attendance, trainers, workoutPlans = [], dietPlans = [], progressLogs = [], snapshotErrors } = useApp()
   const { currentUser } = useAuth()
   const [dataLoaded, setDataLoaded] = useState(false)
 
@@ -81,6 +83,18 @@ export default function TrainerDashboard() {
     </div>
   ) : null
 
+  // ── AI Insights (Sprint 79E) — memoized from live data ──
+  const trnData = useMemo(() => ({
+    members: myMembers,
+    attendance,
+    workoutPlans,
+    dietPlans,
+    progressLogs,
+  }), [myMembers, attendance, workoutPlans, dietPlans, progressLogs])
+
+  const trnInsights = useMemo(() => generateTrainerInsights(trnData), [trnData])
+  const trnHealth = useMemo(() => computeTrainerHealth(trnData), [trnData])
+
   if (!dataLoaded && members.length === 0 && trainers.length === 0) {
     return (
       <div className="dashboard-page">
@@ -140,6 +154,9 @@ export default function TrainerDashboard() {
           </div>
         )}
       </div>
+
+      {/* ── AI Clients-At-Attention Insights ── */}
+      <InsightsPanel health={trnHealth} insights={trnInsights} title="Clients Needing Attention" limit={4} />
 
       <div className="card">
         <div className="section-title">Recent Check-ins</div>

@@ -1,292 +1,552 @@
+﻿{
+    "indexes":  [
+                    {
+                        "collectionGroup":  "attendance",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "gymId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "date",
+                                           "order":  "DESCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "time",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "attendance",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "gymId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "date",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "time",
+                                           "order":  "ASCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "attendance",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "date",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "time",
+                                           "order":  "ASCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "attendance",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "date",
+                                           "order":  "DESCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "time",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "attendance",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "gymId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "memberId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "date",
+                                           "order":  "DESCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "time",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "attendance",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "memberId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "date",
+                                           "order":  "DESCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "time",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "paymentAttempts",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "subscriptionId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "status",
+                                           "order":  "ASCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "paymentAttempts",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "gymId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "status",
+                                           "order":  "ASCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "subscriptions",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "gymId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "status",
+                                           "order":  "ASCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "subscriptions",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "gymId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "paymentStatus",
+                                           "order":  "ASCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "notifications",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "userId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "createdAt",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "notifications",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "userId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "gymId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "createdAt",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "notifications",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "userId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "read",
+                                           "order":  "ASCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "notifications",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "userId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "read",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "gymId",
+                                           "order":  "ASCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "subscriptionHistory",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "gymId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "createdAt",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "licensedDevices",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "gymId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "status",
+                                           "order":  "ASCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "licensedDevices",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "deviceId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "gymId",
+                                           "order":  "ASCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "licenseHistory",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "gymId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "createdAt",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "paymentAttempts",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "status",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "expiresAt",
+                                           "order":  "ASCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "gyms",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "approvalStatus",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "email",
+                                           "order":  "ASCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "paymentAttempts",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "subscriptionId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "status",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "gymId",
+                                           "order":  "ASCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "referrals",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "referrerUid",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "createdAt",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "referrals",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "gymId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "createdAt",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "rewardLedger",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "referrerUid",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "issuedAt",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "rewardLedger",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "gymId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "issuedAt",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "discountCoupons",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "userId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "createdAt",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "discountCoupons",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "gymId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "createdAt",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "referrals",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "referrerUid",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "status",
+                                           "order":  "ASCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "referrals",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "referredUid",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "status",
+                                           "order":  "ASCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "notifications",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "targetRole",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "createdAt",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "attendance",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "trainerAuthUid",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "date",
+                                           "order":  "ASCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "attendance",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "gymId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "trainerAuthUid",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "date",
+                                           "order":  "ASCENDING"
+                                       }
+                                   ]
+                    },
 {
-  "indexes": [
-    {
-      "collectionGroup": "attendance",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "gymId", "order": "ASCENDING" },
-        { "fieldPath": "date", "order": "DESCENDING" },
-        { "fieldPath": "time", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "attendance",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "gymId", "order": "ASCENDING" },
-        { "fieldPath": "date", "order": "ASCENDING" },
-        { "fieldPath": "time", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "attendance",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "date", "order": "ASCENDING" },
-        { "fieldPath": "time", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "attendance",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "date", "order": "DESCENDING" },
-        { "fieldPath": "time", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "attendance",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "gymId", "order": "ASCENDING" },
-        { "fieldPath": "memberId", "order": "ASCENDING" },
-        { "fieldPath": "date", "order": "DESCENDING" },
-        { "fieldPath": "time", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "attendance",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "memberId", "order": "ASCENDING" },
-        { "fieldPath": "date", "order": "DESCENDING" },
-        { "fieldPath": "time", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "paymentAttempts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "subscriptionId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "paymentAttempts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "gymId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "subscriptions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "gymId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "subscriptions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "gymId", "order": "ASCENDING" },
-        { "fieldPath": "paymentStatus", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "notifications",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "notifications",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "gymId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "notifications",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "read", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "notifications",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "read", "order": "ASCENDING" },
-        { "fieldPath": "gymId", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "subscriptionHistory",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "gymId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "licensedDevices",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "gymId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "licensedDevices",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "deviceId", "order": "ASCENDING" },
-        { "fieldPath": "gymId", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "licenseHistory",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "gymId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "paymentAttempts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "expiresAt", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "gyms",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "approvalStatus", "order": "ASCENDING" },
-        { "fieldPath": "email", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "paymentAttempts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "subscriptionId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "gymId", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "referrals",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "referrerUid", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "referrals",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "gymId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "rewardLedger",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "referrerUid", "order": "ASCENDING" },
-        { "fieldPath": "issuedAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "rewardLedger",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "gymId", "order": "ASCENDING" },
-        { "fieldPath": "issuedAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "discountCoupons",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "discountCoupons",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "gymId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "referrals",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "referrerUid", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "referrals",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "referredUid", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "notifications",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "targetRole", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "attendance",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "trainerAuthUid", "order": "ASCENDING" },
-        { "fieldPath": "date", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "attendance",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "gymId", "order": "ASCENDING" },
-        { "fieldPath": "trainerAuthUid", "order": "ASCENDING" },
-        { "fieldPath": "date", "order": "ASCENDING" }
-      ]
-    }
-  ],
-  "fieldOverrides": [
-    {
-      "collectionGroup": "users",
-      "fieldPath": "referralCode",
-      "indexes": [
-        { "order": "ASCENDING", "queryScope": "COLLECTION" }
-      ]
-    },
-    {
-      "collectionGroup": "rewardLedger",
-      "fieldPath": "referrerUid",
-      "indexes": [
-        { "order": "ASCENDING", "queryScope": "COLLECTION" }
-      ]
-    },
-    {
-      "collectionGroup": "discountCoupons",
-      "fieldPath": "code",
-      "indexes": [
-        { "order": "ASCENDING", "queryScope": "COLLECTION" }
-      ]
-    }
-  ]
+                        "collectionGroup":  "whatsappLogs",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "gymId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "createdAt",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "aiConversations",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "userId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "deleted",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "updatedAt",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    }
+                ],
+    "fieldOverrides":  [
+                           {
+                               "collectionGroup":  "users",
+                               "fieldPath":  "referralCode",
+                               "indexes":  [
+                                               {
+                                                   "order":  "ASCENDING",
+                                                   "queryScope":  "COLLECTION"
+                                               }
+                                           ]
+                           },
+                           {
+                               "collectionGroup":  "rewardLedger",
+                               "fieldPath":  "referrerUid",
+                               "indexes":  [
+                                               {
+                                                   "order":  "ASCENDING",
+                                                   "queryScope":  "COLLECTION"
+                                               }
+                                           ]
+                           },
+                           {
+                               "collectionGroup":  "discountCoupons",
+                               "fieldPath":  "code",
+                               "indexes":  [
+                                               {
+                                                   "order":  "ASCENDING",
+                                                   "queryScope":  "COLLECTION"
+                                               }
+                                           ]
+                           }
+                       ]
 }

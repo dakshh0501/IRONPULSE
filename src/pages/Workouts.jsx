@@ -3,6 +3,9 @@ import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import { buildWorkoutPlanWhatsAppMessage, buildWorkoutPlanWhatsAppLink } from '../utils/whatsappReminders'
 import { useSearchParams } from 'react-router-dom'
+import { registerActionHandlers } from '../services/ai/actionBus'
+import PlanGeneratorModal from '../components/ai/PlanGeneratorModal'
+import { exportWorkoutPlanPdf } from '../utils/planPdf'
 
 // ─────────────────────────────────────────────────────────────
 //  CONSTANTS
@@ -321,6 +324,9 @@ function WorkoutDetailModal({ plan, members, trainers, onEdit, onClose, gymName 
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-sm" onClick={handleWhatsAppShare} style={{ background: '#25D366', border: 'none', color: '#fff' }}>
               💬 Share via WhatsApp
+            </button>
+            <button className="btn btn-sm" onClick={() => exportWorkoutPlanPdf(plan)} style={{ background: 'var(--bg3)', border: '1px solid var(--border)', color: 'var(--text)' }}>
+              🖨 PDF
             </button>
             <button className="modal-close" aria-label="Close modal" onClick={onClose}>✕</button>
           </div>
@@ -876,8 +882,8 @@ function DeleteModal({ plan, onConfirm, onClose, error }) {
 // ─────────────────────────────────────────────────────────────
 export default function Workouts() {
   const [searchParams] = useSearchParams(); const search = searchParams.get('q') || ''
-  const { workoutPlans: workouts, addWorkoutPlan, updateWorkoutPlan, deleteWorkoutPlan, members, trainers, gymSettings } = useApp()
-  const { effectiveRole } = useAuth()
+  const { workoutPlans: workouts, addWorkoutPlan, updateWorkoutPlan, deleteWorkoutPlan, members, trainers, gymSettings, gymId } = useApp()
+  const { effectiveRole, currentUser } = useAuth()
   const isMember = effectiveRole === 'member'
   const gymName = gymSettings?.name || 'IronForge Gym'
 
@@ -887,11 +893,18 @@ export default function Workouts() {
   const [formOpen,   setFormOpen]   = useState(false)
   const [delPlan,    setDelPlan]    = useState(null)
   const [deleteError, setDeleteError] = useState('')
+  const [genOpen,    setGenOpen]    = useState(false)
+
+  // AI Action Engine handlers — create flow from the assistant.
+  useEffect(() => registerActionHandlers('workouts', {
+    openCreate() { setGoalFilter('All'); setEditPlan(null); setFormOpen(true) },
+    open() {},
+  }), [])
 
   // ── CRUD handlers ─────────────────────────────────────────
   const handleSave = async (data) => {
     try {
-      if (editPlan) {
+      if (editPlan?.id) {
         await updateWorkoutPlan(editPlan.id, data)
       } else {
         await addWorkoutPlan(data)
@@ -920,6 +933,19 @@ export default function Workouts() {
   const assigned       = workouts.filter(w => w.member).length
 
   // ── Member view ──
+  const handleDraftSave = async (plan) => {
+    const me = members.find(m => m.authUid === currentUser?.uid)
+    await addWorkoutPlan({
+      ...plan,
+      name: plan.name || `${me?.name || 'My'} Draft Workout`,
+      member: me?.name || '', memberId: me?.id || '',
+      authUid: currentUser?.uid || '',
+      trainer: '', trainerAuthUid: '',
+      ownerType: 'draft', ownerId: currentUser?.uid || '',
+    })
+    setGenOpen(false)
+  }
+
   if (isMember) {
     return (
       <div className="page-container">
@@ -928,12 +954,15 @@ export default function Workouts() {
             <h2>My Workout Plans</h2>
             <p>Your assigned training programs.</p>
           </div>
+          <button className="btn btn-primary" onClick={() => setGenOpen(true)}>
+            ✨ AI Generate
+          </button>
         </div>
         {workouts.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 24px', color: 'var(--text-muted)' }}>
             <div aria-hidden="true" style={{ fontSize: 48, marginBottom: 12 }}>💪</div>
             <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, letterSpacing: 1, marginBottom: 8 }}>NO WORKOUT PLANS</div>
-            <div style={{ fontSize: 13 }}>You don't have any workout plans assigned yet. Check back later.</div>
+            <div style={{ fontSize: 13 }}>You don't have any workout plans assigned yet. Use AI Generate to build your own draft.</div>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
@@ -962,6 +991,14 @@ export default function Workouts() {
             gymName={gymName}
           />
         )}
+        {genOpen && (
+          <PlanGeneratorModal
+            type="workout"
+            gymId={gymId}
+            onClose={() => setGenOpen(false)}
+            onSaveDraft={handleDraftSave}
+          />
+        )}
       </div>
     )
   }
@@ -974,9 +1011,14 @@ export default function Workouts() {
           <h2>Workout Plans</h2>
           <p>{workouts.length} plans · {assigned} assigned to members</p>
         </div>
-        <button className="btn btn-primary" onClick={() => { setEditPlan(null); setFormOpen(true) }}>
-          + Create Plan
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn btn-primary" style={{ background: 'var(--bg3)', border: '1px solid var(--border)', color: 'var(--text)' }} onClick={() => setGenOpen(true)}>
+            ✨ AI Generate
+          </button>
+          <button className="btn btn-primary" onClick={() => { setEditPlan(null); setFormOpen(true) }}>
+            + Create Plan
+          </button>
+        </div>
       </div>
 
       {/* Summary stats */}
@@ -1082,6 +1124,15 @@ export default function Workouts() {
           trainers={trainers}
           onSave={handleSave}
           onClose={() => { setFormOpen(false); setEditPlan(null) }}
+        />
+      )}
+
+      {genOpen && (
+        <PlanGeneratorModal
+          type="workout"
+          gymId={gymId}
+          onClose={() => setGenOpen(false)}
+          onOpenEditor={(plan) => { setEditPlan(plan); setFormOpen(true) }}
         />
       )}
 

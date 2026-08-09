@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
+import { registerActionHandlers } from '../services/ai/actionBus'
 import {
   LineChart, Line, AreaChart, Area,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
@@ -229,6 +230,11 @@ export default function Progress() {
   const isMember = effectiveRole === 'member'
   const canSelectMember = isAdmin || isTrainer
 
+  // AI Action Engine — Progress page is reachable via the assistant.
+  useEffect(() => registerActionHandlers('progress', {
+    open() {},
+  }), [])
+
   // Active members for dropdown
   const activeMembers = useMemo(() => 
     members?.filter(m => m.status === 'Active') || [], [members])
@@ -240,6 +246,7 @@ export default function Progress() {
   const [editEntry,   setEditEntry]   = useState(null)
   const [chartTab,    setChartTab]    = useState('body')
   const [selectedMember, setSelectedMember] = useState(defaultMember)
+  const [actionError, setActionError] = useState('')
 
   const addEntry = async (entry) => {
     try {
@@ -260,18 +267,20 @@ export default function Progress() {
     try {
       await updateProgressLog(entry.id, entry)
       setEditEntry(null)
+      setActionError('')
     } catch (e) {
       console.error('Failed to update progress entry:', e)
-      alert('Failed to update progress entry: ' + (e.message || 'Unknown error'))
+      setActionError('Failed to update progress entry: ' + (e.message || 'Unknown error'))
     }
   }
 
   const handleDelete = async (logId) => {
     try {
       await deleteProgressLog(logId)
+      setActionError('')
     } catch (e) {
       console.error('Failed to delete progress entry:', e)
-      alert('Failed to delete progress entry: ' + (e.message || 'Unknown error'))
+      setActionError('Failed to delete progress entry: ' + (e.message || 'Unknown error'))
     }
   }
 
@@ -308,6 +317,16 @@ export default function Progress() {
           </button>
         </div>
       </div>
+
+      {actionError && (
+        <div role="alert" style={{
+          background: 'var(--red)15', border: '1px solid var(--red)30',
+          borderRadius: 10, padding: '11px 16px', marginBottom: 16,
+          color: 'var(--red)', fontSize: 13, fontWeight: 500, display: 'flex', gap: 8, alignItems: 'center',
+        }}>
+          <span aria-hidden="true">⚠</span> {actionError}
+        </div>
+      )}
 
       {/* ── Member info banner (admin/trainer) ── */}
       {canSelectMember && selectedMember && (

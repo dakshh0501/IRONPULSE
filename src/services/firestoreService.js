@@ -12,7 +12,9 @@ import {
   getDocs,
   query,
   where,
-  limit
+  limit,
+  orderBy,
+  increment
 } from 'firebase/firestore'
 import {
   createUserWithEmailAndPassword,
@@ -1015,13 +1017,48 @@ export function subscribeToMyDietPlans(trainerAuthUid, callback, gymId, onError)
 export async function addDietPlan(planData) {
   const docRef = await addDoc(
     collection(db, 'dietPlans'),
-    { ...planData, gymId: planData.gymId || DEFAULT_GYM_ID, createdAt: serverTimestamp() }
+    { ...planData, gymId: planData.gymId || DEFAULT_GYM_ID, createdAt: serverTimestamp(), versions: [] }
   )
   return docRef.id
 }
 
+// Version snapshot helper (Sprint 78B — req 7): compact previous
+// state kept on the SAME document, never a separate collection.
+function snapshotPlan(plan) {
+  if (!plan) return null
+  const base = { savedAt: new Date().toISOString(), name: plan.name, goal: plan.goal }
+  if (Array.isArray(plan.meals)) {
+    return {
+      ...base,
+      calories: plan.calories,
+      protein: plan.protein,
+      carbs: plan.carbs,
+      fat: plan.fat,
+      hydration: plan.hydration,
+      meals: (plan.meals || []).map(m => m?.name).filter(Boolean),
+    }
+  }
+  return {
+    ...base,
+    level: plan.level,
+    days: plan.days,
+    duration: plan.duration,
+    split: plan.split,
+    exercises: (plan.exercises || []).map(e => e?.name).filter(Boolean),
+  }
+}
+
 export async function updateDietPlan(planId, updatedData) {
-  await updateDoc(doc(db, 'dietPlans', planId), updatedData)
+  const prevDoc = await getDoc(doc(db, 'dietPlans', planId))
+  const prevData = prevDoc.exists() ? prevDoc.data() : null
+  const versions = Array.isArray(prevData?.versions) ? prevData.versions.slice(0, 4) : []
+  const snap = snapshotPlan(prevData)
+  if (snap) versions.push(snap)
+  await updateDoc(doc(db, 'dietPlans', planId), {
+    ...updatedData,
+    versions: versions.slice(-5),
+    updatedAt: serverTimestamp(),
+  })
 }
 
 export async function deleteDietPlan(planId) {
@@ -1088,13 +1125,22 @@ export function subscribeToMyWorkoutPlans(trainerAuthUid, callback, gymId, onErr
 export async function addWorkoutPlan(planData) {
   const docRef = await addDoc(
     collection(db, 'workoutPlans'),
-    { ...planData, gymId: planData.gymId || DEFAULT_GYM_ID, createdAt: serverTimestamp() }
+    { ...planData, gymId: planData.gymId || DEFAULT_GYM_ID, createdAt: serverTimestamp(), versions: [] }
   )
   return docRef.id
 }
 
 export async function updateWorkoutPlan(planId, updatedData) {
-  await updateDoc(doc(db, 'workoutPlans', planId), updatedData)
+  const prevDoc = await getDoc(doc(db, 'workoutPlans', planId))
+  const prevData = prevDoc.exists() ? prevDoc.data() : null
+  const versions = Array.isArray(prevData?.versions) ? prevData.versions.slice(0, 4) : []
+  const snap = snapshotPlan(prevData)
+  if (snap) versions.push(snap)
+  await updateDoc(doc(db, 'workoutPlans', planId), {
+    ...updatedData,
+    versions: versions.slice(-5),
+    updatedAt: serverTimestamp(),
+  })
 }
 
 export async function deleteWorkoutPlan(planId) {
@@ -1448,4 +1494,134 @@ export async function migrateSubscriptions() {
 // ── superAdmins collection removed ──────────────────────────
 // isSuperAdmin is now a boolean field on the user document.
 // See AuthContext.jsx and rbac.js for the new approach.
+
+// ─────────────────────────────────────────────
+// PLAN TEMPLATES (Sprint 78B, req 6)
+// Staff-scoped reusable plan templates. On-demand getDocs only —
+// deliberately NO onSnapshot listener here.
+// ─────────────────────────────────────────────
+export async function savePlanTemplate({ type, name, plan, gymId }) {
+  const docRef = await addDoc(
+    collection(db, 'planTemplates'),
+    { type, name, plan, gymId: gymId || DEFAULT_GYM_ID, createdAt: serverTimestamp() }
+  )
+  return docRef.id
+}
+
+export async function listPlanTemplates(type, gymId) {
+  const ref = gymId
+    ? query(collection(db, 'planTemplates'), where('type', '==', type), where('gymId', '==', gymId), limit(200))
+    : query(collection(db, 'planTemplates'), where('type', '==', type), limit(200))
+  const snapshot = await getDocs(ref)
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+}
+
+export async function deletePlanTemplate(templateId) {
+  await deleteDoc(doc(db, 'planTemplates', templateId))
+}
+
+// ─────────────────────────────────────────────
+// WHATSAPP AUTOMATION (Sprint 79A)
+//   whatsappLogs — send log records (written by the engine)
+//   settings/{gymId}:whatsapp — automation config (one-shot reads)
+// ─────────────────────────────────────────────
+
+export async function addWhatsappLog(record) {
+  await addDoc(
+    collection(db, 'whatsappLogs'),
+    {
+      memberId: String(record.memberId || ''),
+      phone: String(record.phone || ''),
+      template: String(record.template || ''),
+      provider: String(record.provider || 'mock'),
+      status: String(record.status || 'Queued'),
+      attempts: Number(record.attempts) || 0,
+      error: String(record.error || ''),
+      entryId: String(record.entryId || ''),
+      test: Boolean(record.test),
+      gymId: record.gymId || DEFAULT_GYM_ID,
+      createdAt: serverTimestamp(),
+    }
+  )
+}
+
+/** Single live subscription — used ONLY by AppContext (no duplicates). */
+export function subscribeToWhatsappLogs(callback, gymId, onError) {
+  const ref = gymId
+    ? query(collection(db, 'whatsappLogs'), where('gymId', '==', gymId), orderBy('createdAt', 'desc'), limit(300))
+    : query(collection(db, 'whatsappLogs'), orderBy('createdAt', 'desc'), limit(300))
+  return onSnapshot(
+    ref,
+    (snapshot) => {
+      const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      callback(logs)
+    },
+    (error) => {
+      console.error(`[Firestore] Subscription error (whatsappLogs):`, error.message); if (onError) onError(error, 'whatsappLogs')
+    }
+  )
+}
+
+export async function getWhatsAppAutomationConfig(gymId) {
+  try {
+    const docRef = doc(db, 'settings', `${gymId || DEFAULT_GYM_ID}:whatsapp`)
+    const snap = await getDoc(docRef)
+    return snap.exists() ? snap.data() : null
+  } catch {
+    return null
+  }
+}
+
+export async function saveWhatsAppAutomationConfig(gymId, config) {
+  await setDoc(doc(db, 'settings', `${gymId || DEFAULT_GYM_ID}:whatsapp`), config)
+}
+
+// ─────────────────────────────────────────────
+// WHATSAPP CAMPAIGNS (Sprint 79B)
+//   whatsappCampaigns — campaign docs, updated per run.
+//   ONE-SHOT reads only (NO onSnapshot — requirement: no new
+//   realtime listeners; the page refreshes on mount + actions).
+// ─────────────────────────────────────────────
+
+export async function listWhatsappCampaigns(gymId, limitN = 200) {
+  try {
+    const ref = gymId
+      ? query(collection(db, 'whatsappCampaigns'), where('gymId', '==', gymId), orderBy('createdAt', 'desc'), limit(limitN))
+      : query(collection(db, 'whatsappCampaigns'), orderBy('createdAt', 'desc'), limit(limitN))
+    const snap = await getDocs(ref)
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+  } catch (err) {
+    console.error('listWhatsappCampaigns error:', err)
+    return []
+  }
+}
+
+export async function createWhatsappCampaign(campaign) {
+  const ref = await addDoc(collection(db, 'whatsappCampaigns'), {
+    ...campaign,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  })
+  return ref.id
+}
+
+export async function updateWhatsappCampaign(id, patch) {
+  await updateDoc(doc(db, 'whatsappCampaigns', id), {
+    ...patch,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+/** Atomic stat increment (stats.sent / stats.failed). */
+export async function bumpWhatsappCampaignStats(id, delta) {
+  const camRef = doc(db, 'whatsappCampaigns', id)
+  await updateDoc(camRef, {
+    ['stats.' + delta.field]: increment(delta.by || 1),
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export async function deleteWhatsappCampaign(id) {
+  await deleteDoc(doc(db, 'whatsappCampaigns', id))
+}
 // ───────────────────────────────────────────────────────────

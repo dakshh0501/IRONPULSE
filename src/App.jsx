@@ -12,6 +12,7 @@ import Header       from './components/Header'
 import LicenseGuard from './components/LicenseGuard'
 import ErrorBoundary from './components/ErrorBoundary'
 import BiometricGate from './components/BiometricGate'
+import AiAssistant from './components/ai/AiAssistant'
 
 // ── Lazy-loaded pages (code-split at route level) ──────────
 const Landing        = lazy(() => import('./pages/Landing'))
@@ -30,6 +31,7 @@ const Progress       = lazy(() => import('./pages/Progress'))
 const Notifications  = lazy(() => import('./pages/Notifications'))
 const Settings       = lazy(() => import('./pages/Settings'))
 const WhatsAppReminders = lazy(() => import('./pages/WhatsAppReminders'))
+const CampaignManager = lazy(() => import('./pages/CampaignManager'))
 const PaymentStatus  = lazy(() => import('./pages/PaymentStatus'))
 const Checkout       = lazy(() => import('./pages/Checkout'))
 const PlatformDashboard   = lazy(() => import('./pages/superadmin/Dashboard'))
@@ -213,6 +215,7 @@ function AppShell() {
           </main>
         </div>
       </div>
+      <AiAssistant />
     </>
   )
 }
@@ -272,8 +275,8 @@ function RouterTree() {
         <Route path="/rejected" element={<><SEOHead /><Rejected /></>} />
 
         {/* ── Standalone authenticated (no sidebar) ── */}
-        <Route path="/payment-status" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']}><SEOHead /><PaymentStatus /></ProtectedRoute>} />
-        <Route path="/checkout" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']}><SEOHead /><Checkout /></ProtectedRoute>} />
+        <Route path="/payment-status" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']}><SEOHead /><PaymentStatus /><AiAssistant /></ProtectedRoute>} />
+        <Route path="/checkout" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']}><SEOHead /><Checkout /><AiAssistant /></ProtectedRoute>} />
 
         {/* ── Authenticated with AppShell (sidebar + header) ── */}
         <Route element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']} />}>
@@ -292,6 +295,7 @@ function RouterTree() {
             <Route path="reports" element={<RoleGate allowedRoles={['super_admin','gym_admin']}><Guarded><ReportsPage /></Guarded></RoleGate>} />
             <Route path="notifications" element={<RoleGate allowedRoles={['super_admin','gym_admin']}><Guarded><NotificationsPage /></Guarded></RoleGate>} />
             <Route path="whatsapp" element={<RoleGate allowedRoles={['super_admin','gym_admin']}><Guarded><WhatsAppReminders /></Guarded></RoleGate>} />
+            <Route path="campaigns" element={<RoleGate allowedRoles={['super_admin','gym_admin']}><Guarded><CampaignManager /></Guarded></RoleGate>} />
             <Route path="settings" element={<RoleGate allowedRoles={['super_admin','gym_admin']}><Guarded><SettingsPage /></Guarded></RoleGate>} />
             <Route path="support" element={<RoleGate allowedRoles={['super_admin','gym_admin']}><Guarded><SupportPage /></Guarded></RoleGate>} />
             <Route path="subscription" element={<RoleGate allowedRoles={['super_admin','gym_admin']}><Guarded><GymSubscription /></Guarded></RoleGate>} />

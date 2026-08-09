@@ -3,6 +3,9 @@ import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import { buildDietPlanWhatsAppMessage, buildDietPlanWhatsAppLink } from '../utils/whatsappReminders'
 import { useSearchParams } from 'react-router-dom'
+import { registerActionHandlers } from '../services/ai/actionBus'
+import PlanGeneratorModal from '../components/ai/PlanGeneratorModal'
+import { exportDietPlanPdf } from '../utils/planPdf'
 
 const GOALS = Object.freeze(['Fat Loss', 'Muscle Gain', 'Keto / Low Carb', 'Maintenance', 'Endurance', 'Vegan', 'Diabetic Friendly'])
 const STATUS_OPTIONS = Object.freeze(['Active', 'Paused', 'Completed'])
@@ -299,6 +302,11 @@ function PlanDetailModal({ plan, onClose, onEdit, gymName }) {
                 border: '1px solid var(--border)', borderRadius: 8,
                 color: 'var(--text)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
               }}><span aria-hidden="true">✏️</span> EDIT</button>}
+              <button onClick={() => exportDietPlanPdf(plan)} style={{
+                padding: '8px 16px', background: 'var(--hover)',
+                border: '1px solid var(--border)', borderRadius: 8,
+                color: 'var(--text)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              }}><span aria-hidden="true">🖨</span> PDF</button>
               <button onClick={onClose} aria-label="Close detail view" style={{
                 width: 36, height: 36, borderRadius: 8,
                 background: 'var(--orange)15', border: '1px solid var(--orange)30',
@@ -695,8 +703,8 @@ function DeleteConfirm({ plan, onConfirm, onCancel, error }) {
 // ─── Main Diet Page ───────────────────────────────────────────────────────────
 export default function Diet() {
   const [searchParams] = useSearchParams(); const search = searchParams.get('q') || ''
-  const { gymSettings, dietPlans, addDietPlan, updateDietPlan, deleteDietPlan, members, trainers } = useApp()
-  const { effectiveRole } = useAuth()
+  const { gymSettings, dietPlans, addDietPlan, updateDietPlan, deleteDietPlan, members, trainers, gymId } = useApp()
+  const { effectiveRole, currentUser } = useAuth()
   const isMember = effectiveRole === 'member'
   const gymName = gymSettings?.name || 'IronForge Gym'
   const [viewPlan, setViewPlan] = useState(null)
@@ -707,6 +715,13 @@ export default function Diet() {
   const [filterGoal, setFilterGoal] = useState('All')
   const [filterStatus, setFilterStatus] = useState('All')
   const [localSearch, setLocalSearch] = useState('')
+  const [genOpen, setGenOpen] = useState(false)
+
+  // AI Action Engine handlers — open the diet creator.
+  useEffect(() => registerActionHandlers('diet', {
+    openCreate() { setFilterGoal('All'); setFilterStatus('All'); setEditPlan(null); setShowForm(true) },
+    open() {},
+  }), [])
 
   const searchTerm = (search || localSearch).toLowerCase()
 
@@ -767,6 +782,19 @@ export default function Diet() {
   })
 
   // ── Member view ──
+  const handleDraftSave = async (plan) => {
+    const me = members.find(m => m.authUid === currentUser?.uid)
+    await addDietPlan({
+      ...plan,
+      name: plan.name || `${me?.name || 'My'} Draft Diet`,
+      assignedMember: me?.name || '', memberId: me?.id || '',
+      authUid: currentUser?.uid || '',
+      assignedTrainer: '', assignedTrainerAuthUid: '',
+      ownerType: 'draft', ownerId: currentUser?.uid || '',
+    })
+    setGenOpen(false)
+  }
+
   if (isMember) {
     return (
       <div className="page-container">
@@ -775,6 +803,9 @@ export default function Diet() {
             <h2>My Diet Plans</h2>
             <p>Your assigned nutrition plans.</p>
           </div>
+          <button className="btn btn-primary" onClick={() => setGenOpen(true)}>
+            ✨ AI Generate
+          </button>
         </div>
         {dietPlans.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
@@ -790,6 +821,14 @@ export default function Diet() {
           </div>
         )}
         {viewPlan && <PlanDetailModal plan={viewPlan} onClose={() => setViewPlan(null)} onEdit={null} gymName={gymName} />}
+        {genOpen && (
+          <PlanGeneratorModal
+            type="diet"
+            gymId={gymId}
+            onClose={() => setGenOpen(false)}
+            onSaveDraft={handleDraftSave}
+          />
+        )}
       </div>
     )
   }
@@ -807,15 +846,25 @@ export default function Diet() {
             {stats.active} active plans · {stats.total} total · {stats.goals} goal types
           </div>
         </div>
-        <button onClick={() => { setEditPlan(null); setShowForm(true) }} style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '10px 20px', background: 'linear-gradient(135deg,var(--orange),#F59E0B)',
-          border: 'none', borderRadius: 10, color: '#fff',
-          fontWeight: 800, fontSize: 13, cursor: 'pointer', letterSpacing: 0.5,
-          boxShadow: '0 4px 20px var(--orange)40',
-        }}>
-          <span aria-hidden="true" style={{ fontSize: 16 }}>+</span> CREATE PLAN
-        </button>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button onClick={() => setGenOpen(true)} style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '10px 20px', background: 'var(--bg3)',
+            border: '1px solid var(--border)', borderRadius: 10,
+            color: 'var(--text)', fontWeight: 800, fontSize: 13, cursor: 'pointer', letterSpacing: 0.5,
+          }}>
+            ✨ AI GENERATE
+          </button>
+          <button onClick={() => { setEditPlan(null); setShowForm(true) }} style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '10px 20px', background: 'linear-gradient(135deg,var(--orange),#F59E0B)',
+            border: 'none', borderRadius: 10, color: '#fff',
+            fontWeight: 800, fontSize: 13, cursor: 'pointer', letterSpacing: 0.5,
+            boxShadow: '0 4px 20px var(--orange)40',
+          }}>
+            <span aria-hidden="true" style={{ fontSize: 16 }}>+</span> CREATE PLAN
+          </button>
+        </div>
       </div>
 
       {/* Summary stats */}
@@ -888,6 +937,14 @@ export default function Diet() {
       {viewPlan && <PlanDetailModal plan={viewPlan} onClose={() => setViewPlan(null)} onEdit={(p) => { setViewPlan(null); openEdit(p) }} gymName={gymName} />}
       {showForm && <PlanFormModal existing={editPlan} onSave={handleSave} onClose={() => { setShowForm(false); setEditPlan(null) }} members={members} trainers={trainers} />}
       {delPlan && <DeleteConfirm plan={delPlan} onConfirm={() => handleDelete(delPlan.id)} onCancel={() => { setDelPlan(null); setDeleteError('') }} error={deleteError} />}
+      {genOpen && (
+        <PlanGeneratorModal
+          type="diet"
+          gymId={gymId}
+          onClose={() => setGenOpen(false)}
+          onOpenEditor={(plan) => { setEditPlan(plan); setShowForm(true) }}
+        />
+      )}
     </div>
   )
 }

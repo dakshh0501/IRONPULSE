@@ -192,7 +192,7 @@ function PriorityBadge({ priority }) {
   return <span className="spt-pill" style={{ background: `${color}14`, color }}>{priority || 'Normal'}</span>
 }
 
-function TicketDrawer({ ticket, open, onClose, drawerTab, setDrawerTab, replyText, setReplyText, noteText, setNoteText, onSendReply, onSaveNote, onFileAttach }) {
+function TicketDrawer({ ticket, open, onClose, drawerTab, setDrawerTab, replyText, setReplyText, noteText, setNoteText, drawerMsg, setDrawerMsg, onSendReply, onSaveNote, onFileAttach }) {
   useEffect(() => {
     if (!open) return
     const handler = (e) => { if (e.key === 'Escape') onClose() }
@@ -701,6 +701,8 @@ export default function Support() {
         setReplyText={setReplyText}
         noteText={noteText}
         setNoteText={setNoteText}
+        drawerMsg={drawerMsg}
+        setDrawerMsg={setDrawerMsg}
         onSendReply={async (text) => {
           if (!drawerTicket?.id) return
           try {

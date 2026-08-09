@@ -28,10 +28,10 @@ function Field({ label, error, children }) {
   )
 }
 
-export default function MemberModal({ member, trainers, onSave, onClose, plans }) {
+export default function MemberModal({ member, prefill, trainers, onSave, onClose, plans }) {
   const isEdit = Boolean(member)
   const activePlans = plans?.filter(p => p.active !== false) || []
-  const [form, setForm]     = useState(member ? { ...member, password:'' } : { ...EMPTY_MEMBER })
+  const [form, setForm]     = useState(member ? { ...member, password:'' } : { ...EMPTY_MEMBER, ...(prefill || {}) })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
