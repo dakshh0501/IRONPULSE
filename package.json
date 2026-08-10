@@ -13,12 +13,12 @@
     "cap:apk:debug": "npm run build && npx cap sync && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
     "capacitor-native-biometric": "^4.2.2",
     "firebase": "^12.13.0",
     "html5-qrcode": "^2.3.8",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.286.0",
+    "openai": "^7.4.0",
     "qrcode": "^1.5.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

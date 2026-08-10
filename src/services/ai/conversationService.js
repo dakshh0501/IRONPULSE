@@ -42,6 +42,43 @@ import {
 } from 'firebase/firestore'
 import { db } from '../../firebase'
 
+/**
+ * Recursively strips `undefined` from an object so it is always safe
+ * to pass to addDoc/updateDoc/setDoc. Firestore rejects `undefined`
+ * with "Unsupported field value", so EVERY conversation/message write
+ * must run through this helper (Sprint 80B).
+ *
+ * Rules:
+ *   • undefined      → dropped (missing keys, filtered array items)
+ *   • null / false / 0 / "" / NaN → preserved exactly
+ *   • arrays         → recursed, undefined items filtered out
+ *   • Date and Firestore class instances (Timestamp, GeoPoint,
+ *     DocumentReference, serverTimestamp()/increment() sentinels)
+ *     → passed through untouched (detected via non-plain constructor)
+ *   • plain objects  → recursed, `undefined` members removed
+ *
+ * The original object is NEVER mutated — a new tree is returned.
+ */
+export function sanitizeFirestoreData(value) {
+  if (value === null || value === undefined || typeof value !== 'object') return value
+  if (value instanceof Date) return value
+  if (Array.isArray(value)) {
+    const out = []
+    for (const item of value) {
+      const clean = sanitizeFirestoreData(item)
+      if (clean !== undefined) out.push(clean)
+    }
+    return out
+  }
+  if (value.constructor !== Object) return value
+  const out = {}
+  for (const key of Object.keys(value)) {
+    const clean = sanitizeFirestoreData(value[key])
+    if (clean !== undefined) out[key] = clean
+  }
+  return out
+}
+
 export const CONVERSATIONS_COLLECTION = 'aiConversations'
 export const MESSAGES_SUBCOLLECTION = 'messages'
 
@@ -94,19 +131,22 @@ export function autoTitleFor(prompt) {
  */
 export async function createConversation({ gymId, userId, role, title }) {
   const now = serverTimestamp()
-  const docRef = await addDoc(collection(db, CONVERSATIONS_COLLECTION), {
-    gymId: gymId || 'default',
-    userId,
-    role: role || 'gym_admin',
-    title: title || 'New conversation',
-    createdAt: now,
-    updatedAt: now,
-    pinned: false,
-    archived: false,
-    deleted: false,
-    lastMessage: '',
-    messageCount: 0,
-  })
+  const docRef = await addDoc(
+    collection(db, CONVERSATIONS_COLLECTION),
+    sanitizeFirestoreData({
+      gymId: gymId || 'default',
+      userId,
+      role: role || 'gym_admin',
+      title: title || 'New conversation',
+      createdAt: now,
+      updatedAt: now,
+      pinned: false,
+      archived: false,
+      deleted: false,
+      lastMessage: '',
+      messageCount: 0,
+    })
+  )
   return {
     id: docRef.id,
     gymId: gymId || 'default',
@@ -124,10 +164,13 @@ export async function createConversation({ gymId, userId, role, title }) {
 /** Lightweight meta updates accepted on a conversation doc. */
 export async function updateConversation(conversationId, data) {
   if (!conversationId) throw new Error('Missing conversation id')
-  await updateDoc(doc(db, CONVERSATIONS_COLLECTION, conversationId), {
-    ...data,
-    updatedAt: serverTimestamp(),
-  })
+  await updateDoc(
+    doc(db, CONVERSATIONS_COLLECTION, conversationId),
+    sanitizeFirestoreData({
+      ...data,
+      updatedAt: serverTimestamp(),
+    })
+  )
 }
 
 export function renameConversation(conversationId, title) {
@@ -217,12 +260,12 @@ export function subscribeConversationMessages(conversationId, callback, onError)
 export async function addConversationMessage(conversationId, { role, content, metadata }) {
   const ref = await addDoc(
     collection(db, CONVERSATIONS_COLLECTION, conversationId, MESSAGES_SUBCOLLECTION),
-    {
+    sanitizeFirestoreData({
       role: role === 'assistant' ? 'assistant' : 'user',
       content: String(content || '').slice(0, 8000),
       createdAt: serverTimestamp(),
       metadata: metadata || {},
-    }
+    })
   )
   return ref.id
 }
@@ -382,6 +425,7 @@ export default {
   fetchConversationMessages,
   searchConversations,
   buildProviderHistory,
+  sanitizeFirestoreData,
   formatTimeString,
   tsToMs,
 }

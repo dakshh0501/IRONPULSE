@@ -19,7 +19,7 @@
 // wrappers; this module never touches Firestore directly.
 // ─────────────────────────────────────────────────────────────
 
-import { generateJson } from './providers/geminiProvider'
+import { generateJson } from './providers/groqProvider'
 
 // ── Existing schema shapes (mirrors pages/Workouts.jsx + Diet.jsx) ──
 export const WORKOUT_GOALS = Object.freeze(['Weight Loss', 'Muscle Gain', 'Strength', 'Flexibility', 'Toning', 'Endurance', 'General Fitness'])

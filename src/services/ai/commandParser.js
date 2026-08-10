@@ -57,6 +57,9 @@ export const INTENTS = {
   ARR:                'arr',
   CAMPAIGNS:          'campaigns',
 
+  // Data-driven reports (deterministic — never sent to the provider)
+  REPORT:             'report',
+
   // Legacy moods kept for graceful answers
   MEMBERS:      'members',
   ATTENDANCE:   'attendance',
@@ -220,6 +223,12 @@ export function resolveRouteKey(role, targetKey) {
 const INTENT_PATTERNS = [
   { intent: INTENTS.GREETING,     keywords: ['hi there', 'hello there', 'good morning', 'good evening', ' hi ', ' hey ', 'namaste'] },
   { intent: INTENTS.HELP,         keywords: ['what can you do', 'how do i', 'how to', 'assist', 'guide', 'help'] },
+  // Data-driven reports: "generate report" / "platform report" /
+  // "gym report" / "status report" — answered deterministically
+  // from AppContext data, never handed to the provider. Bare
+  // 'report' also lands here; specific multi-keyword intents
+  // ("monthly revenue" + "report") still win by confidence.
+  { intent: INTENTS.REPORT, keywords: ['generate report', 'generate a report', 'platform report', 'gym report', 'status report', 'summary report', 'full report', 'overall report', 'business report', 'daily report', 'weekly report', 'monthly report', 'performance report', 'revenue report', 'report'] },
   { intent: INTENTS.MEMBERSHIP_EXPIRY, keywords: ['membership expiry', 'expiry date', 'when does my membership end', 'membership end', 'does my membership expire', 'membership expire'] },
   { intent: INTENTS.MEMBERSHIP_PLAN,   keywords: ['membership plan', 'what plan', 'plan details', 'current plan', 'which plan'] },
   { intent: INTENTS.MY_TRAINER,        keywords: ['my trainer', 'who is my trainer', 'assigned trainer', 'my coach'] },
@@ -270,6 +279,10 @@ const INTENT_ALIASES = {
   'hello': [INTENTS.GREETING],
   'whats my plan': [INTENTS.MEMBERSHIP_PLAN],
   'when is my membership expiring': [INTENTS.MEMBERSHIP_EXPIRY],
+  'report': [INTENTS.REPORT],
+  'generate report': [INTENTS.REPORT],
+  'status report': [INTENTS.REPORT],
+  'platform report': [INTENTS.REPORT],
 }
 
 /**
@@ -369,6 +382,7 @@ export function intentLabel(intent) {
     [INTENTS.MRR]: 'Monthly Recurring Revenue',
     [INTENTS.ARR]: 'Annual Recurring Revenue',
     [INTENTS.CAMPAIGNS]: 'Campaigns',
+    [INTENTS.REPORT]: 'Report & Summary',
     [INTENTS.MEMBERS]: 'Members',
     [INTENTS.ATTENDANCE]: 'Attendance',
     [INTENTS.PAYMENTS]: 'Payments',

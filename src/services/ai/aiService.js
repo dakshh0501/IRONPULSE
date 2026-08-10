@@ -12,12 +12,12 @@
 //     → Insight request? (Insight Engine — deterministic)
 //     → confident local intent (>= 0.75)?
 //       YES → AppContext resolver (deterministic fast path)
-//       NO  → Gemini provider (when connected) → graceful fallback
+//       NO  → Groq provider (when connected) → graceful fallback
 //
 // Insight requests (Sprint 79E) resolve through the Insight
-// Engine first: Gemini (when connected) receives ONLY the
+// Engine first: Groq (when connected) receives ONLY the
 // aggregated metrics + insight summary + role + question, never
-// raw Firestore data; when Gemini is offline, the deterministic
+// raw Firestore data; when Groq is offline, the deterministic
 // answer is returned directly and the assistant never fails.
 //
 // The AppContext data snapshot is the LOCAL resolver's input only;
@@ -33,11 +33,12 @@ import {
   buildRoleInsights,
   buildRoleHealth,
 } from './insightEngine'
+import { buildRoleReport } from './reportGenerator'
 import {
   streamReply,
-  isGeminiConfigured,
-  GEMINI_GRACEFUL_FALLBACK,
-} from './providers/geminiProvider'
+  isGroqConfigured,
+  GROQ_GRACEFUL_FALLBACK,
+} from './providers/groqProvider'
 
 export const AI_PROVIDER = {
   connected: false,
@@ -49,17 +50,17 @@ export const CONFIDENCE_THRESHOLD = 0.75
 
 /**
  * Flips the provider on. Called automatically at module load when
- * VITE_GEMINI_API_KEY is present; can also be invoked manually.
+ * VITE_GROQ_API_KEY is present; can also be invoked manually.
  */
-export function connectGemini() {
-  if (!AI_PROVIDER.connected && isGeminiConfigured()) {
+export function connectGroq() {
+  if (!AI_PROVIDER.connected && isGroqConfigured()) {
     AI_PROVIDER.connected = true
-    AI_PROVIDER.name = 'Gemini'
+    AI_PROVIDER.name = 'Groq'
   }
   return AI_PROVIDER.connected
 }
 
-connectGemini()
+connectGroq()
 
 export const SYSTEM_CAPABILITIES = [
   { area: 'Members',     example: 'Show members with pending dues' },
@@ -406,7 +407,7 @@ const RESOLVERS = {
 /* ══════════════════════════════════════════════════════════
    MINIMAL EXPLICIT CONTEXT (Sprint 77C+)
    Some "analysis" intents may carry a SMALL, explicit slice of
-   app data to Gemini — never the whole AppContext. Each scope
+   app data to Groq — never the whole AppContext. Each scope
    below returns only the fields the question actually needs.
    ══════════════════════════════════════════════════════════ */
 
@@ -438,7 +439,7 @@ const CONTEXT_SCOPES = {
 /**
  * Builds the minimal explicit context slice for an intent, or
  * null when the intent carries none (the default for all other
- * questions — they reach Gemini with role + question + history
+ * questions — they reach Groq with role + question + history
  * only).
  */
 export function buildMinimalContext(intent, data, ctx) {
@@ -550,15 +551,14 @@ function resolveNavigation(nav, role) {
  *     actionBus. Destructive requests only confirm, never act.
  *  1. Navigation / greeting / help → answered locally, always.
  *  2. Insight requests ("how healthy is my gym?", "who needs
- *     attention?", "how am I doing?") → Insight Engine. Gemini
+ *     attention?", "how am I doing?") → Insight Engine. Groq
  *     (when connected) explains ONLY aggregated metrics + insight
  *     summary — never the raw data; offline it returns the
  *     deterministic answer directly and never fails.
- *  3. Analysis intents (e.g. "Analyze my progress") with Gemini
- *     connected → Gemini, carrying ONLY a minimal explicit data
+ *  3. Analysis intents (e.g. "Analyze my progress") with Groq\n *     connected → Groq, carrying ONLY a minimal explicit data
  *     slice (never the full AppContext).
  *  4. Confident local intent (confidence >= 0.75) → AppContext data.
- *  5. Otherwise, when the Gemini provider is connected → Gemini
+ *  5. Otherwise, when the Groq provider is connected → Groq
  *     (streaming via onToken, cancellable via signal).
  *  6. Otherwise → simulated fallback answer.
  *
@@ -574,7 +574,7 @@ function resolveNavigation(nav, role) {
  *                                     (local resolvers ONLY)
  * @param {Object} [handlers]
  * @param {Function} [handlers.onToken] - streaming text delta callback
- * @param {AbortSignal} [handlers.signal] - cancels in-flight Gemini call
+ * @param {AbortSignal} [handlers.signal] - cancels in-flight Groq call
  * @returns {Promise<{text: string, intent: string, intentLabel: string, nextSuggestions: string[], navigation?: {path: string, label: string}}>}
  */
 export async function sendMessage(message, context = {}, handlers = {}) {
@@ -623,42 +623,51 @@ export async function sendMessage(message, context = {}, handlers = {}) {
       navigation = n.navigation
     } else {
       // Insight requests resolve role-first through the Insight
-      // Engine — Gemini (when connected) only EXPLAINS metrics.
+      // Engine — Groq (when connected) only EXPLAINS metrics.
       const insight = await insightReply(message, context, handlers)
       if (insight) return insight
 
-      if (parsed.intent === 'analyze_progress' && AI_PROVIDER.connected) {
-        // Analysis requests: route to Gemini with an explicit,
+      if (parsed.intent === 'report') {
+        // Data-driven reports: fully deterministic from the
+        // already-subscribed data — never sent to the provider.
+        // Role-aware (Platform / Gym / Trainer / My Report).
+        const report = buildRoleReport(role, {
+          ...(context.data || {}),
+          userId: context.userId,
+        })
+        text = report.text
+      } else if (parsed.intent === 'analyze_progress' && AI_PROVIDER.connected) {
+        // Analysis requests: route to Groq with an explicit,
         // minimal data slice (metrics + goal only).
         const scope = buildMinimalContext(parsed.intent, context.data, context)
-        text = await geminiCall(message, context, handlers, scope)
-        provider = 'gemini'
+        text = await groqCall(message, context, handlers, scope)
+        provider = 'groq'
       } else if (parsed.intent === 'greeting' || parsed.intent === 'help' || parsed.confidence >= CONFIDENCE_THRESHOLD) {
         const ok = resolveIntent(parsed.intent, context.data, context)
         if (ok) {
           text = ok
         } else if (AI_PROVIDER.connected) {
           // Recognized topic but nothing to answer from local data —
-          // hand the question to Gemini instead of guessing.
-          text = await geminiCall(message, context, handlers)
-          provider = 'gemini'
+          // hand the question to Groq instead of guessing.
+          text = await groqCall(message, context, handlers)
+          provider = 'groq'
         } else {
           text = "I couldn't find that information. Try rephrasing — for example: 'Show me pending payments' or 'What is my membership expiry?'"
         }
       } else if (AI_PROVIDER.connected) {
-        text = await geminiCall(message, context, handlers)
-        provider = 'gemini'
+        text = await groqCall(message, context, handlers)
+        provider = 'groq'
       } else {
         text = "I couldn't find that information. Try rephrasing — for example: 'Open payments' or 'How many members?'"
       }
     }
   } catch (err) {
-    text = GEMINI_GRACEFUL_FALLBACK
+    text = GROQ_GRACEFUL_FALLBACK
   }
 
   // Local answers keep a light simulated latency so the typing
-  // indicator reads naturally; Gemini streams so it needs none.
-  if (provider !== 'gemini') {
+  // indicator reads naturally; Groq streams so it needs none.
+  if (provider !== 'groq') {
     const latency = Math.max(350, 900 - message.length * 2)
     await new Promise(resolve => setTimeout(resolve, latency))
   }
@@ -680,10 +689,10 @@ export async function sendMessage(message, context = {}, handlers = {}) {
  * needs attention?", "how am I doing?", "platform health"…) and
  * answers them deterministically from already-subscribed data.
  *
- * Gemini is only ever asked to EXPLAIN aggregated metrics + an
- * insight summary — never raw Firestore records. When Gemini is
+ * Groq is only ever asked to EXPLAIN aggregated metrics + an
+ * insight summary — never raw Firestore records. When Groq is
  * absent or fails, the deterministic answer is used as-is and the
- * assistant never fails because Gemini is offline.
+ * assistant never fails because Groq is offline.
  */
 async function insightReply(message, context = {}, handlers = {}) {
   const role = context.role || 'gym_admin'
@@ -705,14 +714,14 @@ async function insightReply(message, context = {}, handlers = {}) {
         metrics: buildAggregateMetrics(matched, data),
         topInsights: bundle.insights.slice(0, 6).map(i => `${i.severity}: ${i.title} — ${i.message}`),
       }
-      const enriched = await geminiInsightCall(message, context, handlers, scope)
+      const enriched = await groqInsightCall(message, context, handlers, scope)
       if (enriched) {
         text = enriched
-        provider = 'gemini'
+        provider = 'groq'
       }
     }
 
-    if (provider !== 'gemini') {
+    if (provider !== 'groq') {
       const latency = Math.max(350, 900 - message.length * 2)
       await new Promise(resolve => setTimeout(resolve, latency))
     }
@@ -736,41 +745,49 @@ async function insightReply(message, context = {}, handlers = {}) {
 }
 
 /**
- * Gemini call site for insight explanations — sends ONLY role,
+ * Groq call site for insight explanations — sends ONLY role,
  * question, last-10-turn history and the aggregated metrics +
  * insight summary. Fails resolve to null so the caller keeps the
  * deterministic answer (never the generic fallback text).
  */
-async function geminiInsightCall(message, context, handlers, scope) {
-  const reply = await streamReply({
-    question: message,
-    history: context.history || [],
-    role: context.role || 'gym_admin',
-    context: scope,
-    mode: 'explain',
-    onToken: handlers?.onToken,
-    signal: handlers?.signal,
-  })
-  return reply || null
+async function groqInsightCall(message, context, handlers, scope) {
+  try {
+    const reply = await streamReply({
+      question: message,
+      history: context.history || [],
+      role: context.role || 'gym_admin',
+      context: scope,
+      mode: 'explain',
+      onToken: handlers?.onToken,
+      signal: handlers?.signal,
+    })
+    return reply?.text || null
+  } catch {
+    return null
+  }
 }
 
 /**
- * Gemini call site — sends ONLY role, question, the last 10 chat
+ * Groq call site — sends ONLY role, question, the last 10 chat
  * turns, and (when the intent explicitly asks for it) a minimal
  * data slice via `explicitScope`. AppContext data never leaves
  * the browser otherwise. Any failure resolves to the graceful
  * fallback text.
  */
-async function geminiCall(message, context, handlers, explicitScope) {
-  const reply = await streamReply({
-    question: message,
-    history: context.history || [],
-    role: context.role || 'gym_admin',
-    context: explicitScope || null,
-    onToken: handlers?.onToken,
-    signal: handlers?.signal,
-  })
-  return reply || GEMINI_GRACEFUL_FALLBACK
+async function groqCall(message, context, handlers, explicitScope) {
+  try {
+    const reply = await streamReply({
+      question: message,
+      history: context.history || [],
+      role: context.role || 'gym_admin',
+      context: explicitScope || null,
+      onToken: handlers?.onToken,
+      signal: handlers?.signal,
+    })
+    return reply?.text || GROQ_GRACEFUL_FALLBACK
+  } catch {
+    return GROQ_GRACEFUL_FALLBACK
+  }
 }
 
 function resolveIntent(intent, data, ctx) {
@@ -821,7 +838,7 @@ export default {
   SYSTEM_CAPABILITIES,
   CONFIDENCE_THRESHOLD,
   isProviderConnected,
-  connectGemini,
+  connectGroq,
   sendMessage,
   fmtINR,
   fmtDate,
