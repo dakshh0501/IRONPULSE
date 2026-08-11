@@ -1,7 +1,7 @@
 // src/App.jsx
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom'
-import { Helmet, HelmetProvider } from 'react-helmet-async'
+import { HelmetProvider } from 'react-helmet-async'
 import SEOHead from './components/SEOHead'
 import { AppProvider } from './context/AppContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -12,7 +12,9 @@ import Header       from './components/Header'
 import LicenseGuard from './components/LicenseGuard'
 import ErrorBoundary from './components/ErrorBoundary'
 import BiometricGate from './components/BiometricGate'
-import AiAssistant from './components/ai/AiAssistant'
+
+// ── Lazy-loaded shell pieces (keep heavy AI deps out of the entry chunk) ──
+const AiAssistant = lazy(() => import('./components/ai/AiAssistant'))
 
 // ── Lazy-loaded pages (code-split at route level) ──────────
 const Landing        = lazy(() => import('./pages/Landing'))

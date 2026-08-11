@@ -1,9 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
+import { useAuth } from '../../context/AuthContext'
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
+import { subscribeToGeneratedReports, addGeneratedReport, deleteGeneratedReport } from '../../services/reportService'
 
 const hasStatus = (obj, status) => (obj?.status || '').toLowerCase() === status
 
@@ -29,7 +31,7 @@ function StatCard({ label, value, color }) {
   )
 }
 
-function RevenueReport({ payments, gyms, subscriptions }) {
+function RevenueReport({ payments, gyms, subscriptions, onExport }) {
   const totalCollected = useMemo(() =>
     payments.filter(p => hasStatus(p, 'paid')).reduce((s,p) => s + Number(p.paid||0), 0), [payments])
   const totalPending = useMemo(() =>
@@ -56,6 +58,7 @@ function RevenueReport({ payments, gyms, subscriptions }) {
     link.href = URL.createObjectURL(blob)
     link.download = 'platform-revenue.csv'
     link.click()
+    onExport?.('CSV', 'Platform Revenue Report')
   }
 
   return (
@@ -100,7 +103,7 @@ function RevenueReport({ payments, gyms, subscriptions }) {
   )
 }
 
-function SubscriptionsReport({ subscriptions, gyms }) {
+function SubscriptionsReport({ subscriptions, gyms, onExport }) {
   const statusData = useMemo(() => {
     const counts = {}
     subscriptions.forEach(s => {
@@ -109,6 +112,21 @@ function SubscriptionsReport({ subscriptions, gyms }) {
     })
     return Object.entries(counts).map(([name, value]) => ({ name, value }))
   }, [subscriptions])
+
+  const exportCSV = () => {
+    const headers = 'Gym,Plan,Status,Amount (₹)'
+    const rows = subscriptions.map(s => {
+      const gym = gyms.find(g => g.id === s.gymId || g.gymId === s.gymId)
+      return `${gym?.gymName || gym?.name || s.gymId},${s.plan || '—'},${s.status || '—'},${s.amount || 0}`
+    })
+    const csv = [headers, ...rows].join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type:'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'platform-subscriptions.csv'
+    link.click()
+    onExport?.('CSV', 'Platform Subscriptions Report')
+  }
 
   return (
     <div>
@@ -152,11 +170,12 @@ function SubscriptionsReport({ subscriptions, gyms }) {
           })()}
         </div>
       </div>
+      <button className="btn btn-sm btn-outline" onClick={exportCSV}>↓ Export CSV</button>
     </div>
   )
 }
 
-function MembersReport({ members, gyms }) {
+function MembersReport({ members, gyms, onExport }) {
   const activeCount = members.filter(m => m.status === 'Active').length
   const expiredCount = members.filter(m => m.status === 'Expired' || m.status === 'Inactive').length
   const byGym = useMemo(() => {
@@ -171,6 +190,18 @@ function MembersReport({ members, gyms }) {
       return { gymId, gymName: gym?.gymName || gymId, count }
     }).sort((a,b) => b.count - a.count)
   }, [members, gyms])
+
+  const exportCSV = () => {
+    const headers = 'Members,Active,Expired / Inactive,Total Check-ins'
+    const rows = [[members.length, activeCount, expiredCount, Object.values(byGym).reduce((s,g) => s + g.count, 0)]]
+    const csv = [headers, ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type:'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'platform-members.csv'
+    link.click()
+    onExport?.('CSV', 'Platform Members Report')
+  }
 
   return (
     <div>
@@ -191,11 +222,12 @@ function MembersReport({ members, gyms }) {
           </BarChart>
         </ResponsiveContainer>
       </div>
+      <button className="btn btn-sm btn-outline" onClick={exportCSV}>↓ Export CSV</button>
     </div>
   )
 }
 
-function GymsReport({ gyms, subscriptions }) {
+function GymsReport({ gyms, subscriptions, onExport }) {
   const statusData = useMemo(() => {
     const counts = { approved:0, pending:0, suspended:0 }
     gyms.forEach(g => {
@@ -206,6 +238,18 @@ function GymsReport({ gyms, subscriptions }) {
     return Object.entries(counts).map(([name, value]) => ({ name, value }))
   }, [gyms])
   const subscribedGyms = subscriptions.filter(s => s.status === 'active').length
+
+  const exportCSV = () => {
+    const headers = 'Gym,Status,Active Subscription'
+    const rows = gyms.map(g => `${g.gymName || g.name || g.id},${g.approvalStatus || 'pending'},${subscriptions.some(s => s.gymId === g.id && s.status === 'active') ? 'Yes' : 'No'}`)
+    const csv = [headers, ...rows].join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type:'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'platform-gyms.csv'
+    link.click()
+    onExport?.('CSV', 'Platform Gyms Report')
+  }
 
   return (
     <div>
@@ -226,11 +270,12 @@ function GymsReport({ gyms, subscriptions }) {
           </PieChart>
         </ResponsiveContainer>
       </div>
+      <button className="btn btn-sm btn-outline" onClick={exportCSV}>↓ Export CSV</button>
     </div>
   )
 }
 
-function ActivityReport({ attendance, members }) {
+function ActivityReport({ attendance, members, onExport }) {
   const todayStr = new Date().toISOString().split('T')[0]
   const todayCheckins = attendance.filter(a => a.date === todayStr).length
   const peakHourData = useMemo(() => {
@@ -243,6 +288,18 @@ function ActivityReport({ attendance, members }) {
     })
     return hours
   }, [attendance])
+
+  const exportCSV = () => {
+    const headers = 'Hour,Check-ins'
+    const rows = peakHourData.map(h => `${h.hour},${h.count}`)
+    const csv = [headers, ...rows].join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type:'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'platform-activity.csv'
+    link.click()
+    onExport?.('CSV', 'Platform Activity Report')
+  }
 
   return (
     <div>
@@ -263,6 +320,7 @@ function ActivityReport({ attendance, members }) {
           </LineChart>
         </ResponsiveContainer>
       </div>
+      <button className="btn btn-sm btn-outline" onClick={exportCSV}>↓ Export CSV</button>
     </div>
   )
 }
@@ -273,6 +331,49 @@ const tdStyle = { padding:'10px 14px', borderBottom:'1px solid var(--border)' }
 export default function SuperAdminReports() {
   const [selected, setSelected] = useState('revenue')
   const { gyms, subscriptions, payments, members, attendance } = useApp()
+  const { currentUser } = useAuth()
+  const [generatedReports, setGeneratedReports] = useState([])
+  const [reportMsg, setReportMsg] = useState({ type: '', text: '' })
+  const [confirmDeleteReport, setConfirmDeleteReport] = useState(null)
+  const [deletingReport, setDeletingReport] = useState(false)
+
+  const flashReportMsg = (type, text) => {
+    setReportMsg({ type, text })
+    setTimeout(() => setReportMsg({ type: '', text: '' }), 4000)
+  }
+
+  useEffect(() => subscribeToGeneratedReports(
+    'platform',
+    (docs) => setGeneratedReports(docs),
+    () => {},
+  ), [])
+
+  const resetFilters = () => setSelected('revenue')
+
+  const recordGeneratedReport = (format, label) => {
+    if (currentUser?.uid) {
+      addGeneratedReport({
+        gymId: 'platform',
+        userId: currentUser.uid,
+        userName: currentUser.displayName || currentUser.email || '—',
+        format, label, dateRange: 'all',
+      }).catch(() => {})
+    }
+  }
+
+  const handleDeleteReport = async () => {
+    if (!confirmDeleteReport) return
+    setDeletingReport(true)
+    try {
+      await deleteGeneratedReport(confirmDeleteReport.id)
+      flashReportMsg('success', `Report "${confirmDeleteReport.label}" deleted.`)
+      setConfirmDeleteReport(null)
+    } catch (err) {
+      flashReportMsg('error', 'Failed to delete report: ' + (err?.message || 'Unknown error'))
+    } finally {
+      setDeletingReport(false)
+    }
+  }
 
   return (
     <div className="page-container">
@@ -281,19 +382,85 @@ export default function SuperAdminReports() {
         Generate and export platform reports
       </p>
 
-      <div style={{ display:'flex', gap:12, marginBottom:20, flexWrap:'wrap' }}>
+      <div style={{ display:'flex', gap:12, marginBottom:20, flexWrap:'wrap', alignItems:'center' }}>
         {REPORTS.map(r => (
           <button key={r.id} className={`btn btn-sm ${selected === r.id ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setSelected(r.id)}>
             {r.label}
           </button>
         ))}
+        <button className="btn btn-ghost btn-sm" onClick={resetFilters} title="Reset report selection"><span aria-hidden="true">↺</span> Reset</button>
       </div>
 
-      {selected === 'revenue' && <RevenueReport payments={payments} gyms={gyms} subscriptions={subscriptions} />}
-      {selected === 'subscriptions' && <SubscriptionsReport subscriptions={subscriptions} gyms={gyms} />}
-      {selected === 'members' && <MembersReport members={members} gyms={gyms} />}
-      {selected === 'gyms' && <GymsReport gyms={gyms} subscriptions={subscriptions} />}
-      {selected === 'activity' && <ActivityReport attendance={attendance} members={members} />}
+      {selected === 'revenue' && <RevenueReport payments={payments} gyms={gyms} subscriptions={subscriptions} onExport={recordGeneratedReport} />}
+      {selected === 'subscriptions' && <SubscriptionsReport subscriptions={subscriptions} gyms={gyms} onExport={recordGeneratedReport} />}
+      {selected === 'members' && <MembersReport members={members} gyms={gyms} onExport={recordGeneratedReport} />}
+      {selected === 'gyms' && <GymsReport gyms={gyms} subscriptions={subscriptions} onExport={recordGeneratedReport} />}
+      {selected === 'activity' && <ActivityReport attendance={attendance} members={members} onExport={recordGeneratedReport} />}
+
+      <div className="card" style={{ marginTop:24, marginBottom:20 }}>
+        <div className="rpt-table-header" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 16px' }}>
+          <p className="card-title" style={{ margin:0 }}>Generated / Exported Reports</p>
+          <span style={{ fontSize:11, color:'var(--text-muted)' }}>{generatedReports.length} saved</span>
+        </div>
+        <div style={{ overflowX:'auto' }}>
+          {generatedReports.length === 0 ? (
+            <div className="rpt-empty-chart" style={{ padding:32 }}>No generated reports yet — use Export CSV on a report section to create one.</div>
+          ) : (
+            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
+              <thead>
+                <tr>
+                  <th scope="col" style={thStyle}>Report</th>
+                  <th scope="col" style={thStyle}>Format</th>
+                  <th scope="col" style={thStyle}>By</th>
+                  <th scope="col" style={thStyle}>Generated</th>
+                  <th scope="col" style={thStyle}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {generatedReports.map(r => (
+                  <tr key={r.id}>
+                    <td style={{ ...tdStyle, fontWeight:700 }}>{r.label || 'Report'}</td>
+                    <td style={tdStyle}><span className={`badge ${r.format === 'PDF' ? 'badge-orange' : r.format === 'CSV' ? 'badge-teal' : 'badge-amber'}`}>{r.format || '—'}</span></td>
+                    <td style={{ ...tdStyle, fontSize:12, color:'var(--text-dim)' }}>{r.userName || '—'}</td>
+                    <td style={{ ...tdStyle, fontSize:12, color:'var(--text-muted)' }}>
+                      {r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}
+                    </td>
+                    <td style={tdStyle}>
+                      <button className="btn btn-ghost btn-sm" style={{ color:'var(--red)' }} onClick={() => setConfirmDeleteReport(r)}>✕ Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      {reportMsg.text && (
+        <div role="alert" style={{
+          position:'fixed', bottom:24, right:24, zIndex:200,
+          padding:'10px 16px', borderRadius:10, fontSize:13, fontWeight:600,
+          background: reportMsg.type === 'error' ? 'rgba(239,68,68,0.95)' : 'rgba(16,185,129,0.95)',
+          color:'#fff', boxShadow:'0 8px 24px rgba(0,0,0,0.25)',
+        }}>{reportMsg.text}</div>
+      )}
+
+      {confirmDeleteReport && (
+        <div className="modal-overlay" onClick={() => !deletingReport && setConfirmDeleteReport(null)}>
+          <div className="modal" role="dialog" aria-modal="true" aria-label="Delete generated report" onClick={e => e.stopPropagation()} style={{ maxWidth:380 }}>
+            <h3 style={{ marginBottom:8, fontSize:16 }}>Delete Generated Report</h3>
+            <p style={{ fontSize:13, color:'var(--text-muted)', marginBottom:20, lineHeight:1.5 }}>
+              Permanently delete the generated <strong>{confirmDeleteReport.label}</strong> report ({confirmDeleteReport.format})? This only removes the saved report record — platform data is not affected.
+            </p>
+            <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
+              <button className="btn btn-ghost" onClick={() => setConfirmDeleteReport(null)} disabled={deletingReport}>Cancel</button>
+              <button className="btn btn-primary" style={{ background:'#ef4444' }} onClick={handleDeleteReport} disabled={deletingReport}>
+                {deletingReport ? 'Deleting...' : 'Delete Report'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

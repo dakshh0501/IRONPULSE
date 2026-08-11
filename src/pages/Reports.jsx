@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
+import { useAuth } from '../context/AuthContext'
 import { jsPDF } from 'jspdf'
 import {
   AreaChart, Area, BarChart, Bar,
@@ -9,6 +10,7 @@ import {
 } from 'recharts'
 import { useSearchParams } from 'react-router-dom'
 import { registerActionHandlers } from '../services/ai/actionBus'
+import { subscribeToGeneratedReports, addGeneratedReport, deleteGeneratedReport } from '../services/reportService'
 
 const formatDate = (date) => date.toISOString().split('T')[0]
 const hasStatus = (obj, status) => (obj?.status || '').toLowerCase() === status
@@ -749,9 +751,56 @@ const getCutoffDate = (range) => {
 // ─── Main Export ─────────────────────────────────────────────
 export default function Reports() {
   const [searchParams] = useSearchParams(); const _search = searchParams.get('q') || ''
-  const { members, payments, trainers, attendance } = useApp()
+  const { members, payments, trainers, attendance, gymId } = useApp()
+  const { currentUser } = useAuth()
   const [activeTab, setActiveTab] = useState('Dashboard')
   const [dateRange, setDateRange] = useState('month')
+  const [generatedReports, setGeneratedReports] = useState([])
+  const [reportMsg, setReportMsg] = useState({ type: '', text: '' })
+  const [confirmDeleteReport, setConfirmDeleteReport] = useState(null)
+  const [deletingReport, setDeletingReport] = useState(false)
+
+  const flashReportMsg = (type, text) => {
+    setReportMsg({ type, text })
+    setTimeout(() => setReportMsg({ type: '', text: '' }), 4000)
+  }
+
+  useEffect(() => subscribeToGeneratedReports(
+    gymId,
+    (docs) => setGeneratedReports(docs),
+    () => {},
+  ), [gymId])
+
+  const resetFilters = () => {
+    setDateRange('month')
+    setActiveTab('Dashboard')
+  }
+
+  const recordGeneratedReport = (format, label) => {
+    const snapshot = { format, label, dateRange }
+    if (currentUser?.uid) {
+      addGeneratedReport({
+        gymId: gymId || 'default',
+        userId: currentUser.uid,
+        userName: currentUser.displayName || currentUser.email || '—',
+        ...snapshot,
+      }).catch(() => {})
+    }
+  }
+
+  const handleDeleteReport = async () => {
+    if (!confirmDeleteReport) return
+    setDeletingReport(true)
+    try {
+      await deleteGeneratedReport(confirmDeleteReport.id)
+      flashReportMsg('success', `Report "${confirmDeleteReport.label}" deleted.`)
+      setConfirmDeleteReport(null)
+    } catch (err) {
+      flashReportMsg('error', 'Failed to delete report: ' + (err?.message || 'Unknown error'))
+    } finally {
+      setDeletingReport(false)
+    }
+  }
 
   // AI Action Engine — Reports is reachable via "open reports".
   useEffect(() => registerActionHandlers('reports', {
@@ -797,6 +846,8 @@ export default function Reports() {
     title('Trainers'); stat('Active Trainers',trainers.length)
     stat('Clients Assigned',trainers.reduce((s,t)=>s+filteredMembers.filter(m=>m.trainerId===t.id).length,0))
     doc.save('ironpulse-report.pdf')
+    recordGeneratedReport('PDF', 'IRONPULSE Report')
+    flashReportMsg('success', 'PDF report generated.')
   }
 
   const exportCSV = () => {
@@ -809,6 +860,8 @@ export default function Reports() {
     rows.push(['Attendance','Total Check-ins',filteredAttendance.length]); rows.push(['Membership','Churn Rate',`${((exp/filteredMembers.length)*100||0).toFixed(1)}%`])
     rows.push(['Trainers','Active Trainers',trainers.length])
     const csv = rows.map(r=>r.join(',')).join('\n'); const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}); const link = document.createElement('a'); link.href=URL.createObjectURL(blob); link.download='ironpulse-report.csv'; link.click(); URL.revokeObjectURL(link.href)
+    recordGeneratedReport('CSV', 'IRONPULSE Report')
+    flashReportMsg('success', 'CSV report generated.')
   }
 
   const exportExcel = () => {
@@ -822,9 +875,15 @@ export default function Reports() {
     rows.push(['Attendance',"Today's Check-ins",filteredAttendance.filter(a=>a.date===formatDate(new Date())).length]); rows.push(['Membership','Churn Rate',`${((exp/filteredMembers.length)*100||0).toFixed(1)}%`])
     rows.push(['Trainers','Clients Assigned',trainers.reduce((s,t)=>s+filteredMembers.filter(m=>m.trainerId===t.id).length,0)])
     const tab='\t'; const tsv=rows.map(r=>r.join(tab)).join('\n'); const blob = new Blob(['\uFEFF'+tsv],{type:'text/tab-separated-values;charset=utf-8;'}); const link = document.createElement('a'); link.href=URL.createObjectURL(blob); link.download='ironpulse-report.tsv'; link.click(); URL.revokeObjectURL(link.href)
+    recordGeneratedReport('TSV', 'IRONPULSE Report')
+    flashReportMsg('success', 'TSV (Excel) report generated.')
   }
 
-  const exportPrint = () => window.print()
+  const exportPrint = () => {
+    window.print()
+    recordGeneratedReport('Print', 'IRONPULSE Report')
+    flashReportMsg('success', 'Report sent to printer.')
+  }
 
   return (
     <div className="page-container">
@@ -848,6 +907,40 @@ export default function Reports() {
           {['today','week','month','quarter','year'].map(p => (
             <button key={p} onClick={() => setDateRange(p)} className={`btn btn-sm ${dateRange===p?'btn-primary':'btn-ghost'}`} style={{ fontSize:11, textTransform:'capitalize' }}>{p}</button>
           ))}
+        </div>
+        <button className="btn btn-ghost btn-sm" onClick={resetFilters} title="Reset date range and tab"><span aria-hidden="true">↺</span> Reset Filters</button>
+      </div>
+
+      {/* ═══════════════ GENERATED REPORTS ═══════════════ */}
+      <div className="rpt-table-card" style={{ marginBottom:20 }}>
+        <div className="rpt-table-header" style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <p className="rpt-chart-title" style={{ margin:0 }}>Generated / Exported Reports</p>
+          <span style={{ fontSize:11, color:'var(--text-muted)' }}>{generatedReports.length} saved</span>
+        </div>
+        <div style={{ overflowX:'auto' }}>
+          {generatedReports.length === 0 ? (
+            <div className="rpt-empty-chart" style={{ padding:32 }}>No generated reports yet — use CSV / TSV / PDF / Print to create one.</div>
+          ) : (
+            <table className="rpt-table">
+              <thead><tr>{['Report','Format','Range','By','Generated',''].map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
+              <tbody>
+                {generatedReports.map(r => (
+                  <tr key={r.id}>
+                    <td style={{ fontWeight:700 }}>{r.label || 'Report'}</td>
+                    <td><span className={`badge ${r.format === 'PDF' ? 'badge-orange' : r.format === 'CSV' ? 'badge-teal' : 'badge-amber'}`}>{r.format || '—'}</span></td>
+                    <td style={{ fontSize:12, color:'var(--text-muted)', textTransform:'capitalize' }}>{r.dateRange || '—'}</td>
+                    <td style={{ fontSize:12, color:'var(--text-dim)' }}>{r.userName || '—'}</td>
+                    <td style={{ fontSize:12, color:'var(--text-muted)' }}>
+                      {r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}
+                    </td>
+                    <td>
+                      <button className="btn btn-ghost btn-sm" style={{ color:'var(--red)' }} onClick={() => setConfirmDeleteReport(r)}>✕ Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
@@ -878,6 +971,33 @@ export default function Reports() {
         {activeTab === 'Membership' && <MembershipReport members={members} />}
         {activeTab === 'Trainers'   && <TrainerReport    members={members} trainers={trainers} />}
       </div>
+
+      {reportMsg.text && (
+        <div role="alert" style={{
+          position:'fixed', bottom:24, right:24, zIndex:200,
+          padding:'10px 16px', borderRadius:10, fontSize:13, fontWeight:600,
+          background: reportMsg.type === 'error' ? 'rgba(239,68,68,0.95)' : 'rgba(16,185,129,0.95)',
+          color:'#fff', boxShadow:'0 8px 24px rgba(0,0,0,0.25)',
+        }}>{reportMsg.text}</div>
+      )}
+
+      {confirmDeleteReport && (
+        <div className="modal-overlay" onClick={() => !deletingReport && setConfirmDeleteReport(null)}>
+          <div className="modal" role="dialog" aria-modal="true" aria-label="Delete generated report" onClick={e => e.stopPropagation()} style={{ maxWidth:380 }}>
+            <h3 style={{ marginBottom:8, fontSize:16 }}>Delete Generated Report</h3>
+            <p style={{ fontSize:13, color:'var(--text-muted)', marginBottom:20, lineHeight:1.5 }}>
+              Permanently delete the generated <strong>{confirmDeleteReport.label}</strong> report ({confirmDeleteReport.format}) from{' '}
+              {confirmDeleteReport.createdAt?.seconds ? new Date(confirmDeleteReport.createdAt.seconds * 1000).toLocaleDateString() : '—'}? This only removes the saved report record — member, payment and attendance data is not affected.
+            </p>
+            <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
+              <button className="btn btn-ghost" onClick={() => setConfirmDeleteReport(null)} disabled={deletingReport}>Cancel</button>
+              <button className="btn btn-primary" style={{ background:'#ef4444' }} onClick={handleDeleteReport} disabled={deletingReport}>
+                {deletingReport ? 'Deleting...' : 'Delete Report'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

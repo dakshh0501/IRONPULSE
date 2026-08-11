@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
 import { useAuth } from '../../context/AuthContext'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, writeBatch, collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '../../firebase'
 import { updateSubscription } from '../../services/firestoreService'
 import {
@@ -490,7 +490,10 @@ export default function SuperAdminSubscriptions() {
   const [drawerTab, setDrawerTab] = useState('overview')
   const [confirmAction, setConfirmAction] = useState(null)
   const [actionError, setActionError] = useState('')
+  const [toast, setToast] = useState('')
   const drawerRef = useRef(null)
+
+  const showToast = (text) => { setToast(text); setTimeout(() => setToast(''), 5000) }
 
   useEffect(() => {
     if (subscriptions.length > 0 && initLoading) {
@@ -679,6 +682,49 @@ export default function SuperAdminSubscriptions() {
     }
   }
 
+  const handleDeleteSub = async () => {
+    if (!selectedSub) return
+    setLoading(true)
+    try {
+      const subId = selectedSub.id
+      const gymId = selectedSub.gymId || ''
+      const gymName = gyms.find(g => g.id === gymId || g.gymId === gymId)?.gymName || gymId || 'Unknown Gym'
+      const toDelete = []
+
+      // Subscription record: this doc + any mirrors for the same gym
+      toDelete.push(doc(db, 'subscriptions', subId))
+      if (gymId) {
+        const mirrorSnap = await getDocs(query(collection(db, 'subscriptions'), where('gymId', '==', gymId)))
+        mirrorSnap.docs.forEach(d => toDelete.push(d.ref))
+      }
+
+      // PhonePe payment attempts tied to this subscription / gym
+      const attSnap = await getDocs(query(collection(db, 'paymentAttempts'), where('subscriptionId', '==', subId)))
+      attSnap.docs.forEach(d => toDelete.push(d.ref))
+      if (gymId) {
+        const attGymSnap = await getDocs(query(collection(db, 'paymentAttempts'), where('gymId', '==', gymId)))
+        attGymSnap.docs.forEach(d => toDelete.push(d.ref))
+      }
+
+      // Commit in chunks (batch limit is 500 writes)
+      for (let i = 0; i < toDelete.length; i += 450) {
+        const batch = writeBatch(db)
+        toDelete.slice(i, i + 450).forEach(ref => batch.delete(ref))
+        await batch.commit()
+      }
+
+      showToast(`Subscription record for "${gymName}" deleted along with its payment attempts. The gym itself is unchanged.`)
+      setSelectedSubId(null)
+      setConfirmAction(null)
+      setActionError('')
+    } catch (err) {
+      console.error('Deleting subscription failed:', err)
+      setActionError(err?.message || 'Deletion failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const exportCSV = () => {
     const headers = ['Gym', 'Owner', 'Plan', 'Status', 'Amount', 'Start Date', 'End Date', 'Payment Status', 'Billing Cycle']
     const rows = filtered.map(s => {
@@ -730,10 +776,10 @@ export default function SuperAdminSubscriptions() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Export CSV
           </button>
-          <button className="sub-btn-secondary" onClick={() => window.location.reload()}>
+          <span className="sub-btn-secondary" style={{ fontSize: 11, opacity: 0.75, pointerEvents: 'none' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }}><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-            Refresh
-          </button>
+            Auto-synced
+          </span>
           <button className="sub-btn-primary" onClick={() => window.open('/settings?tab=plans', '_self')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Create Plan
@@ -1076,10 +1122,11 @@ export default function SuperAdminSubscriptions() {
                     { key: 'expire', disabled: false, color: '#ef4444', label: 'Expire' },
                     { key: 'extend', disabled: false, color: '#00c8b4', label: 'Extend' },
                     { key: 'change', disabled: false, color: '#3b82f6', label: 'Change Plan' },
+                    { key: 'delete', disabled: false, color: '#ef4444', label: 'Delete Record' },
                   ].map(({ key, disabled, color, label }) => (
                     <button key={key} disabled={disabled}
                       onClick={() => {
-                        if (key === 'activate' || key === 'trial' || key === 'suspend' || key === 'expire') {
+                        if (key === 'activate' || key === 'trial' || key === 'suspend' || key === 'expire' || key === 'delete') {
                           setConfirmAction({ type: key })
                         } else if (key === 'extend') {
                           setActionType('extend'); setFormDays(30)
@@ -1118,12 +1165,14 @@ export default function SuperAdminSubscriptions() {
               {confirmAction.type === 'trial' && 'Assign Trial'}
               {confirmAction.type === 'suspend' && 'Suspend Subscription'}
               {confirmAction.type === 'expire' && 'Expire Subscription'}
+              {confirmAction.type === 'delete' && 'Delete Subscription Record'}
             </h3>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
               {confirmAction.type === 'activate' && 'Activate this subscription. Status will be set to active and payment to paid.'}
               {confirmAction.type === 'trial' && 'Assign a trial period for this gym. They will have full access during the trial.'}
               {confirmAction.type === 'suspend' && 'Suspending will restrict gym access. This action can be reversed by activating again.'}
               {confirmAction.type === 'expire' && 'Mark this subscription as expired. The gym will lose access to premium features.'}
+              {confirmAction.type === 'delete' && 'Permanently delete this subscription record and all its PhonePe payment attempts. The gym and its billing are NOT deleted — the gym can be resubscribed anytime. This cannot be undone.'}
             </p>
             {confirmAction.type === 'trial' && (
               <div style={{ marginBottom: 16 }}>
@@ -1134,9 +1183,9 @@ export default function SuperAdminSubscriptions() {
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="sub-btn-secondary" onClick={() => setConfirmAction(null)} disabled={loading}>Cancel</button>
               <button className="sub-btn-primary" style={{
-                background: confirmAction.type === 'expire' ? '#ef4444' : confirmAction.type === 'suspend' ? '#a855f7' : confirmAction.type === 'trial' ? '#00c8b4' : undefined,
-              }} onClick={() => handleAction(confirmAction.type)} disabled={loading}>
-                {loading ? 'Processing...' : 'Confirm'}
+                background: confirmAction.type === 'delete' ? '#ef4444' : confirmAction.type === 'expire' ? '#ef4444' : confirmAction.type === 'suspend' ? '#a855f7' : confirmAction.type === 'trial' ? '#00c8b4' : undefined,
+              }} onClick={() => confirmAction.type === 'delete' ? handleDeleteSub() : handleAction(confirmAction.type)} disabled={loading}>
+                {loading ? 'Processing...' : confirmAction.type === 'delete' ? 'Delete Record' : 'Confirm'}
               </button>
             </div>
           </div>
@@ -1236,6 +1285,14 @@ export default function SuperAdminSubscriptions() {
             </div>
           </div>
         </div>
+      )}
+
+      {toast && (
+        <div role="status" style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 210,
+          padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+          background: 'rgba(16,185,129,0.95)', color: '#fff', boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+        }}>✓ {toast}</div>
       )}
     </div>
   )

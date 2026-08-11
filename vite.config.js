@@ -12,7 +12,6 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           firebase: ['firebase/app', 'firebase/firestore', 'firebase/auth', 'firebase/functions'],
-          pdf: ['jspdf'],
           qrscanner: ['html5-qrcode'],
         },
       },
@@ -22,6 +21,7 @@ export default defineConfig({
     sourcemap: false,
     minify: 'esbuild',
     target: 'es2020',
+    modulePreload: false,
   },
   server: {
     port: 3000,

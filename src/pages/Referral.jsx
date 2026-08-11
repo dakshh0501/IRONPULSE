@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import { getReferralStats, buildReferralLink, buildShareMessage, getShareMessageTemplate } from '../services/referralService'
@@ -76,6 +76,14 @@ export default function Referral() {
   const [showQR, setShowQR] = useState(false)
   const [copiedCode, setCopiedCode] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
+  const [toast, setToast] = useState('')
+  const toastTimer = useRef(null)
+
+  const showToast = useCallback((msg) => {
+    setToast(msg)
+    clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => setToast(''), 2500)
+  }, [])
 
   const referralCode = userProfile?.referralCode || ''
   const referralLink = buildReferralLink(referralCode)
@@ -121,7 +129,8 @@ export default function Referral() {
     }
     setCopiedCode(true)
     setTimeout(() => setCopiedCode(false), 2000)
-  }, [referralCode])
+    showToast('Referral code copied')
+  }, [referralCode, showToast])
 
   const handleCopyLink = useCallback(async () => {
     if (!referralLink) return
@@ -137,7 +146,8 @@ export default function Referral() {
     }
     setCopiedLink(true)
     setTimeout(() => setCopiedLink(false), 2000)
-  }, [referralLink])
+    showToast('Referral link copied')
+  }, [referralLink, showToast])
 
   const shareMessage = useMemo(() => {
     const template = getShareMessageTemplate(referralSettings)
@@ -151,11 +161,11 @@ export default function Referral() {
       text: shareMessage,
     }
     if (navigator.share) {
-      try { await navigator.share(shareData); return }
+      try { await navigator.share(shareData); showToast('Referral shared'); return }
       catch {}
     }
     await handleCopyLink()
-  }, [referralCode, shareMessage, handleCopyLink])
+  }, [referralCode, shareMessage, handleCopyLink, showToast])
 
   const handleShareWhatsApp = useCallback(() => {
     if (!referralCode) return
@@ -459,6 +469,14 @@ export default function Referral() {
             )}
           </div>
         </>
+      )}
+
+      {toast && (
+        <div role="status" aria-live="polite" style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 210,
+          padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+          background: 'rgba(16,185,129,0.95)', color: '#fff', boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+        }}>✓ {toast}</div>
       )}
     </div>
   )

@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { updateDoc, doc, deleteDoc, serverTimestamp, writeBatch, collection, query, where, getDocs } from 'firebase/firestore'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 import { db } from '../../firebase'
 import { useApp } from '../../context/AppContext'
 import { generateUniqueLicenseKey } from '../../utils/license'
@@ -225,6 +226,12 @@ export default function SuperAdminGymOwners() {
   const [page, setPage] = useState(1)
   const [confirmAction, setConfirmAction] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [deleteMsg, setDeleteMsg] = useState({ type: '', text: '' })
+
+  const flashDeleteMsg = (type, text) => {
+    setDeleteMsg({ type, text })
+    setTimeout(() => setDeleteMsg({ type: '', text: '' }), 8000)
+  }
 
   useEffect(() => {
     if (gyms.length > 0 || members.length > 0 || trainers.length > 0 || payments.length > 0) {
@@ -341,18 +348,69 @@ export default function SuperAdminGymOwners() {
   const handleDelete = async (gym) => {
     setLoading(true)
     try {
-      const batch = writeBatch(db)
-      const devicesSnap = await getDocs(query(collection(db, 'licensedDevices'), where('gymId', '==', gym.id)))
-      devicesSnap.docs.forEach(d => batch.delete(d.ref))
-      const historySnap = await getDocs(query(collection(db, 'licenseHistory'), where('gymId', '==', gym.id)))
-      historySnap.docs.forEach(d => batch.delete(d.ref))
-      await batch.commit()
-      await deleteDoc(doc(db, 'gyms', gym.id))
-      if (fireNotif) fireNotif('gym_deleted', { gymId: gym.id, userId: gym.ownerUid, title:'Gym Deleted', message:`${gym.gymName || gym.name} has been removed.` }).catch(() => {})
+      const gid = gym.id
+      const toDelete = []
+      const authUids = new Set()
+      const failedUids = new Set()
+
+      // License & device data
+      const devicesSnap = await getDocs(query(collection(db, 'licensedDevices'), where('gymId', '==', gid)))
+      devicesSnap.docs.forEach(d => toDelete.push(d.ref))
+      const historySnap = await getDocs(query(collection(db, 'licenseHistory'), where('gymId', '==', gid)))
+      historySnap.docs.forEach(d => toDelete.push(d.ref))
+
+      // All gym-scoped collections (deletion is authorized for super_admin)
+      const scoped = ['members','trainers','payments','plans','progressLogs','dietPlans','workoutPlans','attendance','supportTickets','featureRequests','notifications','settings','whatsappLogs','whatsappCampaigns','generatedReports','referrals','rewardLedger','discountCoupons','referralAuditLogs','auditLog']
+      for (const col of scoped) {
+        const snap = await getDocs(query(collection(db, col), where('gymId', '==', gid)))
+        snap.docs.forEach(d => {
+          if ((col === 'members' || col === 'trainers') && d.data().authUid) authUids.add(d.data().authUid)
+          toDelete.push(d.ref)
+        })
+      }
+
+      // PhonePe payment attempts (gym-scoped + subscription-linked)
+      const attSnap = await getDocs(query(collection(db, 'paymentAttempts'), where('gymId', '==', gid)))
+      attSnap.docs.forEach(d => toDelete.push(d.ref))
+      const attSubSnap = await getDocs(query(collection(db, 'paymentAttempts'), where('subscriptionId', '==', gid)))
+      attSubSnap.docs.forEach(d => toDelete.push(d.ref))
+
+      // Subscription mirror docs (billing platform plan)
+      const subSnap = await getDocs(query(collection(db, 'subscriptions'), where('gymId', '==', gid)))
+      subSnap.docs.forEach(d => toDelete.push(d.ref))
+      toDelete.push(doc(db, 'subscriptions', gid))
+
+      // Owner + staff auth users: delete Auth accounts FIRST via Cloud Function;
+      // a failed one keeps its users doc but is marked disabled (blocked login)
+      if (gym.ownerUid) authUids.add(gym.ownerUid)
+      let authFailed = 0
+      for (const uid of Array.from(authUids).slice(0, 100)) {
+        try {
+          const deleteUserFn = httpsCallable(getFunctions(), 'deleteAuthUser')
+          await deleteUserFn({ uid })
+        } catch {
+          authFailed++
+          failedUids.add(uid)
+          try { await updateDoc(doc(db, 'users', uid), { accountDisabled: true, disabledReason: 'Gym deleted by Super Admin', disabledAt: serverTimestamp() }) } catch { /* best-effort */ }
+        }
+      }
+      Array.from(authUids)
+        .filter(uid => !failedUids.has(uid))
+        .forEach(uid => toDelete.push(doc(db, 'users', uid)))
+
+      // Commit deletions in chunks (batch limit is 500 writes)
+      for (let i = 0; i < toDelete.length; i += 450) {
+        const batch = writeBatch(db)
+        toDelete.slice(i, i + 450).forEach(ref => batch.delete(ref))
+        await batch.commit()
+      }
+
+      await deleteDoc(doc(db, 'gyms', gid))
+      flashDeleteMsg('success', `Gym "${gym.gymName || gym.name}" deleted along with all members, trainers, payments, attendance, plans, devices, licenses, logs and notifications.${authFailed ? ` ${authFailed} auth account(s) could not be removed and were marked disabled instead.` : ''}`)
       setConfirmAction(null)
       if (drawerGym?.id === gym.id) setDrawerGym(null)
     } catch (err) {
-      console.error('Gym deletion failed:', err)
+      flashDeleteMsg('error', 'Gym deletion failed: ' + (err?.message || 'Unknown error'))
     } finally {
       setLoading(false)
     }
@@ -825,6 +883,14 @@ export default function SuperAdminGymOwners() {
       </div>
 
       {/* ── KPI CARDS ── */}
+      {deleteMsg.text && (
+        <div role="alert" style={{
+          padding:'10px 14px', borderRadius:10, fontSize:13, fontWeight:600, marginBottom:16, lineHeight:1.5,
+          background: deleteMsg.type === 'error' ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)',
+          border: deleteMsg.type === 'error' ? '1px solid rgba(239,68,68,0.35)' : '1px solid rgba(16,185,129,0.35)',
+          color: deleteMsg.type === 'error' ? '#f87171' : '#34d399',
+        }}><span aria-hidden="true">{deleteMsg.type === 'error' ? '✗' : '✓'}</span> {deleteMsg.text}</div>
+      )}
       <div className="go-kpi-grid" style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:12, marginBottom:24 }}>
         <StatCard label="Total Gyms"      value={stats.total}    icon="🏢" color="#00c8b4" delay={0} />
         <StatCard label="Active"          value={stats.active}   icon="✅" color="#10b981" delay={0.05} />
@@ -1036,7 +1102,11 @@ export default function SuperAdminGymOwners() {
               {confirmAction.type === 'approve' && 'This will approve the gym owner and activate their subscription.'}
               {confirmAction.type === 'suspend' && `Are you sure you want to suspend ${confirmAction.gym?.gymName || confirmAction.gym?.name || 'this gym'}? Members will lose access.`}
               {confirmAction.type === 'activate' && `Reactivate ${confirmAction.gym?.gymName || confirmAction.gym?.name || 'this gym'} and restore full access.`}
-              {confirmAction.type === 'delete' && `Permanently delete ${confirmAction.gym?.gymName || confirmAction.gym?.name || 'this gym'}? This cannot be undone.`}
+              {confirmAction.type === 'delete' && (
+                <>
+                  Permanently delete <strong>{confirmAction.gym?.gymName || confirmAction.gym?.name || 'this gym'}</strong>? This removes the gym, owner &amp; staff accounts, members, payments, attendance, plans, devices, licenses, WhatsApp logs, reports and notifications. This cannot be undone.
+                </>
+              )}
               {confirmAction.type === 'resetLicense' && `Reset the license key for ${confirmAction.gym?.gymName || confirmAction.gym?.name || 'this gym'}? All registered devices will be invalidated.`}
             </p>
             <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>

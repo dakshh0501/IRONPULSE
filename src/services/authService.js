@@ -11,6 +11,7 @@ import {
   sendEmailVerification,
   onAuthStateChanged,
   reload,
+  applyActionCode,
 } from 'firebase/auth'
 import { serverTimestamp } from 'firebase/firestore'
 import {
@@ -25,11 +26,12 @@ import {
   getDocs,
   updateDoc,
   deleteDoc,
+  writeBatch,
 } from 'firebase/firestore'
 import { auth, db } from '../firebase'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { addGym } from './firestoreService'
-import { generateUniqueReferralCode } from '../utils/referralCode'
+import { generateReferralCode } from '../utils/referralCode'
 
 export async function signUp({ name, email, password, gymData, role, referredBy }) {
   let authUser = null
@@ -82,13 +84,17 @@ export async function signUp({ name, email, password, gymData, role, referredBy 
     }
   }
 
-  // ───── Step 3: setDoc(users/{uid}) — single create with the real gymId ─────
-  let referralCode = null
-  try {
-    referralCode = await generateUniqueReferralCode()
-  } catch (err) {
-    console.error('[SIGNUP] Failed to generate referral code (non-blocking):', err)
-  }
+  // ───── Step 3: batch write — users/{uid} + own referralCodes directory ─────
+  // Referral code is generated locally (crypto-random, IP- + 6 chars) with NO
+  // uniqueness query: the users collection read rule denies non-staff roles
+  // (pending/gym_owner_pending), and the uniqueness check used to fail there.
+  // Collision odds are ~1 in 2.2 billion per draw; the staff-side post-approval
+  // autogen (AuthContext) still backfills any empty codes.
+  //
+  // The referralCodes/{code} directory entry (referrerUid -> owner) is written
+  // in the SAME atomic batch as the users doc so Spark clients can resolve this
+  // code post-approval WITHOUT the users read rule (Sprint 81A-Spark).
+  const referralCode = generateReferralCode()
 
   const userData = {
     uid: authUser.uid,
@@ -102,7 +108,15 @@ export async function signUp({ name, email, password, gymData, role, referredBy 
   }
 
   try {
-    await setDoc(doc(db, 'users', authUser.uid), userData)
+    const batch = writeBatch(db)
+    batch.set(doc(db, 'users', authUser.uid), userData)
+    if (referralCode) {
+      batch.set(doc(db, 'referralCodes', referralCode), {
+        referrerUid: authUser.uid,
+        createdAt: serverTimestamp(),
+      })
+    }
+    await batch.commit()
   } catch (e) {
     console.error('[SIGNUP FIRESTORE] setDoc(users) FAILED', {
       operation: 'setDoc',
@@ -113,10 +127,16 @@ export async function signUp({ name, email, password, gymData, role, referredBy 
       error: e,
     })
     // Rollback — remove EVERY resource created in this attempt (gym doc,
-    // users doc, Auth user) so a retry starts clean with no orphans.
+    // users doc, referralCodes entry, Auth user) so a retry starts clean
+    // with no orphans.
     if (gymDocId) {
       try { await deleteDoc(doc(db, 'gyms', gymDocId)) } catch (cleanupErr) {
         console.error('[SIGNUP ROLLBACK] Failed to delete orphaned gyms doc:', cleanupErr)
+      }
+    }
+    if (referralCode) {
+      try { await deleteDoc(doc(db, 'referralCodes', referralCode)) } catch (cleanupErr) {
+        console.error('[SIGNUP ROLLBACK] Failed to delete orphaned referralCodes doc:', cleanupErr)
       }
     }
     try { await deleteDoc(doc(db, 'users', authUser.uid)) } catch (cleanupErr) {
@@ -224,8 +244,9 @@ export async function recoverUserProfile(uid, email) {
     ))
     if (!membersSnap.empty) {
       const m = membersSnap.docs[0].data()
-      let code = ''
-      try { code = await generateUniqueReferralCode() } catch (_) {}
+      // Local generation with no uniqueness query: the users read rule denies
+      // this lookup for non-staff roles (same reason signUp generates locally).
+      const code = generateReferralCode()
       const userData = {
         uid,
         email: email || m.email || '',
@@ -236,6 +257,16 @@ export async function recoverUserProfile(uid, email) {
         createdAt: serverTimestamp(),
       }
       await setDoc(doc(db, 'users', uid), userData)
+      // Referral directory entry (Sprint 81A-Spark) — best-effort, converges
+      // at next login if this fails.
+      try {
+        await setDoc(doc(db, 'referralCodes', code), {
+          referrerUid: uid,
+          createdAt: serverTimestamp(),
+        }, { merge: true })
+      } catch (mappingErr) {
+        console.warn('recoverUserProfile: referralCodes mapping failed (non-blocking):', mappingErr.code || mappingErr.message)
+      }
       return userData
     }
 
@@ -272,8 +303,7 @@ export async function recoverUserProfile(uid, email) {
                  : status === 'rejected'  ? 'rejected'
                  : status === 'pending'   ? 'gym_owner_pending'
                                           : 'gym_owner_pending'
-      let code = ''
-      try { code = await generateUniqueReferralCode() } catch (_) {}
+      const code = generateReferralCode()
       const userData = {
         uid,
         email: email || g.email || '',
@@ -284,6 +314,16 @@ export async function recoverUserProfile(uid, email) {
         createdAt: serverTimestamp(),
       }
       await setDoc(doc(db, 'users', uid), userData)
+      // Referral directory entry (Sprint 81E — mirrors the member branch) —
+      // best-effort, converges at next login if this fails.
+      try {
+        await setDoc(doc(db, 'referralCodes', code), {
+          referrerUid: uid,
+          createdAt: serverTimestamp(),
+        }, { merge: true })
+      } catch (mappingErr) {
+        console.warn('recoverUserProfile: referralCodes mapping failed (non-blocking):', mappingErr.code || mappingErr.message)
+      }
       return userData
     }
 
@@ -329,6 +369,35 @@ export async function resendVerificationEmail(user) {
     handleCodeInApp: true,
   }
   await sendEmailVerification(user, actionCodeSettings)
+}
+
+/**
+ * Complete an email verification link (handleCodeInApp flow).
+ *
+ * With `handleCodeInApp: true` the verification email link opens the app
+ * instead of the Firebase-hosted page — clicking the link alone does NOT
+ * verify the email. The app MUST apply the oobCode via applyActionCode,
+ * otherwise `emailVerified` stays false and login is blocked forever by
+ * the 'email-not-verified' check in signIn().
+ */
+export async function verifyEmailWithCode(oobCode) {
+  if (!oobCode) throw new Error('Missing verification code')
+  try {
+    await applyActionCode(auth, oobCode)
+    // Refresh the local user so emailVerified reflects the change immediately
+    try {
+      if (auth.currentUser) await reload(auth.currentUser)
+    } catch (reloadErr) {
+      console.warn('verifyEmailWithCode: reload after applyActionCode failed (non-fatal):', reloadErr.code || reloadErr.message)
+    }
+    return true
+  } catch (err) {
+    // Log and rethrow deliberately — the caller (Auth page) needs both the
+    // meaningful log AND the original Firebase error code to render the
+    // correct user-facing message (expired vs invalid vs network).
+    console.error('[AUTH] verifyEmailWithCode failed:', err.code || err.name, err.message || err)
+    throw err
+  }
 }
 
 export async function approveUser(uid, newRole) {

@@ -6,7 +6,9 @@
 // and download the file via Blob.
 // ─────────────────────────────────────────────────────────────
 
-import { jsPDF } from 'jspdf'
+// NOTE: jsPDF is imported dynamically inside exportChatPdf so the
+// ~380 KB PDF library is never fetched at app startup — it loads
+// only when a chat is actually exported to PDF (Sprint 81F).
 
 /* ══════════════════════════════════════════════════════════
    SHARED FORMATTING
@@ -112,9 +114,11 @@ export function exportChatMarkdown({ title = 'Conversation', meta = [], messages
    PDF (jsPDF — same library as the Reports page)
    ══════════════════════════════════════════════════════════ */
 
-export function exportChatPdf({ title = 'Conversation', meta = [], messages = [] }) {
-  const doc = new jsPDF({ unit: 'mm', format: 'a4' })
-  const margin = 14
+export async function exportChatPdf({ title = 'Conversation', meta = [], messages = [] }) {
+  try {
+    const { jsPDF } = await import('jspdf')
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+    const margin = 14
   const maxW = 196 - margin * 2
   let y = 18
 
@@ -153,6 +157,9 @@ export function exportChatPdf({ title = 'Conversation', meta = [], messages = []
   }
 
   doc.save(`ironpulse-chat-${safeName(title)}.pdf`)
+  } catch (err) {
+    console.error('Chat PDF export failed:', err && err.message ? err.message : err)
+  }
 }
 
 /* ══════════════════════════════════════════════════════════

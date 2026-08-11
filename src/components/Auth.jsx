@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { verifyEmailWithCode } from '../services/authService'
 import { openSupportWhatsApp } from '../utils/whatsappSupport'
 import HexBackground from './HexBackground'
 
@@ -76,9 +77,13 @@ const inpIcon = {
 
 export default function Auth() {
   const { login, register, sendPasswordReset, sendVerificationEmail, refreshEmailStatus, authError, setAuthError, currentUser, needsVerification, logout } = useAuth()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [mode, setMode] = useState(() => {
+    // The verification email lands here with `oobCode` + `mode=verifyEmail`
+    // (handleCodeInApp flow). Do NOT show "Email Verified" before the code
+    // is actually applied via applyActionCode.
+    if (searchParams.get('mode') === 'verifyEmail' && searchParams.get('oobCode')) return 'login'
     if (searchParams.get('verified') === 'true') return 'verify-done'
     if (searchParams.get('tab') === 'signup') return 'signup'
     return 'login'
@@ -141,26 +146,17 @@ export default function Auth() {
       }
       setReferralCodeChecking(true)
       setReferralCodeValid(null)
-      checkReferralCodeTimer.current = setTimeout(async () => {
-        try {
-          const { validateReferralCodeFormat } = await import('../utils/referralCode')
-          if (validateReferralCodeFormat(code)) {
-            const { getReferrerByCode } = await import('../services/referralService')
-            const referrer = await getReferrerByCode(code.toUpperCase())
-            // Self-referral check: reject if referrer email matches signup email
-            if (referrer && referrer.email === form.email) {
-              setReferralCodeValid(false)
-            } else {
-              setReferralCodeValid(!!referrer)
-            }
-          }
-        } catch {
-          setReferralCodeValid(false)
-        }
+      // Format-only validation. Real referrer resolution happens server-side in
+      // the onReferralSignup Cloud Function: the users read rule denies this
+      // lookup for unauthenticated signups, and referralService does not export
+      // getReferrerByCode (it lives in referralCode.js) — so the old lookup
+      // ALWAYS fell into the invalid path.
+      checkReferralCodeTimer.current = setTimeout(() => {
+        setReferralCodeValid(/^IP-[A-Z0-9]{6}$/.test((code || '').toUpperCase()))
         setReferralCodeChecking(false)
       }, 600)
     }
-  }, [setAuthError, referredByLocked, form.email])
+  }, [setAuthError, referredByLocked])
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault()
@@ -266,23 +262,51 @@ export default function Auth() {
       const code = refCode.trim().toUpperCase()
       if (/^IP-[A-Z0-9]{6}$/.test(code)) {
         setReferralCodeChecking(true)
-        const timer = setTimeout(async () => {
-          try {
-            const { getReferrerByCode } = await import('../services/referralService')
-            const referrer = await getReferrerByCode(code)
-            if (referrer && referrer.email && referrer.email === form.email) {
-              setReferralCodeValid(false)
-            } else {
-              setReferralCodeValid(!!referrer)
-            }
-          } catch {
-            setReferralCodeValid(false)
-          }
+        // Format-only: the onReferralSignup Cloud Function resolves the real
+        // referrer after signup. Invalid/unknown codes simply no-op server-side.
+        const timer = setTimeout(() => {
+          setReferralCodeValid(true)
           setReferralCodeChecking(false)
         }, 600)
         return () => clearTimeout(timer)
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ── PROCESS EMAIL-VERIFICATION LINK ─────────────────────────
+  // Verification emails are sent with handleCodeInApp:true, so the link
+  // opens this page with an oobCode that MUST be applied via
+  // applyActionCode — merely opening the link does not verify the email.
+  useEffect(() => {
+    const oobCode = searchParams.get('oobCode')
+    const actionMode = searchParams.get('mode')
+    if (!oobCode || actionMode !== 'verifyEmail') return
+    let cancelled = false
+    ;(async () => {
+      setLoading(true)
+      setAuthError('')
+      try {
+        await verifyEmailWithCode(oobCode)
+        if (cancelled) return
+        // The email is now verified in Firebase Auth. Clean the URL so a
+        // refresh doesn't re-apply (or report) a now-consumed code.
+        setSearchParams({ verified: 'true' }, { replace: true })
+        setMode('verify-done')
+      } catch (err) {
+        if (cancelled) return
+        const code = err?.code || ''
+        setAuthError(
+          code === 'auth/expired-action-code' || code === 'auth/invalid-action-code'
+            ? 'This verification link has expired or is invalid. Sign in and request a new one.'
+            : 'Unable to verify your email. Please try again or request a new link.'
+        )
+        setMode('login')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

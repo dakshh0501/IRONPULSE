@@ -4,6 +4,7 @@
 // All sensitive operations (checksum generation, PhonePe API calls) happen here — never in the browser.
 
 const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https')
+const { onDocumentCreated } = require('firebase-functions/v2/firestore')
 const { initializeApp } = require('firebase-admin/app')
 const { getFirestore } = require('firebase-admin/firestore')
 const { getAuth } = require('firebase-admin/auth')
@@ -292,10 +293,16 @@ async function issueReferralReward(attempt, phonePeTransactionId) {
     if (paymentQuery.size > 1) return
 
     // ─── 3️⃣ CHECK REWARD NOT ALREADY ISSUED ────────────────
+    // A Pending referral (created by onReferralSignup at signup) is allowed —
+    // the transactions below upgrade it to Rewarded, preserving createdAt.
+    // Only an already-issued (Rewarded) referral blocks a second reward.
     const existingRefSnap = await db.collection('referrals')
       .where('referredUid', '==', referredUid)
       .get()
-    if (!existingRefSnap.empty) return
+    if (!existingRefSnap.empty) {
+      const hasRewarded = existingRefSnap.docs.some(d => d.data().status === 'Rewarded')
+      if (hasRewarded) return
+    }
 
     // ─── 4️⃣ LOAD REFERRAL SETTINGS ─────────────────────────
     const settingsSnap = await db.collection('settings').doc('referralSettings').get()
@@ -426,7 +433,8 @@ async function issueReferralReward(attempt, phonePeTransactionId) {
       await db.runTransaction(async (transaction) => {
         const referralRef = db.collection('referrals').doc(referredUid)
         const existing = await transaction.get(referralRef)
-        if (existing.exists) return
+        if (existing.exists && existing.data().status === 'Rewarded') return
+        if (existing.exists && existing.data().createdAt) referralData.createdAt = existing.data().createdAt
         transaction.set(referralRef, referralData)
         transaction.set(db.collection('discountCoupons').doc(couponId), {
           code: couponCode,
@@ -454,7 +462,8 @@ async function issueReferralReward(attempt, phonePeTransactionId) {
       await db.runTransaction(async (transaction) => {
         const referralRef = db.collection('referrals').doc(referredUid)
         const existing = await transaction.get(referralRef)
-        if (existing.exists) return
+        if (existing.exists && existing.data().status === 'Rewarded') return
+        if (existing.exists && existing.data().createdAt) referralData.createdAt = existing.data().createdAt
         transaction.set(referralRef, referralData)
         transaction.set(db.collection('rewardLedger').doc(rewardId), {
           type: 'membership_extension',
@@ -480,7 +489,8 @@ async function issueReferralReward(attempt, phonePeTransactionId) {
       await db.runTransaction(async (transaction) => {
         const referralRef = db.collection('referrals').doc(referredUid)
         const existing = await transaction.get(referralRef)
-        if (existing.exists) return
+        if (existing.exists && existing.data().status === 'Rewarded') return
+        if (existing.exists && existing.data().createdAt) referralData.createdAt = existing.data().createdAt
         transaction.set(referralRef, referralData)
         transaction.set(db.collection('rewardLedger').doc(rewardId), {
           type: 'wallet_credit',
@@ -608,6 +618,118 @@ async function issueReferralReward(attempt, phonePeTransactionId) {
     console.error('issueReferralReward: error', err)
   }
 }
+
+// ─────────────────────────────────────────────
+// REFERRAL SIGNUP TRIGGER (server-side)
+// ─────────────────────────────────────────────
+// Creates the Pending referral record + notifications + audit entry when a new
+// user signs up with a referredBy code. This MUST run server-side: signUp()
+// signs the user out before returning, so every client-side referral write was
+// permission-denied (the old AuthContext block silently failed every time).
+//
+// Idempotent by construction: doc ID = referred user's auth UID — the same key
+// issueReferralReward uses — so a retry/duplicate run never double-creates.
+exports.onReferralSignup = onDocumentCreated('users/{uid}', async (event) => {
+  const uid = event.params.uid
+  const user = event.data.data() || {}
+  const referralCode = (user.referredBy || '').trim().toUpperCase()
+  if (!referralCode || !/^IP-[A-Z0-9]{6}$/.test(referralCode)) return null
+
+  // Gym-owner signups never qualify for member-level rewards
+  // (issueReferralReward only processes member payments) — skip to keep the
+  // pending list clean.
+  if (user.role === 'gym_owner_pending' || user.role === 'gym_owner') return null
+
+  try {
+    const referrerSnap = await db.collection('users')
+      .where('referralCode', '==', referralCode)
+      .limit(1)
+      .get()
+    if (referrerSnap.empty) return null
+    const referrer = referrerSnap.docs[0].data()
+    const referrerUid = referrer.uid || referrerSnap.docs[0].id
+    // Anti-fraud: cannot refer yourself
+    if (referrerUid === uid) return null
+
+    // Idempotency: never overwrite an existing referral for this user
+    // (including one already upgraded to Rewarded by issueReferralReward).
+    const existingRef = await db.collection('referrals').doc(uid).get()
+    if (existingRef.exists) return null
+
+    const gymId = user.gymId || referrer.gymId || 'default'
+    const now = new Date().toISOString()
+
+    await db.collection('referrals').doc(uid).set({
+      referrerUid,
+      referredUid: uid,
+      referralCode,
+      gymId,
+      referredName: user.name || '',
+      status: 'Pending',
+      rewardType: '',
+      rewardValue: 0,
+      rewardIssued: false,
+      firstPaymentId: '',
+      expiresAt: null,
+      createdAt: now,
+      qualifiedAt: null,
+      rewardedAt: null,
+    })
+
+    // Notifications (referrer + referred user) — fire-and-forget
+    await db.collection('notifications').add({
+      userId: referrerUid,
+      gymId,
+      role: 'member',
+      title: 'Referral Registered!',
+      message: `${user.name || 'Someone'} signed up using your referral code!`,
+      type: 'referral',
+      subtype: 'referral_registered',
+      priority: 'normal',
+      icon: '📋',
+      actionUrl: '/referral',
+      relatedDocumentId: uid,
+      read: false,
+      createdAt: now,
+    }).catch(err => console.error('onReferralSignup: referrer notification error', err))
+
+    await db.collection('notifications').add({
+      userId: uid,
+      gymId,
+      role: 'member',
+      title: 'Referral Applied',
+      message: 'Your referral code was applied! Welcome aboard.',
+      type: 'referral',
+      subtype: 'referral_applied',
+      priority: 'normal',
+      icon: '✅',
+      actionUrl: '',
+      relatedDocumentId: uid,
+      read: false,
+      createdAt: now,
+    }).catch(err => console.error('onReferralSignup: referred user notification error', err))
+
+    // Audit entry (non-blocking)
+    try {
+      await db.collection('referralAuditLogs').add({
+        timestamp: now,
+        createdAt: now,
+        action: 'REFERRAL_CREATED',
+        performedBy: uid,
+        targetUid: referrerUid,
+        referralId: uid,
+        metadata: { referralCode, referredName: user.name || '' },
+      })
+    } catch (auditErr) {
+      console.error('onReferralSignup: audit log error', auditErr)
+    }
+
+    return null
+  } catch (err) {
+    console.error('onReferralSignup: error', err)
+    return null
+  }
+})
 
 // ─────────────────────────────────────────────
 // PAYMENTS COLLECTION SYNC

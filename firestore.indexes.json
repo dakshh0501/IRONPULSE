@@ -499,6 +499,20 @@
                                    ]
                     },
                     {
+                        "collectionGroup":  "whatsappCampaigns",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "gymId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "createdAt",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    },
+                    {
                         "collectionGroup":  "aiConversations",
                         "queryScope":  "COLLECTION",
                         "fields":  [
@@ -512,6 +526,20 @@
                                        },
                                        {
                                            "fieldPath":  "updatedAt",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "generatedReports",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "gymId",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "createdAt",
                                            "order":  "DESCENDING"
                                        }
                                    ]

@@ -464,10 +464,36 @@ service cloud.firestore {
     }
 
     // ════════════════════════════════════════════════════════
+    //  REFERRAL CODES (Spark-compatible code directory — Sprint 81A-Spark)
+    //  A publicly resolvable mapping from referral code → owner uid, so the
+    //  client can resolve codes WITHOUT the users-collection read rule
+    //  (members can only read their own users doc).
+    //  - read: any authenticated user (needed to resolve a code entered at
+    //    signup once the referred user's session is established)
+    //  - create: ONLY the owner of that exact code (docId must equal the
+    //    referralCode on the caller's own users doc) — prevents squatting
+    //  - update/delete: never (an owner can re-create only while the doc
+    //    doesn't exist; the doc is a permanent directory entry)
+    // ════════════════════════════════════════════════════════
+    match /referralCodes/{code} {
+
+      allow read: if isAuthed();
+
+      allow create: if isAuthed() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.referralCode == code &&
+        request.resource.data.referrerUid == request.auth.uid;
+
+      allow update, delete: if false;
+    }
+
+    // ════════════════════════════════════════════════════════
     //  REFERRALS (gym-scoped)
-    //  Members: read own referrals (as referrer)
+    //  Members: read own referrals (as referrer OR as referred user)
     //  Gym admins: read gym referrals
     //  Super admin: full access
+    //  (referred-user read is required for the Spark idempotency check:
+    //   the referred member reads referrals/{ownUid} inside the creation
+    //   transaction to guarantee refresh/duplicate safety)
     // ════════════════════════════════════════════════════════
     match /referrals/{referralId} {
 
@@ -475,6 +501,8 @@ service cloud.firestore {
         isGymAdmin() && resource.data.gymId == getCallerGymId()
       ) || (
         isMember() && resource.data.referrerUid == request.auth.uid
+      ) || (
+        isMember() && resource.data.referredUid == request.auth.uid
       );
 
       allow create: if isSuperAdmin() || (
@@ -632,6 +660,19 @@ service cloud.firestore {
 
         allow update, delete: if false; // immutable transcript
       }
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  GENERATED REPORTS (gym-scoped — exported report records)
+    //  Sprint 81B: staff create/read in their gym, super admin
+    //  full access; deletion requires gym admin or super admin.
+    // ════════════════════════════════════════════════════════
+    match /generatedReports/{reportId} {
+
+      allow read: if (isSuperAdmin() || isGymAdmin()) && inCallersGym();
+      allow create: if (isSuperAdmin() || isGymAdmin()) && inCallersGymCreate();
+      allow update: if (isSuperAdmin() || isGymAdmin()) && inCallersGym();
+      allow delete: if (isSuperAdmin() || isGymAdmin()) && inCallersGym();
     }
 
   } // end match /databases/{database}/documents

@@ -182,6 +182,7 @@ export function setSweepData(members, payments) {
 
 let _lastFeedM = []
 let _lastFeedP = []
+let _lastFeedG = []
 
 export async function syncCampaigns(gymId = _gymId) {
   const list = await listWhatsappCampaigns(gymId)
@@ -234,7 +235,7 @@ export async function createCampaign(input) {
   let fired = 0
   if (input.fireNow) {
     const c = { ...doc, id }
-    fired = await campaignRunner.run(c, _lastFeedM, _lastFeedP)
+    fired = await campaignRunner.run(c, _lastFeedM, _lastFeedP, _lastFeedG)
     if (fired > 0) {
       const next = await campaignRunner.advanceCampaign(c)
       await updateWhatsappCampaign(id, {
@@ -270,8 +271,8 @@ export async function removeCampaign(id) {
 }
 
 /** Preview audience + delivery estimate for the create form. */
-export function previewCampaign(audience, members = [], payments = []) {
-  const recipients = isAudience(audience, members, payments)
+export function previewCampaign(audience, members = [], payments = [], gyms = []) {
+  const recipients = isAudience(audience, members, payments, gyms)
   return {
     recipients,
     total: recipients.length,
@@ -283,10 +284,13 @@ export function previewCampaign(audience, members = [], payments = []) {
 export async function runCampaignNow(id) {
   const c = _campaignsCache.find(x => x.id === id)
   if (!c || c.status === CAMPAIGN_STATUS.CANCELLED) return 0
-  const queued = await campaignRunner.run(c, _lastFeedM, _lastFeedP)
+  const queued = await campaignRunner.run(c, _lastFeedM, _lastFeedP, _lastFeedG)
   if (queued > 0) {
     c.lastRunAt = new Date().toISOString()
-    const next = computeNextRun(c.schedule, new Date())
+    // Sprint 81C: once-schedules must COMPLETE after a manual run — computing
+    // the next run from a still-future startAt would re-arm Scheduled and the
+    // 60s check-loop would fire the campaign a second time.
+    const next = c.schedule && c.schedule.mode && c.schedule.mode !== 'once' ? computeNextRun(c.schedule, new Date()) : null
     await updateWhatsappCampaign(id, {
       lastRunAt: c.lastRunAt,
       nextRunAt: next ? next.toISOString() : null,
@@ -300,12 +304,13 @@ export async function runCampaignNow(id) {
   return queued
 }
 
-/** App feeds live members/payments (memory only — no queries here). */
-export function setCampaignFeedData(members, payments) {
+/** App feeds live members/payments/gyms (memory only — no queries here). */
+export function setCampaignFeedData(members, payments, gyms) {
   _lastFeedM = members || []
   _lastFeedP = payments || []
+  _lastFeedG = gyms || []
   engine.setSweepData(_lastFeedM, _lastFeedP)
-  campaignRunner.setFeed(_lastFeedM, _lastFeedP)
+  campaignRunner.setFeed(_lastFeedM, _lastFeedP, _lastFeedG)
 }
 
 /** Start the 1-min due-check loop (idempotent; no Firestore polling). */

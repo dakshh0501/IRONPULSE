@@ -13,6 +13,7 @@ const EMPTY_MEMBER = {
   join:'', expiry:'', status:'Active',
   checkins:0, avatar:'', bf:0, strength:0,
   photoUrl:'', storagePath:'',
+  referredBy:'',
 }
 
 const GOALS    = Object.freeze(['Weight Loss','Muscle Gain','Strength','Flexibility','Toning','Endurance','General Fitness'])
@@ -71,6 +72,8 @@ export default function MemberModal({ member, prefill, trainers, onSave, onClose
     if (!form.email.trim()) e.email = 'Email is required'
     if (!isEdit && (!form.password || form.password.length < 6))
       e.password = 'Temporary password must be at least 6 characters'
+    if (form.referredBy && !/^IP-[A-Z0-9]{6}$/.test(form.referredBy.trim().toUpperCase()))
+      e.referredBy = 'Format: IP- followed by 6 letters/digits'
     return e
   }
 
@@ -162,6 +165,11 @@ export default function MemberModal({ member, prefill, trainers, onSave, onClose
             {!isEdit && (
               <Field label="Temporary Password *" error={errors.password}>
                 <input className="form-input" type="password" placeholder="Min 6 characters — member uses this to sign in" value={form.password} onChange={e => set('password', e.target.value)} />
+              </Field>
+            )}
+            {!isEdit && (
+              <Field label="Referral Code (Optional)" error={errors.referredBy}>
+                <input className="form-input" placeholder="IP-XXXXXX — from their friend's invite" value={form.referredBy} onChange={e => set('referredBy', e.target.value.toUpperCase())} aria-invalid={errors.referredBy ? 'true' : 'false'} />
               </Field>
             )}
           </div>

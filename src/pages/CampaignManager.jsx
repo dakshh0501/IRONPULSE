@@ -10,7 +10,7 @@
 // + one-shot campaign sync on mount/actions.
 // ═══════════════════════════════════════════════════════════════
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import { CAMPAIGN_PRESETS } from '../services/whatsapp/campaignTemplates'
@@ -36,6 +36,16 @@ export default function CampaignManager() {
   const [toast, setToast] = useState('')
   const [error, setError] = useState('')
   const [creating, setCreating] = useState(false)
+  const [runningId, setRunningId] = useState('')
+  const [logCampaign, setLogCampaign] = useState(null)
+  const [retryingId, setRetryingId] = useState('')
+
+  // Sprint 81C: auto-dismiss success/error banners so stale state never misleads.
+  useEffect(() => {
+    if (!toast && !error) return
+    const t = setTimeout(() => { setToast(''); setError('') }, 6000)
+    return () => clearTimeout(t)
+  }, [toast, error])
 
   // ── Form state ──
   const [name, setName] = useState('')
@@ -139,15 +149,37 @@ export default function CampaignManager() {
     try { await whatsapp.campaigns.cancel(id); setToast('Campaign cancelled') } catch (e) { setError('Cancel failed: ' + e.message) }
   }
   const runNow = async (id) => {
+    if (runningId) return // Sprint 81C: block duplicate concurrent sends
+    setRunningId(id)
+    setError('')
     try {
       const q = await whatsapp.campaigns.runNow(id)
-      setToast(q > 0 ? `${q} message${q !== 1 ? 's' : ''} enqueued` : 'No recipients matched (has phone numbers)')
+      setToast(q > 0
+        ? `${q} message${q !== 1 ? 's' : ''} enqueued — delivery stats refresh automatically (up to ~5s)`
+        : 'No new recipients matched (already sent today, or no matching phones)')
     } catch (e) { setError('Run failed: ' + e.message) }
+    finally { setRunningId('') }
   }
   const remove = async (id) => {
     if (!confirm('Delete this campaign permanently? Its history will be lost.')) return
     try { await whatsapp.campaigns.remove(id); setToast('Campaign deleted') } catch (e) { setError('Delete failed: ' + e.message) }
   }
+  // Sprint 81C: per-campaign delivery history (data already subscribed —
+  // no new Firestore listeners). Retry re-queues a Failed entry.
+  const retryDelivery = async (entryId) => {
+    setRetryingId(entryId)
+    try {
+      const ok = whatsapp.retryEntry(entryId)
+      setToast(ok ? 'Retry enqueued' : 'This entry is not retryable right now')
+    } catch (e) { setError('Retry failed: ' + e.message) }
+    finally { setRetryingId('') }
+  }
+  const campaignLogs = useMemo(() => {
+    if (!logCampaign) return []
+    return (whatsappLogs || [])
+      .filter(l => l.campaignId === logCampaign.id)
+      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+  }, [logCampaign, whatsappLogs])
 
   const fmtDate = (iso) => iso ? new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—'
   const deliveryPercent = (c) => {
@@ -234,7 +266,7 @@ export default function CampaignManager() {
           <label className="form-label" htmlFor="campBody" style={{ marginTop: 12 }}>Message body</label>
           <textarea id="campBody" className="form-textarea" rows={4} value={body} onChange={e => setBody(e.target.value)} />
           <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            Vars: {'{memberName}'} {'{gymName}'} {'{planName}'} {'{trainerName}'} {'{expiryDate}'} {'{amount}'} {'{today}'} — unknown vars render empty.
+            Vars: {'{memberName}'} {'{gymName}'} {'{planName}'} {'{trainerName}'} {'{expiryDate}'} {'{amount}'} {'{today}'} — single or double braces both work; unknown vars render empty.
           </div>
 
           <label className="form-label" htmlFor="campAudience" style={{ marginTop: 12 }}>Audience</label>
@@ -253,6 +285,11 @@ export default function CampaignManager() {
               <option value="">Select trainer…</option>
               {(trainers || []).map(t => <option key={t.id} value={t.authUid || t.id}>{t.name}</option>)}
             </select>
+          )}
+          {audience === 'gym_owners' && preview.total === 0 && (
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
+              No gym owner phones available in this view (owners sign up with a phone; platform admins see all gyms).
+            </div>
           )}
 
           <label className="form-label" style={{ marginTop: 14 }}>Schedule</label>
@@ -377,8 +414,11 @@ export default function CampaignManager() {
                         <span className="badge" style={{ borderColor: stColor, color: stColor }}>{stLabel}</span>
                       </td>
                       <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <button className="btn btn-ghost btn-sm" onClick={() => setLogCampaign(c)} aria-label={`View delivery log for ${c.name}`}>Log</button>
                         {(c.status === 'Scheduled' || c.status === 'Completed') && (
-                          <button className="btn btn-secondary btn-sm" onClick={() => runNow(c.id)}>Run Now</button>
+                          <button className="btn btn-secondary btn-sm" onClick={() => runNow(c.id)} disabled={!!runningId}>
+                            {runningId === c.id ? 'Running…' : 'Run Now'}
+                          </button>
                         )}
                         {c.status === 'Scheduled' && (
                           <button className="btn btn-ghost btn-sm" onClick={() => cancel(c.id)}>Cancel</button>
@@ -395,8 +435,69 @@ export default function CampaignManager() {
       </div>
 
       <div style={{ marginTop: 16, padding: '12px 16px', background: 'var(--bg3)', borderRadius: 10, fontSize: 12, color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
-        💡 <strong>Note:</strong> Campaigns enqueue through the same queue engine as the automation rules (24h dedup per member+template applies, retries 1/5/15 min). Scheduled campaigns fire while the app is open (1-minute check). Only <code>gym_admin</code> and <code>super_admin</code> can create campaigns; phones are masked in every view.
+        💡 <strong>Note:</strong> Campaigns enqueue through the same queue engine as the automation rules (24h dedup per member+campaign applies, retries 1/5/15 min). Scheduled campaigns fire while the app is open (1-minute check). Only <code>gym_admin</code> and <code>super_admin</code> can create campaigns; phones are masked in every view.
       </div>
+
+      {/* ── Per-campaign delivery history (Sprint 81C) ── */}
+      {logCampaign && (
+        <div className="modal-overlay" onClick={() => setLogCampaign(null)}>
+          <div className="modal" role="dialog" aria-modal="true" aria-label={`Delivery log for ${logCampaign.name}`}
+            onClick={e => e.stopPropagation()} style={{ maxWidth: 640, width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h3 style={{ margin: 0, fontSize: 15 }}>
+                📣 {logCampaign.name} — Delivery Log
+              </h3>
+              <button className="btn btn-ghost btn-sm" onClick={() => setLogCampaign(null)} aria-label="Close delivery log">✕</button>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
+              {campaignLogs.length} log entr{campaignLogs.length !== 1 ? 'ies' : 'y'} · phones masked ·
+              Sent {(logCampaign.stats?.sent || 0)} / Failed {(logCampaign.stats?.failed || 0)} · total enqueued {(logCampaign.stats?.total || 0)}
+            </div>
+            {campaignLogs.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 28, color: 'var(--text-muted)', fontSize: 13 }}>
+                No delivery records yet — logs appear once the campaign runs (records created before this build lack campaign linkage).
+              </div>
+            ) : (
+              <div style={{ maxHeight: 320, overflow: 'auto' }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Status</th>
+                      <th scope="col">Phone</th>
+                      <th scope="col">Attempts</th>
+                      <th scope="col">Error</th>
+                      <th scope="col">When</th>
+                      <th scope="col" style={{ textAlign: 'right' }}>Retry</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {campaignLogs.map(l => (
+                      <tr key={l.id}>
+                        <td>
+                          <span className="badge" style={{
+                            borderColor: l.status === 'Sent' ? 'var(--green)' : l.status === 'Failed' ? 'var(--red)' : 'var(--orange)',
+                            color: l.status === 'Sent' ? 'var(--green)' : l.status === 'Failed' ? 'var(--red)' : 'var(--orange)',
+                          }}>{l.status}</span>
+                        </td>
+                        <td style={{ fontSize: 12 }}>{maskPhone(l.phone || '')}</td>
+                        <td style={{ fontSize: 12 }}>{l.attempts || 1}</td>
+                        <td style={{ fontSize: 12, color: l.error ? 'var(--red)' : 'var(--text-muted)' }}>{l.error || '—'}</td>
+                        <td style={{ fontSize: 12 }}>{l.createdAt ? fmtDate(l.createdAt) : '—'}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          {l.status === 'Failed' && (
+                            <button className="btn btn-secondary btn-sm" disabled={retryingId === l.id}
+                              onClick={() => retryDelivery(l.id)}>{retryingId === l.id ? '…' : 'Retry'}</button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

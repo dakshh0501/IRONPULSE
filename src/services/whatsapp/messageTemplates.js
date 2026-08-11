@@ -92,6 +92,16 @@ export function renderTemplate(body, vars = {}) {
 }
 
 /**
+ * Sprint 81C: converts single-brace tokens ({var}) to double-brace
+ * ({{var}}) so user-typed campaign/announcement bodies render their
+ * variables. Already-double-braced text is left untouched.
+ */
+export function normalizeSingleBraces(body) {
+  if (typeof body !== 'string') return body
+  return body.replace(/(^|[^{])\{([a-zA-Z0-9_]+)\}(?!\})/g, '$1{{$2}}')
+}
+
+/**
  * @returns {{ unknown: string[], missing: string[] }} — never throws
  */
 export function validateTemplate(body, vars = {}) {
@@ -131,6 +141,7 @@ export default {
   RULE_DEFS,
   defaultAutomationConfig,
   renderTemplate,
+  normalizeSingleBraces,
   validateTemplate,
   formatINR,
   formatDate,

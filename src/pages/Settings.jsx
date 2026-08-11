@@ -11,6 +11,7 @@ import { extractDominantColor } from '../utils/colorExtractor'
 import { SUPPORT_EMAIL, SUPPORT_HOURS, SUPPORT_RESPONSE_TIME } from '../config/support'
 import { openSupportWhatsApp } from '../utils/whatsappSupport'
 import { shareWebsite, copyWebsiteLink } from '../utils/shareWebsite'
+import { buildReferralLink, buildShareMessage, getShareMessageTemplate } from '../services/referralService'
 import { WEBSITE_NAME, WEBSITE_URL } from '../config/website'
 
 function Toggle({ on, onChange }) {
@@ -62,6 +63,12 @@ const DEFAULT_BILLING = {
   companyName:'IRONPULSE', companyAddress:'', invoicePrefix:'INV',
 }
 
+const DEFAULT_NOTIF_PREFS = {
+  emailAlerts:true, paymentReminders:true, expiryAlerts:true,
+  workoutReminders:false, newMemberAlert:true, weeklyReport:true,
+  smsAlerts:false, whatsappAlerts:false,
+}
+
 const SETTINGS_NAV = [
   { key:'profile',       icon:'👤', title:'Profile',       desc:'Owner account',         adminOnly:false },
   { key:'gym',           icon:'🏋',  title:'Gym',           desc:'Gym details',           adminOnly:true },
@@ -76,13 +83,28 @@ const SETTINGS_NAV = [
 export default function Settings() {
   const navigate = useNavigate()
   const { darkMode, setDarkMode, gymId, currentSubscription,
-    addSupportTicket, addFeatureRequest } = useApp()
-  const { currentUser, logout, updateUserProfile, sendVerificationEmail, refreshEmailStatus, effectiveRole, biometricEnabled, biometricType, enableBiometric, disableBiometric, getBiometricTypeName } = useAuth()
+    addSupportTicket, addFeatureRequest, referralSettings } = useApp()
+  const { currentUser, userProfile, logout, updateUserProfile, sendVerificationEmail, refreshEmailStatus, effectiveRole, biometricEnabled, biometricType, enableBiometric, disableBiometric, getBiometricTypeName } = useAuth()
 
   const isSuperAdmin = effectiveRole === 'super_admin'
   const isAdmin = ['super_admin', 'gym_admin'].includes(effectiveRole)
   const allowedNav = SETTINGS_NAV.filter(t => !t.adminOnly || isAdmin)
   const [activeTab, setActiveTab] = useState('profile')
+  const [toast, setToast] = useState(null)
+  const toastTimer = useRef(null)
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type })
+    clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => setToast(null), 3200)
+  }
+  useEffect(() => () => clearTimeout(toastTimer.current), [])
+
+  const [gymSaving, setGymSaving] = useState(false)
+  const [billingSaving, setBillingSaving] = useState(false)
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [notifSaving, setNotifSaving] = useState(false)
+  const [themeSaving, setThemeSaving] = useState(false)
+  const [resettingAll, setResettingAll] = useState(false)
 
   // ── Gym Settings ────────────────────────────────────────
   const [gymForm, setGymForm] = useState(DEFAULT_GYM)
@@ -100,7 +122,7 @@ export default function Settings() {
   useEffect(() => {
     getSettings('gym', gymId)
       .then(data => {
-        if (data) { setGymForm(prev => ({ ...prev, ...data })); if (data.primaryColor) applyAccentColor(data.primaryColor) }
+        if (data) { setGymForm(prev => ({ ...prev, ...data })) }
         gymSavedRef.current = data ? { ...DEFAULT_GYM, ...data } : null
       })
       .catch(err => console.error('Settings: Failed to load gym settings:', err))
@@ -121,7 +143,7 @@ export default function Settings() {
       const img = new Image(); img.src = previewUrl
       await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject })
       const primaryColor = extractDominantColor(img)
-      setGym('primaryColor', primaryColor); applyAccentColor(primaryColor)
+      setGym('primaryColor', primaryColor)
     } catch { setLogoError('Could not extract color from image.') }
     try {
       const { downloadUrl } = await uploadGymLogo(file, setLogoProgress)
@@ -131,12 +153,17 @@ export default function Settings() {
 
   const saveGym = async () => {
     setGymError('')
+    setGymSaving(true)
     try {
       const data = { ...gymForm }
       if (data.logoUrl?.startsWith('blob:')) delete data.logoUrl
       await saveSettings('gym', data, gymId)
+      gymSavedRef.current = { ...DEFAULT_GYM, ...data }
       setGymSaved(true); setTimeout(() => setGymSaved(false), 2500)
-    } catch { setGymError('Save failed. Check your connection.'); setTimeout(() => setGymError(''), 3000) }
+      setGymDirty(false)
+      showToast('Gym settings saved')
+    } catch { setGymError('Save failed. Check your connection.'); setTimeout(() => setGymError(''), 3000); showToast('Save failed. Check your connection.', 'error') }
+    finally { setGymSaving(false) }
   }
 
   const resetGym = () => setGymForm(gymSavedRef.current || DEFAULT_GYM)
@@ -151,26 +178,32 @@ export default function Settings() {
 
   useEffect(() => {
     if (activeTab !== 'billing') return
-    getSettings('billing').then(data => {
+    getSettings('billing', gymId).then(data => {
       if (data) { setBillingForm(prev => ({ ...prev, ...data })); billingSavedRef.current = { ...DEFAULT_BILLING, ...data } }
     })
       .catch(err => console.error('Settings: Failed to load billing settings:', err))
       .finally(() => setBillingLoading(false))
-  }, [activeTab])
+  }, [activeTab, gymId])
 
   const saveBilling = async () => {
     setBillingError('')
+    setBillingSaving(true)
     try {
-      await saveSettings('billing', {
+      const data = {
         trialDays:Number(billingForm.trialDays)||7, monthlyPrice:Number(billingForm.monthlyPrice)||0,
         halfYearlyPrice:Number(billingForm.halfYearlyPrice)||0, yearlyPrice:Number(billingForm.yearlyPrice)||0,
         lifetimePrice:Number(billingForm.lifetimePrice)||0, gracePeriod:Number(billingForm.gracePeriod)||5,
         currency:billingForm.currency||'INR', gstPercent:Number(billingForm.gstPercent)||0,
         companyName:billingForm.companyName.trim()||'IRONPULSE', companyAddress:billingForm.companyAddress.trim(),
         invoicePrefix:billingForm.invoicePrefix.trim()||'INV',
-      })
+      }
+      await saveSettings('billing', data, gymId)
+      billingSavedRef.current = { ...DEFAULT_BILLING, ...data }
       setBillingSaved(true); setTimeout(() => setBillingSaved(false), 2500)
-    } catch { setBillingError('Save failed. Check your connection.'); setTimeout(() => setBillingError(''), 3000) }
+      setBillingDirty(false)
+      showToast('Billing settings saved')
+    } catch { setBillingError('Save failed. Check your connection.'); setTimeout(() => setBillingError(''), 3000); showToast('Save failed. Check your connection.', 'error') }
+    finally { setBillingSaving(false) }
   }
 
   const resetBilling = () => setBillingForm(billingSavedRef.current || DEFAULT_BILLING)
@@ -206,16 +239,49 @@ export default function Settings() {
     if (!currentUser?.uid) return
     if (!profile.name.trim()) { setProfileError('Name is required.'); return }
     setProfileError('')
+    setProfileSaving(true)
     try {
       const { name, phone, bio, photoURL } = profile
       await saveSettings(`profile_${currentUser.uid}`, { name, phone, bio, photoURL })
       await updateDoc(doc(db, 'users', currentUser.uid), { name, photoURL })
       updateUserProfile({ name, photoURL })
+      profileSavedRef.current = { ...profile }
       setProfileSaved(true); setTimeout(() => setProfileSaved(false), 2500)
-    } catch { setProfileError('Save failed. Check your connection.'); setTimeout(() => setProfileError(''), 3000) }
+      setProfileDirty(false)
+      showToast('Profile saved')
+    } catch { setProfileError('Save failed. Check your connection.'); setTimeout(() => setProfileError(''), 3000); showToast('Save failed. Check your connection.', 'error') }
+    finally { setProfileSaving(false) }
   }
 
   const resetProfile = () => setProfileState(profileSavedRef.current || { name:currentUser?.displayName||'', email:currentUser?.email||'', phone:'', bio:'', photoURL: currentUser?.photoURL||'' })
+
+  // ── Referral (Sprint 81E) ────────────────────────────────
+  const profileReferralCode = userProfile?.referralCode || ''
+  const profileReferralLink = profileReferralCode ? buildReferralLink(profileReferralCode) : ''
+  const copyReferralCode = async () => {
+    try { await navigator.clipboard.writeText(profileReferralCode) } catch {
+      const ta = document.createElement('textarea')
+      ta.value = profileReferralCode
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta)
+    }
+    showToast('Referral code copied')
+  }
+  const copyReferralLink = async () => {
+    try { await navigator.clipboard.writeText(profileReferralLink) } catch {
+      const ta = document.createElement('textarea')
+      ta.value = profileReferralLink
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta)
+    }
+    showToast('Referral link copied')
+  }
+  const shareReferral = async () => {
+    const msg = buildShareMessage(getShareMessageTemplate(referralSettings), profileReferralCode, profileReferralLink)
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Refer & Earn — IRONPULSE', text: msg }); showToast('Referral shared'); return }
+      catch { /* user cancelled — fall back to WhatsApp */ }
+    }
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer')
+  }
 
   // ── Password ────────────────────────────────────────────
   const [pwForm, setPwForm] = useState({ current:'', newPw:'', confirm:'' })
@@ -263,34 +329,29 @@ export default function Settings() {
   }
 
   // ── Notifications ───────────────────────────────────────
-  const [notifSettings, setNotifSettings] = useState({
-    emailAlerts:true, paymentReminders:true, expiryAlerts:true,
-    workoutReminders:false, newMemberAlert:true, weeklyReport:true,
-    smsAlerts:false, whatsappAlerts:false,
-  })
+  const [notifSettings, setNotifSettings] = useState(DEFAULT_NOTIF_PREFS)
   const [notifSaved, setNotifSaved] = useState(false)
   const [notifError, setNotifError] = useState('')
   const [notifLoading, setNotifLoading] = useState(true)
+  const notifSavedRef = useRef(null)
   const toggleNotif = (k) => setNotifSettings(p => ({ ...p, [k]: !p[k] }))
 
   useEffect(() => {
     getSettings('notifications', gymId)
-      .then(data => { if (data) setNotifSettings(prev => ({ ...prev, ...data })) })
+      .then(data => { if (data) setNotifSettings(prev => ({ ...prev, ...data })); notifSavedRef.current = data ? { ...DEFAULT_NOTIF_PREFS, ...data } : null })
       .catch(err => console.error('Settings: Failed to load notifications:', err))
       .finally(() => setNotifLoading(false))
   }, [gymId])
 
   const saveNotifs = async () => {
     setNotifError('')
-    try { await saveSettings('notifications', notifSettings, gymId); setNotifSaved(true); setTimeout(() => setNotifSaved(false), 2500) }
-    catch { setNotifError('Save failed. Check your connection.'); setTimeout(() => setNotifError(''), 3000) }
+    setNotifSaving(true)
+    try { await saveSettings('notifications', notifSettings, gymId); notifSavedRef.current = { ...DEFAULT_NOTIF_PREFS, ...notifSettings }; setNotifSaved(true); setTimeout(() => setNotifSaved(false), 2500); setNotifDirty(false); showToast('Notification preferences saved') }
+    catch { setNotifError('Save failed. Check your connection.'); setTimeout(() => setNotifError(''), 3000); showToast('Save failed. Check your connection.', 'error') }
+    finally { setNotifSaving(false) }
   }
 
-  const resetNotifs = () => setNotifSettings({
-    emailAlerts:true, paymentReminders:true, expiryAlerts:true,
-    workoutReminders:false, newMemberAlert:true, weeklyReport:true,
-    smsAlerts:false, whatsappAlerts:false,
-  })
+  const resetNotifs = () => setNotifSettings(notifSavedRef.current || DEFAULT_NOTIF_PREFS)
 
   // ── Theme ───────────────────────────────────────────────
   const [accentColor, setAccentColor] = useState(DEFAULT_ACCENT)
@@ -299,13 +360,20 @@ export default function Settings() {
   const [themeLoading, setThemeLoading] = useState(true)
   const [compactMode, setCompactMode] = useState(false)
   const [animations, setAnimations] = useState(true)
+  const themeSavedRef = useRef(null)
 
   useEffect(() => {
     getSettings('theme', gymId)
       .then(data => {
+        const merged = {
+          accentColor: data?.accentColor || DEFAULT_ACCENT,
+          compactMode: data?.compactMode !== undefined ? data.compactMode : false,
+          animations: data?.animations !== undefined ? data.animations : true,
+        }
         if (data?.accentColor) { setAccentColor(data.accentColor); applyAccentColor(data.accentColor) }
         if (data?.compactMode !== undefined) setCompactMode(data.compactMode)
         if (data?.animations !== undefined) setAnimations(data.animations)
+        themeSavedRef.current = merged
       })
       .catch(err => console.error('Settings: Failed to load theme:', err))
       .finally(() => setThemeLoading(false))
@@ -313,11 +381,62 @@ export default function Settings() {
 
   const saveTheme = async () => {
     setThemeError('')
-    try { await saveSettings('theme', { accentColor, compactMode, animations }, gymId); applyAccentColor(accentColor); setThemeSaved(true); setTimeout(() => setThemeSaved(false), 2500) }
-    catch { setThemeError('Save failed. Check your connection.'); setTimeout(() => setThemeError(''), 3000) }
+    setThemeSaving(true)
+    try { await saveSettings('theme', { accentColor, compactMode, animations }, gymId); themeSavedRef.current = { accentColor, compactMode, animations }; applyAccentColor(accentColor); setThemeSaved(true); setTimeout(() => setThemeSaved(false), 2500); setThemeDirty(false); showToast('Appearance saved') }
+    catch { setThemeError('Save failed. Check your connection.'); setTimeout(() => setThemeError(''), 3000); showToast('Save failed. Check your connection.', 'error') }
+    finally { setThemeSaving(false) }
   }
 
-  const resetTheme = () => { setAccentColor(DEFAULT_ACCENT); setCompactMode(false); setAnimations(true); applyAccentColor(DEFAULT_ACCENT) }
+  const resetTheme = () => {
+    const saved = themeSavedRef.current || { accentColor: DEFAULT_ACCENT, compactMode: false, animations: true }
+    setAccentColor(saved.accentColor); setCompactMode(saved.compactMode); setAnimations(saved.animations); applyAccentColor(saved.accentColor)
+  }
+
+  // ── Unsaved-changes detection ──────────────────────────
+  const [gymDirty, setGymDirty] = useState(false)
+  const [billingDirty, setBillingDirty] = useState(false)
+  const [profileDirty, setProfileDirty] = useState(false)
+  const [notifDirty, setNotifDirty] = useState(false)
+  const [themeDirty, setThemeDirty] = useState(false)
+
+  const equalJson = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+
+  useEffect(() => { setGymDirty(!gymLoading && !!gymSavedRef.current && !equalJson(gymForm, gymSavedRef.current)) }, [gymForm, gymLoading])
+  useEffect(() => { setBillingDirty(!billingLoading && !!billingSavedRef.current && !equalJson(billingForm, billingSavedRef.current)) }, [billingForm, billingLoading])
+  useEffect(() => { setProfileDirty(!profileLoading && !!profileSavedRef.current && !equalJson(profile, profileSavedRef.current)) }, [profile, profileLoading])
+  useEffect(() => { setNotifDirty(!notifLoading && !!notifSavedRef.current && !equalJson(notifSettings, notifSavedRef.current)) }, [notifSettings, notifLoading])
+  useEffect(() => {
+    setThemeDirty(!themeLoading && !!themeSavedRef.current && (accentColor !== themeSavedRef.current.accentColor || compactMode !== themeSavedRef.current.compactMode || animations !== themeSavedRef.current.animations))
+  }, [accentColor, compactMode, animations, themeLoading])
+
+  const currentDirty = { profile: profileDirty, gym: gymDirty, billing: billingDirty, notifications: notifDirty, appearance: themeDirty }[activeTab]
+
+  const handleTabSwitch = (key) => {
+    if (key === activeTab) return
+    if (currentDirty && !window.confirm('You have unsaved changes in this section. Leave anyway?')) return
+    setActiveTab(key)
+  }
+
+  const resetAllSettings = async () => {
+    if (!isAdmin) return
+    if (!window.confirm('Reset ALL settings in this gym (Gym details, Notifications, Appearance and Billing) back to defaults? This cannot be undone.')) return
+    setResettingAll(true)
+    try {
+      await Promise.all([
+        saveSettings('gym', DEFAULT_GYM, gymId),
+        saveSettings('notifications', DEFAULT_NOTIF_PREFS, gymId),
+        saveSettings('theme', { accentColor: DEFAULT_ACCENT, compactMode: false, animations: true }, gymId),
+        saveSettings('billing', DEFAULT_BILLING, gymId),
+      ])
+      setGymForm(DEFAULT_GYM); gymSavedRef.current = DEFAULT_GYM; setGymDirty(false)
+      setNotifSettings(DEFAULT_NOTIF_PREFS); notifSavedRef.current = DEFAULT_NOTIF_PREFS; setNotifDirty(false)
+      setAccentColor(DEFAULT_ACCENT); setCompactMode(false); setAnimations(true); themeSavedRef.current = { accentColor: DEFAULT_ACCENT, compactMode: false, animations: true }; setThemeDirty(false)
+      setBillingForm(DEFAULT_BILLING); billingSavedRef.current = DEFAULT_BILLING; setBillingDirty(false)
+      applyAccentColor(DEFAULT_ACCENT)
+      showToast('All settings reset to defaults')
+    } catch { showToast('Reset failed. Check your connection.', 'error') }
+    finally { setResettingAll(false) }
+  }
 
   // ── Support ─────────────────────────────────────────────
   const { gymSettings } = useApp()
@@ -392,7 +511,7 @@ export default function Settings() {
               aria-selected={activeTab === item.key}
               aria-controls={item.key}
               className={`settings-nav-item${activeTab === item.key ? ' active' : ''}`}
-              onClick={() => setActiveTab(item.key)}
+              onClick={() => handleTabSwitch(item.key)}
             >
               <div className="settings-nav-icon-wrap">
                 <span className="settings-nav-icon" aria-hidden="true">{item.icon}</span>
@@ -404,6 +523,17 @@ export default function Settings() {
             </button>
           ))}
           <div className="settings-nav-spacer" />
+          {isAdmin && (
+            <button className="settings-nav-item" onClick={resetAllSettings} disabled={resettingAll}>
+              <div className="settings-nav-icon-wrap">
+                <span className="settings-nav-icon" aria-hidden="true">↺</span>
+              </div>
+              <div className="settings-nav-text">
+                <span className="settings-nav-title">{resettingAll ? 'Resetting…' : 'Reset All Settings'}</span>
+                <span className="settings-nav-desc">Restore gym defaults</span>
+              </div>
+            </button>
+          )}
           <button className="settings-nav-item settings-nav-signout" onClick={() => { if (window.confirm('Sign out?')) logout() }}>
             <div className="settings-nav-icon-wrap">
               <span className="settings-nav-icon" aria-hidden="true">🚪</span>
@@ -500,7 +630,8 @@ export default function Settings() {
                       {profileSaved && <span className="save-success"><span aria-hidden="true">✓</span> Saved</span>}
                       {profileError && <span className="save-error" role="alert"><span aria-hidden="true">✗</span> {profileError}</span>}
                       <button className="btn btn-ghost" onClick={resetProfile}>Reset</button>
-                      <button className="btn btn-primary" onClick={saveProfile}>Save Changes</button>
+                      {profileDirty && <span className="save-error"><span aria-hidden="true">●</span> Unsaved changes</span>}
+                      <button className="btn btn-primary" onClick={saveProfile} disabled={profileSaving}>{profileSaving ? 'Saving…' : 'Save Changes'}</button>
                     </div>
                   </>
                 )}
@@ -555,6 +686,33 @@ export default function Settings() {
                   </div>
                 )}
               </Section>
+
+              {profileReferralCode && (
+                <>
+                  <div style={{ height: 12 }} aria-hidden="true" />
+                  <Section icon="🎁" title="Referral Code" desc="Share your code — when friends join, you earn rewards">
+                    <SettingRow label="Your Referral Code" desc="Enter this code at signup">
+                      <span style={{
+                        fontSize: 20, fontWeight: 800, letterSpacing: '0.14em',
+                        color: 'var(--orange)', fontFamily: "'Barlow Condensed', monospace",
+                        userSelect: 'all',
+                      }}>
+                        {profileReferralCode}
+                      </span>
+                    </SettingRow>
+                    <SettingRow label="Referral Link" desc="Shareable link for friends">
+                      <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'monospace', userSelect: 'all', wordBreak: 'break-all' }}>
+                        {profileReferralLink}
+                      </span>
+                    </SettingRow>
+                    <div className="settings-section-actions">
+                      <button className="btn btn-outline btn-sm" onClick={copyReferralCode} aria-label="Copy referral code">Copy Code</button>
+                      <button className="btn btn-outline btn-sm" onClick={copyReferralLink} aria-label="Copy referral link">Copy Link</button>
+                      <button className="btn btn-primary btn-sm" onClick={shareReferral} aria-label="Share referral code">Share</button>
+                    </div>
+                  </Section>
+                </>
+              )}
 
               <Section icon="🔑" title="Change Password" desc="Update your login credentials">
                 <div className="form-row">
@@ -707,7 +865,8 @@ export default function Settings() {
                     {gymSaved && <span className="save-success"><span aria-hidden="true">✓</span> Saved</span>}
                     {gymError && <span className="save-error" role="alert"><span aria-hidden="true">✗</span> {gymError}</span>}
                     <button className="btn btn-ghost" onClick={resetGym}>Reset</button>
-                    <button className="btn btn-primary" onClick={saveGym}>Save Changes</button>
+                    {gymDirty && <span className="save-error"><span aria-hidden="true">●</span> Unsaved changes</span>}
+                    <button className="btn btn-primary" onClick={saveGym} disabled={gymSaving}>{gymSaving ? 'Saving…' : 'Save Changes'}</button>
                   </div>
                 </>
               )}
@@ -841,7 +1000,8 @@ export default function Settings() {
                       {notifSaved && <span className="save-success"><span aria-hidden="true">✓</span> Saved</span>}
                       {notifError && <span className="save-error" role="alert"><span aria-hidden="true">✗</span> {notifError}</span>}
                       <button className="btn btn-ghost" onClick={resetNotifs}>Reset</button>
-                      <button className="btn btn-primary" onClick={saveNotifs}>Save Changes</button>
+                      {notifDirty && <span className="save-error"><span aria-hidden="true">●</span> Unsaved changes</span>}
+                      <button className="btn btn-primary" onClick={saveNotifs} disabled={notifSaving}>{notifSaving ? 'Saving…' : 'Save Changes'}</button>
                     </div>
                   </>
                 )}
@@ -914,7 +1074,8 @@ export default function Settings() {
                     {themeSaved && <span className="save-success"><span aria-hidden="true">✓</span> Saved</span>}
                     {themeError && <span className="save-error" role="alert"><span aria-hidden="true">✗</span> {themeError}</span>}
                     <button className="btn btn-ghost" onClick={resetTheme}>Reset</button>
-                    <button className="btn btn-primary" onClick={saveTheme}>Save Changes</button>
+                    {themeDirty && <span className="save-error"><span aria-hidden="true">●</span> Unsaved changes</span>}
+                    <button className="btn btn-primary" onClick={saveTheme} disabled={themeSaving}>{themeSaving ? 'Saving…' : 'Save Changes'}</button>
                   </div>
                 </>
               )}
@@ -975,7 +1136,8 @@ export default function Settings() {
                       {billingSaved && <span className="save-success"><span aria-hidden="true">✓</span> Saved</span>}
                       {billingError && <span className="save-error" role="alert"><span aria-hidden="true">✗</span> {billingError}</span>}
                       <button className="btn btn-ghost" onClick={resetBilling}>Reset</button>
-                      <button className="btn btn-primary" onClick={saveBilling}>Save Changes</button>
+                      {billingDirty && <span className="save-error"><span aria-hidden="true">●</span> Unsaved changes</span>}
+                      <button className="btn btn-primary" onClick={saveBilling} disabled={billingSaving}>{billingSaving ? 'Saving…' : 'Save Changes'}</button>
                     </div>
                   </>
                 )}
@@ -1292,6 +1454,17 @@ export default function Settings() {
               <button className="btn btn-primary" onClick={() => setShowUserGuide(false)}>Got it</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {toast && (
+        <div role="status" aria-live="polite" style={{
+          position:'fixed', bottom:24, right:24, zIndex:210,
+          padding:'10px 16px', borderRadius:10, fontSize:13, fontWeight:600,
+          background: toast.type === 'error' ? 'rgba(239,68,68,0.95)' : 'rgba(16,185,129,0.95)',
+          color:'#fff', boxShadow:'0 8px 24px rgba(0,0,0,0.25)',
+        }}>
+          {toast.type === 'error' ? '✗ ' : '✓ '}{toast.msg}
         </div>
       )}
     </div>

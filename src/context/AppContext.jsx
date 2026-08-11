@@ -813,12 +813,16 @@ export function AppProvider({ children }) {
     return () => { mounted = false; if (unsubLogs) unsubLogs() }
   }, [authLoading, currentUser, gymId, isAdmin, reportSnapshotError])
 
-  // ── Feed sweep data once members/payments arrive (no polling) ──
+  // ── Feed sweep + campaign data (no polling) ──
+  // Sprint 81C: ALWAYS push the campaign feed (even empty arrays) —
+  // the old gate (`if (!members.length && !payments.length) return`)
+  // silently skipped pushing when a gym had members but no payments
+  // (or vice versa), leaving the campaign runner with zero recipients
+  // → campaigns created but never delivered.
   useEffect(() => {
-    if (!members.length && !payments.length) return
     setWhatsAppSweepData(members, payments)
-    setWhatsAppCampaignFeed(members, payments)
-  }, [members, payments])
+    setWhatsAppCampaignFeed(members, payments, gyms)
+  }, [members, payments, gyms])
 
   // ── Campaigns: one-shot sync (no realtime listeners — Sprint 79B) ──
   useEffect(() => {
@@ -829,6 +833,20 @@ export function AppProvider({ children }) {
     }).catch(() => {})
     return () => { mounted = false }
   }, [authLoading, currentUser, isAdmin, gymId])
+
+  // Sprint 81C: refresh campaign list now AND ~4.5s later — delivery
+  // stats (stats.sent/stats.failed) are flushed to Firestore 2s after
+  // the last message resolves, so a second sync picks up the counts
+  // without requiring a manual reload ("refresh after completion").
+  const refreshCampaignList = useCallback(() => {
+    return syncWhatsAppCampaigns(gymId).then((list) => {
+      setWhatsappCampaigns(list)
+      setTimeout(() => {
+        syncWhatsAppCampaigns(gymId).then(setWhatsappCampaigns).catch(() => {})
+      }, 4500)
+      return list
+    }).catch(() => [])
+  }, [gymId])
 
   // ── Pending approvals count — SUPER_ADMIN ONLY ──────────
   useEffect(() => {
@@ -1660,11 +1678,11 @@ export function AppProvider({ children }) {
         getLastExecutions: () => whatsappService.getLastExecutions(),
         runSweepsNow: (m, p) => whatsappService.runSweepsNow(m, p),
         campaigns: {
-          async create(c) { const r = await whatsappService.createCampaign(c); await syncWhatsAppCampaigns(gymId).then(setWhatsappCampaigns).catch(() => {}); return r },
-          async cancel(id) { await whatsappService.cancelCampaign(id); await syncWhatsAppCampaigns(gymId).then(setWhatsappCampaigns).catch(() => {}) },
-          async runNow(id) { const q = await whatsappService.runCampaignNow(id); await syncWhatsAppCampaigns(gymId).then(setWhatsappCampaigns).catch(() => {}); return q },
+          async create(c) { const r = await whatsappService.createCampaign(c); await refreshCampaignList(); return r },
+          async cancel(id) { await whatsappService.cancelCampaign(id); await refreshCampaignList() },
+          async runNow(id) { const q = await whatsappService.runCampaignNow(id); await refreshCampaignList(); return q },
           async remove(id) { await whatsappService.removeCampaign(id); setWhatsappCampaigns(prev => prev.filter(c => c.id !== id)) },
-          preview: (audience) => whatsappService.previewCampaign(audience, members, payments),
+          preview: (audience) => whatsappService.previewCampaign(audience, members, payments, gyms),
           list: whatsappCampaigns,
         },
       },
@@ -1682,7 +1700,7 @@ export function AppProvider({ children }) {
     referrals, referralSettings, referralsLoading,
     rewardLedger, discountCoupons,
     securityMetrics, securityMetricsLoading, unreadCount,
-    whatsappConfig, whatsappLogs, whatsappCampaigns,
+    whatsappConfig, whatsappLogs, whatsappCampaigns, refreshCampaignList,
   ])
 
   return (

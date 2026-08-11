@@ -46,7 +46,9 @@
 //     contains credentials or prompts).
 // ─────────────────────────────────────────────────────────────
 
-import OpenAI from 'openai'
+// NOTE: the `openai` SDK is loaded lazily (dynamic import inside
+// getClient) so that the ~200 KB package is never parsed at app
+// startup — it loads only on the first real AI call (Sprint 81F).
 
 export const SYSTEM_PROMPT =
   'You are IRONPULSE AI. ' +
@@ -150,11 +152,18 @@ async function fetchForClient(url, init) {
 
 /**
  * Lazy singleton OpenAI client — Groq's OpenAI-compatible endpoint.
- * Created only when a key is present (never at module import).
+ * Created only when a key is present (never at module import), and
+ * the openai package itself is fetched on first use only (Sprint 81F).
  */
 let clientCache = null
-function getClient() {
+let openaiModulePromise = null
+function loadOpenaiModule() {
+  if (!openaiModulePromise) openaiModulePromise = import('openai')
+  return openaiModulePromise
+}
+async function getClient() {
   if (clientCache) return clientCache
+  const { default: OpenAI } = await loadOpenaiModule()
   clientCache = new OpenAI({
     apiKey: getGroqApiKey(),
     baseURL: BASE_URL,

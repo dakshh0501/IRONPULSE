@@ -28,6 +28,7 @@ export const AUDIENCE_TYPES = Object.freeze([
   { id: 'trial',          label: 'Trial Members' },
   { id: 'by_trainer',     label: 'By Trainer' },
   { id: 'by_plan',        label: 'By Membership Plan' },
+  { id: 'gym_owners',     label: 'Gym Owners' },
 ])
 
 export const CAMPAIGN_STATUS = Object.freeze({
@@ -49,13 +50,29 @@ export const REPEAT_MODES = Object.freeze([
 const WEEKDAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
 
 // ── Audience evaluation (pure — feed data from AppContext) ──
+// `owners` (optional 4th param, Sprint 81C) = gym docs carrying
+// {ownerName|gymName, phone, ownerUid} — powers the 'gym_owners'
+// audience without any extra Firestore queries (Spark-safe).
 
-export function evaluateAudience(audience = {}, members = [], payments = []) {
+export function evaluateAudience(audience = {}, members = [], payments = [], owners = []) {
   const type = audience.type || 'all'
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const y = today.getFullYear(), mo = today.getMonth()
   const key = todayStr()
+
+  if (type === 'gym_owners') {
+    return (owners || []).filter(g => g && g.phone).map(g => ({
+      id: g.id || g.gymId || '',
+      memberId: g.ownerUid || '',
+      name: g.ownerName || g.gymName || g.name || 'Gym Owner',
+      phone: normalizePhone(String(g.phone || '')),
+      plan: '',
+      trainerName: '',
+      expiry: '',
+      amount: 0,
+    })).filter(r => r.phone)
+  }
 
   const selected = (members || []).filter((m) => {
     if (!m || !m.phone) return false
@@ -204,24 +221,25 @@ export class CampaignRunner {
     this.lastCheck = null
   }
 
-  /** Host app feeds latest members/payments (memory only). */
-  setFeed(members = [], payments = []) {
+  /** Host app feeds latest members/payments/gyms (memory only). */
+  setFeed(members = [], payments = [], gyms = []) {
     this._feedM = members
     this._feedP = payments
+    this._feedG = gyms
   }
 
   /** Previews audience + delivery estimate (used by the UI + preview). */
-  preview(campaign, members = [], payments = []) {
-    const recipients = isAudience(campaign.audience, members, payments)
+  preview(campaign, members = [], payments = [], gyms = []) {
+    const recipients = isAudience(campaign.audience, members, payments, gyms)
     const total = recipients.length
     const estMinutes = Math.max(1, Math.ceil(total / 60)) // ~1 msg/sec throughput
     return { recipients, total, estMinutes }
   }
 
   /** Enqueue one message per audience member through the shared engine. */
-  async run(campaign, members = [], payments = []) {
+  async run(campaign, members = [], payments = [], gyms = []) {
     if (!campaign || campaign.status === CAMPAIGN_STATUS.CANCELLED) return 0
-    const recipients = isAudience(campaign.audience, members, payments)
+    const recipients = isAudience(campaign.audience, members, payments, gyms)
     if (!recipients.length) return 0
 
     let queued = 0
@@ -285,7 +303,7 @@ export class CampaignRunner {
         for (const c of list || []) {
           if (!c || c.status !== CAMPAIGN_STATUS.SCHEDULED || !c.nextRunAt) continue
           if (new Date(c.nextRunAt).getTime() <= now) {
-            const queued = await this.run(c, this._feedM, this._feedP)
+            const queued = await this.run(c, this._feedM, this._feedP, this._feedG)
             const next = queued > 0 ? await this.advanceCampaign(c) : null
             if (queued > 0 && typeof onExecuted === 'function') {
               try { await onExecuted(c, next, queued) } catch { /* persistence failure is non-fatal */ }
@@ -303,6 +321,6 @@ export class CampaignRunner {
 }
 
 /** Feed-fed audience evaluation → normalized recipients with phones. */
-export function isAudience(audience = {}, members = [], payments = []) {
-  return evaluateAudience(audience, members, payments)
+export function isAudience(audience = {}, members = [], payments = [], gyms = []) {
+  return evaluateAudience(audience, members, payments, gyms)
 }

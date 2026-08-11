@@ -15,7 +15,7 @@
 // queue worker is driven by promise completion + retry timers.
 // ─────────────────────────────────────────────────────────────
 
-import { renderTemplate, validateTemplate, todayStr, defaultAutomationConfig, RULE_DEFS, formatDate } from './messageTemplates'
+import { renderTemplate, validateTemplate, todayStr, defaultAutomationConfig, RULE_DEFS, formatDate, normalizeSingleBraces } from './messageTemplates'
 
 export const QUEUE_STATUS = Object.freeze({
   QUEUED: 'Queued',
@@ -128,7 +128,9 @@ export class AutomationEngine {
    */
   send({ templateId, phone, vars = {}, test = false, memberId = '', campaignId = '', customBody, skipDedup = false }) {
     const cfg = this._getConfig() || {}
-    const body = customBody || cfg.templates?.[templateId] || ''
+    // Sprint 81C: campaign bodies may use either {var} or {{var}} —
+    // normalize single braces so rendered messages never show raw tokens.
+    const body = customBody ? normalizeSingleBraces(customBody) : (cfg.templates?.[templateId] || '')
     if (!body) return null
 
     const rendered = renderTemplate(body, vars)
@@ -150,11 +152,18 @@ export class AutomationEngine {
       createdAt: new Date().toISOString(),
     }
 
-    // Dedup guard (24h window per member+template) — skips duplicates,
-    // but only for non-test sends.
+    // Dedup guard (24h window). Sprint 81C: the key is scoped per
+    // CAMPAIGN (when campaignId present) so two different campaigns can
+    // both reach the same member on the same day — previously every
+    // campaign shared templateId 'campaign', so the second campaign of
+    // the day was silently deduped away for overlapping members
+    // ("created but never delivered"). Re-running the SAME campaign
+    // within 24h is still blocked (duplicate-send protection).
     if (!test && !skipDedup) {
       const day = todayStr()
-      const key = `${entry.memberId}:${templateId}:${day}`
+      const key = entry.campaignId
+        ? `${entry.campaignId}:${entry.memberId}:${templateId}:${day}`
+        : `${entry.memberId}:${templateId}:${day}`
       const last = this._dedup.get(key)
       if (last && Date.now() - last < 24 * 60 * 60 * 1000) return null
       this._dedup.set(key, Date.now())

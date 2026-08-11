@@ -13,13 +13,34 @@ import {
   onSnapshot,
   serverTimestamp,
   setDoc,
+  runTransaction,
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { DEFAULT_GYM_ID } from './firestoreService'
+import { validateReferralCodeFormat, generateReferralCode } from '../utils/referralCode'
 
 export const REFERRAL_SETTINGS_ID = 'referralSettings'
 
+// Key under which the signup referral code is parked locally until the
+// approved member's first authenticated session can process it.
+export const PENDING_REFERRAL_KEY = 'ironpulse-pending-referral'
+
 const REFERRAL_STATUSES = ['Pending', 'Qualified', 'Rewarded', 'Rejected']
+
+// ── DEV-ONLY DIAGNOSTIC LOGGING ───────────────
+// Dead code in production builds (Vite replaces import.meta.env.DEV with
+// false). Enable with VITE_REFERRAL_LOGGING=true in .env while running
+// `npm run dev`. Logs collection paths, doc IDs and error codes — never
+// credentials, emails or password material.
+const REFERRAL_DEV_LOGGING =
+  typeof import.meta !== 'undefined' &&
+  import.meta.env?.DEV === true &&
+  import.meta.env?.VITE_REFERRAL_LOGGING === 'true'
+
+function refDevLog(action, meta) {
+  if (!REFERRAL_DEV_LOGGING) return
+  console.warn(`[REFERRAL:dev] ${action}`, meta)
+}
 
 export function validateReferralStatus(status) {
   return REFERRAL_STATUSES.includes(status)
@@ -28,11 +49,13 @@ export function validateReferralStatus(status) {
 // ── SETTINGS ─────────────────────────────────────
 
 export async function getReferralSettings() {
+  refDevLog('read settings', { collection: 'settings', path: `settings/${REFERRAL_SETTINGS_ID}` })
   try {
     const snap = await getDoc(doc(db, 'settings', REFERRAL_SETTINGS_ID))
     return snap.exists() ? snap.data() : null
   } catch (err) {
     console.error('referralService: getReferralSettings error:', err)
+    refDevLog('read settings FAILED', { collection: 'settings', path: `settings/${REFERRAL_SETTINGS_ID}`, code: err.code, message: err.message })
     return null
   }
 }
@@ -79,6 +102,13 @@ export async function updateReferralSettings(data, changedBy) {
 // ── CRUD ─────────────────────────────────────────
 
 export async function createReferral(referralData) {
+  refDevLog('create', {
+    collection: 'referrals',
+    referrerUid: referralData.referrerUid,
+    referredUid: referralData.referredUid,
+    gymId: referralData.gymId,
+    status: 'Pending',
+  })
   try {
     const docRef = await addDoc(collection(db, 'referrals'), {
       referrerUid: referralData.referrerUid || '',
@@ -98,15 +128,18 @@ export async function createReferral(referralData) {
     return docRef.id
   } catch (err) {
     console.error('referralService: createReferral error:', err)
+    refDevLog('create FAILED', { collection: 'referrals', code: err.code, message: err.message })
     throw err
   }
 }
 
 export async function updateReferral(referralId, data) {
+  refDevLog('update', { collection: 'referrals', path: `referrals/${referralId}` })
   try {
     await updateDoc(doc(db, 'referrals', referralId), data)
   } catch (err) {
     console.error('referralService: updateReferral error:', err)
+    refDevLog('update FAILED', { collection: 'referrals', path: `referrals/${referralId}`, code: err.code, message: err.message })
     throw err
   }
 }
@@ -381,6 +414,199 @@ export async function hasPendingReferral(referredUid) {
   return !snap.empty
 }
 
+// ─────────────────────────────────────────────
+// SPARK REFERRAL REGISTRATION (Sprint 81A-Spark)
+// ─────────────────────────────────────────────
+// SpaceX-compatible alternative to the onReferralSignup Cloud Function:
+// the referred member's OWN client session creates the Pending referral,
+// the two notifications and the audit entry — atomically and idempotently.
+//
+// Why this works on Spark:
+//   • The users read rule denies members a `users` lookup — so referrer
+//     resolution goes through the new `referralCodes/{code}` directory
+//     instead (created by each code's owner at signup / login).
+//   • The referrals create rule already allows an authenticated user to
+//     create the doc whose referredUid == their own uid.
+//   • The referral doc ID is the referred user's auth uid — the same
+//     deterministic key the Cloud Function used — so a refresh, a retry or
+//     a second tab can never create a duplicate row. The existence read
+//     inside the transaction makes notification/audit creation
+//     one-shot-only, and all four writes commit atomically or not at all.
+
+let processingInFlight = false
+
+export function clearPendingReferralStorage() {
+  try { localStorage.removeItem(PENDING_REFERRAL_KEY) } catch (e) { /* non-blocking */ }
+}
+
+// Directory entry each code owner maintains for their own code.
+export async function ensureOwnReferralCodeMapping(userId, referralCode) {
+  if (!userId || !validateReferralCodeFormat(referralCode)) return false
+  const ref = doc(db, 'referralCodes', referralCode)
+  try {
+    const snap = await getDoc(ref)
+    if (snap.exists()) return snap.data().referrerUid === userId
+    await setDoc(ref, {
+      referrerUid: userId,
+      createdAt: serverTimestamp(),
+    }, { merge: true })
+    return true
+  } catch (err) {
+    console.warn('[ReferralService] ensureOwnReferralCodeMapping failed (non-blocking):', err.code || err.message)
+    return false
+  }
+}
+
+// ─────────────────────────────────────────────
+// LOGIN-TIME SELF-HEAL (Sprint 81E)
+// ─────────────────────────────────────────────
+// Every approved eligible user must ALWAYS own a referral code + a
+// referralCodes/{code} directory entry. Runs on every authenticated session
+// (login AND refresh) — idempotent by construction:
+//   • Code present  → converge the directory entry (create if absent).
+//   • Code missing  → generate PURE-LOCALLY (crypto-random, NO users query —
+//     the users read rule denies non-staff collection queries) and write:
+//       1) users/{uid}.referralCode        — own-user update rule allows the
+//          one-time set while the current value is null/'' (first writer wins;
+//          a concurrent second writer is denied by the same rule).
+//       2) referralCodes/{code}            — create rule requires the caller's
+//          OWN users doc to carry exactly this code (satisfied after step 1
+//          commits; a denied step 2 means the entry already exists).
+//   • Trainer     → never generated (trainers are staff, not referrers —
+//     matches backfillMissingReferralCodes which skips the role).
+// NEVER throws — referral healing must never block the session.
+export async function ensureSelfReferralCode({ uid, referralCode, role } = {}) {
+  if (!uid) return { code: '', created: false }
+  const existing = typeof referralCode === 'string' ? referralCode.trim() : ''
+  if (validateReferralCodeFormat(existing)) {
+    await ensureOwnReferralCodeMapping(uid, existing).catch(() => {})
+    return { code: existing, created: false }
+  }
+  if (role === 'trainer') return { code: '', created: false }
+  const code = generateReferralCode()
+  try {
+    await updateDoc(doc(db, 'users', uid), {
+      referralCode: code,
+      referralCodeGeneratedAt: serverTimestamp(),
+    })
+    await ensureOwnReferralCodeMapping(uid, code)
+    return { code, created: true }
+  } catch (err) {
+    console.warn('[ReferralService] ensureSelfReferralCode failed (non-blocking):', err.code || err.message)
+    return { code: '', created: false }
+  }
+}
+
+// Resolve a referral code to its owner via the directory collection.
+export async function resolveReferralCode(code) {
+  if (!validateReferralCodeFormat(code)) return null
+  try {
+    const snap = await getDoc(doc(db, 'referralCodes', code.toUpperCase()))
+    if (!snap.exists()) return null
+    return { referrerUid: snap.data().referrerUid || '', createdAt: snap.data().createdAt || null }
+  } catch (err) {
+    console.error('referralService: resolveReferralCode error:', err)
+    return null
+  }
+}
+
+/**
+ * Spark-compatible referral registration. Call ONCE per established
+ * authenticated session (first login after approval).
+ *
+ * Returns { created: boolean, reason?: string } — never throws for
+ * expected outcomes (invalid code, self referral, already registered).
+ */
+export async function processPendingReferral({ referredUid, referredName, referralCode, gymId }) {
+  if (!referredUid || !referralCode) return { created: false, reason: 'no-code' }
+  const code = String(referralCode).trim().toUpperCase()
+  if (!validateReferralCodeFormat(code)) return { created: false, reason: 'invalid-format' }
+  if (processingInFlight) return { created: false, reason: 'in-flight' }
+
+  const resolved = await resolveReferralCode(code)
+  if (!resolved || !resolved.referrerUid) return { created: false, reason: 'invalid-code' }
+  if (resolved.referrerUid === referredUid) return { created: false, reason: 'self-referral' }
+
+  processingInFlight = true
+  try {
+    const ref = doc(db, 'referrals', referredUid)
+    const notifReferrer = doc(db, 'notifications', `ref-registered-${resolved.referrerUid}-${referredUid}`)
+    const notifReferred = doc(db, 'notifications', `ref-applied-${referredUid}`)
+    const auditRef = doc(db, 'referralAuditLogs', `ref-created-${referredUid}`)
+    const now = new Date().toISOString()
+    const referralGymId = gymId || DEFAULT_GYM_ID
+
+    const outcome = await runTransaction(db, async (tx) => {
+      const existing = await tx.get(ref)
+      if (existing.exists()) return 'already-registered'
+      tx.set(ref, {
+        referrerUid: resolved.referrerUid,
+        referredUid,
+        referralCode: code,
+        gymId: referralGymId,
+        referredName: referredName || '',
+        status: 'Pending',
+        rewardType: '',
+        rewardValue: 0,
+        rewardIssued: false,
+        firstPaymentId: '',
+        expiresAt: null,
+        createdAt: now,
+        qualifiedAt: null,
+        rewardedAt: null,
+      })
+      tx.set(notifReferrer, {
+        userId: resolved.referrerUid,
+        gymId: referralGymId,
+        role: 'member',
+        title: 'Referral Registered!',
+        message: `${referredName || 'Someone'} signed up using your referral code!`,
+        type: 'referral',
+        subtype: 'referral_registered',
+        priority: 'normal',
+        icon: '📋',
+        actionUrl: '/referral',
+        relatedDocumentId: referredUid,
+        read: false,
+        createdAt: now,
+      })
+      tx.set(notifReferred, {
+        userId: referredUid,
+        gymId: referralGymId,
+        role: 'member',
+        title: 'Referral Applied',
+        message: 'Your referral code was applied! Welcome aboard.',
+        type: 'referral',
+        subtype: 'referral_applied',
+        priority: 'normal',
+        icon: '✅',
+        actionUrl: '',
+        relatedDocumentId: referredUid,
+        read: false,
+        createdAt: now,
+      })
+      tx.set(auditRef, {
+        timestamp: now,
+        createdAt: now,
+        action: 'REFERRAL_CREATED',
+        performedBy: referredUid,
+        targetUid: resolved.referrerUid,
+        referralId: referredUid,
+        metadata: { referralCode: code, referredName: referredName || '' },
+      })
+      return 'created'
+    })
+
+    if (outcome === 'created') clearPendingReferralStorage()
+    return { created: outcome === 'created', reason: outcome === 'created' ? undefined : outcome }
+  } catch (err) {
+    console.error('referralService: processPendingReferral error:', err)
+    return { created: false, reason: 'error' }
+  } finally {
+    processingInFlight = false
+  }
+}
+
 // ── EXPIRY CHECK ─────────────────────────────────
 
 export function isReferralExpired(referral) {
@@ -409,6 +635,7 @@ export function getShareMessageTemplate(settings) {
 // ── REFERRAL AUDIT LOG ───────────────────────────
 
 export async function logReferralAudit({ action, performedBy, targetUid, referralId, metadata }) {
+  refDevLog('audit', { collection: 'referralAuditLogs', action, performedBy, targetUid })
   try {
     await addDoc(collection(db, 'referralAuditLogs'), {
       timestamp: serverTimestamp(),
@@ -421,5 +648,6 @@ export async function logReferralAudit({ action, performedBy, targetUid, referra
     })
   } catch (err) {
     console.error('[ReferralService] Audit log error (non-blocking):', err)
+    refDevLog('audit FAILED', { collection: 'referralAuditLogs', action, code: err.code, message: err.message })
   }
 }

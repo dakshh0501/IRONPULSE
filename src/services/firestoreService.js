@@ -49,7 +49,7 @@ export const DEFAULT_GYM_ID = 'default'
 // Add new member
 export async function addMember(memberData) {
 
-  const { password, ...cleanData } = memberData
+  const { password, referredBy, ...cleanData } = memberData
 
   let user
 
@@ -85,9 +85,26 @@ export async function addMember(memberData) {
           role: 'member',
           gymId: cleanData.gymId || DEFAULT_GYM_ID,
           referralCode,
+          // Sprint 81A-Spark: optional referral code entered by the admin —
+          // lands ONLY on the users doc (processed at the member's first
+          // login), never on the members doc.
+          referredBy: referredBy ? String(referredBy).trim().toUpperCase() : '',
           createdAt: serverTimestamp(),
         }
       )
+
+      // Referral directory entry (Sprint 81A-Spark) — lets other Spark
+      // clients resolve this member's code without the users read rule.
+      if (referralCode) {
+        try {
+          await setDoc(doc(db, 'referralCodes', referralCode), {
+            referrerUid: user.uid,
+            createdAt: serverTimestamp(),
+          }, { merge: true })
+        } catch (e) {
+          console.warn('addMember: referralCodes mapping failed (non-blocking):', e.code || e.message)
+        }
+      }
     }
 
     const docRef = await addDoc(
@@ -1538,6 +1555,10 @@ export async function addWhatsappLog(record) {
       attempts: Number(record.attempts) || 0,
       error: String(record.error || ''),
       entryId: String(record.entryId || ''),
+      // Sprint 81C: campaign correlation was dropped by the previous
+      // field whitelist — campaign delivery history could never be
+      // attributed to a campaign. Now persisted for log views/retries.
+      campaignId: String(record.campaignId || ''),
       test: Boolean(record.test),
       gymId: record.gymId || DEFAULT_GYM_ID,
       createdAt: serverTimestamp(),
@@ -1589,7 +1610,14 @@ export async function listWhatsappCampaigns(gymId, limitN = 200) {
       ? query(collection(db, 'whatsappCampaigns'), where('gymId', '==', gymId), orderBy('createdAt', 'desc'), limit(limitN))
       : query(collection(db, 'whatsappCampaigns'), orderBy('createdAt', 'desc'), limit(limitN))
     const snap = await getDocs(ref)
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    // Sprint 81C: a stored `id` data field (legacy buildCampaignDoc) must never
+    // clobber the real document id via the spread — otherwise runCampaignNow /
+    // the 60s check-loop can never find campaigns by id.
+    return snap.docs.map(d => {
+      const data = d.data()
+      delete data.id
+      return { id: d.id, ...data }
+    })
   } catch (err) {
     console.error('listWhatsappCampaigns error:', err)
     return []

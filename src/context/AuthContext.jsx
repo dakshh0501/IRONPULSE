@@ -4,8 +4,6 @@
 // No duplicate logic, no role defaults
 
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
-import { addDoc, collection, doc, getDocs, query, setDoc, where } from 'firebase/firestore'
-import { db } from '../firebase'
 import {
   subscribeToAuthState,
   signUp,
@@ -17,8 +15,11 @@ import {
   resendVerificationEmail,
 } from '../services/authService'
 import { getSettings } from '../services/firestoreService'
-import { createReferral, hasPendingReferral, isReferralExpired, logReferralAudit } from '../services/referralService'
-import { generateUniqueReferralCode } from '../utils/referralCode'
+import {
+  processPendingReferral,
+  ensureSelfReferralCode,
+  PENDING_REFERRAL_KEY,
+} from '../services/referralService'
 import { applyAccentColor, DEFAULT_ACCENT } from '../utils/theme'
 import { getEffectiveRole } from '../utils/rbac'
 import {
@@ -184,14 +185,39 @@ export function AuthProvider({ children }) {
           return
         }
 
-        // Auto-generate referralCode if missing
-        if (!profile.referralCode) {
-          try {
-            const code = await generateUniqueReferralCode()
-            await setDoc(doc(db, 'users', firebaseUser.uid), { referralCode: code }, { merge: true })
-            profile = { ...profile, referralCode: code }
-          } catch (err) {
-            console.warn('[AUTH] Failed to generate referral code:', err)
+        // ── REFERRAL SELF-HEAL (Sprint 81E) ──────────────────────────
+        // Every approved eligible role must OWN a referral code + directory
+        // entry — guaranteed idempotently on login AND refresh: code present
+        // → only the missing referralCodes/{code} mapping is converged; code
+        // missing → generated pure-locally (no users query — Spark-safe for
+        // members) and written under the one-time-set rule. Trainers are
+        // excluded by design (staff, not referrers). Never blocks the session.
+        const healed = await ensureSelfReferralCode({
+          uid: firebaseUser.uid,
+          referralCode: profile.referralCode,
+          role: profile.role,
+        })
+        if (healed.code && !profile.referralCode) {
+          profile = { ...profile, referralCode: healed.code }
+        }
+
+        // ── SPARK REFERRAL REGISTRATION (Sprint 81A-Spark) ─────────────
+        // Once an authenticated, approved session exists, resolve the
+        // signup-time referral code (profile.referredBy is immutable per the
+        // users update rule; localStorage is the pre-approval cache parked by
+        // register()). Idempotent + atomic in the service — a refresh, a
+        // second tab or a re-login can never duplicate the referral row.
+        // Fire-and-forget: referral processing must never block the session.
+        if (profile.role === 'member') {
+          const parkedCode = (typeof localStorage !== 'undefined' ? localStorage.getItem(PENDING_REFERRAL_KEY) : null) || ''
+          const pendingCode = profile.referredBy || parkedCode || ''
+          if (pendingCode) {
+            processPendingReferral({
+              referredUid: firebaseUser.uid,
+              referredName: profile.name || '',
+              referralCode: pendingCode,
+              gymId: profile.gymId || 'default',
+            }).catch(() => {})
           }
         }
 
@@ -226,114 +252,20 @@ export function AuthProvider({ children }) {
   async function register({ name, email, password, gymName, phone, referredBy }) {
     setAuthError('')
 
+    // Park the referral code locally until the approved member's first
+    // authenticated session processes it (Spark: no Cloud Functions).
+    // The durable copy lives on users/{uid}.referredBy (written by signUp);
+    // processing clears this park so it never lingers across accounts.
+    if (referredBy) {
+      try { localStorage.setItem(PENDING_REFERRAL_KEY, referredBy) } catch (_) {}
+    } else {
+      try { localStorage.removeItem(PENDING_REFERRAL_KEY) } catch (_) {}
+    }
+
     signingUpRef.current = true
     try {
       const gymData = { gymName, ownerName: name, email, phone }
-      const signUpResult = await signUp({ name, email, password, gymData, role: 'gym_owner_pending', referredBy })
-
-      // Fire-and-forget referral record + notifications
-      if (referredBy && signUpResult?.uid) {
-        try {
-          // Check for duplicate pending referral
-          const alreadyReferred = await hasPendingReferral(signUpResult.uid)
-          if (alreadyReferred) {
-            logReferralAudit({
-              action: 'DUPLICATE_REFERRAL_BLOCKED',
-              performedBy: signUpResult.uid,
-              targetUid: signUpResult.uid,
-              metadata: { referralCode: referredBy, email },
-            }).catch(() => {})
-            console.warn('[AuthContext] Duplicate referral blocked for:', signUpResult.uid)
-          } else {
-            const refQ = query(collection(db, 'users'), where('referralCode', '==', referredBy))
-            const refSnap = await getDocs(refQ)
-            if (!refSnap.empty) {
-              const referrer = refSnap.docs[0].data()
-
-              // Self-referral check
-              if (referrer.uid === signUpResult.uid) {
-                logReferralAudit({
-                  action: 'SELF_REFERRAL_BLOCKED',
-                  performedBy: signUpResult.uid,
-                  targetUid: signUpResult.uid,
-                  metadata: { referralCode: referredBy, email },
-                }).catch(() => {})
-              } else {
-                // Expiry check on referrer's campaign (if any)
-                const referrerHasExpired = referrer.expiresAt
-                  ? (referrer.expiresAt?.seconds
-                    ? new Date(referrer.expiresAt.seconds * 1000)
-                    : new Date(referrer.expiresAt)) < new Date()
-                  : false
-
-                if (referrerHasExpired) {
-                  logReferralAudit({
-                    action: 'EXPIRED_REFERRAL_BLOCKED',
-                    performedBy: signUpResult.uid,
-                    targetUid: referrer.uid,
-                    metadata: { referralCode: referredBy, email, expiresAt: referrer.expiresAt },
-                  }).catch(() => {})
-                  console.warn('[AuthContext] Expired referral blocked:', referredBy)
-                } else {
-                  // Create referral record in Firestore
-                  createReferral({
-                    referrerUid: referrer.uid,
-                    referredUid: signUpResult.uid,
-                    referralCode: referredBy,
-                    gymId: referrer.gymId || 'default',
-                    referredName: name || '',
-                    rewardValue: 0,
-                    rewardType: '',
-                  }).then(() => {
-                    logReferralAudit({
-                      action: 'REFERRAL_CREATED',
-                      performedBy: signUpResult.uid,
-                      targetUid: referrer.uid,
-                      metadata: { referralCode: referredBy, referredName: name },
-                    }).catch(() => {})
-                  }).catch(() => {})
-
-                  const notifPromises = [
-                    addDoc(collection(db, 'notifications'), {
-                      userId: referrer.uid,
-                      gymId: referrer.gymId || 'default',
-                      role: 'member',
-                      title: 'Referral Registered!',
-                      message: `${name || 'Someone'} signed up using your referral code!`,
-                      type: 'referral',
-                      subtype: 'referral_registered',
-                      priority: 'normal',
-                      icon: '📋',
-                      actionUrl: '/referral',
-                      relatedDocumentId: '',
-                      read: false,
-                      createdAt: new Date().toISOString(),
-                    }).catch(() => {}),
-                    addDoc(collection(db, 'notifications'), {
-                      userId: signUpResult.uid,
-                      gymId: referrer.gymId || 'default',
-                      role: 'member',
-                      title: 'Referral Applied',
-                      message: `Your referral code was applied! Welcome aboard.`,
-                      type: 'referral',
-                      subtype: 'referral_applied',
-                      priority: 'normal',
-                      icon: '✅',
-                      actionUrl: '',
-                      relatedDocumentId: '',
-                      read: false,
-                      createdAt: new Date().toISOString(),
-                    }).catch(() => {}),
-                  ]
-                  await Promise.allSettled(notifPromises)
-                }
-              }
-            }
-          }
-        } catch (notifErr) {
-          console.error('[AuthContext] referral processing error:', notifErr)
-        }
-      }
+      await signUp({ name, email, password, gymData, role: 'gym_owner_pending', referredBy })
 
       return { email }
     } catch (err) {

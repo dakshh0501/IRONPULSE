@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import MemberQR from '../components/MemberQR'
@@ -6,6 +6,7 @@ import MemberAvatar from '../components/MemberAvatar'
 import { registerActionHandlers } from '../services/ai/actionBus'
 import { computeMemberHealth, generateMemberInsights } from '../services/ai/insightEngine'
 import { InsightsPanel } from '../components/ai/InsightCards'
+import { buildReferralLink, buildShareMessage, getShareMessageTemplate } from '../services/referralService'
 
 // ─── helpers ────────────────────────────────────────────────
 function monthKey(dateStr) {
@@ -143,6 +144,88 @@ function MembershipCard({ me }) {
   )
 }
 
+function ReferralCard({ code, settings }) {
+  const [toast, setToast] = useState('')
+  const [copiedCode, setCopiedCode] = useState(false)
+  const toastTimer = useRef(null)
+  const link = buildReferralLink(code)
+  const showToast = (msg) => {
+    setToast(msg)
+    clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => setToast(''), 3000)
+  }
+
+  const copyText = async (text, label) => {
+    try { await navigator.clipboard.writeText(text) } catch {
+      const ta = document.createElement('textarea')
+      ta.value = text
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+    }
+    if (label === 'code') { setCopiedCode(true); setTimeout(() => setCopiedCode(false), 2000) }
+    showToast(`${label === 'code' ? 'Referral code' : 'Referral link'} copied`)
+  }
+
+  const share = async () => {
+    const msg = buildShareMessage(getShareMessageTemplate(settings), code, link)
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Refer & Earn — IRONPULSE', text: msg }); return } catch {}
+    }
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer')
+  }
+
+  return (
+    <div className="card">
+      <div className="section-title" style={{ marginBottom: 18 }}>
+        <span aria-hidden="true">🎁</span> Refer & Earn
+      </div>
+      <p className="muted-text" style={{ marginTop: -8, marginBottom: 14 }}>
+        Share your code — when friends join and pay, you earn rewards.
+      </p>
+      <div style={{
+        display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center',
+        justifyContent: 'space-between',
+      }}>
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Your Referral Code
+          </div>
+          <div style={{
+            fontSize: 28, fontWeight: 800, letterSpacing: '0.14em',
+            color: 'var(--orange)', fontFamily: "'Barlow Condensed', monospace",
+            userSelect: 'all',
+          }}>
+            {code}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 6, wordBreak: 'break-all', userSelect: 'all', fontFamily: 'monospace' }}>
+            {link}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button className="btn btn-primary btn-sm" onClick={() => copyText(code, 'code')} aria-label="Copy referral code">
+            {copiedCode ? '✓ Copied' : 'Copy Code'}
+          </button>
+          <button className="btn btn-outline btn-sm" onClick={() => copyText(link, 'link')} aria-label="Copy referral link">
+            Copy Link
+          </button>
+          <button className="btn btn-outline btn-sm" onClick={share} aria-label="Share referral link">
+            Share
+          </button>
+        </div>
+      </div>
+      {toast && (
+        <div role="status" aria-live="polite" style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 210,
+          padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+          background: 'rgba(16,185,129,0.95)', color: '#fff', boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+        }}>✓ {toast}</div>
+      )}
+    </div>
+  )
+}
+
 function AttendanceHistory({ records }) {
   const sorted = [...records].sort((a, b) => {
     const da = new Date(a.date + ' ' + (a.time || ''))
@@ -259,7 +342,7 @@ function AttendanceHistory({ records }) {
 
 // ─── main component ──────────────────────────────────────────
 export default function MemberDashboard() {
-  const { attendance, payments, members, dietPlans, workoutPlans, progressLogs, snapshotErrors } = useApp()
+  const { attendance, payments, members, dietPlans, workoutPlans, progressLogs, referralSettings, snapshotErrors } = useApp()
   const { currentUser, userProfile } = useAuth()
   const [dataLoaded, setDataLoaded] = useState(false)
 
@@ -398,6 +481,11 @@ export default function MemberDashboard() {
 
       {/* ── Membership Info Card ── */}
       <MembershipCard me={me} />
+
+      {/* ── Referral Card (Sprint 81E) — code guaranteed by login self-heal ── */}
+      {userProfile?.referralCode && (
+        <ReferralCard code={userProfile.referralCode} settings={referralSettings} />
+      )}
 
       {/* ── AI Health & Insights ── */}
       <InsightsPanel health={myHealth} insights={myInsights} title="My Health & Insights" limit={3} />
