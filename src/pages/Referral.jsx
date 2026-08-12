@@ -91,8 +91,12 @@ export default function Referral() {
   // For admin roles, filter to personal referrals; member already gets server-filtered
   const myReferrals = useMemo(() => {
     if (!currentUser?.uid) return referrals
-    return referrals.filter(r => r.referrerUid === currentUser.uid)
-  }, [referrals, currentUser])
+    const mine = referrals.filter(r => r.referrerUid === currentUser.uid)
+    if (!referralsLoading) {
+      console.warn(`[Referral] Referral page read: ${referrals.length} row(s) from subscription, ${mine.length} belong to ${currentUser.uid}`)
+    }
+    return mine
+  }, [referrals, currentUser, referralsLoading])
 
   const stats = useMemo(() => getReferralStats(myReferrals), [myReferrals])
 

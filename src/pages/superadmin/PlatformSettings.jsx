@@ -29,14 +29,14 @@ if (!document.getElementById('ps-styles')) {
 .ps-input { 
   background:var(--input-bg); border:1px solid var(--input-border);
   border-radius:8px; padding:8px 12px; height:36px; color:var(--text); font-size:13px;
-  outline:none; transition:border-color 0.2s; box-sizing:border-box;
+  outline:none; transition:border-color 0.2s; box-sizing:border-box; max-width:100%;
 }
 .ps-input:focus { border-color:rgba(232,66,10,0.3); box-shadow:0 0 0 2px rgba(232,66,10,0.06); }
 .ps-input::placeholder { color:var(--text-dim); }
 .ps-select {
   background:var(--input-bg); border:1px solid var(--input-border);
-  border-radius:8px; height:36px; color:var(--text-muted); font-size:12px; font-weight:500;
-  padding:0 28px 0 10px; cursor:pointer; outline:none; min-width:160;
+  border-radius:8px; height:36px; color:var(--text); font-size:12px; font-weight:500;
+  padding:0 28px 0 10px; cursor:pointer; outline:none; min-width:160px; max-width:100%;
   appearance:none; transition:border-color 0.2s;
   background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%236070a0' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat:no-repeat; background-position:right 10px center;
@@ -80,7 +80,7 @@ if (!document.getElementById('ps-styles')) {
 .ps-save-bar {
   position:sticky; bottom:0; z-index:50;
   background:var(--bg2); border-top:1px solid var(--border); padding:14px 24px;
-  display:flex; align-items:center; justify-content:space-between; gap:12;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
 }
 .ps-skeleton { background:var(--skeleton); border-radius:6px; animation:ps-skeleton 1.5s ease-in-out infinite; }
 @media (max-width:900px) {
@@ -88,6 +88,9 @@ if (!document.getElementById('ps-styles')) {
   .ps-sidebar { width:100% !important; display:flex !important; overflow-x:auto !important; gap:4px !important; padding:12px 0 !important; }
   .ps-sidebar-tab { white-space:nowrap !important; min-width:fit-content !important; }
   .ps-sidebar-tab-desc { display:none !important; }
+  .ps-row { flex-wrap:wrap; }
+  .ps-row-action { max-width:100%; }
+  .ps-row-info { min-width:100%; }
 }
 `
   document.head.appendChild(psStyles)
@@ -162,8 +165,8 @@ function SettingRow({ label, desc, children }) {
 }
 
 function StatusBadge({ status }) {
-  const colors = { operational: '#10b981', warning: '#f59e0b', offline: '#ef4444', connected: '#10b981', disconnected: '#384860' }
-  const c = colors[status] || '#384860'
+  const colors = { operational: '#10b981', warning: '#f59e0b', offline: '#ef4444', connected: '#10b981', disconnected: 'var(--text-dim)' }
+  const c = colors[status] || 'var(--text-dim)'
   return <span style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:600, background:`${c}14`, color:c }}><span style={{ width:6, height:6, borderRadius:'50%', background:c }} />{status}</span>
 }
 
@@ -304,7 +307,7 @@ export default function PlatformSettings() {
           <input className="ps-input" type="color" value={form.accentColor || '#e8420a'}
             onChange={e => set('accentColor', e.target.value)}
             style={{ width:48, height:36, padding:2, cursor:'pointer' }} aria-label="Accent Color" />
-          <span style={{ fontSize:12, fontFamily:'monospace', color:'#384860' }}>{form.accentColor || '#e8420a'}</span>
+          <span style={{ fontSize:12, fontFamily:'monospace', color:'var(--text-dim)' }}>{form.accentColor || '#e8420a'}</span>
         </div>
       </SettingRow>
       <SettingRow label="Secondary Color" desc="Secondary brand accent">
@@ -312,7 +315,7 @@ export default function PlatformSettings() {
           <input className="ps-input" type="color" value={form.secondaryColor || '#00c8b4'}
             onChange={e => set('secondaryColor', e.target.value)}
             style={{ width:48, height:36, padding:2, cursor:'pointer' }} aria-label="Secondary Color" />
-          <span style={{ fontSize:12, fontFamily:'monospace', color:'#384860' }}>{form.secondaryColor || '#00c8b4'}</span>
+          <span style={{ fontSize:12, fontFamily:'monospace', color:'var(--text-dim)' }}>{form.secondaryColor || '#00c8b4'}</span>
         </div>
       </SettingRow>
       <SettingRow label="Footer Text" desc="Copyright text shown in the platform footer">
@@ -381,7 +384,7 @@ export default function PlatformSettings() {
         </select>
       </SettingRow>
       <SettingRow label="Webhook URL" desc="PhonePe payment callback URL">
-        <input className="ps-input" value={`${window.location.origin}/api/phonepe/callback`} readOnly style={{ width:320, color:'#384860', cursor:'not-allowed' }} aria-label="Webhook URL" />
+        <input className="ps-input" value={`${window.location.origin}/api/phonepe/callback`} readOnly style={{ width:320, color:'var(--text-dim)', cursor:'not-allowed' }} aria-label="Webhook URL" />
       </SettingRow>
       <SettingRow label="" desc="">
         <div style={{ display:'flex', gap:8 }}>
@@ -530,7 +533,7 @@ export default function PlatformSettings() {
         </SettingRow>
         <SettingRow label="Webhook URL" desc="Callback URL for incoming messages (auto-generated)">
           <input className="ps-input" value={form.whatsAppWebhookUrl || `${window.location.origin}/api/whatsapp/webhook`}
-            readOnly style={{ width:'100%', color:'#384860', cursor:'not-allowed' }} aria-label="WhatsApp Webhook URL" />
+            readOnly style={{ width:'100%', color:'var(--text-dim)', cursor:'not-allowed' }} aria-label="WhatsApp Webhook URL" />
         </SettingRow>
       </SettingsCard>
       <SettingsCard icon="🔔" iconBg="rgba(245,158,11,0.08)" title="Notification Preferences" subtitle="Choose which events trigger WhatsApp notifications">
@@ -623,26 +626,26 @@ export default function PlatformSettings() {
       <SettingsCard icon="💾" iconBg="rgba(0,200,180,0.08)" title="Storage Usage" subtitle="Current storage consumption across the platform">
         <SettingRow label="Firestore" desc="Database document storage">
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <div style={{ width:160, height:6, borderRadius:3, background:'rgba(255,255,255,0.04)' }}>
+            <div style={{ width:160, height:6, borderRadius:3, background:'var(--skeleton)' }}>
               <div style={{ width:'23%', height:'100%', borderRadius:3, background:'linear-gradient(90deg,#e8420a,#ff6a2a)' }} />
             </div>
-            <span style={{ fontSize:12, color:'#384860' }}>23% used</span>
+            <span style={{ fontSize:12, color:'var(--text-dim)' }}>23% used</span>
           </div>
         </SettingRow>
         <SettingRow label="Images & Media" desc="Uploaded gym logos, member photos, and trainer images">
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <div style={{ width:160, height:6, borderRadius:3, background:'rgba(255,255,255,0.04)' }}>
+            <div style={{ width:160, height:6, borderRadius:3, background:'var(--skeleton)' }}>
               <div style={{ width:'12%', height:'100%', borderRadius:3, background:'linear-gradient(90deg,#00c8b4,#00c8b4)' }} />
             </div>
-            <span style={{ fontSize:12, color:'#384860' }}>12% used</span>
+            <span style={{ fontSize:12, color:'var(--text-dim)' }}>12% used</span>
           </div>
         </SettingRow>
         <SettingRow label="Documents" desc="Uploaded gym documents and certificates">
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <div style={{ width:160, height:6, borderRadius:3, background:'rgba(255,255,255,0.04)' }}>
+            <div style={{ width:160, height:6, borderRadius:3, background:'var(--skeleton)' }}>
               <div style={{ width:'3%', height:'100%', borderRadius:3, background:'linear-gradient(90deg,#8b5cf6,#8b5cf6)' }} />
             </div>
-            <span style={{ fontSize:12, color:'#384860' }}>3% used</span>
+            <span style={{ fontSize:12, color:'var(--text-dim)' }}>3% used</span>
           </div>
         </SettingRow>
       </SettingsCard>
@@ -651,10 +654,10 @@ export default function PlatformSettings() {
           <Toggle on={form.autoBackup ?? true} onChange={v => set('autoBackup', v)} />
         </SettingRow>
         <SettingRow label="Last Backup" desc="Date of the most recent backup">
-          <span style={{ fontSize:13, color:'#384860' }}>— (requires Cloud Function)</span>
+          <span style={{ fontSize:13, color:'var(--text-dim)' }}>— (requires Cloud Function)</span>
         </SettingRow>
         <SettingRow label="Next Scheduled" desc="Next automatic backup date">
-          <span style={{ fontSize:13, color:'#384860' }}>— (requires Cloud Function)</span>
+          <span style={{ fontSize:13, color:'var(--text-dim)' }}>— (requires Cloud Function)</span>
         </SettingRow>
         <SettingRow label="" desc="">
           <div style={{ display:'flex', gap:8 }}>
@@ -683,13 +686,13 @@ export default function PlatformSettings() {
             <div style={{ display:'flex', alignItems:'center', gap:10 }}>
               <span style={{ fontSize:18 }}>{s.icon}</span>
               <div style={{ flex:1 }}>
-                <div style={{ fontSize:13, fontWeight:600, color:'#a0aac0' }}>{s.name}</div>
-                <div style={{ fontSize:10, color:'#384860' }}>{s.desc}</div>
+                <div style={{ fontSize:13, fontWeight:600, color:'var(--text-muted)' }}>{s.name}</div>
+                <div style={{ fontSize:10, color:'var(--text-dim)' }}>{s.desc}</div>
               </div>
               <StatusBadge status={s.status} />
             </div>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-              <span style={{ fontSize:10, color:'#384860' }}>{s.version}</span>
+              <span style={{ fontSize:10, color:'var(--text-dim)' }}>{s.version}</span>
               <button className="ps-btn-secondary" style={{ padding:'4px 10px', fontSize:10 }} onClick={() => showTestResult(`Reconnecting ${s.name}...`)}>Reconnect</button>
             </div>
           </div>
@@ -715,11 +718,11 @@ export default function PlatformSettings() {
             <div key={s.name} className="ps-card" style={{ padding:14, marginBottom:0, cursor:'default' }}>
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
                 <span style={{ fontSize:16 }}>{s.icon}</span>
-                <span style={{ fontSize:12, fontWeight:600, color:'#a0aac0' }}>{s.name}</span>
+                <span style={{ fontSize:12, fontWeight:600, color:'var(--text-muted)' }}>{s.name}</span>
               </div>
               <StatusBadge status={s.status} />
-              <div style={{ fontSize:10, color:'#384860', marginTop:6 }}>
-                Response: <strong style={{ color:'#6070a0' }}>{s.rt}</strong>
+              <div style={{ fontSize:10, color:'var(--text-dim)', marginTop:6 }}>
+                Response: <strong style={{ color:'var(--text-muted)' }}>{s.rt}</strong>
               </div>
             </div>
           ))}
@@ -728,7 +731,7 @@ export default function PlatformSettings() {
       <SettingsCard icon="🔄" iconBg="rgba(59,130,246,0.08)" title="Last Checked" subtitle="System status was last updated a few seconds ago">
         <div style={{ display:'flex', gap:8 }}>
           <button className="ps-btn-primary" onClick={() => showTestResult('Refreshing system status...')}><span aria-hidden="true">🔄</span> Refresh Status</button>
-          <span style={{ fontSize:12, color:'#384860', display:'flex', alignItems:'center' }}>All services operational</span>
+          <span style={{ fontSize:12, color:'var(--text-dim)', display:'flex', alignItems:'center' }}>All services operational</span>
         </div>
       </SettingsCard>
     </>
@@ -768,8 +771,8 @@ export default function PlatformSettings() {
       {/* ── HEADER ── */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:16, marginBottom:28 }}>
         <div>
-          <h1 style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:28, fontWeight:800, color:'#e4e8f0', margin:'0 0 4px' }}>Platform Settings</h1>
-          <p style={{ fontSize:13, color:'#506080', margin:0 }}>Manage branding, billing, communication channels and global platform configuration.</p>
+          <h1 style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:28, fontWeight:800, color:'var(--text)', margin:'0 0 4px' }}>Platform Settings</h1>
+          <p style={{ fontSize:13, color:'var(--text-muted)', margin:0 }}>Manage branding, billing, communication channels and global platform configuration.</p>
         </div>
         <div style={{ display:'flex', gap:8, alignItems:'center', flexShrink:0 }}>
           {hasChanges.current && <span style={{ fontSize:11, color:'#f59e0b' }}>Unsaved changes</span>}

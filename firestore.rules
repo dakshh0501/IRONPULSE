@@ -494,15 +494,29 @@ service cloud.firestore {
     //  (referred-user read is required for the Spark idempotency check:
     //   the referred member reads referrals/{ownUid} inside the creation
     //   transaction to guarantee refresh/duplicate safety)
+    //
+    //  Sprint 81H fix: reads of a NON-EXISTENT document still evaluate this
+    //  rule, and on a missing doc `resource.data` is null — every branch
+    //  below dereferenced it and evaluated to false, so the Spark
+    //  transaction's existence probe of the not-yet-created referrals/{ownUid}
+    //  was denied with permission-denied and the whole registration aborted
+    //  (referral never appeared). The path-wildcard branch below compares the
+    //  deterministic doc ID (referral docs are keyed by the referred user's
+    //  auth uid) WITHOUT touching resource.data, so the probe succeeds whether
+    //  the doc exists or not; null-guards preserve the field-based checks for
+    //  real (existing) documents.
     // ════════════════════════════════════════════════════════
     match /referrals/{referralId} {
 
       allow read: if isSuperAdmin() || (
-        isGymAdmin() && resource.data.gymId == getCallerGymId()
+        isGymAdmin() && resource != null && resource.data != null && resource.data.gymId == getCallerGymId()
       ) || (
-        isMember() && resource.data.referrerUid == request.auth.uid
+        isMember() && resource != null && resource.data != null && resource.data.referrerUid == request.auth.uid
       ) || (
-        isMember() && resource.data.referredUid == request.auth.uid
+        isMember() && (
+          referralId == request.auth.uid ||
+          (resource != null && resource.data != null && resource.data.referredUid == request.auth.uid)
+        )
       );
 
       allow create: if isSuperAdmin() || (

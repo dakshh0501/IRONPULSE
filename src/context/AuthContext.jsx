@@ -212,13 +212,29 @@ export function AuthProvider({ children }) {
           const parkedCode = (typeof localStorage !== 'undefined' ? localStorage.getItem(PENDING_REFERRAL_KEY) : null) || ''
           const pendingCode = profile.referredBy || parkedCode || ''
           if (pendingCode) {
+            console.warn('[Referral] login trigger: member session processing pending referral', {
+              uid: firebaseUser.uid,
+              codeSource: profile.referredBy ? 'users.referredBy' : (parkedCode ? 'localStorage' : '(none)'),
+              code: pendingCode,
+            })
             processPendingReferral({
               referredUid: firebaseUser.uid,
               referredName: profile.name || '',
               referralCode: pendingCode,
               gymId: profile.gymId || 'default',
-            }).catch(() => {})
+            }).then(
+              (res) => console.warn('[Referral] login trigger result:', res),
+              (err) => console.warn('[Referral] login trigger threw (service never throws):', err?.message || err)
+            )
+          } else {
+            console.warn('[Referral] login trigger SKIP: member session has no pending code', {
+              uid: firebaseUser.uid, usersReferredBy: profile.referredBy || '(empty)', parkedCode: parkedCode || '(none)',
+            })
           }
+        } else {
+          console.warn('[Referral] login trigger SKIP: role not member (referral registration runs for members only)', {
+            uid: firebaseUser.uid, role: profile.role,
+          })
         }
 
         // Approved — set state

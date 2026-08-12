@@ -95,6 +95,12 @@ export async function signUp({ name, email, password, gymData, role, referredBy 
   // in the SAME atomic batch as the users doc so Spark clients can resolve this
   // code post-approval WITHOUT the users read rule (Sprint 81A-Spark).
   const referralCode = generateReferralCode()
+  console.warn('[Referral] signUp: referral code generated + referredBy captured', {
+    role,
+    collection: 'users', docId: authUser.uid,
+    referralCode,
+    referredBy: referredBy || '(none)',
+  })
 
   const userData = {
     uid: authUser.uid,
@@ -117,6 +123,10 @@ export async function signUp({ name, email, password, gymData, role, referredBy 
       })
     }
     await batch.commit()
+    console.warn('[Referral] signUp: batch WROTE OK', {
+      documents: [`users/${authUser.uid}`, `referralCodes/${referralCode}`],
+      fields: { referralCode, referredBy: referredBy || '' },
+    })
   } catch (e) {
     console.error('[SIGNUP FIRESTORE] setDoc(users) FAILED', {
       operation: 'setDoc',

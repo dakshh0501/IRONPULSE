@@ -441,18 +441,31 @@ export function clearPendingReferralStorage() {
 
 // Directory entry each code owner maintains for their own code.
 export async function ensureOwnReferralCodeMapping(userId, referralCode) {
-  if (!userId || !validateReferralCodeFormat(referralCode)) return false
+  if (!userId || !validateReferralCodeFormat(referralCode)) {
+    console.warn('[Referral] ensureOwnReferralCodeMapping SKIP:', { hasUid: !!userId, code: referralCode || '' })
+    return false
+  }
   const ref = doc(db, 'referralCodes', referralCode)
   try {
     const snap = await getDoc(ref)
-    if (snap.exists()) return snap.data().referrerUid === userId
+    if (snap.exists()) {
+      const owned = snap.data().referrerUid === userId
+      if (!owned) {
+        console.warn('[Referral] ensureOwnReferralCodeMapping CONFLICT:', {
+          collection: 'referralCodes', docId: referralCode,
+          owner: snap.data().referrerUid, caller: userId,
+        })
+      }
+      return owned
+    }
     await setDoc(ref, {
       referrerUid: userId,
       createdAt: serverTimestamp(),
     }, { merge: true })
+    console.warn('[Referral] ensureOwnReferralCodeMapping CREATED:', { collection: 'referralCodes', docId: referralCode, referrerUid: userId })
     return true
   } catch (err) {
-    console.warn('[ReferralService] ensureOwnReferralCodeMapping failed (non-blocking):', err.code || err.message)
+    console.warn('[Referral] ensureOwnReferralCodeMapping failed (non-blocking):', { code: err.code, message: err.message, collection: 'referralCodes', docId: referralCode })
     return false
   }
 }
@@ -476,13 +489,20 @@ export async function ensureOwnReferralCodeMapping(userId, referralCode) {
 //     matches backfillMissingReferralCodes which skips the role).
 // NEVER throws — referral healing must never block the session.
 export async function ensureSelfReferralCode({ uid, referralCode, role } = {}) {
-  if (!uid) return { code: '', created: false }
+  if (!uid) {
+    console.warn('[Referral] ensureSelfReferralCode SKIP: no uid')
+    return { code: '', created: false }
+  }
   const existing = typeof referralCode === 'string' ? referralCode.trim() : ''
   if (validateReferralCodeFormat(existing)) {
-    await ensureOwnReferralCodeMapping(uid, existing).catch(() => {})
+    const mapped = await ensureOwnReferralCodeMapping(uid, existing).catch(() => false)
+    console.warn('[Referral] ensureSelfReferralCode: existing code converged', { uid, code: existing, mappingOk: mapped })
     return { code: existing, created: false }
   }
-  if (role === 'trainer') return { code: '', created: false }
+  if (role === 'trainer') {
+    console.warn('[Referral] ensureSelfReferralCode SKIP: trainer role (staff, no referral codes by design)', { uid })
+    return { code: '', created: false }
+  }
   const code = generateReferralCode()
   try {
     await updateDoc(doc(db, 'users', uid), {
@@ -490,22 +510,33 @@ export async function ensureSelfReferralCode({ uid, referralCode, role } = {}) {
       referralCodeGeneratedAt: serverTimestamp(),
     })
     await ensureOwnReferralCodeMapping(uid, code)
+    console.warn('[Referral] ensureSelfReferralCode GENERATED:', { collection: 'users', docId: uid, code })
     return { code, created: true }
   } catch (err) {
-    console.warn('[ReferralService] ensureSelfReferralCode failed (non-blocking):', err.code || err.message)
+    console.warn('[Referral] ensureSelfReferralCode failed (non-blocking):', { code: err.code, message: err.message, uid })
     return { code: '', created: false }
   }
 }
 
 // Resolve a referral code to its owner via the directory collection.
 export async function resolveReferralCode(code) {
-  if (!validateReferralCodeFormat(code)) return null
+  if (!validateReferralCodeFormat(code)) {
+    console.warn('[Referral] resolveReferralCode SKIP: invalid format', { code })
+    return null
+  }
   try {
     const snap = await getDoc(doc(db, 'referralCodes', code.toUpperCase()))
-    if (!snap.exists()) return null
+    if (!snap.exists()) {
+      console.warn('[Referral] resolveReferralCode MISSING DOC:', {
+        collection: 'referralCodes', docId: code.toUpperCase(),
+        hint: 'code owner never wrote their directory entry (pre-81A-Spark account, or signup batch failed)',
+      })
+      return null
+    }
+    console.warn('[Referral] resolveReferralCode OK:', { code, referrerUid: snap.data().referrerUid })
     return { referrerUid: snap.data().referrerUid || '', createdAt: snap.data().createdAt || null }
   } catch (err) {
-    console.error('referralService: resolveReferralCode error:', err)
+    console.error('[Referral] resolveReferralCode ERROR:', { code: err.code, message: err.message })
     return null
   }
 }
@@ -518,14 +549,33 @@ export async function resolveReferralCode(code) {
  * expected outcomes (invalid code, self referral, already registered).
  */
 export async function processPendingReferral({ referredUid, referredName, referralCode, gymId }) {
-  if (!referredUid || !referralCode) return { created: false, reason: 'no-code' }
+  if (!referredUid || !referralCode) {
+    console.warn('[Referral] processPendingReferral SKIP: no-code', { referredUid, hasCode: !!referralCode })
+    return { created: false, reason: 'no-code' }
+  }
   const code = String(referralCode).trim().toUpperCase()
-  if (!validateReferralCodeFormat(code)) return { created: false, reason: 'invalid-format' }
-  if (processingInFlight) return { created: false, reason: 'in-flight' }
+  if (!validateReferralCodeFormat(code)) {
+    console.warn('[Referral] processPendingReferral SKIP: invalid-format', { referredUid, code })
+    return { created: false, reason: 'invalid-format' }
+  }
+  if (processingInFlight) {
+    console.warn('[Referral] processPendingReferral SKIP: in-flight (another run active)', { referredUid, code })
+    return { created: false, reason: 'in-flight' }
+  }
 
   const resolved = await resolveReferralCode(code)
-  if (!resolved || !resolved.referrerUid) return { created: false, reason: 'invalid-code' }
-  if (resolved.referrerUid === referredUid) return { created: false, reason: 'self-referral' }
+  if (!resolved || !resolved.referrerUid) {
+    console.warn('[Referral] processPendingReferral SKIP: invalid-code', {
+      referredUid, code,
+      directoryEntry: resolved ? 'exists-but-no-referrerUid' : 'missing-doc',
+      hint: resolved ? 'referralCodes/' + code + ' has no referrerUid field' : 'referralCodes/' + code + ' does not exist',
+    })
+    return { created: false, reason: 'invalid-code' }
+  }
+  if (resolved.referrerUid === referredUid) {
+    console.warn('[Referral] processPendingReferral SKIP: self-referral', { referredUid, code })
+    return { created: false, reason: 'self-referral' }
+  }
 
   processingInFlight = true
   try {
@@ -538,7 +588,12 @@ export async function processPendingReferral({ referredUid, referredName, referr
 
     const outcome = await runTransaction(db, async (tx) => {
       const existing = await tx.get(ref)
-      if (existing.exists()) return 'already-registered'
+      if (existing.exists()) {
+        console.warn('[Referral] processPendingReferral SKIP: already-registered (idempotency hit)', {
+          referralId: referredUid, code, referrerUid: resolved.referrerUid,
+        })
+        return 'already-registered'
+      }
       tx.set(ref, {
         referrerUid: resolved.referrerUid,
         referredUid,
@@ -597,10 +652,25 @@ export async function processPendingReferral({ referredUid, referredName, referr
       return 'created'
     })
 
-    if (outcome === 'created') clearPendingReferralStorage()
+    if (outcome === 'created') {
+      console.warn('[Referral] processPendingReferral CREATED:', {
+        collection: 'referrals', docId: referredUid, referralCode: code,
+        referrerUid: resolved.referrerUid, gymId: referralGymId,
+        notifications: [`notifications/ref-registered-${resolved.referrerUid}-${referredUid}`, `notifications/ref-applied-${referredUid}`],
+        auditDoc: `referralAuditLogs/ref-created-${referredUid}`,
+      })
+      clearPendingReferralStorage()
+    }
     return { created: outcome === 'created', reason: outcome === 'created' ? undefined : outcome }
   } catch (err) {
-    console.error('referralService: processPendingReferral error:', err)
+    console.error('[Referral] processPendingReferral ERROR — no referral doc was created:', {
+      reason: err.code || err.name,
+      message: err.message,
+      collection: 'referrals',
+      docId: referredUid,
+      referralCode: code,
+      hint: "reason 'permission-denied' on the first registration means the referrals read rule denied the transaction's existence probe of the NOT-YET-CREATED doc (rules cannot dereference resource.data on a missing doc) — deploy firestore.rules; smoke harnesses do not enforce read rules, this only fails in real Firestore",
+    })
     return { created: false, reason: 'error' }
   } finally {
     processingInFlight = false
