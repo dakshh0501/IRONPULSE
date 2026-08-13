@@ -13,6 +13,7 @@ import { openSupportWhatsApp } from '../utils/whatsappSupport'
 import { shareWebsite, copyWebsiteLink } from '../utils/shareWebsite'
 import { buildReferralLink, buildShareMessage, getShareMessageTemplate } from '../services/referralService'
 import { WEBSITE_NAME, WEBSITE_URL } from '../config/website'
+import { getAppUrl } from '../utils/appUrl'
 
 function Toggle({ on, onChange }) {
   return (
@@ -671,7 +672,10 @@ export default function Settings() {
                           const credential = EmailAuthProvider.credential(currentUser.email, pw)
                           await reauthenticateWithCredential(currentUser, credential)
                           await updateEmail(currentUser, newEmail)
-                          await sendEmailVerification(currentUser)
+                          await sendEmailVerification(currentUser, {
+                            url: `${getAppUrl()}/auth?verified=true`,
+                            handleCodeInApp: true,
+                          })
                           await saveSettings(`profile_${currentUser.uid}`, { email: newEmail })
                           setEmailChange(''); setProfileEmailSaved(true)
                           setTimeout(() => setProfileEmailSaved(false), 4000)

@@ -1,0 +1,135 @@
+// src/services/cashfreeService.js
+//
+// Cashfree Payment Gateway integration (v3 JS SDK).
+//
+// Order creation, status verification, and webhook processing all run
+// server-side in Cloud Functions (createCashfreeOrder / verifyCashfreePayment
+// / cashfreeWebhook) — mirroring the PhonePe flow in functions/index.js.
+//
+// SECURITY: the browser NEVER holds the Cashfree secret, never calls the
+// Cashfree REST API, and never creates orders. It only receives the
+// payment_session_id from the Cloud Function and opens the Cashfree v3 SDK
+// checkout modal.
+
+import { getFunctions, httpsCallable } from 'firebase/functions'
+
+const API_VERSION = '2023-08-01'
+const functions = getFunctions()
+
+export function getCashfreeMode() {
+  return import.meta.env.VITE_CASHFREE_MODE === 'production' ? 'production' : 'sandbox'
+}
+
+export function getCashfreeConfig() {
+  return {
+    mode: getCashfreeMode(),
+    appId: import.meta.env.VITE_CASHFREE_APP_ID || '',
+    clientId: import.meta.env.VITE_CASHFREE_CLIENT_ID || '',
+    apiVersion: API_VERSION,
+  }
+}
+
+// Configured = the SDK needs the PUBLIC app id + client id (both are
+// non-secret Cashfree client credentials). The secret
+// (CASHFREE_CLIENT_SECRET) lives ONLY in Cloud Functions via Secret Manager.
+export function isCashfreeConfigured() {
+  const cfg = getCashfreeConfig()
+  return !!(cfg.appId && cfg.clientId)
+}
+
+// httpsCallable wrappers (identical pattern to paymentService.initiatePayment)
+let createCashfreeOrderFn = null
+let verifyCashfreePaymentFn = null
+
+function getCreateCashfreeOrder() {
+  if (!createCashfreeOrderFn) {
+    createCashfreeOrderFn = httpsCallable(functions, 'createCashfreeOrder')
+  }
+  return createCashfreeOrderFn
+}
+
+function getVerifyCashfreePayment() {
+  if (!verifyCashfreePaymentFn) {
+    verifyCashfreePaymentFn = httpsCallable(functions, 'verifyCashfreePayment')
+  }
+  return verifyCashfreePaymentFn
+}
+
+/**
+ * Create a Cashfree order server-side.
+ * @param {Object} params — mirrors the PhonePe initiatePayment params:
+ *   { type, gymId, subscriptionId, plan, originalAmount, discountAmount,
+ *     finalAmount, currency, name, email, phone, redirectUrl, authUid }
+ * @returns {Promise<{attemptId, redirectUrl, paymentSessionId, orderId, error}>}
+ */
+export async function createCashfreeOrder(params) {
+  const res = await getCreateCashfreeOrder()(params)
+  return res.data
+}
+
+/**
+ * Verify a Cashfree order server-side (mirrors refreshPaymentStatus).
+ * @param {string} attemptId — paymentAttempts doc id
+ * @returns {Promise<{status: 'pending'|'success'|'failed'|'cancelled', error}>}
+ */
+export async function verifyCashfreePayment(attemptId) {
+  const res = await getVerifyCashfreePayment()({ attemptId })
+  return res.data
+}
+
+// Lazy Cashfree SDK singleton (loaded only on first checkout)
+let cashfreePromise = null
+async function getCashfreeSdk() {
+  if (!cashfreePromise) {
+    cashfreePromise = (async () => {
+      const { load } = await import('@cashfreepayments/cashfree-js')
+      const { appId, clientId, mode } = getCashfreeConfig()
+      return load({
+        mode,
+        env: { CASHFREE_APP_ID: appId, CASHFREE_CLIENT_ID: clientId },
+      })
+    })()
+  }
+  return cashfreePromise
+}
+
+/**
+ * Collect a payment with the Cashfree modal checkout.
+ * 1. Calls createCashfreeOrder (Cloud Function) — the server creates the
+ *    order and returns the payment_session_id (browser never touches the API).
+ * 2. Opens the Cashfree v3 SDK modal with the payment_session_id.
+ * 3. Navigates to /payment-status?attemptId=...&order_id=... when done.
+ *
+ * @param {Object} params — same shape as createCashfreeOrder params
+ * @returns {Promise<{ok: boolean, error?: string, orderId?: string}>}
+ */
+export async function handleCollectPayment(params) {
+  if (!isCashfreeConfigured()) {
+    return { ok: false, error: 'Cashfree is not configured on this deployment.' }
+  }
+
+  try {
+    const result = await createCashfreeOrder(params)
+    if (result.error) {
+      return { ok: false, error: result.error }
+    }
+    if (!result.paymentSessionId) {
+      return { ok: false, error: 'Cashfree did not return a payment session id.' }
+    }
+
+    const cashfree = await getCashfreeSdk()
+    await cashfree.checkout({
+      paymentSessionId: result.paymentSessionId,
+      redirectTarget: '_modal',
+    })
+
+    // Modal resolved (or was redirected) — verify authoritatively on the
+    // status page. The attemptId lets the status page re-verify via the
+    // Cloud Function (never the raw Cashfree API).
+    const orderId = result.orderId || ''
+    window.location.href = `${window.location.origin}/payment-status?attemptId=${encodeURIComponent(result.attemptId || '')}&order_id=${encodeURIComponent(orderId)}&source=cashfree`
+    return { ok: true, orderId }
+  } catch (err) {
+    return { ok: false, error: err.message || 'Cashfree checkout failed.' }
+  }
+}

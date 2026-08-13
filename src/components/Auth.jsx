@@ -638,7 +638,7 @@ export default function Auth() {
                     }}>
                       <span style={{ fontSize: 24, color: '#00c8b4' }}>✓</span>
                     </div>
-                    <p style={{ fontSize: 15, color: '#a0aac0', fontWeight: 500, margin: '0 0 4px' }}>Password reset email sent</p>
+                    <p style={{ fontSize: 15, color: '#a0aac0', fontWeight: 500, margin: '0 0 4px' }}>If an account exists with this email, a password reset link has been sent.</p>
                     <p style={{ fontSize: 13, color: '#6070a0', margin: '0 0 4px', wordBreak: 'break-all' }}>{resetEmail}</p>
                     <p style={{ fontSize: 12, color: '#506080', margin: '0 0 20px' }}>Check your inbox and spam folder.</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

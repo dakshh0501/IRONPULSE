@@ -7,13 +7,19 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
+import { useAuth } from '../context/AuthContext'
 import { getPendingAttemptsForSubscription } from '../services/paymentService'
+import {
+  handleCollectPayment,
+  isCashfreeConfigured,
+} from '../services/cashfreeService'
 import { PLAN_AMOUNTS } from '../constants/plans'
 
 export default function Checkout() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { subscriptions, gyms, gymId, initiatePayment } = useApp()
+  const { currentUser } = useAuth()
 
   const subId = searchParams.get('subId')
   const paymentType = searchParams.get('type') || 'new'
@@ -23,6 +29,7 @@ export default function Checkout() {
 
   const amount = sub?.finalAmount || sub?.amount || PLAN_AMOUNTS[sub?.plan] || 0
   const amountDisplay = `₹${(amount / 100).toFixed(2)}`
+  const cashfreeEnabled = isCashfreeConfigured()
 
   const [name, setName] = useState(gym?.ownerName || sub?.gymName || '')
   const [email, setEmail] = useState('')
@@ -53,6 +60,35 @@ export default function Checkout() {
     setError(null)
 
     try {
+      // ── Cashfree gateway (when configured) ───────────────────
+      // Order creation runs server-side (createCashfreeOrder Cloud
+      // Function) — the browser only receives the payment_session_id
+      // and opens the Cashfree v3 SDK modal.
+      if (cashfreeEnabled) {
+        const result = await handleCollectPayment({
+          type: paymentType,
+          gymId: sub.gymId,
+          subscriptionId: sub.id,
+          plan: sub.plan,
+          originalAmount: sub.originalAmount || amount,
+          discountAmount: (sub.originalAmount || amount) - amount,
+          finalAmount: amount,
+          currency: sub.currency || 'INR',
+          name: name.trim(),
+          email: email.trim(),
+          phone: phoneDigits,
+          redirectUrl: `${window.location.origin}/payment-status`,
+          authUid: currentUser?.uid || '',
+        })
+        if (!result.ok) {
+          setError(result.error || 'Cashfree payment initiation failed')
+          setLoading(false)
+          return
+        }
+        return
+      }
+
+      // ── PhonePe gateway (legacy path, unchanged) ─────────────
       // Prevent duplicate payment attempts
       const pendingAttempts = await getPendingAttemptsForSubscription(sub.id, sub.gymId)
       if (pendingAttempts.length > 0) {
@@ -95,7 +131,7 @@ export default function Checkout() {
       setError(err.message || 'Payment initiation failed')
       setLoading(false)
     }
-  }, [sub, paymentType, amount, name, email, phone, initiatePayment])
+  }, [sub, paymentType, amount, name, email, phone, initiatePayment, cashfreeEnabled, currentUser])
 
   if (!sub) {
     return (
@@ -116,7 +152,9 @@ export default function Checkout() {
     <div className="page-container" style={{ padding: 32, maxWidth: 640, margin: '0 auto' }}>
       <div className="page-header" style={{ marginBottom: 32 }}>
         <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>Checkout</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>Complete your payment to activate the subscription</p>
+        <p style={{ color: 'var(--text-secondary)' }}>Complete your payment to activate the subscription
+          {cashfreeEnabled ? ' (Cashfree)' : ' (PhonePe)'}
+        </p>
       </div>
 
       {/* Order Summary */}
@@ -190,7 +228,7 @@ export default function Checkout() {
               maxLength={10}
             />
             <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-              Used for payment verification by PhonePe
+              Used for payment verification by the payment gateway
             </p>
           </div>
         </div>
@@ -224,7 +262,7 @@ export default function Checkout() {
           disabled={loading}
           style={{ minWidth: 160 }}
         >
-          {loading ? 'Processing...' : `Pay ${amountDisplay}`}
+          {loading ? 'Processing...' : `Pay ${amountDisplay}${cashfreeEnabled ? ' via Cashfree' : ''}`}
         </button>
       </div>
     </div>

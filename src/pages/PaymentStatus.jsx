@@ -9,8 +9,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { useAuth } from '../context/AuthContext'
 import { getPaymentAttempt } from '../services/paymentService'
+import { verifyCashfreePayment } from '../services/cashfreeService'
 import LoadingScreen from '../components/LoadingScreen'
 import { updateSubscription } from '../services/firestoreService'
 
@@ -76,9 +76,24 @@ function useCountdown(targetIso) {
 
 function PaymentStatusContent() {
   const [searchParams] = useSearchParams()
+
+  // Cashfree redirects land here with attemptId (and order_id) query params.
+  // Verification runs server-side via the verifyCashfreePayment Cloud
+  // Function — the browser never calls the Cashfree API directly.
+  const cashfreeAttemptId = searchParams.get('attemptId')
+  const cashfreeOrderId = searchParams.get('order_id')
+  if (searchParams.get('source') === 'cashfree' || cashfreeOrderId) {
+    return <CashfreePaymentStatus attemptId={cashfreeAttemptId} orderId={cashfreeOrderId} />
+  }
+
+  return <PhonePePaymentStatus />
+}
+
+// ── PhonePe attempt verification (Sprint 15/16/32 flow, unchanged) ──
+function PhonePePaymentStatus() {
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { refreshPaymentStatus } = useApp()
-  const { currentUser } = useAuth()
 
   const attemptId = searchParams.get('attemptId')
   const [status, setStatus] = useState('loading')
@@ -388,6 +403,252 @@ function PaymentStatusContent() {
           to { transform: rotate(360deg); }
         }
       `}</style>
+    </div>
+  )
+}
+
+// ── Cashfree payment status view ─────────────────────────
+// Redirect target from the Cashfree modal/return_url. Reads the
+// attemptId, verifies server-side via the verifyCashfreePayment Cloud
+// Function (never the raw Cashfree API), and shows success/pending/
+// failed/cancelled with a Dashboard CTA.
+function CashfreePaymentStatus({ attemptId, orderId }) {
+  const navigate = useNavigate()
+
+  const [status, setStatus] = useState('loading')
+  const [attempt, setAttempt] = useState(null)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    let pollId = null
+
+    const verify = async () => {
+      try {
+        // Display-only lookup; verification runs regardless of its result
+        let data = null
+        try {
+          data = await getPaymentAttempt(attemptId)
+        } catch {
+          data = null
+        }
+        if (cancelled) return
+        if (data) setAttempt(data)
+
+        const result = await verifyCashfreePayment(attemptId)
+        if (cancelled) return
+
+        if (result.error && !result.status) {
+          setStatus('error')
+          setError(result.error)
+          return
+        }
+        setStatus(result.status || data?.status || 'pending')
+      } catch (err) {
+        if (cancelled) return
+        setStatus('error')
+        setError(err.message || 'Unable to verify Cashfree payment.')
+      }
+    }
+
+    verify()
+
+    // Auto-poll while the payment is still pending
+    pollId = setInterval(async () => {
+      if (cancelled) return
+      try {
+        const result = await verifyCashfreePayment(attemptId)
+        if (cancelled) return
+
+        if (result.error && !result.status) {
+          setStatus('error')
+          setError(result.error)
+          clearInterval(pollId)
+          pollId = null
+          return
+        }
+
+        const mapped = result.status || 'pending'
+        setStatus(mapped)
+        if (mapped !== 'pending') {
+          clearInterval(pollId)
+          pollId = null
+        }
+      } catch (err) {
+        if (cancelled) return
+        setError(err.message || 'Unable to verify Cashfree payment.')
+      }
+    }, POLL_INTERVAL)
+
+    return () => {
+      cancelled = true
+      if (pollId) clearInterval(pollId)
+    }
+  }, [attemptId])
+
+  const config = STATUS_CONFIG[status] || STATUS_CONFIG.pending
+  const amount = attempt?.finalAmount != null ? Number(attempt.finalAmount / 100).toFixed(2) : '0.00'
+  const displayOrderId = attempt?.cashfreeOrderId || orderId || ''
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'var(--bg)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 24,
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+    }}>
+      <div style={{
+        maxWidth: 440,
+        width: '100%',
+        background: 'var(--card)',
+        borderRadius: 16,
+        border: `1px solid ${config.border}`,
+        padding: 40,
+        textAlign: 'center',
+        boxShadow: 'var(--shadow)',
+      }}>
+        {status === 'loading' && <LoadingScreen />}
+
+        {status === 'error' && (
+          <>
+            <div aria-hidden="true" style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: 'var(--red)' }}>
+              Something Went Wrong
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 24 }}>
+              {error || 'Unable to verify your Cashfree payment.'}
+            </p>
+            <button
+              onClick={() => navigate('/dashboard')}
+              style={{
+                padding: '10px 24px',
+                background: 'var(--orange)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Back to Dashboard
+            </button>
+          </>
+        )}
+
+        {status !== 'loading' && status !== 'error' && (
+          <>
+            <div aria-hidden="true" style={{ fontSize: 56, marginBottom: 16 }}>{config.icon}</div>
+
+            <h2 style={{
+              fontSize: 22,
+              fontWeight: 700,
+              marginBottom: 8,
+              color: config.color,
+            }}>
+              {config.title}
+            </h2>
+
+            {status === 'pending' && (
+              <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 16 }}>
+                Checking again in a few seconds...
+              </p>
+            )}
+
+            {error && (
+              <div role="alert" style={{
+                background: 'var(--bg2)',
+                borderRadius: 8,
+                padding: 12,
+                marginBottom: 16,
+                fontSize: 13,
+                color: 'var(--text-muted)',
+              }}>
+                {error}
+              </div>
+            )}
+
+            <div style={{
+              background: 'var(--bg2)',
+              borderRadius: 10,
+              padding: 20,
+              marginBottom: 24,
+              textAlign: 'left',
+            }}>
+              <div style={{ display: 'grid', gap: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>Order ID</span>
+                  <span style={{ fontWeight: 600, fontSize: 12, fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                    {displayOrderId || 'N/A'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>Amount</span>
+                  <span style={{ fontWeight: 700, fontSize: 16, color: config.color }}>₹{amount}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>Payment Method</span>
+                  <span style={{ fontWeight: 600, fontSize: 13 }}>{attempt?.paymentMethod || 'Cashfree'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>Order Status</span>
+                  <span style={{ fontWeight: 600, fontSize: 13 }}>{attempt?.orderStatus || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+              {status === 'pending' && (
+                <button
+                  onClick={async () => {
+                    setError(null)
+                    try {
+                      const result = await verifyCashfreePayment(attemptId)
+                      if (result.error && !result.status) {
+                        setError(result.error)
+                        return
+                      }
+                      setStatus(result.status || 'pending')
+                    } catch (err) {
+                      setError(err.message || 'Unable to verify Cashfree payment.')
+                    }
+                  }}
+                  style={{
+                    padding: '10px 24px',
+                    background: 'var(--amber)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 8,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Check Status
+                </button>
+              )}
+              <button
+                onClick={() => navigate('/dashboard')}
+                style={{
+                  padding: '10px 24px',
+                  background: status === 'success' ? 'var(--green)' : 'var(--orange)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 8,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }

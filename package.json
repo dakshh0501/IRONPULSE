@@ -13,6 +13,7 @@
     "cap:apk:debug": "npm run build && npx cap sync && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
+    "@cashfreepayments/cashfree-js": "^1.0.7",
     "capacitor-native-biometric": "^4.2.2",
     "firebase": "^12.13.0",
     "html5-qrcode": "^2.3.8",
@@ -31,6 +32,7 @@
     "@capacitor/cli": "^8.4.1",
     "@capacitor/core": "^8.4.1",
     "@eslint/js": "^10.0.1",
+    "@firebase/rules-unit-testing": "^5.0.1",
     "@playwright/test": "^1.61.1",
     "@vitejs/plugin-react": "^4.2.0",
     "cspell": "^10.0.1",

@@ -32,6 +32,7 @@ import { auth, db } from '../firebase'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { addGym } from './firestoreService'
 import { generateReferralCode } from '../utils/referralCode'
+import { getAppUrl } from '../utils/appUrl'
 
 export async function signUp({ name, email, password, gymData, role, referredBy }) {
   let authUser = null
@@ -49,8 +50,9 @@ export async function signUp({ name, email, password, gymData, role, referredBy 
 
   // ───── Step 1.5: sendEmailVerification ─────
   try {
+    const appUrl = getAppUrl()
     const actionCodeSettings = {
-      url: `${window.location.origin}/auth?verified=true`,
+      url: `${appUrl}/auth?verified=true`,
       handleCodeInApp: true,
     }
     await sendEmailVerification(authUser, actionCodeSettings)
@@ -222,7 +224,14 @@ export async function logOut() {
 
 export async function resetPassword(email) {
   try {
-    await sendPasswordResetEmail(auth, email)
+    // handleCodeInApp:false — the Firebase-hosted action page performs the
+    // reset, then redirects to the app's /auth page (continue URL must be in
+    // the Firebase console Authorized Domains list).
+    const appUrl = getAppUrl()
+    await sendPasswordResetEmail(auth, email, {
+      url: `${appUrl}/auth`,
+      handleCodeInApp: false,
+    })
   } catch (err) {
     throw err
   }
@@ -374,8 +383,9 @@ export async function reloadUser(user) {
 }
 
 export async function resendVerificationEmail(user) {
+  const appUrl = getAppUrl()
   const actionCodeSettings = {
-    url: `${window.location.origin}/auth?verified=true`,
+    url: `${appUrl}/auth?verified=true`,
     handleCodeInApp: true,
   }
   await sendEmailVerification(user, actionCodeSettings)

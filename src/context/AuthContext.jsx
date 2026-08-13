@@ -54,6 +54,18 @@ async function loadAndApplyAccent(gymId) {
   }
 }
 
+// Normalizes super-admin identity on a fetched user profile.
+// Either signal (role 'super_admin' OR isSuperAdmin=true) means the
+// account is a platform super admin — both fields are set consistently
+// so minor Firestore field mismatches can never demote or break the session.
+function normalizeProfile(profile) {
+  if (!profile) return profile
+  if (profile.isSuperAdmin === true || profile.role === 'super_admin') {
+    return { ...profile, role: 'super_admin', isSuperAdmin: true }
+  }
+  return profile
+}
+
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null) // Firebase user
   const [userProfile, setUserProfile] = useState(null) // /users/{uid} doc
@@ -116,6 +128,12 @@ export function AuthProvider({ children }) {
             }
           }
         }
+
+        // Normalize super-admin identity on the fetched profile: either
+        // signal (role 'super_admin' OR isSuperAdmin=true) means platform
+        // super admin — set both consistently so effectiveRole never
+        // demotes to gym_admin and no session is reverted.
+        profile = normalizeProfile(profile)
 
         if (profileError && !profile) {
           // All retries exhausted — Firestore is unavailable.
@@ -245,7 +263,8 @@ export function AuthProvider({ children }) {
         if (firebaseUser.emailVerified) setNeedsVerification(false)
 
         // Super admin check: stored directly on the user doc as isSuperAdmin.
-        setIsSuperAdmin(profile.role === 'admin' && profile.isSuperAdmin === true)
+        // normalizeProfile() above already forced both fields for super admins.
+        setIsSuperAdmin(profile.isSuperAdmin === true)
 
         // Load on login / load on refresh — gym-wide accent applies
         // to admin, trainer, and member alike.
@@ -309,13 +328,17 @@ export function AuthProvider({ children }) {
         throw new Error('Unable to load profile.')
       }
 
+      // Same normalization as the auth subscription listener: role
+      // 'super_admin' OR isSuperAdmin=true → both set consistently.
+      profile = normalizeProfile(profile)
+
       setCurrentUser(user)
       setUserProfile(profile)
-      setRole(userRole)
+      setRole(profile.role)
 
       // Super admin check in the login path (belt-and-suspenders with
       // the auth subscription listener above).
-      setIsSuperAdmin(userRole === 'admin' && profile.isSuperAdmin === true)
+      setIsSuperAdmin(profile.isSuperAdmin === true)
 
       // Belt-and-suspenders: apply accent here too in case this path
       // resolves before the subscription listener above does.
@@ -519,21 +542,6 @@ export function AuthProvider({ children }) {
   //   admin + !isSuperAdmin → gym_admin
   //   gym_owner → gym_admin
   const effectiveRole = getEffectiveRole({ ...userProfile, isSuperAdmin })
-
-  // ── Super Admin consistency guard ───────────────────────────
-  // Defensive programming: if effectiveRole and raw isSuperAdmin
-  // ever disagree (data corruption, logic bug), demote safely to
-  // gym_admin instead of granting incorrect elevated access.
-  useEffect(() => {
-    if (effectiveRole === 'super_admin' && isSuperAdmin !== true) {
-      console.error('[CRITICAL] super_admin effectiveRole without isSuperAdmin=true — demoting to gym_admin')
-      setIsSuperAdmin(false)
-    }
-    if (isSuperAdmin === true && role !== 'admin') {
-      console.error('[CRITICAL] isSuperAdmin=true on non-admin role — reverting')
-      setIsSuperAdmin(false)
-    }
-  }, [effectiveRole, isSuperAdmin, role])
 
   // ─────────────────────────────────────────────────────────────
   // Context value

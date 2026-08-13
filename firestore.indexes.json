@@ -36,20 +36,34 @@
                                        }
                                    ]
                     },
-                    {
-                        "collectionGroup":  "attendance",
-                        "queryScope":  "COLLECTION",
-                        "fields":  [
-                                       {
-                                           "fieldPath":  "date",
-                                           "order":  "ASCENDING"
-                                       },
-                                       {
-                                           "fieldPath":  "time",
-                                           "order":  "ASCENDING"
-                                       }
-                                   ]
-                    },
+                     {
+                         "collectionGroup":  "attendance",
+                         "queryScope":  "COLLECTION",
+                         "fields":  [
+                                        {
+                                            "fieldPath":  "date",
+                                            "order":  "ASCENDING"
+                                        },
+                                        {
+                                            "fieldPath":  "time",
+                                            "order":  "ASCENDING"
+                                        }
+                                    ]
+                     },
+                     {
+                         "collectionGroup":  "attendance",
+                         "queryScope":  "COLLECTION",
+                         "fields":  [
+                                        {
+                                            "fieldPath":  "gymId",
+                                            "order":  "ASCENDING"
+                                        },
+                                        {
+                                            "fieldPath":  "date",
+                                            "order":  "DESCENDING"
+                                        }
+                                    ]
+                     },
                     {
                         "collectionGroup":  "attendance",
                         "queryScope":  "COLLECTION",

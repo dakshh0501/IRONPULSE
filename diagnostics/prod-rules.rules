@@ -1,4 +1,4 @@
-rules_version = '2';
+﻿rules_version = '2';
 
 // ══════════════════════════════════════════════════════════
 //  IRONPULSE — Firestore Security Rules
@@ -109,73 +109,25 @@ service cloud.firestore {
         request.auth.uid == uid || isStaff()
       );
 
-      // ── Self-create is payload-validated (Sprint 81H-Final hardening):
-      //    a user may only create their OWN doc with a NON-privileged role.
-      //    Fresh signups: 'pending' | 'gym_owner_pending'. Recovery writes
-      //    (recoverUserProfile): 'rejected' always; 'member'/'trainer' ONLY
-      //    when a deterministic companion doc exists (members/{uid} or
-      //    trainers/{uid} with authUid == caller — approveUser keying).
-      //    Role escalation to gym_admin/gym_owner/super_admin/admin via
-      //    self-create is DENIED; staff creation paths are unchanged.
-      allow create: if isStaff() || (
-        isAuthed() && request.auth.uid == uid &&
-        request.resource.data.uid == request.auth.uid &&
-        (
-          request.resource.data.role == 'pending' ||
-          request.resource.data.role == 'gym_owner_pending' ||
-          request.resource.data.role == 'rejected' ||
-          (
-            request.resource.data.role == 'member' &&
-            exists(/databases/$(database)/documents/members/$(uid)) &&
-            get(/databases/$(database)/documents/members/$(uid)).data.authUid == request.auth.uid
-          ) ||
-          (
-            request.resource.data.role == 'trainer' &&
-            exists(/databases/$(database)/documents/trainers/$(uid)) &&
-            get(/databases/$(database)/documents/trainers/$(uid)).data.authUid == request.auth.uid
-          )
-        )
-      );
+      allow create: if (isAuthed() && request.auth.uid == uid) || isStaff();
 
       // ── Own-user update: protected fields (role, gymId, email, authUid,
       //    referredBy) must never change. referralCode can only be set when
       //    it's null or empty (one-time set). Changing an existing code is blocked.
-      // ── Missing-field tolerance (Sprint 82): users/{uid} docs NEVER carry
-      //    authUid, and legacy docs may lack other fields. In the rules engine,
-      //    comparing two missing map properties raises an evaluation error that
-      //    DENIES the whole update — so every comparison is guarded by
-      //    'field in map' existence checks (identical semantics when present:
-      //    unchanged fields pass, changed/new fields are rejected).
       // ── Staff update: existing restrictions preserved (cannot change referralCode).
       allow update: if isAuthed() && (
         (request.auth.uid == uid &&
-          ((!('role' in resource.data) && !('role' in request.resource.data)) ||
-           (('role' in resource.data) && ('role' in request.resource.data) &&
-            request.resource.data.role == resource.data.role)) &&
-          ((!('gymId' in resource.data) && !('gymId' in request.resource.data)) ||
-           (('gymId' in resource.data) && ('gymId' in request.resource.data) &&
-            request.resource.data.gymId == resource.data.gymId)) &&
-          ((!('email' in resource.data) && !('email' in request.resource.data)) ||
-           (('email' in resource.data) && ('email' in request.resource.data) &&
-            request.resource.data.email == resource.data.email)) &&
-          ((!('authUid' in resource.data) && !('authUid' in request.resource.data)) ||
-           (('authUid' in resource.data) && ('authUid' in request.resource.data) &&
-            request.resource.data.authUid == resource.data.authUid)) &&
-          ((!('referredBy' in resource.data) && !('referredBy' in request.resource.data)) ||
-           (('referredBy' in resource.data) && ('referredBy' in request.resource.data) &&
-            request.resource.data.referredBy == resource.data.referredBy)) &&
-          (!('referralCode' in resource.data) ||
+          request.resource.data.role == resource.data.role &&
+          request.resource.data.gymId == resource.data.gymId &&
+          request.resource.data.email == resource.data.email &&
+          request.resource.data.authUid == resource.data.authUid &&
+          request.resource.data.referredBy == resource.data.referredBy &&
+          (request.resource.data.referralCode == resource.data.referralCode ||
            resource.data.referralCode == null ||
-           resource.data.referralCode == '' ||
-           (('referralCode' in resource.data) && ('referralCode' in request.resource.data) &&
-            request.resource.data.referralCode == resource.data.referralCode)))
+           resource.data.referralCode == ''))
         || (isStaff() &&
-          ((!('referralCode' in resource.data) && !('referralCode' in request.resource.data)) ||
-           (('referralCode' in resource.data) && ('referralCode' in request.resource.data) &&
-            request.resource.data.referralCode == resource.data.referralCode)) &&
-          ((!('referredBy' in resource.data) && !('referredBy' in request.resource.data)) ||
-           (('referredBy' in resource.data) && ('referredBy' in request.resource.data) &&
-            request.resource.data.referredBy == resource.data.referredBy)))
+          request.resource.data.referralCode == resource.data.referralCode &&
+          request.resource.data.referredBy == resource.data.referredBy)
       );
 
       allow delete: if isSuperAdmin();
@@ -518,10 +470,8 @@ service cloud.firestore {
     //  (members can only read their own users doc).
     //  - read: any authenticated user (needed to resolve a code entered at
     //    signup once the referred user's session is established)
-    //  - create: authed owner claim (request.resource.data.referrerUid must
-    //    equal the caller) AND (the caller's users doc is not yet written —
-    //    batch/ordering race tolerance — OR it carries this exact code) —
-    //    prevents squatting of other users' codes
+    //  - create: ONLY the owner of that exact code (docId must equal the
+    //    referralCode on the caller's own users doc) — prevents squatting
     //  - update/delete: never (an owner can re-create only while the doc
     //    doesn't exist; the doc is a permanent directory entry)
     // ════════════════════════════════════════════════════════
@@ -529,10 +479,9 @@ service cloud.firestore {
 
       allow read: if isAuthed();
 
-      allow create: if isAuthed() && (
-        request.resource.data.referrerUid == request.auth.uid ||
-        isSuperAdmin()
-      );
+      allow create: if isAuthed() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.referralCode == code &&
+        request.resource.data.referrerUid == request.auth.uid;
 
       allow update, delete: if false;
     }
@@ -742,3 +691,4 @@ service cloud.firestore {
 
   } // end match /databases/{database}/documents
 } // end service cloud.firestore
+

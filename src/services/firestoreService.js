@@ -33,6 +33,7 @@ import {
 import { db } from '../firebase'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { generateUniqueReferralCode } from '../utils/referralCode'
+import { getAppUrl } from '../utils/appUrl'
 
 // Secondary auth instance for creating trainer accounts
 // so the admin stays logged in on the main auth instance
@@ -62,7 +63,13 @@ export async function addMember(memberData) {
           password
         )
       user = authResult.user
-      try { await sendEmailVerification(user) } catch (e) {
+      try {
+        const appUrl = getAppUrl()
+        await sendEmailVerification(user, {
+          url: `${appUrl}/auth?verified=true`,
+          handleCodeInApp: true,
+        })
+      } catch (e) {
         console.warn('sendEmailVerification non-fatal:', e)
       }
       try { await secondaryAuth.signOut() } catch (e) {
@@ -493,7 +500,13 @@ export async function addTrainer(trainerData) {
 
     user = authResult.user
 
-    try { await sendEmailVerification(user) } catch (e) {
+    try {
+      const appUrl = getAppUrl()
+      await sendEmailVerification(user, {
+        url: `${appUrl}/auth?verified=true`,
+        handleCodeInApp: true,
+      })
+    } catch (e) {
       console.warn('sendEmailVerification non-fatal:', e)
     }
     try { await secondaryAuth.signOut() } catch (e) {

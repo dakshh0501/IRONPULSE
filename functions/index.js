@@ -27,6 +27,17 @@ const PHONEPE_SALT_KEY = defineSecret('PHONEPE_SALT_KEY')
 const PHONEPE_SALT_INDEX = defineSecret('PHONEPE_SALT_INDEX')
 
 // ─────────────────────────────────────────────
+// CASHFREE SECRETS (managed via Firebase CLI)
+// ─────────────────────────────────────────────
+// Set with: firebase functions:secrets:set CASHFREE_CLIENT_ID
+//           firebase functions:secrets:set CASHFREE_CLIENT_SECRET
+//           firebase functions:secrets:set CASHFREE_MODE   (optional: 'sandbox'|'production', default 'sandbox')
+
+const CASHFREE_CLIENT_ID = defineSecret('CASHFREE_CLIENT_ID')
+const CASHFREE_CLIENT_SECRET = defineSecret('CASHFREE_CLIENT_SECRET')
+const CASHFREE_MODE = defineSecret('CASHFREE_MODE')
+
+// ─────────────────────────────────────────────
 // PHONEPE CONFIGURATION (server-side only)
 // ─────────────────────────────────────────────
 
@@ -166,6 +177,14 @@ async function fulfillSubscriptionPayment(attempt, phonePeTransactionId) {
     throw err
   })
 
+  // ── Payment success notifications (fire-and-forget, outside transaction) ──
+  // Completes the production flow: payments → subscriptionHistory → gym
+  // subscription → notifications → invoice. Single shared choke point — both
+  // PhonePe and Cashfree get it with zero duplicated fulfillment logic.
+  notifyPaymentSuccess(attempt).catch(err => {
+    console.error('fulfillSubscriptionPayment: payment notification failed', err)
+  })
+
   // ── Issue referral reward (non-blocking, outside transaction) ──
   if (!attempt.gymId) {
     issueReferralReward(attempt, phonePeTransactionId).catch(err => {
@@ -219,7 +238,8 @@ async function createPaymentRecordInTransaction(transaction, attempt, phonePeTra
     amount: finalAmountRupees,
     paid: finalAmountRupees,
     status: 'Paid',
-    method: 'PhonePe',
+    method: attempt.paymentMethod || 'PhonePe',
+    paymentGateway: attempt.paymentGateway || 'PhonePe',
     due: dateStr,
     paidOn: dateStr,
     avatar: initials,
@@ -232,6 +252,86 @@ async function createPaymentRecordInTransaction(transaction, attempt, phonePeTra
 
   transaction.set(paymentRef, paymentRecord)
 
+}
+
+/**
+ * Send payment-success notifications after a gateway payment is fulfilled.
+ * Fire-and-forget (never breaks the payment flow); deduplicated per attempt
+ * (single-field query on relatedDocumentId == attempt.paymentId, which is
+ * unique per attempt — no composite index needed) so concurrent webhook +
+ * verify calls never double-notify. Mirrors the referral notification
+ * pattern in issueReferralReward (schema + gym admin / super admin routing).
+ */
+async function notifyPaymentSuccess(attempt) {
+  if (!attempt.gymId || !attempt.paymentId) return
+
+  const existing = await db.collection('notifications')
+    .where('relatedDocumentId', '==', attempt.paymentId)
+    .limit(1)
+    .get()
+  if (!existing.empty) return
+
+  const amountRupees = Number((Number(attempt.finalAmount || 0) / 100).toFixed(2))
+  const planName = attempt.plan || 'Subscription'
+  const now = new Date()
+  const base = {
+    gymId: attempt.gymId,
+    type: 'subscription',
+    subtype: 'sub_payment_success',
+    priority: 'high',
+    icon: '💳',
+    actionUrl: '/subscriptions',
+    relatedDocumentId: attempt.paymentId,
+    read: false,
+    createdAt: now.toISOString(),
+  }
+
+  const notifPromises = []
+
+  // Gym admins / owners of the gym
+  try {
+    const adminSnap = await db.collection('users')
+      .where('gymId', '==', attempt.gymId)
+      .where('role', 'in', ['admin', 'gym_admin', 'gym_owner'])
+      .get()
+    adminSnap.forEach(doc => {
+      const u = doc.data()
+      notifPromises.push(
+        db.collection('notifications').add({
+          ...base,
+          userId: u.uid || doc.id,
+          role: u.role || 'admin',
+          title: 'Payment Received',
+          message: `Payment of ₹${amountRupees} for ${planName} subscription was received successfully.`,
+        }).catch(err => console.error('notifyPaymentSuccess: gym admin notification error', err))
+      )
+    })
+  } catch (notifErr) {
+    console.error('notifyPaymentSuccess: gym admin query error', notifErr)
+  }
+
+  // Platform super admins (low priority)
+  try {
+    const superAdminSnap = await db.collection('users').where('role', '==', 'super_admin').get()
+    superAdminSnap.forEach(doc => {
+      const u = doc.data()
+      notifPromises.push(
+        db.collection('notifications').add({
+          ...base,
+          gymId: 'platform',
+          userId: u.uid || doc.id,
+          role: 'super_admin',
+          title: 'Gym Payment Received',
+          message: `Payment of ₹${amountRupees} received from gym ${attempt.gymId} (${planName}).`,
+          priority: 'low',
+        }).catch(err => console.error('notifyPaymentSuccess: super admin notification error', err))
+      )
+    })
+  } catch (notifErr) {
+    console.error('notifyPaymentSuccess: super admin query error', notifErr)
+  }
+
+  await Promise.all(notifPromises)
 }
 
 /**
@@ -786,6 +886,80 @@ function validatePhonePeConfig(config) {
 }
 
 // ─────────────────────────────────────────────
+// CASHFREE CONFIGURATION (server-side only)
+// ─────────────────────────────────────────────
+
+/**
+ * Load Cashfree config from Firebase Secret Manager.
+ * Mode (sandbox vs production) is selected server-side via the
+ * CASHFREE_MODE secret — never exposed to the client.
+ */
+function loadCashfreeConfig() {
+  const clientId = process.env.CASHFREE_CLIENT_ID || ''
+  const clientSecret = process.env.CASHFREE_CLIENT_SECRET || ''
+  const mode = process.env.CASHFREE_MODE === 'production' ? 'production' : 'sandbox'
+
+  if (!clientId || !clientSecret) {
+    return null
+  }
+
+  return {
+    clientId,
+    clientSecret,
+    mode,
+    apiVersion: '2023-08-01',
+    baseUrl: mode === 'production'
+      ? 'https://api.cashfree.com/pg'
+      : 'https://sandbox.cashfree.com/pg',
+  }
+}
+
+/**
+ * Generate a unique Cashfree order id.
+ * Format: CF{timestamp}{random8} (alphanumeric, max 50 chars).
+ */
+function generateCashfreeOrderId() {
+  const ts = Date.now().toString(36).toUpperCase()
+  const rand = crypto.randomBytes(4).toString('hex').toUpperCase()
+  return `CF-${ts}-${rand}`.substring(0, 50)
+}
+
+/**
+ * Cashfree REST API headers (secret stays server-side).
+ */
+function cashfreeHeaders(config) {
+  return {
+    'x-client-id': config.clientId,
+    'x-client-secret': config.clientSecret,
+    'x-api-version': config.apiVersion,
+    'Content-Type': 'application/json',
+  }
+}
+
+/**
+ * Map a Cashfree order_status (Orders API) or payment_status (webhook)
+ * to our canonical status: pending | success | failed | cancelled.
+ */
+function mapCashfreeOrderStatus(orderStatus) {
+  switch (String(orderStatus || '').toUpperCase()) {
+    case 'PAID':
+    case 'SUCCESS':
+      return 'success'
+    case 'ACTIVE':
+    case 'PENDING':
+    case 'INITIALIZED':
+      return 'pending'
+    case 'CANCELLED':
+    case 'USER_DROPPED':
+      return 'cancelled'
+    case 'FAILED':
+    case 'EXPIRED':
+    default:
+      return 'failed'
+  }
+}
+
+// ─────────────────────────────────────────────
 // PHONEPE CRYPTO (server-side)
 // ─────────────────────────────────────────────
 
@@ -874,6 +1048,10 @@ async function updatePaymentAttempt(docId, updates) {
   if (updates.phonePeState !== undefined) allowed.phonePeState = updates.phonePeState
   if (updates.phonePeTransactionId !== undefined) allowed.phonePeTransactionId = updates.phonePeTransactionId
   if (updates.rawResponse !== undefined) allowed.rawResponse = updates.rawResponse
+  if (updates.cashfreeOrderId !== undefined) allowed.cashfreeOrderId = updates.cashfreeOrderId
+  if (updates.paymentSessionId !== undefined) allowed.paymentSessionId = updates.paymentSessionId
+  if (updates.orderStatus !== undefined) allowed.orderStatus = updates.orderStatus
+  if (updates.cashfreeTransactionId !== undefined) allowed.cashfreeTransactionId = updates.cashfreeTransactionId
 
   if (Object.keys(allowed).length === 0) return
 
@@ -1379,6 +1557,509 @@ exports.phonePeCallback = onRequest({
     } catch (error) {
       console.error('PhonePe callback error:', error)
       // Return 200 to prevent PhonePe from retrying — never expose error details to caller
+      res.status(200).json({ success: true })
+    }
+  })
+
+// ─────────────────────────────────────────────
+// CASHFREE PAYMENTS (mirrors PhonePe patterns)
+// ─────────────────────────────────────────────
+
+/**
+ * createCashfreeOrder — Callable Cloud Function.
+ *
+ * Mirrors createPayment (PhonePe):
+ * - Same validation, role checks, gym ownership validation, pending
+ *   payment detection, paymentAttempts persistence, and error shape.
+ * - Loads Cashfree config from Firebase Secret Manager (never client-side).
+ * - Returns { attemptId, redirectUrl, paymentSessionId, orderId, error }.
+ *   redirectUrl is null by design: the browser opens the Cashfree v3 SDK
+ *   modal with paymentSessionId instead of navigating away.
+ */
+exports.createCashfreeOrder = onCall({
+  secrets: [CASHFREE_CLIENT_ID, CASHFREE_CLIENT_SECRET, CASHFREE_MODE],
+  timeoutSeconds: 60,
+  memory: '256MiB'
+}, async (request) => {
+  try {
+  // Verify authentication
+  if (!request.auth) {
+    return { attemptId: null, redirectUrl: null, paymentSessionId: null, error: 'Authentication required' }
+  }
+
+  const {
+    type,
+    gymId,
+    subscriptionId,
+    plan,
+    originalAmount,
+    discountAmount,
+    finalAmount,
+    currency,
+    name,
+    email,
+    phone,
+    redirectUrl,
+    authUid,
+  } = request.data
+
+  // ── Reuse PhonePe validation logic ──
+  if (!finalAmount || Number(finalAmount) <= 0) {
+    return { attemptId: null, redirectUrl: null, paymentSessionId: null, error: 'Invalid amount: finalAmount must be positive' }
+  }
+  if (phone && !/^\d{10}$/.test(phone.replace(/\D/g, ''))) {
+    return { attemptId: null, redirectUrl: null, paymentSessionId: null, error: 'Invalid phone number: must be 10 digits' }
+  }
+  if (!redirectUrl) {
+    return { attemptId: null, redirectUrl: null, paymentSessionId: null, error: 'redirectUrl is required' }
+  }
+  if (type === 'renewal' || type === 'upgrade') {
+    if (!subscriptionId) {
+      return { attemptId: null, redirectUrl: null, paymentSessionId: null, error: 'subscriptionId is required for renewal/upgrade' }
+    }
+  }
+  if (!gymId) {
+    return { attemptId: null, redirectUrl: null, paymentSessionId: null, error: 'gymId is required' }
+  }
+
+  // ── Reuse role checks ──
+  const callerDoc = await db.collection('users').doc(request.auth.uid).get()
+  if (!callerDoc.exists) {
+    return { attemptId: null, redirectUrl: null, paymentSessionId: null, error: 'Caller profile not found' }
+  }
+  const callerRole = callerDoc.data().role
+  if (!['super_admin', 'gym_admin', 'gym_owner', 'admin'].includes(callerRole)) {
+    return { attemptId: null, redirectUrl: null, paymentSessionId: null, error: 'Insufficient permissions: only admins and gym owners can initiate payments' }
+  }
+
+  // ── Reuse gym ownership validation ──
+  if (callerRole !== 'super_admin') {
+    const callerGymId = callerDoc.data().gymId
+    if (!callerGymId || callerGymId !== gymId) {
+      return { attemptId: null, redirectUrl: null, paymentSessionId: null, error: 'Access denied: you do not own this gym' }
+    }
+  }
+
+  // 1. Load Cashfree config (server-side only)
+  const config = loadCashfreeConfig()
+  if (!config) {
+    return {
+      attemptId: null,
+      redirectUrl: null,
+      paymentSessionId: null,
+      error: 'Cashfree is not configured. Set the CASHFREE_CLIENT_ID and CASHFREE_CLIENT_SECRET secrets.',
+    }
+  }
+
+  // 2. ── Reuse pending payment detection (idempotency) ──
+  if (subscriptionId) {
+    const existingAttempts = await db.collection('paymentAttempts')
+      .where('subscriptionId', '==', subscriptionId)
+      .where('status', '==', 'pending')
+      .limit(1)
+      .get()
+    if (!existingAttempts.empty) {
+      const existing = existingAttempts.docs[0].data()
+      if (existing.cashfreeOrderId) {
+        return {
+          attemptId: existingAttempts.docs[0].id,
+          redirectUrl: null,
+          paymentSessionId: existing.paymentSessionId || null,
+          orderId: existing.cashfreeOrderId,
+          error: null,
+        }
+      }
+    }
+  }
+
+  // 3. Generate order id server-side (mirrors generateMerchantTransactionId)
+  const orderId = generateCashfreeOrderId()
+
+  // 4. Build Cashfree order payload (amount converted paise → rupees)
+  const orderAmount = Number((Number(finalAmount) / 100).toFixed(2))
+  const customerId = (authUid || request.auth.uid || gymId || 'guest').substring(0, 50)
+  const payload = {
+    order_id: orderId,
+    order_amount: orderAmount,
+    order_currency: currency || 'INR',
+    customer_details: {
+      customer_id: customerId,
+      customer_name: (name || 'Gym Owner').substring(0, 50),
+      customer_email: email || '',
+      customer_phone: phone || '',
+    },
+    order_meta: {
+      // attemptId embedded so the redirect back to the app can verify
+      // server-side without exposing any gateway credentials
+      return_url: `${redirectUrl}?attemptId={__ATTEMPT__}&order_id={order_id}`,
+    },
+  }
+
+  // 5. Generate payment tracking ID (same format as PhonePe)
+  const paymentId = `IP-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`
+
+  // 6. Save attempt to Firestore (status: pending, 30-minute expiry)
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString()
+  const attemptId = await savePaymentAttempt({
+    paymentId,
+    gymId: gymId || 'default',
+    subscriptionId: subscriptionId || null,
+    type: type || 'new',
+    plan: plan || 'Standard',
+    originalAmount: Number(originalAmount) || 0,
+    discountAmount: Number(discountAmount) || 0,
+    finalAmount: Number(finalAmount) || 0,
+    currency: currency || 'INR',
+    paymentMethod: 'Cashfree',
+    paymentGateway: 'Cashfree',
+    authUid: authUid || request.auth.uid || null,
+    status: 'pending',
+    cashfreeOrderId: orderId,
+    orderStatus: 'INITIALIZED',
+    paymentSessionId: null,
+    cashfreeTransactionId: null,
+    transactionId: null,
+    redirectUrl: null,
+    expiresAt,
+  })
+
+  // Embed the real attemptId in the return_url now that it exists
+  payload.order_meta.return_url = payload.order_meta.return_url.replace('{__ATTEMPT__}', attemptId)
+
+  // 7. Call Cashfree Orders API (server-side)
+  try {
+    const response = await fetch(`${config.baseUrl}/orders`, {
+      method: 'POST',
+      headers: cashfreeHeaders(config),
+      body: JSON.stringify(payload),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok || !data.payment_session_id) {
+      await updatePaymentAttempt(attemptId, {
+        status: 'failed',
+        orderStatus: data.order_status || 'FAILED',
+        errorMessage: data.message || data.code || `HTTP ${response.status}`,
+        rawResponse: data,
+      }).catch(err => console.error('createCashfreeOrder: failed to update attempt with error state:', err))
+
+      return {
+        attemptId,
+        redirectUrl: null,
+        paymentSessionId: null,
+        error: data.message || data.code || `Cashfree API error: HTTP ${response.status}`,
+      }
+    }
+
+    // 8. Update attempt with success
+    await updatePaymentAttempt(attemptId, {
+      orderStatus: data.order_status || 'ACTIVE',
+      paymentSessionId: data.payment_session_id,
+      rawResponse: data,
+    }).catch(err => console.error('createCashfreeOrder: failed to update attempt with success state:', err))
+
+    return {
+      attemptId,
+      redirectUrl: null,
+      paymentSessionId: data.payment_session_id,
+      orderId,
+      error: null,
+    }
+  } catch (fetchError) {
+    await updatePaymentAttempt(attemptId, {
+      status: 'failed',
+      errorMessage: fetchError.message || 'Network request failed',
+      rawResponse: null,
+    }).catch(err => console.error('createCashfreeOrder: failed to update attempt on fetch error:', err))
+
+    return {
+      attemptId,
+      redirectUrl: null,
+      paymentSessionId: null,
+      error: fetchError.message || 'Failed to call Cashfree API',
+    }
+  }
+  } catch (topErr) {
+    console.error('createCashfreeOrder: unhandled error', topErr)
+    return { attemptId: null, redirectUrl: null, paymentSessionId: null, error: topErr.message || 'Internal server error' }
+  }
+})
+
+/**
+ * verifyCashfreePayment — Callable Cloud Function.
+ *
+ * Mirrors verifyPayment (PhonePe):
+ * - Same auth/role/expiry/cross-gym checks and attempt status short-circuit.
+ * - Queries the Cashfree Orders API server-side and maps the status.
+ * - On success calls fulfillSubscriptionPayment() — NO duplicated logic.
+ * Returns { status, error }.
+ */
+exports.verifyCashfreePayment = onCall({
+  secrets: [CASHFREE_CLIENT_ID, CASHFREE_CLIENT_SECRET, CASHFREE_MODE],
+  timeoutSeconds: 60,
+  memory: '256MiB'
+}, async (request) => {
+  try {
+  if (!request.auth) {
+    return { status: null, error: 'Authentication required' }
+  }
+
+  // Verify caller has sufficient role (same list as verifyPayment)
+  const callerDoc = await db.collection('users').doc(request.auth.uid).get()
+  const callerRole = callerDoc.exists ? callerDoc.data().role : null
+  if (!['super_admin', 'gym_admin', 'gym_owner', 'admin', 'trainer'].includes(callerRole)) {
+    return { status: null, error: 'Insufficient permissions' }
+  }
+
+  const { attemptId } = request.data
+  if (!attemptId) {
+    return { status: null, error: 'attemptId is required' }
+  }
+
+  const attempt = await getPaymentAttempt(attemptId)
+  if (!attempt) return { status: null, error: 'Payment attempt not found' }
+  if (attempt.status !== 'pending') return { status: attempt.status, error: null }
+
+  // Check if the payment attempt has expired (30-minute timeout)
+  if (attempt.expiresAt && new Date(attempt.expiresAt) < new Date()) {
+    await updatePaymentAttempt(attemptId, {
+      status: 'cancelled',
+      errorMessage: 'Payment attempt expired (30-minute timeout)',
+    }).catch(err => console.error('verifyCashfreePayment: failed to expire stale attempt:', err))
+    return { status: 'cancelled', error: 'Payment attempt expired' }
+  }
+
+  // Verify caller belongs to the same gym as the payment attempt
+  if (callerRole !== 'super_admin' && callerDoc.data().gymId && attempt.gymId && callerDoc.data().gymId !== attempt.gymId) {
+    return { status: null, error: 'Cross-gym payment verification denied' }
+  }
+
+  const config = loadCashfreeConfig()
+  if (!config) {
+    return { status: attempt.status, error: 'Cashfree not configured' }
+  }
+
+  const orderId = attempt.cashfreeOrderId
+  if (!orderId) {
+    return { status: attempt.status, error: 'Cashfree order id missing on attempt' }
+  }
+
+  try {
+    const response = await fetch(`${config.baseUrl}/orders/${encodeURIComponent(orderId)}`, {
+      method: 'GET',
+      headers: cashfreeHeaders(config),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      return { status: attempt.status, error: data.message || data.code || `HTTP ${response.status}` }
+    }
+
+    const newStatus = mapCashfreeOrderStatus(data.order_status)
+    const cashfreeTransactionId = data?.payment?.payment_id || null
+
+    if (newStatus !== attempt.status) {
+      await updatePaymentAttempt(attemptId, {
+        status: newStatus,
+        orderStatus: data.order_status,
+        cashfreeTransactionId,
+        rawResponse: data,
+      }).catch(err => console.error('verifyCashfreePayment: failed to update attempt status:', err))
+
+      // Fulfill subscription on successful payment — shared logic
+      if (newStatus === 'success') {
+        await fulfillSubscriptionPayment(attempt, cashfreeTransactionId).catch(err => {
+          console.error('verifyCashfreePayment: failed to fulfill subscription', attempt.subscriptionId, err)
+        })
+      }
+    }
+
+    return { status: newStatus, error: null }
+  } catch (fetchError) {
+    return { status: attempt.status, error: fetchError.message || 'Network request failed' }
+  }
+  } catch (topErr) {
+    console.error('verifyCashfreePayment: unhandled error', topErr)
+    return { status: null, error: topErr.message || 'Internal server error' }
+  }
+})
+
+/**
+ * cashfreeWebhook — Raw HTTP Cloud Function.
+ *
+ * Mirrors phonePeCallback:
+ * - Verifies the x-webhook-signature HMAC over the EXACT raw request body
+ *   (req.rawBody — the wire bytes before JSON parsing) per the Cashfree
+ *   spec: signStr = x-webhook-timestamp + rawBody,
+ *   signature = base64( HMAC-SHA256( clientSecret, signStr ) ).
+ *   Invalid signatures are rejected (not processed) but always
+ *   acknowledged with HTTP 200 so Cashfree never retries.
+ * - Idempotent: already-fulfilled attempts short-circuit to success.
+ * - Updates the payment attempt, then calls fulfillSubscriptionPayment()
+ *   on success — shared fulfillment, zero duplicated subscription logic.
+ */
+exports.cashfreeWebhook = onRequest({
+  secrets: [CASHFREE_CLIENT_ID, CASHFREE_CLIENT_SECRET, CASHFREE_MODE],
+  timeoutSeconds: 60,
+  memory: '256MiB'
+}, async (req, res) => {
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed' })
+      return
+    }
+
+    try {
+      const config = loadCashfreeConfig()
+      if (!config) {
+        console.error('Cashfree webhook: config not loaded')
+        res.status(200).json({ success: true })
+        return
+      }
+
+      const receivedSignature = req.headers['x-webhook-signature'] || ''
+      if (!receivedSignature) {
+        console.error('Cashfree webhook: missing x-webhook-signature')
+        res.status(200).json({ success: true })
+        return
+      }
+
+      // The signing timestamp is REQUIRED — it is part of the signed message.
+      const timestamp = req.headers['x-webhook-timestamp'] || ''
+      if (!timestamp) {
+        console.error('Cashfree webhook: missing x-webhook-timestamp')
+        res.status(200).json({ success: true })
+        return
+      }
+
+      // Reject stale events (replay protection)
+      const tsMs = new Date(timestamp).getTime()
+      if (isNaN(tsMs) || Math.abs(Date.now() - tsMs) > 5 * 60 * 1000) {
+        console.error('Cashfree webhook: stale or invalid timestamp', timestamp)
+        res.status(200).json({ success: true })
+        return
+      }
+
+      // Verify the HMAC over the EXACT raw wire bytes. req.rawBody is the
+      // body BEFORE the JSON parser ran (firebase-functions v2 populates it
+      // alongside req.body) — re-serializing the parsed JSON would change
+      // whitespace/key order and break the digest, so it is never used here.
+      if (!req.rawBody || req.rawBody.length === 0) {
+        console.error('Cashfree webhook: raw body unavailable')
+        res.status(200).json({ success: true })
+        return
+      }
+
+      // Cashfree spec:
+      //   signStr   = x-webhook-timestamp + rawBody
+      //   signature = base64( HMAC-SHA256( clientSecret, signStr ) )
+      // Verified byte-exact via Buffer.concat (no string re-encoding).
+      const message = Buffer.concat([Buffer.from(timestamp), req.rawBody])
+      const expectedSignature = crypto
+        .createHmac('sha256', config.clientSecret)
+        .update(message)
+        .digest('base64')
+
+      // Timing-safe comparison (constant-time, avoids length side channels)
+      const receivedBuffer = Buffer.from(receivedSignature)
+      const expectedBuffer = Buffer.from(expectedSignature)
+      const signatureValid = receivedBuffer.length === expectedBuffer.length &&
+        crypto.timingSafeEqual(receivedBuffer, expectedBuffer)
+
+      if (!signatureValid) {
+        console.error('Cashfree webhook: signature mismatch')
+        res.status(200).json({ success: true })
+        return
+      }
+
+      // Decode v2 payload: body.data is a base64-encoded event object
+      const body = req.body || {}
+      let eventData = body
+      if (typeof body.data === 'string') {
+        try {
+          eventData = JSON.parse(Buffer.from(body.data, 'base64').toString('utf-8'))
+        } catch (parseErr) {
+          console.error('Cashfree webhook: failed to decode payload', parseErr)
+          res.status(200).json({ success: true })
+          return
+        }
+      }
+
+      const orderId = eventData?.order?.order_id || body.order_id || ''
+      if (!orderId) {
+        console.error('Cashfree webhook: missing order_id')
+        res.status(200).json({ success: true })
+        return
+      }
+
+      // Find the payment attempt by cashfreeOrderId
+      const q = await db.collection('paymentAttempts')
+        .where('cashfreeOrderId', '==', orderId)
+        .limit(1)
+        .get()
+
+      if (q.empty) {
+        console.error('Cashfree webhook: attempt not found for', orderId)
+        res.status(200).json({ success: true })
+        return
+      }
+
+      const attemptDoc = q.docs[0]
+      const attempt = attemptDoc.data()
+
+      // Amount verification (webhook order_amount is in rupees)
+      const orderAmount = eventData?.order?.order_amount ?? body.order_amount
+      if (orderAmount != null && attempt.finalAmount &&
+          Number(orderAmount) !== Number((Number(attempt.finalAmount) / 100).toFixed(2))) {
+        console.error('Cashfree webhook: amount mismatch', { orderId, received: orderAmount, expected: attempt.finalAmount })
+        res.status(200).json({ success: true })
+        return
+      }
+
+      // Check if the payment attempt has expired (30-minute timeout)
+      if (attempt.expiresAt && new Date(attempt.expiresAt) < new Date()) {
+        await attemptDoc.ref.update({
+          status: 'cancelled',
+          errorMessage: 'Payment attempt expired',
+          updatedAt: new Date().toISOString(),
+        }).catch(err => console.error('cashfreeWebhook: failed to expire stale attempt:', err))
+        res.status(200).json({ success: true })
+        return
+      }
+
+      if (attempt.status !== 'pending') {
+        // Already processed — idempotent
+        res.status(200).json({ success: true })
+        return
+      }
+
+      // Map Cashfree payment_status to our status
+      const paymentStatus = eventData?.payment?.payment_status || ''
+      const newStatus = mapCashfreeOrderStatus(paymentStatus || 'FAILED')
+      const cashfreeTransactionId = eventData?.payment?.payment_id || attempt.cashfreeTransactionId || null
+
+      // Update Firestore
+      await attemptDoc.ref.update({
+        status: newStatus,
+        orderStatus: paymentStatus,
+        cashfreeTransactionId,
+        callbackAmount: eventData?.payment?.payment_amount ?? null,
+        rawResponse: eventData,
+        updatedAt: new Date().toISOString(),
+      })
+
+      // Fulfill subscription on successful payment — shared logic
+      if (newStatus === 'success') {
+        await fulfillSubscriptionPayment({ ...attempt, id: attemptDoc.id }, cashfreeTransactionId).catch(err => {
+          console.error('cashfreeWebhook: failed to fulfill subscription', attempt.subscriptionId, err)
+        })
+      }
+
+      res.status(200).json({ success: true })
+    } catch (error) {
+      console.error('Cashfree webhook error:', error)
+      // Return 200 to prevent Cashfree from retrying — never expose error details to caller
       res.status(200).json({ success: true })
     }
   })
