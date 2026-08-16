@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 
 import App from './App.jsx'
-import './firebase'
 import './styles/tokens.css'
 import './styles/theme.css'
 import './styles/components.css'

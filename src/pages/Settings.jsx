@@ -4,8 +4,6 @@ import { useApp } from '../context/AppContext'
 import { applyAccentColor, DEFAULT_ACCENT } from '../utils/theme'
 import { useAuth } from '../context/AuthContext'
 import { getSettings, saveSettings } from '../services/firestoreService'
-import { doc, updateDoc } from 'firebase/firestore'
-import { db } from '../firebase'
 import { uploadGymLogo } from '../services/storageService'
 import { extractDominantColor } from '../utils/colorExtractor'
 import { SUPPORT_EMAIL, SUPPORT_HOURS, SUPPORT_RESPONSE_TIME } from '../config/support'
@@ -13,7 +11,6 @@ import { openSupportWhatsApp } from '../utils/whatsappSupport'
 import { shareWebsite, copyWebsiteLink } from '../utils/shareWebsite'
 import { buildReferralLink, buildShareMessage, getShareMessageTemplate } from '../services/referralService'
 import { WEBSITE_NAME, WEBSITE_URL } from '../config/website'
-import { getAppUrl } from '../utils/appUrl'
 
 function Toggle({ on, onChange }) {
   return (
@@ -147,7 +144,7 @@ export default function Settings() {
       setGym('primaryColor', primaryColor)
     } catch { setLogoError('Could not extract color from image.') }
     try {
-      const { downloadUrl } = await uploadGymLogo(file, setLogoProgress)
+      const { downloadUrl } = await uploadGymLogo(file, setLogoProgress, gymId)
       setGym('logoUrl', downloadUrl); setLogoFile(null); setLogoProgress(0)
     } catch { setLogoError('Upload failed. The logo preview is local only.') }
   }
@@ -244,7 +241,6 @@ export default function Settings() {
     try {
       const { name, phone, bio, photoURL } = profile
       await saveSettings(`profile_${currentUser.uid}`, { name, phone, bio, photoURL })
-      await updateDoc(doc(db, 'users', currentUser.uid), { name, photoURL })
       updateUserProfile({ name, photoURL })
       profileSavedRef.current = { ...profile }
       setProfileSaved(true); setTimeout(() => setProfileSaved(false), 2500)
@@ -298,10 +294,11 @@ export default function Settings() {
     if (!currentUser.email) { setPwError('No email on this account. Set an email first.'); return }
     setPwSaving(true)
     try {
-      const { EmailAuthProvider, reauthenticateWithCredential, updatePassword } = await import('firebase/auth')
-      const credential = EmailAuthProvider.credential(currentUser.email, pwForm.current)
-      await reauthenticateWithCredential(currentUser, credential)
-      await updatePassword(currentUser, pwForm.newPw)
+      // Step 8B: reauth + password change now live in authService
+      // (changePassword) — Supabase mode probes the current password via
+      // signInWithPassword, Firebase mode reauthenticates with a credential.
+      const { changePassword } = await import('../services/authService')
+      await changePassword(pwForm.current, pwForm.newPw)
       setPwSaved(true); setPwForm({ current:'', newPw:'', confirm:'' }); setTimeout(() => setPwSaved(false), 2500)
     } catch (err) { setPwError(err.code === 'auth/wrong-password' ? 'Current password is incorrect' : 'Failed to update password') }
     finally { setPwSaving(false) }
@@ -583,7 +580,7 @@ export default function Settings() {
                             if (file.size > 5*1024*1024) { setProfilePhotoError('File must be under 5MB.'); return }
                             setProfilePhotoSaving(true)
                             try {
-                              const { downloadUrl } = await uploadGymLogo(file)
+                              const { downloadUrl } = await uploadGymLogo(file, undefined, gymId)
                               setProf('photoURL', downloadUrl)
                               await updateUserProfile({ photoURL: downloadUrl })
                             } catch (err) {
@@ -666,17 +663,19 @@ export default function Settings() {
                         if (!newEmail) { setProfileEmailError('Enter a new email address'); return }
                         setProfileEmailSaving(true); setProfileEmailError(''); setProfileEmailSaved(false)
                         try {
-                          const { EmailAuthProvider, reauthenticateWithCredential, updateEmail, sendEmailVerification } = await import('firebase/auth')
+                          // Step 8B: email change moved into authService
+                          // (changeEmail) — reauth probe + updateUser.
+                          const { changeEmail } = await import('../services/authService')
                           const pw = prompt('Re-enter your password to change email:')
                           if (!pw) { setProfileEmailSaving(false); return }
-                          const credential = EmailAuthProvider.credential(currentUser.email, pw)
-                          await reauthenticateWithCredential(currentUser, credential)
-                          await updateEmail(currentUser, newEmail)
-                          await sendEmailVerification(currentUser, {
-                            url: `${getAppUrl()}/auth?verified=true`,
-                            handleCodeInApp: true,
-                          })
-                          await saveSettings(`profile_${currentUser.uid}`, { email: newEmail })
+                          await changeEmail(pw, newEmail)
+                          try {
+                            await saveSettings(`profile_${currentUser.uid}`, { email: newEmail })
+                          } catch (settingsErr) {
+                            // Non-fatal: the auth email already changed;
+                            // the profile doc sync is best-effort.
+                            console.warn('Settings: profile doc email sync failed (non-fatal):', settingsErr)
+                          }
                           setEmailChange(''); setProfileEmailSaved(true)
                           setTimeout(() => setProfileEmailSaved(false), 4000)
                         } catch (err) {

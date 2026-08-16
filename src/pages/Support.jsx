@@ -1,8 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
-import { doc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore'
-import { db } from '../firebase'
+import { addSupportReply, addSupportNote, addSupportAttachment } from '../services/supportService'
 
 if (!document.getElementById('spt-styles')) {
   const sptStyles = document.createElement('style')
@@ -706,35 +705,19 @@ export default function Support() {
         onSendReply={async (text) => {
           if (!drawerTicket?.id) return
           try {
-            const ref = doc(db, 'supportTickets', drawerTicket.id)
-            await updateDoc(ref, {
-              replies: arrayUnion({ text, by: currentUser?.uid, at: new Date().toISOString() }),
-              updatedAt: serverTimestamp(),
-            })
+            await addSupportReply(drawerTicket.id, { text, by: currentUser?.uid })
           } catch (e) { console.error('Failed to save reply:', e); setDrawerMsg('Failed to send reply. Please try again.') }
         }}
         onSaveNote={async (text) => {
           if (!drawerTicket?.id) return
           try {
-            const ref = doc(db, 'supportTickets', drawerTicket.id)
-            await updateDoc(ref, {
-              internalNotes: arrayUnion({ text, by: currentUser?.uid, at: new Date().toISOString() }),
-              updatedAt: serverTimestamp(),
-            })
+            await addSupportNote(drawerTicket.id, { text, by: currentUser?.uid })
           } catch (e) { console.error('Failed to save note:', e); setDrawerMsg('Failed to save note. Please try again.') }
         }}
         onFileAttach={async (file) => {
           if (!drawerTicket?.id) return
           try {
-            const ref = doc(db, 'supportTickets', drawerTicket.id)
-            const reader = new FileReader()
-            reader.onload = async () => {
-              await updateDoc(ref, {
-                attachments: arrayUnion({ name: file.name, size: file.size, type: file.type }),
-                updatedAt: serverTimestamp(),
-              })
-            }
-            reader.readAsDataURL(file)
+            await addSupportAttachment(drawerTicket.id, { name: file.name, size: file.size, type: file.type })
           } catch (e) { console.error('Failed to attach file:', e); setDrawerMsg('Failed to attach file. Please try again.') }
         }}
       />

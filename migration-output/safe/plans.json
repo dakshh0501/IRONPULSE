@@ -1,0 +1,416 @@
+[
+  {
+    "table": "plans",
+    "legacyId": "6bXvKUf8mecDqnZuay97",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "46edeb5b-c21f-53e6-9cfa-ea876b101651",
+      "gym_id": "GadKLv237CdZFWz25M4R",
+      "name": "Standard",
+      "price": 1499,
+      "duration": 43200,
+      "duration_days": 30,
+      "description": "Regular monthly membership with full gym access",
+      "active": true,
+      "sort_order": 2,
+      "created_at": "2026-08-10T17:52:14.049Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "plans",
+    "legacyId": "Bnns6DQoMWRBk7w92cv7",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "8c344a20-95f6-5087-bc2c-75dfd2d09892",
+      "gym_id": "5phqBpix968byObRNBWe",
+      "name": "Trial",
+      "price": 499,
+      "duration": 10080,
+      "duration_days": 7,
+      "description": "Short-term trial membership, no commitment",
+      "active": true,
+      "sort_order": 1,
+      "created_at": "2026-08-10T17:53:57.522Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "plans",
+    "legacyId": "EUBiWgBa7LC1lt8oOAdh",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "48c518f1-ed18-5fcd-9e7d-c056dcd55ea0",
+      "gym_id": "GadKLv237CdZFWz25M4R",
+      "name": "Annual",
+      "price": 12999,
+      "duration": 518400,
+      "duration_days": 365,
+      "description": "12-month membership, best value for money",
+      "active": true,
+      "sort_order": 5,
+      "created_at": "2026-08-10T17:52:14.583Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "plans",
+    "legacyId": "F4GtJuKQJpZrp1yX7dWP",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "055715e0-e431-5756-9f4d-09cb347f3683",
+      "gym_id": "GadKLv237CdZFWz25M4R",
+      "name": "Premium",
+      "price": 2999,
+      "duration": 43200,
+      "duration_days": 30,
+      "description": "Premium with unlimited trainer access and perks",
+      "active": true,
+      "sort_order": 3,
+      "created_at": "2026-08-10T17:52:14.224Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "plans",
+    "legacyId": "J90UStlPJgqr5Pl5kwt3",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "d07ac233-0e11-564f-b9d6-abb6aac683b7",
+      "gym_id": "r7bcZ14hpf4a2QMyTb3y",
+      "name": "Standard",
+      "price": 1499,
+      "duration": 43200,
+      "duration_days": 30,
+      "description": "Regular monthly membership with full gym access",
+      "active": true,
+      "sort_order": 2,
+      "created_at": "2026-07-06T09:10:05.175Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "plans",
+    "legacyId": "LwqjC1ObipbXG22SXOIE",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "31cadf18-5d1e-5cd2-a3a2-c1222a75ce5e",
+      "gym_id": "5phqBpix968byObRNBWe",
+      "name": "Premium",
+      "price": 2999,
+      "duration": 43200,
+      "duration_days": 30,
+      "description": "Premium with unlimited trainer access and perks",
+      "active": true,
+      "sort_order": 3,
+      "created_at": "2026-08-10T17:53:59.702Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "plans",
+    "legacyId": "NxKV9YPJpuAygSOJqotv",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "6acd3e48-d55d-5eba-8c17-0fa117aa3332",
+      "gym_id": "5phqBpix968byObRNBWe",
+      "name": "Annual",
+      "price": 12999,
+      "duration": 518400,
+      "duration_days": 365,
+      "description": "12-month membership, best value for money",
+      "active": true,
+      "sort_order": 5,
+      "created_at": "2026-08-10T17:54:00.649Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "plans",
+    "legacyId": "OzWxcC0MJFKa309LWvPv",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "b824df43-29cc-5734-a364-9f5f46f451f6",
+      "gym_id": "GadKLv237CdZFWz25M4R",
+      "name": "Trial",
+      "price": 499,
+      "duration": 10080,
+      "duration_days": 7,
+      "description": "Short-term trial membership, no commitment",
+      "active": true,
+      "sort_order": 1,
+      "created_at": "2026-08-10T17:52:13.823Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "plans",
+    "legacyId": "QBMEbgwxd6wU5TfKEkvL",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "55c20f54-2065-50ae-a1a5-689796af2fc8",
+      "gym_id": "5phqBpix968byObRNBWe",
+      "name": "Quarterly",
+      "price": 3999,
+      "duration": 129600,
+      "duration_days": 90,
+      "description": "3-month commitment with discounted rate",
+      "active": true,
+      "sort_order": 4,
+      "created_at": "2026-08-10T17:54:00.043Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "plans",
+    "legacyId": "QEzhwJskSCNrXyBMM9oN",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "bd0f0c8b-604a-5db7-b8c4-ee5f59400d8f",
+      "gym_id": "r7bcZ14hpf4a2QMyTb3y",
+      "name": "Premium",
+      "price": 2999,
+      "duration": 43200,
+      "duration_days": 30,
+      "description": "Premium with unlimited trainer access and perks",
+      "active": true,
+      "sort_order": 3,
+      "created_at": "2026-07-06T09:10:05.284Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "plans",
+    "legacyId": "Qq2iM0pSedu2oIZX5Fyh",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "af3cac82-74c1-5264-b666-7ef40687f590",
+      "gym_id": "5phqBpix968byObRNBWe",
+      "name": "Day Pass",
+      "price": 199,
+      "duration": 1440,
+      "duration_days": 1,
+      "description": "Single-day access pass",
+      "active": true,
+      "sort_order": 6,
+      "created_at": "2026-08-10T17:54:02.019Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "plans",
+    "legacyId": "VRKetZZ1IBVH7dZfaFm8",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "4de38065-461a-59c8-9654-30f85c156496",
+      "gym_id": "5phqBpix968byObRNBWe",
+      "name": "Standard",
+      "price": 1499,
+      "duration": 43200,
+      "duration_days": 30,
+      "description": "Regular monthly membership with full gym access",
+      "active": true,
+      "sort_order": 2,
+      "created_at": "2026-08-10T17:53:58.056Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "plans",
+    "legacyId": "VT4ICnfOmUUyZI9xisja",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "3d9c6272-b0c5-5887-8cdc-304f6828c9ae",
+      "gym_id": "r7bcZ14hpf4a2QMyTb3y",
+      "name": "Quarterly",
+      "price": 3999,
+      "duration": 129600,
+      "duration_days": 90,
+      "description": "3-month commitment with discounted rate",
+      "active": true,
+      "sort_order": 4,
+      "created_at": "2026-07-06T09:10:05.461Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "plans",
+    "legacyId": "Y2KuI6NNHLYdjbCg1G5F",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "34041a54-c80f-5218-9b51-96f4a2a3712b",
+      "gym_id": "r7bcZ14hpf4a2QMyTb3y",
+      "name": "Annual",
+      "price": 12999,
+      "duration": 518400,
+      "duration_days": 365,
+      "description": "12-month membership, best value for money",
+      "active": true,
+      "sort_order": 5,
+      "created_at": "2026-07-06T09:10:05.783Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "plans",
+    "legacyId": "ZmmimWbDejzf9C2BTiW2",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "e2ff8775-7ae9-51c8-9f59-6b6a0f9b00e5",
+      "gym_id": "GadKLv237CdZFWz25M4R",
+      "name": "Quarterly",
+      "price": 3999,
+      "duration": 129600,
+      "duration_days": 90,
+      "description": "3-month commitment with discounted rate",
+      "active": true,
+      "sort_order": 4,
+      "created_at": "2026-08-10T17:52:14.403Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "plans",
+    "legacyId": "fUEg1Us7NMxShtK6PnBD",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "56fa9010-c697-54ec-b5a9-6c68a96e9162",
+      "gym_id": "r7bcZ14hpf4a2QMyTb3y",
+      "name": "Trial",
+      "price": 499,
+      "duration": 10080,
+      "duration_days": 7,
+      "description": "Short-term trial membership, no commitment",
+      "active": true,
+      "sort_order": 1,
+      "created_at": "2026-07-06T09:10:04.995Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "plans",
+    "legacyId": "spiE0Vz3MwdwSVTFs6ZY",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "d559c8ea-4b8c-517c-8742-8cf8cdce12cd",
+      "gym_id": "GadKLv237CdZFWz25M4R",
+      "name": "Day Pass",
+      "price": 199,
+      "duration": 1440,
+      "duration_days": 1,
+      "description": "Single-day access pass",
+      "active": true,
+      "sort_order": 6,
+      "created_at": "2026-08-10T17:52:14.781Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "plans",
+    "legacyId": "zcmHKk9XMte3ev8Q5lrM",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "840254db-1dbe-5f15-ad85-8974fc446672",
+      "gym_id": "r7bcZ14hpf4a2QMyTb3y",
+      "name": "Day Pass",
+      "price": 199,
+      "duration": 1440,
+      "duration_days": 1,
+      "description": "Single-day access pass",
+      "active": true,
+      "sort_order": 6,
+      "created_at": "2026-07-06T09:10:05.993Z",
+      "updated_at": null
+    }
+  }
+]

@@ -3,13 +3,12 @@ import { useApp } from '../../context/AppContext'
 import { useAuth } from '../../context/AuthContext'
 import {
   updateReferralSettings,
+  updateReferral,
   getReferralStats,
   getTopReferrers,
   checkReferralFraud,
   deleteReferral,
 } from '../../services/referralService'
-import { updateDoc, doc } from 'firebase/firestore'
-import { db } from '../../firebase'
 
 const FRAUD_TYPES = {
   SELF_REFERRAL: { label: 'Self Referral', color: 'badge-red' },
@@ -176,7 +175,7 @@ export default function ReferralManagement() {
     setRejecting(referralId)
     setError('')
     try {
-      await updateDoc(doc(db, 'referrals', referralId), {
+      await updateReferral(referralId, {
         status: 'Rejected',
         rejectedAt: new Date().toISOString(),
       })

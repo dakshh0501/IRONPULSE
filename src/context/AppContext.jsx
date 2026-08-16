@@ -75,10 +75,9 @@ import {
   refreshPaymentStatus as refreshPaymentStatusService,
   cleanupExpiredPaymentAttempts,
 } from '../services/paymentService'
-import { doc, getDoc, updateDoc, deleteDoc, query, where, collection, serverTimestamp, onSnapshot, orderBy, limit } from 'firebase/firestore'
-import { db } from '../firebase'
 import {
   subscribeToNotifications,
+  subscribeToRoleNotifications,
   addNotification as addNotifToFirestore,
   markNotifAsRead,
   markNotifAsUnread,
@@ -125,6 +124,43 @@ import whatsappService, {
 } from '../services/whatsapp/whatsappService'
 
 const AppContext = createContext()
+
+let _supabaseClient = null
+async function getSupabaseClient() {
+  if (_supabaseClient) return _supabaseClient
+  const m = await import('../lib/supabase')
+  _supabaseClient = m.supabase
+  return _supabaseClient
+}
+
+// Profile role writes → set_profile_role RPC (profiles.role is trigger-guarded;
+// RLS has no cross-user UPDATE policy).
+async function setProfileRole(uid, role) {
+  const client = await getSupabaseClient()
+  const { error } = await client.rpc('set_profile_role', { p_uid: uid, p_role: role })
+  if (error) throw error
+}
+
+async function getUserRole(uid) {
+  if (!uid) return ''
+  const client = await getSupabaseClient()
+  const { data, error } = await client.from('profiles').select('role').eq('firebase_uid', uid).maybeSingle()
+  if (error || !data) return ''
+  return data.role || ''
+}
+
+// Gym subscription jsonb writes → update_gym_subscription RPC (atomic merge,
+// super-only — mirrors gyms RLS).
+async function setGymSubscriptionFields(gymId, fields) {
+  const payload = {}
+  for (const [key, value] of Object.entries(fields || {})) {
+    if (key.startsWith('subscription.')) payload[key.slice('subscription.'.length)] = value
+    else payload[key] = value
+  }
+  const client = await getSupabaseClient()
+  const { error } = await client.rpc('update_gym_subscription', { p_gym_id: gymId, p_updates: payload })
+  if (error) throw error
+}
 
 export function AppProvider({ children }) {
 
@@ -212,9 +248,8 @@ export function AppProvider({ children }) {
     if (!isSuperAdmin) throw new Error('Unauthorized: only super admins can approve gym owners')
     let stepsCompleted = []
     try {
-      const gymSnap = await getDoc(doc(db, 'gyms', gymId))
-      if (!gymSnap.exists()) throw new Error('Gym not found')
-      const gymData = gymSnap.data()
+      const gymData = gyms.find(g => g.id === gymId) || null
+      if (!gymData) throw new Error('Gym not found')
       const ownerUid = gymData.ownerUid
       let userRoleWasUpdated = false
 
@@ -225,9 +260,9 @@ export function AppProvider({ children }) {
       stepsCompleted.push('gym_approved')
 
       if (ownerUid) {
-        const userSnap = await getDoc(doc(db, 'users', ownerUid))
-        if (userSnap.exists() && userSnap.data().role === 'gym_owner_pending') {
-          await updateDoc(doc(db, 'users', ownerUid), { role: 'gym_owner' })
+        const ownerRole = await getUserRole(ownerUid)
+        if (ownerRole === 'gym_owner_pending') {
+          await setProfileRole(ownerUid, 'gym_owner')
           stepsCompleted.push('user_role_updated')
         }
       }
@@ -249,7 +284,7 @@ export function AppProvider({ children }) {
         const planLower = (newSubscription || 'Trial').toLowerCase()
         const daysMap = { trial: 7, monthly: 30, quarterly: 90, yearly: 365, annual: 365, lifetime: 9999 }
         initExpiry.setDate(initExpiry.getDate() + (daysMap[planLower] || 7))
-        await updateDoc(doc(db, 'gyms', gymId), {
+        const initFields = {
           'subscription.plan': newSubscription,
           'subscription.planType': planLower,
           'subscription.status': 'active',
@@ -264,7 +299,8 @@ export function AppProvider({ children }) {
           'subscription.licenseStatus': 'active',
           'subscription.generatedAt': initNow.toISOString(),
           'subscription.updatedAt': initNow.toISOString(),
-        })
+        }
+        await setGymSubscriptionFields(gymId, initFields)
         stepsCompleted.push('gym_subscription_inited')
       }
 
@@ -284,14 +320,16 @@ export function AppProvider({ children }) {
       for (const step of rollbackSteps) {
         try {
           if (step === 'gym_subscription_inited') {
-            await updateDoc(doc(db, 'gyms', gymId), { subscription: {} })
+            await updateGymInFirestore(gymId, { subscription: {} })
           } else if (step === 'subscription_created') {
             const existingSub = await getSubscriptionByGymId(gymId)
-            if (existingSub?.id) await deleteDoc(doc(db, 'subscriptions', existingSub.id))
+            if (existingSub?.id) {
+              const client = await getSupabaseClient()
+              await client.from('subscriptions').delete().eq('id', existingSub.id)
+            }
           } else if (step === 'user_role_updated') {
-            const gymSnap = await getDoc(doc(db, 'gyms', gymId))
-            const ownerUid = gymSnap.data()?.ownerUid
-            if (ownerUid) await updateDoc(doc(db, 'users', ownerUid), { role: 'gym_owner_pending' })
+            const ownerUid = gyms.find(g => g.id === gymId)?.ownerUid
+            if (ownerUid) await setProfileRole(ownerUid, 'gym_owner_pending')
           } else if (step === 'gym_approved') {
             await updateGym(gymId, { approvalStatus: 'pending' })
           }
@@ -307,10 +345,9 @@ export function AppProvider({ children }) {
   const rejectGymOwner = async (gymId, remarks = '') => {
     if (!isSuperAdmin) throw new Error('Unauthorized: only super admins can reject gym owners')
     try {
-      // 1. Read gym doc to get ownerUid
-      const gymSnap = await getDoc(doc(db, 'gyms', gymId))
-      if (!gymSnap.exists()) throw new Error('Gym not found')
-      const gymData = gymSnap.data()
+      // 1. Read gym from state to get ownerUid
+      const gymData = gyms.find(g => g.id === gymId) || null
+      if (!gymData) throw new Error('Gym not found')
       const ownerUid = gymData.ownerUid
 
       // 2. Update gym approvalStatus
@@ -321,9 +358,9 @@ export function AppProvider({ children }) {
 
       // 3. Update user role (if ownerUid exists and role is still pending)
       if (ownerUid) {
-        const userSnap = await getDoc(doc(db, 'users', ownerUid))
-        if (userSnap.exists() && userSnap.data().role === 'gym_owner_pending') {
-          await updateDoc(doc(db, 'users', ownerUid), { role: 'rejected' })
+        const ownerRole = await getUserRole(ownerUid)
+        if (ownerRole === 'gym_owner_pending') {
+          await setProfileRole(ownerUid, 'rejected')
         }
 
         fireNotif('gym_rejected', {
@@ -476,14 +513,7 @@ export function AppProvider({ children }) {
       unsubs.push(unsub1)
 
       if (effectiveRole === 'super_admin') {
-        const notifQuery = query(
-          collection(db, 'notifications'),
-          where('targetRole', '==', 'super_admin'),
-          orderBy('createdAt', 'desc'),
-          limit(50)
-        )
-        const unsub2 = onSnapshot(notifQuery, (snapshot) => {
-          const roleNotifs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+        const unsub2 = subscribeToRoleNotifications('super_admin', (roleNotifs) => {
           setNotifications(prev => {
             const merged = [...roleNotifs, ...prev.filter(n => !roleNotifs.some(rn => rn.id === n.id))]
             merged.sort((a, b) => {
@@ -1560,12 +1590,12 @@ export function AppProvider({ children }) {
       const currentExpiry = sub?.expiryDate ? new Date(sub.expiryDate) : now
       const newExpiry = new Date(currentExpiry)
       newExpiry.setDate(newExpiry.getDate() + billingInterval)
-      await updateDoc(doc(db, 'gyms', gymId), {
+      await setGymSubscriptionFields(gymId, {
         'subscription.status': 'active',
         'subscription.licenseStatus': 'active',
         'subscription.expiryDate': newExpiry.toISOString(),
         'subscription.cancelledAt': null,
-        'subscription.updatedAt': serverTimestamp(),
+        'subscription.updatedAt': new Date().toISOString(),
       })
       fireNotif('sub_reactivated', {
         userId: currentUser?.uid,

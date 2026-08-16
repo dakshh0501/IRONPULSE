@@ -1,0 +1,114 @@
+[
+  {
+    "table": "plans",
+    "legacyId": "0rfUnnehLa0yCVa5MIIf",
+    "reasons": [
+      "plan name 'Basic plan' has no consumer evidence — MANUAL_REVIEW (no semantic mapping without evidence)",
+      "missing gymId (plans.gym_id NOT NULL, no safe fallback)"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "fd3e720a-57a1-5279-a08b-405186521d68",
+      "gym_id": null,
+      "name": "Basic plan",
+      "price": 900,
+      "duration": 43200,
+      "duration_days": 30,
+      "description": "This one-month gym plan is designed to build consistency, strength, and confidence. In the first week, focus on learning proper exercise techniques and developing the habit of working out regularly. During the second week, gradually increase the weight or repetitions to challenge your muscles. In the third week, concentrate on improving your strength and endurance by pushing yourself a little harder in each session. By the fourth week, give your best effort while maintaining good form and discipline. Stay committed, eat nutritious food, get enough rest, and trust the process. Every workout brings you one step closer to your fitness goals, so stay focused, stay motivated, and keep moving forward. 💪🔥",
+      "active": true,
+      "sort_order": 0,
+      "created_at": "2026-06-24T15:45:52.202Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "plans",
+    "legacyId": "2z8Bk05Am73oeDWd75Fj",
+    "reasons": [
+      "plan name 'kickstart' has no consumer evidence — MANUAL_REVIEW (no semantic mapping without evidence)",
+      "missing gymId (plans.gym_id NOT NULL, no safe fallback)"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "0003aef9-37b8-59d7-a608-b37a6be81baa",
+      "gym_id": null,
+      "name": "kickstart",
+      "price": 2700,
+      "duration": 129600,
+      "duration_days": 90,
+      "description": "",
+      "active": true,
+      "sort_order": 0,
+      "created_at": "2026-06-24T15:46:49.104Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "plans",
+    "legacyId": "DkEt7PqFOsBQlikhBUfY",
+    "reasons": [
+      "plan name 'legacy' has no consumer evidence — MANUAL_REVIEW (no semantic mapping without evidence)",
+      "missing gymId (plans.gym_id NOT NULL, no safe fallback)"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "3cd852fb-6bf7-5b05-a232-d22b2dd6146a",
+      "gym_id": null,
+      "name": "legacy",
+      "price": 19999,
+      "duration": 525600,
+      "duration_days": 365,
+      "description": "",
+      "active": true,
+      "sort_order": 0,
+      "created_at": "2026-06-24T15:47:59.385Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "plans",
+    "legacyId": "OWC3orNiwFuPpfEV3IxZ",
+    "reasons": [
+      "plan name 'Titan' has no consumer evidence — MANUAL_REVIEW (no semantic mapping without evidence)",
+      "missing gymId (plans.gym_id NOT NULL, no safe fallback)"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [],
+    "transformed": [
+      "duration: coerced to minutes"
+    ],
+    "record": {
+      "id": "4c4a4aae-e662-5d3e-be8e-39f5ff5b2f12",
+      "gym_id": null,
+      "name": "Titan",
+      "price": 5600,
+      "duration": 259200,
+      "duration_days": 120,
+      "description": "",
+      "active": true,
+      "sort_order": 0,
+      "created_at": "2026-06-24T15:47:25.826Z",
+      "updated_at": null
+    }
+  }
+]

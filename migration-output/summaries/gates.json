@@ -1,0 +1,19 @@
+{
+  "gates": {
+    "GATE A — no sensitive-value leakage (deny-list scan of all artifacts)": "GREEN",
+    "GATE B — all canonical IDs resolvable (0 unresolved refs in safe+manual rows)": "RED (1 unresolved refs)",
+    "GATE C — all required gym relationships valid": "RED (9 gyms need owner/tenant decisions)",
+    "GATE D — plan vocabulary approved": "RED (4 plan names need mapping decisions)",
+    "GATE E — attendance orphan policy approved": "REVIEW REQUIRED (policy: quarantine all 49 until owner decision)",
+    "GATE F — deterministic identifiers collision-free": "GREEN",
+    "GATE G — import row counts reconciled": "GREEN"
+  },
+  "gateA": {
+    "scannedFiles": []
+  },
+  "totals": {
+    "safe": 152,
+    "manualReview": 45,
+    "quarantine": 61
+  }
+}

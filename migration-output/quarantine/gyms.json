@@ -1,0 +1,104 @@
+[
+  {
+    "table": "gyms",
+    "legacyId": "3u8ObSiWlk60Mbo2qdp6",
+    "reasons": [
+      "ownerUid has no users doc — no owner invented; quarantine record prepared"
+    ],
+    "missing": [],
+    "unresolved": [
+      "ownerUid"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "3u8ObSiWlk60Mbo2qdp6",
+      "gym_name": "TestGym",
+      "owner_name": "Test22",
+      "email": "r***@lanvos.com",
+      "phone": "87***544",
+      "owner_uid": null,
+      "status": null,
+      "approval_status": "rejected",
+      "approval_reviewed_at": null,
+      "approved_at": null,
+      "rejected_reason": null,
+      "documents": {},
+      "subscription": {},
+      "created_at": "2026-08-12T11:50:17.830Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "gyms",
+    "legacyId": "6XND7bUXNAWEj0asIGWy",
+    "reasons": [
+      "ownerUid has no users doc — no owner invented; quarantine record prepared"
+    ],
+    "missing": [],
+    "unresolved": [
+      "ownerUid"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "6XND7bUXNAWEj0asIGWy",
+      "gym_name": "TestGym",
+      "owner_name": "Test",
+      "email": "r***@lanvos.com",
+      "phone": "87***654",
+      "owner_uid": null,
+      "status": null,
+      "approval_status": "rejected",
+      "approval_reviewed_at": null,
+      "approved_at": null,
+      "rejected_reason": null,
+      "documents": {},
+      "subscription": {},
+      "created_at": "2026-08-12T14:03:30.305Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "gyms",
+    "legacyId": "Vh305r5D0desNQtqxXiz",
+    "reasons": [
+      "ownerUid has no users doc — no owner invented; quarantine record prepared"
+    ],
+    "missing": [],
+    "unresolved": [
+      "ownerUid"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "Vh305r5D0desNQtqxXiz",
+      "gym_name": "testgym",
+      "owner_name": "Test",
+      "email": "r***@lanvos.com",
+      "phone": "87***654",
+      "owner_uid": null,
+      "status": null,
+      "approval_status": "approved",
+      "approval_reviewed_at": null,
+      "approved_at": null,
+      "rejected_reason": null,
+      "documents": {},
+      "subscription": {
+        "paymentMethod": "Not Set",
+        "status": "active",
+        "updatedAt": "2026-08-12T14:09:37.049Z",
+        "licenseStatus": "active",
+        "amount": 0,
+        "licenseKey": "IRP-HUB1-1APK-9MG9",
+        "expiryDate": "2026-08-19T14:09:37.049Z",
+        "deviceLimit": 1,
+        "generatedAt": "2026-08-12T14:09:37.049Z",
+        "planType": "trial",
+        "currency": "INR",
+        "paymentStatus": "paid",
+        "plan": "Trial",
+        "startDate": "2026-08-12T14:09:37.049Z"
+      },
+      "created_at": "2026-08-12T14:08:25.173Z",
+      "updated_at": null
+    }
+  }
+]

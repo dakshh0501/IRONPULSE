@@ -1,0 +1,1669 @@
+{
+  "generatedAt": "2026-08-14T17:50:38.349Z",
+  "approvedPlan": {
+    "safe": 152,
+    "manual": 45,
+    "total": 197
+  },
+  "accounting": {
+    "imported": 169,
+    "excluded": 28,
+    "quarantine": 61,
+    "total": 258
+  },
+  "byTable": {
+    "gyms": {
+      "imported": 13,
+      "excluded": 0,
+      "excludedRows": []
+    },
+    "profiles": {
+      "imported": 25,
+      "excluded": 10,
+      "excludedRows": [
+        {
+          "table": "profiles",
+          "legacyId": "37WD336c0YUt3pmFMl8Q9b4xI9g1",
+          "masked": "37WD336c",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "legacy-only profile — not in approved 25-auth mapping (id-map validate-live-auth PASS); excluded from provisioning (10 total) — NO auth account, Firebase doc untouched, preserved in manifest"
+        },
+        {
+          "table": "profiles",
+          "legacyId": "JGQdw7v1aLavo7WsS2IgIzHncjO2",
+          "masked": "JGQdw7v1",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "legacy-only profile — not in approved 25-auth mapping (id-map validate-live-auth PASS); excluded from provisioning (10 total) — NO auth account, Firebase doc untouched, preserved in manifest"
+        },
+        {
+          "table": "profiles",
+          "legacyId": "TitV32lDaQV3Gi9pJEgrduUn8is2",
+          "masked": "TitV32lD",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "legacy-only profile — not in approved 25-auth mapping (id-map validate-live-auth PASS); excluded from provisioning (10 total) — NO auth account, Firebase doc untouched, preserved in manifest"
+        },
+        {
+          "table": "profiles",
+          "legacyId": "Y0BzZnBP2GODAo48o0xEnV5svmE3",
+          "masked": "Y0BzZnBP",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "legacy-only profile — not in approved 25-auth mapping (id-map validate-live-auth PASS); excluded from provisioning (10 total) — NO auth account, Firebase doc untouched, preserved in manifest"
+        },
+        {
+          "table": "profiles",
+          "legacyId": "ZofzD9RL5jO5ml2gX9UhyODtxFI2",
+          "masked": "ZofzD9RL",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "legacy-only profile — not in approved 25-auth mapping (id-map validate-live-auth PASS); excluded from provisioning (10 total) — NO auth account, Firebase doc untouched, preserved in manifest"
+        },
+        {
+          "table": "profiles",
+          "legacyId": "hnfpV7jJW5gIsNX4TQwVNI1xDxC2",
+          "masked": "hnfpV7jJ",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "legacy-only profile — not in approved 25-auth mapping (id-map validate-live-auth PASS); excluded from provisioning (10 total) — NO auth account, Firebase doc untouched, preserved in manifest"
+        },
+        {
+          "table": "profiles",
+          "legacyId": "joShucWxPFV1R34ZeG1a3qv8lCi2",
+          "masked": "joShucWx",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "legacy-only profile — not in approved 25-auth mapping (id-map validate-live-auth PASS); excluded from provisioning (10 total) — NO auth account, Firebase doc untouched, preserved in manifest"
+        },
+        {
+          "table": "profiles",
+          "legacyId": "kh9tSKzDLRQbgMbJ5alqPCNJqaa2",
+          "masked": "kh9tSKzD",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "legacy-only profile — not in approved 25-auth mapping (id-map validate-live-auth PASS); excluded from provisioning (10 total) — NO auth account, Firebase doc untouched, preserved in manifest"
+        },
+        {
+          "table": "profiles",
+          "legacyId": "mNBFFQUHZYcDcWh55gof1gU3BCF3",
+          "masked": "mNBFFQUH",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "legacy-only profile — not in approved 25-auth mapping (id-map validate-live-auth PASS); excluded from provisioning (10 total) — NO auth account, Firebase doc untouched, preserved in manifest"
+        },
+        {
+          "table": "profiles",
+          "legacyId": "nx0Qunp43GPMv2s4PhnghQPHIWg2",
+          "masked": "nx0Qunp4",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "legacy-only profile — not in approved 25-auth mapping (id-map validate-live-auth PASS); excluded from provisioning (10 total) — NO auth account, Firebase doc untouched, preserved in manifest"
+        }
+      ]
+    },
+    "plans": {
+      "imported": 18,
+      "excluded": 6,
+      "excludedRows": [
+        {
+          "table": "plans",
+          "legacyId": "2pEdfObsuMfqrFtJa5Rh",
+          "masked": "2pEdfObs",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "sentinel plan (gymId 'default' sentinel, no tenant) — Decision 5 APPROVED: exclude, preserve, no semantic mapping"
+        },
+        {
+          "table": "plans",
+          "legacyId": "63KUAxDTYBOcAsV3c8JY",
+          "masked": "63KUAxDT",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "sentinel plan (gymId 'default' sentinel, no tenant) — Decision 5 APPROVED: exclude, preserve, no semantic mapping"
+        },
+        {
+          "table": "plans",
+          "legacyId": "7bWzVUnUcpKJu6T0gpUr",
+          "masked": "7bWzVUnU",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "sentinel plan (gymId 'default' sentinel, no tenant) — Decision 5 APPROVED: exclude, preserve, no semantic mapping"
+        },
+        {
+          "table": "plans",
+          "legacyId": "IfBGThgH1GNM2PwH1eJj",
+          "masked": "IfBGThgH",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "sentinel plan (gymId 'default' sentinel, no tenant) — Decision 5 APPROVED: exclude, preserve, no semantic mapping"
+        },
+        {
+          "table": "plans",
+          "legacyId": "gNtFvF7agjkstCDSgLVa",
+          "masked": "gNtFvF7a",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "sentinel plan (gymId 'default' sentinel, no tenant) — Decision 5 APPROVED: exclude, preserve, no semantic mapping"
+        },
+        {
+          "table": "plans",
+          "legacyId": "wuLk33F4xdQaeGfhvLHq",
+          "masked": "wuLk33F4",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "sentinel plan (gymId 'default' sentinel, no tenant) — Decision 5 APPROVED: exclude, preserve, no semantic mapping"
+        }
+      ]
+    },
+    "settings": {
+      "imported": 1,
+      "excluded": 6,
+      "excludedRows": [
+        {
+          "table": "settings",
+          "legacyId": "default:gym",
+          "masked": "default:",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "tenantless settings doc (gym_id 'default' would violate guard_settings_gym) — Decision 6 APPROVED: exclude, preserve"
+        },
+        {
+          "table": "settings",
+          "legacyId": "gym",
+          "masked": "gym",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "tenantless settings doc (gym_id 'default' would violate guard_settings_gym) — Decision 6 APPROVED: exclude, preserve"
+        },
+        {
+          "table": "settings",
+          "legacyId": "notifications",
+          "masked": "notifica",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "tenantless settings doc (gym_id 'default' would violate guard_settings_gym) — Decision 6 APPROVED: exclude, preserve"
+        },
+        {
+          "table": "settings",
+          "legacyId": "pricing",
+          "masked": "pricing",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "tenantless settings doc (gym_id 'default' would violate guard_settings_gym) — Decision 6 APPROVED: exclude, preserve"
+        },
+        {
+          "table": "settings",
+          "legacyId": "profile_y9lt1eCEl2fztfRSI07TMZPwmSy1",
+          "masked": "profile_",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "tenantless settings doc (gym_id 'default' would violate guard_settings_gym) — Decision 6 APPROVED: exclude, preserve"
+        },
+        {
+          "table": "settings",
+          "legacyId": "theme",
+          "masked": "theme",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "tenantless settings doc (gym_id 'default' would violate guard_settings_gym) — Decision 6 APPROVED: exclude, preserve"
+        }
+      ]
+    },
+    "subscriptions": {
+      "imported": 6,
+      "excluded": 1,
+      "excludedRows": [
+        {
+          "table": "subscriptions",
+          "legacyId": "iyjeYRVxdluVFbV5Ksra",
+          "masked": "iyjeYRVx",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "references quarantined orphan gym Vh305r5D (no owner account, Decision 4 quarantine) — FK would violate gyms FK, excluded with documented reason (pre-flight FK check)"
+        }
+      ]
+    },
+    "subscription_history": {
+      "imported": 2,
+      "excluded": 0,
+      "excludedRows": []
+    },
+    "notifications": {
+      "imported": 9,
+      "excluded": 5,
+      "excludedRows": [
+        {
+          "table": "notifications",
+          "legacyId": "EskSHKLhBxNmvsubWdw5",
+          "masked": "EskSHKLh",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "user_id JGQdw7v1 is a legacy-only profile (no auth account, excluded from approved 25) — notifications.user_id NOT NULL FK, excluded with documented reason (pre-flight FK check)"
+        },
+        {
+          "table": "notifications",
+          "legacyId": "Mow83ETjaPwatbt12sEW",
+          "masked": "Mow83ETj",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "user_id joShucWx is a legacy-only profile (no auth account, excluded from approved 25) — notifications.user_id NOT NULL FK, excluded with documented reason (pre-flight FK check)"
+        },
+        {
+          "table": "notifications",
+          "legacyId": "OcNNOiU0jkFOdlE33vOu",
+          "masked": "OcNNOiU0",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "user_id nx0Qunp4 is a legacy-only profile (no auth account, excluded from approved 25) — notifications.user_id NOT NULL FK, excluded with documented reason (pre-flight FK check)"
+        },
+        {
+          "table": "notifications",
+          "legacyId": "Xq0COeoAnDqLboP9DuWq",
+          "masked": "Xq0COeoA",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "user_id Y0BzZnBP is a legacy-only profile (no auth account, excluded from approved 25) — notifications.user_id NOT NULL FK, excluded with documented reason (pre-flight FK check)"
+        },
+        {
+          "table": "notifications",
+          "legacyId": "hHjMIcqvaVde1JwR24Tk",
+          "masked": "hHjMIcqv",
+          "status": "EXCLUDED_WITH_APPROVED_REASON",
+          "reason": "user_id TitV32lD is a legacy-only profile (no auth account, excluded from approved 25) — notifications.user_id NOT NULL FK, excluded with documented reason (pre-flight FK check)"
+        }
+      ]
+    },
+    "license_history": {
+      "imported": 11,
+      "excluded": 0,
+      "excludedRows": []
+    },
+    "referral_codes": {
+      "imported": 1,
+      "excluded": 0,
+      "excludedRows": []
+    },
+    "ai_conversations": {
+      "imported": 15,
+      "excluded": 0,
+      "excludedRows": []
+    },
+    "ai_conversation_messages": {
+      "imported": 65,
+      "excluded": 0,
+      "excludedRows": []
+    },
+    "contact_messages": {
+      "imported": 3,
+      "excluded": 0,
+      "excludedRows": []
+    }
+  },
+  "rows": [
+    {
+      "table": "gyms",
+      "legacyId": "5phqBpix968byObRNBWe",
+      "maskedId": "5phqBpix",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "gyms",
+      "legacyId": "GadKLv237CdZFWz25M4R",
+      "maskedId": "GadKLv23",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "gyms",
+      "legacyId": "M6XqgpXbRF7w9ZJKWP6n",
+      "maskedId": "M6XqgpXb",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "gyms",
+      "legacyId": "P0oebgj7fbHU0IpWoeTm",
+      "maskedId": "P0oebgj7",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "gyms",
+      "legacyId": "gTntxDaniBdKY7BhSfpw",
+      "maskedId": "gTntxDan",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "gyms",
+      "legacyId": "r7bcZ14hpf4a2QMyTb3y",
+      "maskedId": "r7bcZ14h",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "gyms",
+      "legacyId": "yRTNmXSJQEcIGPgMnGWM",
+      "maskedId": "yRTNmXSJ",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "gyms",
+      "legacyId": "1Gz4zHCN3vNqqyj2Kuva",
+      "maskedId": "1Gz4zHCN",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "gyms",
+      "legacyId": "LLrl5gO1TtouuroNkoLc",
+      "maskedId": "LLrl5gO1",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "gyms",
+      "legacyId": "Y3KJLfWvAM5YOOw5NIwj",
+      "maskedId": "Y3KJLfWv",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "gyms",
+      "legacyId": "gym-1786295772301-372804",
+      "maskedId": "gym-1786",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "gyms",
+      "legacyId": "ogE7fL9i14EcAXUdV7fI",
+      "maskedId": "ogE7fL9i",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "gyms",
+      "legacyId": "zG3GB9viQp2DDYqM93HJ",
+      "maskedId": "zG3GB9vi",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "profiles",
+      "legacyId": "HoAU21xy3eSGuErZ6d8ZtMwCLKo1",
+      "maskedId": "HoAU21xy",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid 900500d2…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "Q85ZtPEgQKSfNLYnjYWBwiHqb6D3",
+      "maskedId": "Q85ZtPEg",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid 73c7ad0a…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "SGWHqTsXHGMLbLts2rTVLYkCHtX2",
+      "maskedId": "SGWHqTsX",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid 7a8c09fc…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "VkmrgSZIOeXstCljf468sYLdLKn1",
+      "maskedId": "VkmrgSZI",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid 1c7caf3c…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "clwHQsB3kaVvAGl8MsxqOqfeUK63",
+      "maskedId": "clwHQsB3",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid 252a7380…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "et6MpYMBGrYN1ukFid49H3NQTQi1",
+      "maskedId": "et6MpYMB",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid ac12cead…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "hVBdS5aYrjTRSKdEu3WmlT4Zj8x1",
+      "maskedId": "hVBdS5aY",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid 43818fcb…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "y9lt1eCEl2fztfRSI07TMZPwmSy1",
+      "maskedId": "y9lt1eCE",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid 85d2de87…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "37WD336c0YUt3pmFMl8Q9b4xI9g1",
+      "maskedId": "37WD336c",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "legacy-only profile — not in approved 25-auth mapping (id-map validate-live-auth PASS); excluded from provisioning (10 total) — NO auth account, Firebase doc untouched, preserved in manifest"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "6oPiPBcZU4N2znxa4JjRnizb2hv1",
+      "maskedId": "6oPiPBcZ",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid 248ef170…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "A0kiygGnU8dSev0jZs4iJrrn3Fm1",
+      "maskedId": "A0kiygGn",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid a7bb02b7…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "A4EI9QVEcYgZNIdTLK1gJPKoEzB3",
+      "maskedId": "A4EI9QVE",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid 78f1d8d8…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "AdenEc6J2ZRycIBMQCVMjdjx2RU2",
+      "maskedId": "AdenEc6J",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid 3053e5a0…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "ArlmC1TZ0ANhCHArNPJTk9YoIbL2",
+      "maskedId": "ArlmC1TZ",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid f98ac3c3…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "C6kXWzCLFXeDwzp9b42KBRZxCXv2",
+      "maskedId": "C6kXWzCL",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid 1ba3cf8b…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "JGQdw7v1aLavo7WsS2IgIzHncjO2",
+      "maskedId": "JGQdw7v1",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "legacy-only profile — not in approved 25-auth mapping (id-map validate-live-auth PASS); excluded from provisioning (10 total) — NO auth account, Firebase doc untouched, preserved in manifest"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "JeFv6yMBaihoqWTbgAmJhma62al2",
+      "maskedId": "JeFv6yMB",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid c7034d3b…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "SbrLJMbTSdToFsXPhyT3WsOokMl1",
+      "maskedId": "SbrLJMbT",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid ba230aee…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "TitV32lDaQV3Gi9pJEgrduUn8is2",
+      "maskedId": "TitV32lD",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "legacy-only profile — not in approved 25-auth mapping (id-map validate-live-auth PASS); excluded from provisioning (10 total) — NO auth account, Firebase doc untouched, preserved in manifest"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "VRSS1PoSNmNgj8pvBeYqiOdVZ2z2",
+      "maskedId": "VRSS1PoS",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid 4189ff66…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "Y0BzZnBP2GODAo48o0xEnV5svmE3",
+      "maskedId": "Y0BzZnBP",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "legacy-only profile — not in approved 25-auth mapping (id-map validate-live-auth PASS); excluded from provisioning (10 total) — NO auth account, Firebase doc untouched, preserved in manifest"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "ZofzD9RL5jO5ml2gX9UhyODtxFI2",
+      "maskedId": "ZofzD9RL",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "legacy-only profile — not in approved 25-auth mapping (id-map validate-live-auth PASS); excluded from provisioning (10 total) — NO auth account, Firebase doc untouched, preserved in manifest"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "bRKcg3fwzQbvspZLoHU4nBvBuOu2",
+      "maskedId": "bRKcg3fw",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid ccfb704f…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "e6qDcu7NaCSEadPTyOfE5eUatqQ2",
+      "maskedId": "e6qDcu7N",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid 0e2bbbd8…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "fvPn9yyfqEQT1cEV9r4mO7lxex82",
+      "maskedId": "fvPn9yyf",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid 750a7bf0…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "hnfpV7jJW5gIsNX4TQwVNI1xDxC2",
+      "maskedId": "hnfpV7jJ",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "legacy-only profile — not in approved 25-auth mapping (id-map validate-live-auth PASS); excluded from provisioning (10 total) — NO auth account, Firebase doc untouched, preserved in manifest"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "hxTWhdxQrnUFFd6R8zNmFdVGvh23",
+      "maskedId": "hxTWhdxQ",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid 4cf44926…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "joShucWxPFV1R34ZeG1a3qv8lCi2",
+      "maskedId": "joShucWx",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "legacy-only profile — not in approved 25-auth mapping (id-map validate-live-auth PASS); excluded from provisioning (10 total) — NO auth account, Firebase doc untouched, preserved in manifest"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "kh9tSKzDLRQbgMbJ5alqPCNJqaa2",
+      "maskedId": "kh9tSKzD",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "legacy-only profile — not in approved 25-auth mapping (id-map validate-live-auth PASS); excluded from provisioning (10 total) — NO auth account, Firebase doc untouched, preserved in manifest"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "lToD65boPAaLbKr5wIdaAXflZXI2",
+      "maskedId": "lToD65bo",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid 07f4ccb8…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "mFpTjk9hzqVE7A6mHuRHXEuNMxy1",
+      "maskedId": "mFpTjk9h",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid 4b97a892…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "mNBFFQUHZYcDcWh55gof1gU3BCF3",
+      "maskedId": "mNBFFQUH",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "legacy-only profile — not in approved 25-auth mapping (id-map validate-live-auth PASS); excluded from provisioning (10 total) — NO auth account, Firebase doc untouched, preserved in manifest"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "nx0Qunp43GPMv2s4PhnghQPHIWg2",
+      "maskedId": "nx0Qunp4",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "legacy-only profile — not in approved 25-auth mapping (id-map validate-live-auth PASS); excluded from provisioning (10 total) — NO auth account, Firebase doc untouched, preserved in manifest"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "u2Rxn7c2GjOqFdl1Am8IjAxB3H33",
+      "maskedId": "u2Rxn7c2",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid 1fd0e5a3…"
+    },
+    {
+      "table": "profiles",
+      "legacyId": "znZEEOkdy6OWii4B4kVQSXnmQTr1",
+      "maskedId": "znZEEOkd",
+      "status": "IMPORTED",
+      "reason": "id=live auth uuid 0eeba85d…"
+    },
+    {
+      "table": "plans",
+      "legacyId": "6bXvKUf8mecDqnZuay97",
+      "maskedId": "6bXvKUf8",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "plans",
+      "legacyId": "Bnns6DQoMWRBk7w92cv7",
+      "maskedId": "Bnns6DQo",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "plans",
+      "legacyId": "EUBiWgBa7LC1lt8oOAdh",
+      "maskedId": "EUBiWgBa",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "plans",
+      "legacyId": "F4GtJuKQJpZrp1yX7dWP",
+      "maskedId": "F4GtJuKQ",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "plans",
+      "legacyId": "J90UStlPJgqr5Pl5kwt3",
+      "maskedId": "J90UStlP",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "plans",
+      "legacyId": "LwqjC1ObipbXG22SXOIE",
+      "maskedId": "LwqjC1Ob",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "plans",
+      "legacyId": "NxKV9YPJpuAygSOJqotv",
+      "maskedId": "NxKV9YPJ",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "plans",
+      "legacyId": "OzWxcC0MJFKa309LWvPv",
+      "maskedId": "OzWxcC0M",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "plans",
+      "legacyId": "QBMEbgwxd6wU5TfKEkvL",
+      "maskedId": "QBMEbgwx",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "plans",
+      "legacyId": "QEzhwJskSCNrXyBMM9oN",
+      "maskedId": "QEzhwJsk",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "plans",
+      "legacyId": "Qq2iM0pSedu2oIZX5Fyh",
+      "maskedId": "Qq2iM0pS",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "plans",
+      "legacyId": "VRKetZZ1IBVH7dZfaFm8",
+      "maskedId": "VRKetZZ1",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "plans",
+      "legacyId": "VT4ICnfOmUUyZI9xisja",
+      "maskedId": "VT4ICnfO",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "plans",
+      "legacyId": "Y2KuI6NNHLYdjbCg1G5F",
+      "maskedId": "Y2KuI6NN",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "plans",
+      "legacyId": "ZmmimWbDejzf9C2BTiW2",
+      "maskedId": "ZmmimWbD",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "plans",
+      "legacyId": "fUEg1Us7NMxShtK6PnBD",
+      "maskedId": "fUEg1Us7",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "plans",
+      "legacyId": "spiE0Vz3MwdwSVTFs6ZY",
+      "maskedId": "spiE0Vz3",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "plans",
+      "legacyId": "zcmHKk9XMte3ev8Q5lrM",
+      "maskedId": "zcmHKk9X",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "plans",
+      "legacyId": "2pEdfObsuMfqrFtJa5Rh",
+      "maskedId": "2pEdfObs",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "sentinel plan (gymId 'default' sentinel, no tenant) — Decision 5 APPROVED: exclude, preserve, no semantic mapping"
+    },
+    {
+      "table": "plans",
+      "legacyId": "63KUAxDTYBOcAsV3c8JY",
+      "maskedId": "63KUAxDT",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "sentinel plan (gymId 'default' sentinel, no tenant) — Decision 5 APPROVED: exclude, preserve, no semantic mapping"
+    },
+    {
+      "table": "plans",
+      "legacyId": "7bWzVUnUcpKJu6T0gpUr",
+      "maskedId": "7bWzVUnU",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "sentinel plan (gymId 'default' sentinel, no tenant) — Decision 5 APPROVED: exclude, preserve, no semantic mapping"
+    },
+    {
+      "table": "plans",
+      "legacyId": "IfBGThgH1GNM2PwH1eJj",
+      "maskedId": "IfBGThgH",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "sentinel plan (gymId 'default' sentinel, no tenant) — Decision 5 APPROVED: exclude, preserve, no semantic mapping"
+    },
+    {
+      "table": "plans",
+      "legacyId": "gNtFvF7agjkstCDSgLVa",
+      "maskedId": "gNtFvF7a",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "sentinel plan (gymId 'default' sentinel, no tenant) — Decision 5 APPROVED: exclude, preserve, no semantic mapping"
+    },
+    {
+      "table": "plans",
+      "legacyId": "wuLk33F4xdQaeGfhvLHq",
+      "maskedId": "wuLk33F4",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "sentinel plan (gymId 'default' sentinel, no tenant) — Decision 5 APPROVED: exclude, preserve, no semantic mapping"
+    },
+    {
+      "table": "settings",
+      "legacyId": "platform",
+      "maskedId": "platform",
+      "status": "IMPORTED",
+      "reason": "gym_id='platform' (guard-exempt)"
+    },
+    {
+      "table": "settings",
+      "legacyId": "default:gym",
+      "maskedId": "default:",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "tenantless settings doc (gym_id 'default' would violate guard_settings_gym) — Decision 6 APPROVED: exclude, preserve"
+    },
+    {
+      "table": "settings",
+      "legacyId": "gym",
+      "maskedId": "gym",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "tenantless settings doc (gym_id 'default' would violate guard_settings_gym) — Decision 6 APPROVED: exclude, preserve"
+    },
+    {
+      "table": "settings",
+      "legacyId": "notifications",
+      "maskedId": "notifica",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "tenantless settings doc (gym_id 'default' would violate guard_settings_gym) — Decision 6 APPROVED: exclude, preserve"
+    },
+    {
+      "table": "settings",
+      "legacyId": "pricing",
+      "maskedId": "pricing",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "tenantless settings doc (gym_id 'default' would violate guard_settings_gym) — Decision 6 APPROVED: exclude, preserve"
+    },
+    {
+      "table": "settings",
+      "legacyId": "profile_y9lt1eCEl2fztfRSI07TMZPwmSy1",
+      "maskedId": "profile_",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "tenantless settings doc (gym_id 'default' would violate guard_settings_gym) — Decision 6 APPROVED: exclude, preserve"
+    },
+    {
+      "table": "settings",
+      "legacyId": "theme",
+      "maskedId": "theme",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "tenantless settings doc (gym_id 'default' would violate guard_settings_gym) — Decision 6 APPROVED: exclude, preserve"
+    },
+    {
+      "table": "subscriptions",
+      "legacyId": "AjrTKzbhwWYLfAf6xCif",
+      "maskedId": "AjrTKzbh",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "subscriptions",
+      "legacyId": "H24GyXhMfeEWy7Ldqoh1",
+      "maskedId": "H24GyXhM",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "subscriptions",
+      "legacyId": "JdRtiOn8Oi7zkM226dYB",
+      "maskedId": "JdRtiOn8",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "subscriptions",
+      "legacyId": "ZyQW3FI3YKD9EZJkgv8r",
+      "maskedId": "ZyQW3FI3",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "subscriptions",
+      "legacyId": "dUImWaFLETH2QO8mYBLY",
+      "maskedId": "dUImWaFL",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "subscriptions",
+      "legacyId": "gERFW9UqlFlBTnBeuEgb",
+      "maskedId": "gERFW9Uq",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "subscriptions",
+      "legacyId": "iyjeYRVxdluVFbV5Ksra",
+      "maskedId": "iyjeYRVx",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "references quarantined orphan gym Vh305r5D (no owner account, Decision 4 quarantine) — FK would violate gyms FK, excluded with documented reason (pre-flight FK check)"
+    },
+    {
+      "table": "subscription_history",
+      "legacyId": "AkAA9YH4PQucf0UGOFmt",
+      "maskedId": "AkAA9YH4",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "subscription_history",
+      "legacyId": "u1sQyLDBnMJHijqdtql5",
+      "maskedId": "u1sQyLDB",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "notifications",
+      "legacyId": "300TOXwV9NvvJdSIvy2C",
+      "maskedId": "300TOXwV",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "notifications",
+      "legacyId": "687O2eVJNezZmwlw35tB",
+      "maskedId": "687O2eVJ",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "notifications",
+      "legacyId": "88jn3wOlDHLGFijFdbs2",
+      "maskedId": "88jn3wOl",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "notifications",
+      "legacyId": "BdPFlbq0eKVFAF0DVXIG",
+      "maskedId": "BdPFlbq0",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "notifications",
+      "legacyId": "EskSHKLhBxNmvsubWdw5",
+      "maskedId": "EskSHKLh",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "user_id JGQdw7v1 is a legacy-only profile (no auth account, excluded from approved 25) — notifications.user_id NOT NULL FK, excluded with documented reason (pre-flight FK check)"
+    },
+    {
+      "table": "notifications",
+      "legacyId": "FsHxqrOmJ2uaC4dlxfHX",
+      "maskedId": "FsHxqrOm",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "notifications",
+      "legacyId": "Jjh9vLBsajx3Qd1Lk71K",
+      "maskedId": "Jjh9vLBs",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "notifications",
+      "legacyId": "Mow83ETjaPwatbt12sEW",
+      "maskedId": "Mow83ETj",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "user_id joShucWx is a legacy-only profile (no auth account, excluded from approved 25) — notifications.user_id NOT NULL FK, excluded with documented reason (pre-flight FK check)"
+    },
+    {
+      "table": "notifications",
+      "legacyId": "OcNNOiU0jkFOdlE33vOu",
+      "maskedId": "OcNNOiU0",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "user_id nx0Qunp4 is a legacy-only profile (no auth account, excluded from approved 25) — notifications.user_id NOT NULL FK, excluded with documented reason (pre-flight FK check)"
+    },
+    {
+      "table": "notifications",
+      "legacyId": "SHcdWy89kGc0A6FRk3SE",
+      "maskedId": "SHcdWy89",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "notifications",
+      "legacyId": "Xq0COeoAnDqLboP9DuWq",
+      "maskedId": "Xq0COeoA",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "user_id Y0BzZnBP is a legacy-only profile (no auth account, excluded from approved 25) — notifications.user_id NOT NULL FK, excluded with documented reason (pre-flight FK check)"
+    },
+    {
+      "table": "notifications",
+      "legacyId": "g7Cu7P1HShqyeOvpKzgb",
+      "maskedId": "g7Cu7P1H",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "notifications",
+      "legacyId": "hHjMIcqvaVde1JwR24Tk",
+      "maskedId": "hHjMIcqv",
+      "status": "EXCLUDED_WITH_APPROVED_REASON",
+      "reason": "user_id TitV32lD is a legacy-only profile (no auth account, excluded from approved 25) — notifications.user_id NOT NULL FK, excluded with documented reason (pre-flight FK check)"
+    },
+    {
+      "table": "notifications",
+      "legacyId": "y4PSbailnl1epQ1rwNPh",
+      "maskedId": "y4PSbail",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "license_history",
+      "legacyId": "6hfPc9yVP6mi5edQmSVx",
+      "maskedId": "6hfPc9yV",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "license_history",
+      "legacyId": "97Nodh0tS7KgOR55E3dV",
+      "maskedId": "97Nodh0t",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "license_history",
+      "legacyId": "AlXngjGzN6WO94cdsgtK",
+      "maskedId": "AlXngjGz",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "license_history",
+      "legacyId": "F2iDn2Cwj4us2R6sjCYz",
+      "maskedId": "F2iDn2Cw",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "license_history",
+      "legacyId": "FYwvVzV8opNfL6odtzgJ",
+      "maskedId": "FYwvVzV8",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "license_history",
+      "legacyId": "GYaiGjm1kkz4nzc9NtEw",
+      "maskedId": "GYaiGjm1",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "license_history",
+      "legacyId": "LNLwgboYvmnxGrVVjwKO",
+      "maskedId": "LNLwgboY",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "license_history",
+      "legacyId": "QD8CBpsEY7IjdoSaZSyZ",
+      "maskedId": "QD8CBpsE",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "license_history",
+      "legacyId": "RYYsLUw8mkdGlBKlJf03",
+      "maskedId": "RYYsLUw8",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "license_history",
+      "legacyId": "UcAmmmDbuy2L5A2lQKcf",
+      "maskedId": "UcAmmmDb",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "license_history",
+      "legacyId": "YYA7fEOAA3ryHxLroKcC",
+      "maskedId": "YYA7fEOA",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "referral_codes",
+      "legacyId": "IP-H6POBD",
+      "maskedId": "IP-H6POB",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversations",
+      "legacyId": "0dOdYyMeKqRKgVLmaIjk",
+      "maskedId": "0dOdYyMe",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversations",
+      "legacyId": "5FaVUW2o6ZaKkE980Kbp",
+      "maskedId": "5FaVUW2o",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversations",
+      "legacyId": "7FP5SG37wWYsNz3oOopo",
+      "maskedId": "7FP5SG37",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversations",
+      "legacyId": "CJHJQhti2uM1HITWWKdY",
+      "maskedId": "CJHJQhti",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversations",
+      "legacyId": "PmVGzdPteqayVsDnXZt5",
+      "maskedId": "PmVGzdPt",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversations",
+      "legacyId": "Rz71ZWXBeX9Gg7xS4O8G",
+      "maskedId": "Rz71ZWXB",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversations",
+      "legacyId": "VnzAW0JZX5qzQr4W5zpx",
+      "maskedId": "VnzAW0JZ",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversations",
+      "legacyId": "XfIt4W9gUuZ1C4PMQ1zz",
+      "maskedId": "XfIt4W9g",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversations",
+      "legacyId": "fpXpqX5PnuZcPPV1Q2T3",
+      "maskedId": "fpXpqX5P",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversations",
+      "legacyId": "hDHgoBgCWbxauBwwekTb",
+      "maskedId": "hDHgoBgC",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversations",
+      "legacyId": "jykjM8rizQLSIZUQa4zB",
+      "maskedId": "jykjM8ri",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversations",
+      "legacyId": "lzmW6yyKKzqilG9vAlmm",
+      "maskedId": "lzmW6yyK",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversations",
+      "legacyId": "tpqtlUr4TeOGHjxMzJhQ",
+      "maskedId": "tpqtlUr4",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversations",
+      "legacyId": "vStSGXMlytIKoFn9bzBB",
+      "maskedId": "vStSGXMl",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversations",
+      "legacyId": "vcHYdqvirekvCJdC4KUa",
+      "maskedId": "vcHYdqvi",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "D49rx5001QXpe4yEKu64",
+      "maskedId": "D49rx500",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "Di1wMOBO8xwzVXxEh656",
+      "maskedId": "Di1wMOBO",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "JmjSbIHA0gFy0w8VxqGH",
+      "maskedId": "JmjSbIHA",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "Q5dwaMhnoiAGRHRc5M3b",
+      "maskedId": "Q5dwaMhn",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "RXmoN55DWi2OoTe1j03G",
+      "maskedId": "RXmoN55D",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "YsvyDVAKnxyLxToDahyK",
+      "maskedId": "YsvyDVAK",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "eq84qcdQECqdyhBWNcNT",
+      "maskedId": "eq84qcdQ",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "yF6KgGEXmGCwTSion1jJ",
+      "maskedId": "yF6KgGEX",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "6P8zIa4mcGmXogQUugw6",
+      "maskedId": "6P8zIa4m",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "rdLKkh0sg3lGraNdXHIp",
+      "maskedId": "rdLKkh0s",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "BK30F98vqG67xGZ3uBFH",
+      "maskedId": "BK30F98v",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "EPkE7qv3WHiZKRGFuadw",
+      "maskedId": "EPkE7qv3",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "P27Q09XVDQfYi5aUVHIk",
+      "maskedId": "P27Q09XV",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "PiSA2QgHPRZAt8YWY5c6",
+      "maskedId": "PiSA2QgH",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "Rg6gusKyqFloRIALIJq6",
+      "maskedId": "Rg6gusKy",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "bYvgCvo5rXsZqNmZtFrv",
+      "maskedId": "bYvgCvo5",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "fEkEu9hjsnPoqmknVI8s",
+      "maskedId": "fEkEu9hj",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "hESiNk00CUw6y0VMwfMY",
+      "maskedId": "hESiNk00",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "jbkdiVKddzknxwgphR8I",
+      "maskedId": "jbkdiVKd",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "zWDi29f5BO5XHC7zaI6t",
+      "maskedId": "zWDi29f5",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "04BpCgwuKTgjWTzdOqWS",
+      "maskedId": "04BpCgwu",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "P4CPbhjUkFU1OVDgRh4L",
+      "maskedId": "P4CPbhjU",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "cT37ClniwgDbv1xpwXgu",
+      "maskedId": "cT37Clni",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "e1tCPNXsLg5QQxbo2riV",
+      "maskedId": "e1tCPNXs",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "ygJTXQ3Ty5y5FKg32fyx",
+      "maskedId": "ygJTXQ3T",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "zBoEbSuxYRioCtPJ9M9Q",
+      "maskedId": "zBoEbSux",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "44OTyyj7wDWc4uZZNm7U",
+      "maskedId": "44OTyyj7",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "G7NFsPR079w9PpGGD1sc",
+      "maskedId": "G7NFsPR0",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "2OqqgIGGmbvBYqWoOjUc",
+      "maskedId": "2OqqgIGG",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "kQdnHpXDbBqQuzGLo2XO",
+      "maskedId": "kQdnHpXD",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "3830REbFZ2ktoc1iF6mU",
+      "maskedId": "3830REbF",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "F8D0NLpBeb6eE7z2nmZp",
+      "maskedId": "F8D0NLpB",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "PeaWDTWhGg6c8u99Zp57",
+      "maskedId": "PeaWDTWh",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "T7j7MTTuiqyOT4fOuB30",
+      "maskedId": "T7j7MTTu",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "pWSpuhbeCGwPMytiyHik",
+      "maskedId": "pWSpuhbe",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "uXgw0Xnbwdls5OnRTaRg",
+      "maskedId": "uXgw0Xnb",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "3porVtIeE53YIZDKgTz2",
+      "maskedId": "3porVtIe",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "A9RSqUrO8SWKrWFq6Fn1",
+      "maskedId": "A9RSqUrO",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "JQTHRoT9oiSCHxJC2VZX",
+      "maskedId": "JQTHRoT9",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "ii1fIzSFQlmkp52Bzaq7",
+      "maskedId": "ii1fIzSF",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "yELDTT8eSJ1QK7e7bUg2",
+      "maskedId": "yELDTT8e",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "yQgj46ifL5BohuyOkpaO",
+      "maskedId": "yQgj46if",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "DnNyjL8sXlwtJ7TbN426",
+      "maskedId": "DnNyjL8s",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "Mj6p68cdgRd1Adsu4bz1",
+      "maskedId": "Mj6p68cd",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "hU9HOIV11WdM2A5e4jpE",
+      "maskedId": "hU9HOIV1",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "mxInpBfhnkVXGaI46fvC",
+      "maskedId": "mxInpBfh",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "nj4YCIUikKa4VvjdaiBK",
+      "maskedId": "nj4YCIUi",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "v7rFs8rCLYMtocn2DRaO",
+      "maskedId": "v7rFs8rC",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "y7J34tFQ167PyIYogRfe",
+      "maskedId": "y7J34tFQ",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "0bCq42tbgJrr9f62WO7E",
+      "maskedId": "0bCq42tb",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "JpUS9fjYdDDZ7o8eIWXY",
+      "maskedId": "JpUS9fjY",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "UvhzGuSMKBoB3BiM67MR",
+      "maskedId": "UvhzGuSM",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "nDFhdvLVmxwkJIt0S6KQ",
+      "maskedId": "nDFhdvLV",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "j0pKjvGtClJjkomiyBNO",
+      "maskedId": "j0pKjvGt",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "udsAdqn8OFMBJ326RgJM",
+      "maskedId": "udsAdqn8",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "hyPBewUzuVQAJCjWnb0r",
+      "maskedId": "hyPBewUz",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "ymTae0U3FojIvVswUyg6",
+      "maskedId": "ymTae0U3",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "TwwdzsDPxGmMKHj89KNZ",
+      "maskedId": "TwwdzsDP",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "bIFDtGvYNmmtpaDi1hWL",
+      "maskedId": "bIFDtGvY",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "6rgmREMgUupjVuYAMCLi",
+      "maskedId": "6rgmREMg",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "A518CnhtABK7Jf473SNM",
+      "maskedId": "A518Cnht",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "JHxMPxiZN0i9sgFhI2lU",
+      "maskedId": "JHxMPxiZ",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "ntF1iY0tWnQROykQlElO",
+      "maskedId": "ntF1iY0t",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "bWtA0UI0Q2bbI988bybA",
+      "maskedId": "bWtA0UI0",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "ai_conversation_messages",
+      "legacyId": "qclczPTdQ2BYkjszXGi4",
+      "maskedId": "qclczPTd",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "contact_messages",
+      "legacyId": "2cjmO3eZHGIQtvuQfAPA",
+      "maskedId": "2cjmO3eZ",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "contact_messages",
+      "legacyId": "2ngW3GZOQLNmTjPeGZJh",
+      "maskedId": "2ngW3GZO",
+      "status": "IMPORTED",
+      "reason": ""
+    },
+    {
+      "table": "contact_messages",
+      "legacyId": "jlKUwHS2AYstjTk7bDuZ",
+      "maskedId": "jlKUwHS2",
+      "status": "IMPORTED",
+      "reason": ""
+    }
+  ],
+  "quarantine": {
+    "total": 61,
+    "byCollection": {
+      "attendance": 49,
+      "gyms": 3,
+      "members": 1,
+      "plans": 4,
+      "notifications": 4
+    },
+    "collisionsWithImported": 0
+  }
+}

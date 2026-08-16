@@ -1,0 +1,436 @@
+[
+  {
+    "table": "notifications",
+    "legacyId": "300TOXwV9NvvJdSIvy2C",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL, nullable FK)"
+    ],
+    "record": {
+      "id": "5dcf98bb-3523-59e0-8345-86ac925fa5bd",
+      "user_id": "SGWHqTsXHGMLbLts2rTVLYkCHtX2",
+      "gym_id": null,
+      "role": "admin",
+      "title": "Gym Approved",
+      "message": "Your gym \"gyrodesk\" has been approved by the admin.",
+      "type": "gym",
+      "subtype": "gym_approved",
+      "priority": "high",
+      "icon": "✅",
+      "action_url": "/dashboard",
+      "related_document_id": "GadKLv237CdZFWz25M4R",
+      "page": null,
+      "tab": null,
+      "contact_id": null,
+      "target_role": null,
+      "read": false,
+      "created_at": "2026-08-10T17:51:52.291Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "notifications",
+    "legacyId": "687O2eVJNezZmwlw35tB",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL, nullable FK)"
+    ],
+    "record": {
+      "id": "6f5da301-0c6d-5de1-83d5-40e0f38ab542",
+      "user_id": "ArlmC1TZ0ANhCHArNPJTk9YoIbL2",
+      "gym_id": null,
+      "role": "admin",
+      "title": "Gym Registration Rejected",
+      "message": "Your gym \"79F Live Verification\" registration has been rejected.",
+      "type": "gym",
+      "subtype": "gym_rejected",
+      "priority": "high",
+      "icon": "❌",
+      "action_url": "",
+      "related_document_id": "gym-1786295772301-372804",
+      "page": null,
+      "tab": null,
+      "contact_id": null,
+      "target_role": null,
+      "read": false,
+      "created_at": "2026-08-10T17:46:17.021Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "notifications",
+    "legacyId": "88jn3wOlDHLGFijFdbs2",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL, nullable FK)"
+    ],
+    "record": {
+      "id": "39a888de-72c9-5967-9dd6-877c22efdbec",
+      "user_id": "hVBdS5aYrjTRSKdEu3WmlT4Zj8x1",
+      "gym_id": null,
+      "role": "admin",
+      "title": "Gym Approved",
+      "message": "Your gym \"nagpurfitness club\" has been approved by the admin.",
+      "type": "gym",
+      "subtype": "gym_approved",
+      "priority": "high",
+      "icon": "✅",
+      "action_url": "/dashboard",
+      "related_document_id": "5phqBpix968byObRNBWe",
+      "page": null,
+      "tab": null,
+      "contact_id": null,
+      "target_role": null,
+      "read": false,
+      "created_at": "2026-08-10T17:53:45.225Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "notifications",
+    "legacyId": "BdPFlbq0eKVFAF0DVXIG",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL, nullable FK)"
+    ],
+    "record": {
+      "id": "2bab02de-e6fa-5613-88df-3db52e506d38",
+      "user_id": "Q85ZtPEgQKSfNLYnjYWBwiHqb6D3",
+      "gym_id": null,
+      "role": "admin",
+      "title": "Gym Approved",
+      "message": "Your gym \"RohitGym\" has been approved by the admin.",
+      "type": "gym",
+      "subtype": "gym_approved",
+      "priority": "high",
+      "icon": "✅",
+      "action_url": "/dashboard",
+      "related_document_id": "yRTNmXSJQEcIGPgMnGWM",
+      "page": null,
+      "tab": null,
+      "contact_id": null,
+      "target_role": null,
+      "read": false,
+      "created_at": "2026-06-28T07:36:01.413Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "notifications",
+    "legacyId": "EskSHKLhBxNmvsubWdw5",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL, nullable FK)"
+    ],
+    "record": {
+      "id": "6c2b92e8-d6bb-58a9-9854-ef8b75b3fcd6",
+      "user_id": "JGQdw7v1aLavo7WsS2IgIzHncjO2",
+      "gym_id": null,
+      "role": "admin",
+      "title": "Gym Registration Rejected",
+      "message": "Your gym \"nuteral gym\" registration has been rejected.",
+      "type": "gym",
+      "subtype": "gym_rejected",
+      "priority": "high",
+      "icon": "❌",
+      "action_url": "",
+      "related_document_id": "Y3KJLfWvAM5YOOw5NIwj",
+      "page": null,
+      "tab": null,
+      "contact_id": null,
+      "target_role": null,
+      "read": false,
+      "created_at": "2026-08-10T17:46:15.203Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "notifications",
+    "legacyId": "FsHxqrOmJ2uaC4dlxfHX",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL, nullable FK)"
+    ],
+    "record": {
+      "id": "b68f6392-db44-5c23-b303-c9a1c7f7176e",
+      "user_id": "A0kiygGnU8dSev0jZs4iJrrn3Fm1",
+      "gym_id": null,
+      "role": "admin",
+      "title": "Gym Registration Rejected",
+      "message": "Your gym \"nuteral gym\" registration has been rejected.",
+      "type": "gym",
+      "subtype": "gym_rejected",
+      "priority": "high",
+      "icon": "❌",
+      "action_url": "",
+      "related_document_id": "LLrl5gO1TtouuroNkoLc",
+      "page": null,
+      "tab": null,
+      "contact_id": null,
+      "target_role": null,
+      "read": false,
+      "created_at": "2026-08-10T17:46:13.458Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "notifications",
+    "legacyId": "Jjh9vLBsajx3Qd1Lk71K",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL, nullable FK)"
+    ],
+    "record": {
+      "id": "4054b7cf-1f2f-5e59-aa56-5170d5c6e33f",
+      "user_id": "HoAU21xy3eSGuErZ6d8ZtMwCLKo1",
+      "gym_id": null,
+      "role": "admin",
+      "title": "Gym Approved",
+      "message": "Your gym \"nfc\" has been approved by the admin.",
+      "type": "gym",
+      "subtype": "gym_approved",
+      "priority": "high",
+      "icon": "✅",
+      "action_url": "/dashboard",
+      "related_document_id": "gTntxDaniBdKY7BhSfpw",
+      "page": null,
+      "tab": null,
+      "contact_id": null,
+      "target_role": null,
+      "read": false,
+      "created_at": "2026-08-11T15:45:07.391Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "notifications",
+    "legacyId": "Mow83ETjaPwatbt12sEW",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL, nullable FK)"
+    ],
+    "record": {
+      "id": "079fa580-f30a-550c-9db0-5c55fcc92388",
+      "user_id": "joShucWxPFV1R34ZeG1a3qv8lCi2",
+      "gym_id": null,
+      "role": "admin",
+      "title": "Gym Registration Rejected",
+      "message": "Your gym \"RohitGym\" registration has been rejected.",
+      "type": "gym",
+      "subtype": "gym_rejected",
+      "priority": "high",
+      "icon": "❌",
+      "action_url": "",
+      "related_document_id": "ZX8i8XD450SGoXRjiOOV",
+      "page": null,
+      "tab": null,
+      "contact_id": null,
+      "target_role": null,
+      "read": false,
+      "created_at": "2026-06-27T15:18:28.627Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "notifications",
+    "legacyId": "OcNNOiU0jkFOdlE33vOu",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL, nullable FK)"
+    ],
+    "record": {
+      "id": "21c7977c-028d-564f-8027-795fb590e563",
+      "user_id": "nx0Qunp43GPMv2s4PhnghQPHIWg2",
+      "gym_id": null,
+      "role": "admin",
+      "title": "Gym Registration Rejected",
+      "message": "Your gym \"nuteral gym\" registration has been rejected.",
+      "type": "gym",
+      "subtype": "gym_rejected",
+      "priority": "high",
+      "icon": "❌",
+      "action_url": "",
+      "related_document_id": "zG3GB9viQp2DDYqM93HJ",
+      "page": null,
+      "tab": null,
+      "contact_id": null,
+      "target_role": null,
+      "read": false,
+      "created_at": "2026-08-10T17:46:18.055Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "notifications",
+    "legacyId": "SHcdWy89kGc0A6FRk3SE",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL, nullable FK)"
+    ],
+    "record": {
+      "id": "be264f89-d38e-56b0-b0d1-94f0fa5f196b",
+      "user_id": "JeFv6yMBaihoqWTbgAmJhma62al2",
+      "gym_id": null,
+      "role": "admin",
+      "title": "Gym Registration Rejected",
+      "message": "Your gym \"RohitGym\" registration has been rejected.",
+      "type": "gym",
+      "subtype": "gym_rejected",
+      "priority": "high",
+      "icon": "❌",
+      "action_url": "",
+      "related_document_id": "ogE7fL9i14EcAXUdV7fI",
+      "page": null,
+      "tab": null,
+      "contact_id": null,
+      "target_role": null,
+      "read": false,
+      "created_at": "2026-07-06T09:09:40.825Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "notifications",
+    "legacyId": "Xq0COeoAnDqLboP9DuWq",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL, nullable FK)"
+    ],
+    "record": {
+      "id": "c56e1de7-a14a-5351-afa8-24a1cc253eed",
+      "user_id": "Y0BzZnBP2GODAo48o0xEnV5svmE3",
+      "gym_id": null,
+      "role": "admin",
+      "title": "Gym Registration Rejected",
+      "message": "Your gym \"RohitGym\" registration has been rejected.",
+      "type": "gym",
+      "subtype": "gym_rejected",
+      "priority": "high",
+      "icon": "❌",
+      "action_url": "",
+      "related_document_id": "YSueYkpRdE8qPxvb4XGG",
+      "page": null,
+      "tab": null,
+      "contact_id": null,
+      "target_role": null,
+      "read": false,
+      "created_at": "2026-06-27T15:18:33.097Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "notifications",
+    "legacyId": "g7Cu7P1HShqyeOvpKzgb",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL, nullable FK)"
+    ],
+    "record": {
+      "id": "9a36dda2-8815-5e92-a7cf-30a79de3ca2d",
+      "user_id": "VkmrgSZIOeXstCljf468sYLdLKn1",
+      "gym_id": null,
+      "role": "admin",
+      "title": "Gym Approved",
+      "message": "Your gym \"Money Heist\" has been approved by the admin.",
+      "type": "gym",
+      "subtype": "gym_approved",
+      "priority": "high",
+      "icon": "✅",
+      "action_url": "/dashboard",
+      "related_document_id": "P0oebgj7fbHU0IpWoeTm",
+      "page": null,
+      "tab": null,
+      "contact_id": null,
+      "target_role": null,
+      "read": false,
+      "created_at": "2026-06-29T11:14:45.347Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "notifications",
+    "legacyId": "hHjMIcqvaVde1JwR24Tk",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL, nullable FK)"
+    ],
+    "record": {
+      "id": "55172f13-307e-5968-87ad-00b96f8b439e",
+      "user_id": "TitV32lDaQV3Gi9pJEgrduUn8is2",
+      "gym_id": null,
+      "role": "admin",
+      "title": "Gym Registration Rejected",
+      "message": "Your gym \"nuteral gym\" registration has been rejected.",
+      "type": "gym",
+      "subtype": "gym_rejected",
+      "priority": "high",
+      "icon": "❌",
+      "action_url": "",
+      "related_document_id": "1Gz4zHCN3vNqqyj2Kuva",
+      "page": null,
+      "tab": null,
+      "contact_id": null,
+      "target_role": null,
+      "read": false,
+      "created_at": "2026-08-10T17:46:13.363Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "notifications",
+    "legacyId": "y4PSbailnl1epQ1rwNPh",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL, nullable FK)"
+    ],
+    "record": {
+      "id": "fdc9fe46-1ec2-5141-8287-37d34888a7fa",
+      "user_id": "clwHQsB3kaVvAGl8MsxqOqfeUK63",
+      "gym_id": null,
+      "role": "admin",
+      "title": "Gym Approved",
+      "message": "Your gym \"RohitGym\" has been approved by the admin.",
+      "type": "gym",
+      "subtype": "gym_approved",
+      "priority": "high",
+      "icon": "✅",
+      "action_url": "/dashboard",
+      "related_document_id": "r7bcZ14hpf4a2QMyTb3y",
+      "page": null,
+      "tab": null,
+      "contact_id": null,
+      "target_role": null,
+      "read": false,
+      "created_at": "2026-07-06T09:09:51.447Z",
+      "updated_at": null
+    }
+  }
+]

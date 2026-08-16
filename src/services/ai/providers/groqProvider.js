@@ -291,7 +291,7 @@ export async function streamReply({ question, history = [], role = 'gym_admin', 
     let stream = null
     for (const model of modelChain()) {
       try {
-        stream = await getClient().chat.completions.create({ ...body, model }, options)
+        stream = await (await getClient()).chat.completions.create({ ...body, model }, options)
         break
       } catch (err) {
         if (isModelError(err && err.status, lastHttpBody)) {
@@ -368,7 +368,7 @@ export async function generateJson({ prompt, systemInstruction = SYSTEM_PROMPT, 
     let completion = null
     for (const model of modelChain()) {
       try {
-        completion = await getClient().chat.completions.create({ ...body, model }, options)
+        completion = await (await getClient()).chat.completions.create({ ...body, model }, options)
         break
       } catch (err) {
         if (isModelError(err && err.status, lastHttpBody)) {

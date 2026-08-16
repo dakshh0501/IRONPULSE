@@ -1,0 +1,178 @@
+[
+  {
+    "table": "license_history",
+    "legacyId": "6hfPc9yVP6mi5edQmSVx",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "b1f4e913-8752-58d3-a901-fa2b1bd11d28",
+      "gym_id": "r7bcZ14hpf4a2QMyTb3y",
+      "device_id": "a448b853-39b5-422c-9010-5a0a2f6863af",
+      "action": "Device Re-verified",
+      "performed_by": "system",
+      "created_at": "2026-07-06T09:27:40.219Z"
+    }
+  },
+  {
+    "table": "license_history",
+    "legacyId": "97Nodh0tS7KgOR55E3dV",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "e929bc32-cf73-5d3c-bd12-137a9281dc1e",
+      "gym_id": "r7bcZ14hpf4a2QMyTb3y",
+      "device_id": "a448b853-39b5-422c-9010-5a0a2f6863af",
+      "action": "Device Re-verified",
+      "performed_by": "system",
+      "created_at": "2026-07-06T09:18:03.979Z"
+    }
+  },
+  {
+    "table": "license_history",
+    "legacyId": "AlXngjGzN6WO94cdsgtK",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "9b0f4a28-4309-53f5-8796-e7dc6be8f4fa",
+      "gym_id": "r7bcZ14hpf4a2QMyTb3y",
+      "device_id": "a448b853-39b5-422c-9010-5a0a2f6863af",
+      "action": "Device Removed",
+      "performed_by": "gym_admin",
+      "created_at": "2026-07-06T09:27:56.796Z"
+    }
+  },
+  {
+    "table": "license_history",
+    "legacyId": "F2iDn2Cwj4us2R6sjCYz",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "a537f42f-1364-5072-b4a6-9b59fe8633b8",
+      "gym_id": "r7bcZ14hpf4a2QMyTb3y",
+      "device_id": "a448b853-39b5-422c-9010-5a0a2f6863af",
+      "action": "Device Re-verified",
+      "performed_by": "system",
+      "created_at": "2026-07-06T09:18:34.742Z"
+    }
+  },
+  {
+    "table": "license_history",
+    "legacyId": "FYwvVzV8opNfL6odtzgJ",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "ca25eb95-247a-5b19-8048-f7ee7c72c43b",
+      "gym_id": "r7bcZ14hpf4a2QMyTb3y",
+      "device_id": "a448b853-39b5-422c-9010-5a0a2f6863af",
+      "action": "Device Re-verified",
+      "performed_by": "system",
+      "created_at": "2026-07-06T09:26:21.645Z"
+    }
+  },
+  {
+    "table": "license_history",
+    "legacyId": "GYaiGjm1kkz4nzc9NtEw",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "ff022390-ea59-50b9-91d4-b31e9dc87904",
+      "gym_id": "r7bcZ14hpf4a2QMyTb3y",
+      "device_id": "a448b853-39b5-422c-9010-5a0a2f6863af",
+      "action": "Device Removed",
+      "performed_by": "super_admin",
+      "created_at": "2026-08-10T18:09:21.401Z"
+    }
+  },
+  {
+    "table": "license_history",
+    "legacyId": "LNLwgboYvmnxGrVVjwKO",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "32cda7be-50ee-55ce-a9b7-2620aae6ed4a",
+      "gym_id": "r7bcZ14hpf4a2QMyTb3y",
+      "device_id": "a448b853-39b5-422c-9010-5a0a2f6863af",
+      "action": "Device Re-verified",
+      "performed_by": "system",
+      "created_at": "2026-07-06T09:18:11.593Z"
+    }
+  },
+  {
+    "table": "license_history",
+    "legacyId": "QD8CBpsEY7IjdoSaZSyZ",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "382404ce-aff1-51d1-b626-330e55711a73",
+      "gym_id": "P0oebgj7fbHU0IpWoeTm",
+      "device_id": "system",
+      "action": "Generated",
+      "performed_by": "super_admin",
+      "created_at": "2026-08-12T17:51:22.161Z"
+    }
+  },
+  {
+    "table": "license_history",
+    "legacyId": "RYYsLUw8mkdGlBKlJf03",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "92763171-02c3-5c85-9d60-a5b85117a897",
+      "gym_id": "r7bcZ14hpf4a2QMyTb3y",
+      "device_id": "a448b853-39b5-422c-9010-5a0a2f6863af",
+      "action": "Device Registered",
+      "performed_by": "system",
+      "created_at": "2026-07-06T09:10:05.896Z"
+    }
+  },
+  {
+    "table": "license_history",
+    "legacyId": "UcAmmmDbuy2L5A2lQKcf",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "7c3f4650-5bfc-52c0-a266-5ae3ae782f09",
+      "gym_id": "r7bcZ14hpf4a2QMyTb3y",
+      "device_id": "a448b853-39b5-422c-9010-5a0a2f6863af",
+      "action": "Device Re-verified",
+      "performed_by": "system",
+      "created_at": "2026-07-06T09:14:53.021Z"
+    }
+  },
+  {
+    "table": "license_history",
+    "legacyId": "YYA7fEOAA3ryHxLroKcC",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "f3f71119-ae3c-58cf-acbf-3394cab7660f",
+      "gym_id": "r7bcZ14hpf4a2QMyTb3y",
+      "device_id": "a448b853-39b5-422c-9010-5a0a2f6863af",
+      "action": "Device Re-verified",
+      "performed_by": "system",
+      "created_at": "2026-07-06T09:18:07.601Z"
+    }
+  }
+]

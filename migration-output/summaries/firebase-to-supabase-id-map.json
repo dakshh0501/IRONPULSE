@@ -1,0 +1,280 @@
+{
+  "version": 1,
+  "generatedAt": "2026-08-14T17:28:07.545Z",
+  "mode": "validate-live-auth",
+  "canonicalUidMasked": "A0kiygGn",
+  "approvedTotal": 25,
+  "legacyOnlyExcluded": 10,
+  "validation": "PASS",
+  "stopReasons": [],
+  "idModel": {
+    "profilesId": "auth.users.id (live UUID — the only auth-uuid column)",
+    "profilesFirebaseUid": "original Firebase UID (unique, NOT NULL)",
+    "memberTrainerIds": "deterministic UUIDs (detUuid of legacy doc id) — never auth UUIDs",
+    "textUserRefs": "TEXT FKs → profiles(firebase_uid) per approved DDL — Firebase UIDs, identity-validated, never in uuid columns",
+    "credentials": "never migrated — deny-key strip before any record leaves the pipeline"
+  },
+  "mappings": [
+    {
+      "firebase_uid": "6oPiPBcZU4N2znxa4JjRnizb2hv1",
+      "uidMasked": "6oPiPBcZ",
+      "emailMasked": "n***@gmail.com",
+      "role": "member",
+      "provision": "create",
+      "auth_uuid": "248ef170-81ba-4728-831f-e1eba0eabd65",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "A4EI9QVEcYgZNIdTLK1gJPKoEzB3",
+      "uidMasked": "A4EI9QVE",
+      "emailMasked": "t***@gym.com",
+      "role": "trainer",
+      "provision": "create",
+      "auth_uuid": "78f1d8d8-89a8-47d4-b8bb-9fcf0f798db1",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "AdenEc6J2ZRycIBMQCVMjdjx2RU2",
+      "uidMasked": "AdenEc6J",
+      "emailMasked": "j***@gmail.com",
+      "role": "member",
+      "provision": "create",
+      "auth_uuid": "3053e5a0-78a1-48f9-a0af-e5316ef8581d",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "ArlmC1TZ0ANhCHArNPJTk9YoIbL2",
+      "uidMasked": "ArlmC1TZ",
+      "emailMasked": "s***@example.com",
+      "role": "rejected",
+      "provision": "create-banned",
+      "auth_uuid": "f98ac3c3-e12a-4120-8432-e851dce5f4b1",
+      "banned": true,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "C6kXWzCLFXeDwzp9b42KBRZxCXv2",
+      "uidMasked": "C6kXWzCL",
+      "emailMasked": "t***@gmail.com",
+      "role": "member",
+      "provision": "create",
+      "auth_uuid": "1ba3cf8b-226c-4d2c-a253-05ba46159747",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "HoAU21xy3eSGuErZ6d8ZtMwCLKo1",
+      "uidMasked": "HoAU21xy",
+      "emailMasked": "g***@gmail.com",
+      "role": "gym_owner",
+      "provision": "create",
+      "auth_uuid": "900500d2-1a21-4430-beea-1374d90b2d84",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "JeFv6yMBaihoqWTbgAmJhma62al2",
+      "uidMasked": "JeFv6yMB",
+      "emailMasked": "t***@gmail.com",
+      "role": "rejected",
+      "provision": "create-banned",
+      "auth_uuid": "c7034d3b-7bdc-414f-b81a-d513d65ece6c",
+      "banned": true,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "Q85ZtPEgQKSfNLYnjYWBwiHqb6D3",
+      "uidMasked": "Q85ZtPEg",
+      "emailMasked": "h***@gmail.com",
+      "role": "gym_owner",
+      "provision": "create",
+      "auth_uuid": "73c7ad0a-428f-4fe7-a493-bae7954abf82",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "SGWHqTsXHGMLbLts2rTVLYkCHtX2",
+      "uidMasked": "SGWHqTsX",
+      "emailMasked": "g***@gmail.com",
+      "role": "gym_owner",
+      "provision": "create",
+      "auth_uuid": "7a8c09fc-c147-4473-bfc2-0a4f024d12f1",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "SbrLJMbTSdToFsXPhyT3WsOokMl1",
+      "uidMasked": "SbrLJMbT",
+      "emailMasked": "j***@gmail.com",
+      "role": "member",
+      "provision": "create",
+      "auth_uuid": "ba230aee-c121-4fbb-b549-9317dfd57a16",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "VRSS1PoSNmNgj8pvBeYqiOdVZ2z2",
+      "uidMasked": "VRSS1PoS",
+      "emailMasked": "g***@gmail.com",
+      "role": "trainer",
+      "provision": "create",
+      "auth_uuid": "4189ff66-744d-4101-a532-20f886c29329",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "VkmrgSZIOeXstCljf468sYLdLKn1",
+      "uidMasked": "VkmrgSZI",
+      "emailMasked": "g***@gmail.com",
+      "role": "gym_owner",
+      "provision": "create",
+      "auth_uuid": "1c7caf3c-e989-4b96-a3ea-44fb0693cc70",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "bRKcg3fwzQbvspZLoHU4nBvBuOu2",
+      "uidMasked": "bRKcg3fw",
+      "emailMasked": "f***@mrworlds.com",
+      "role": "gym_owner",
+      "provision": "create",
+      "auth_uuid": "ccfb704f-c00a-4272-b9a5-0f07122308cb",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "clwHQsB3kaVvAGl8MsxqOqfeUK63",
+      "uidMasked": "clwHQsB3",
+      "emailMasked": "d***@doefy.com",
+      "role": "gym_owner",
+      "provision": "create",
+      "auth_uuid": "252a7380-e86b-4acb-a8b1-a0442c40ed88",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "e6qDcu7NaCSEadPTyOfE5eUatqQ2",
+      "uidMasked": "e6qDcu7N",
+      "emailMasked": "r***@gmail.com",
+      "role": "member",
+      "provision": "create",
+      "auth_uuid": "0e2bbbd8-d203-44e0-bdd5-dc2ddcb33a1b",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "et6MpYMBGrYN1ukFid49H3NQTQi1",
+      "uidMasked": "et6MpYMB",
+      "emailMasked": "f***@gmail.com",
+      "role": "gym_owner",
+      "provision": "create",
+      "auth_uuid": "ac12cead-b69b-4876-bc49-364e46668093",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "fvPn9yyfqEQT1cEV9r4mO7lxex82",
+      "uidMasked": "fvPn9yyf",
+      "emailMasked": "m***@gym.com",
+      "role": "member",
+      "provision": "create",
+      "auth_uuid": "750a7bf0-2555-4251-a01d-01c3dc40414b",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "hVBdS5aYrjTRSKdEu3WmlT4Zj8x1",
+      "uidMasked": "hVBdS5aY",
+      "emailMasked": "g***@gmail.com",
+      "role": "gym_owner",
+      "provision": "create",
+      "auth_uuid": "43818fcb-6a38-4d59-bb5f-ae23bfa0574d",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "hxTWhdxQrnUFFd6R8zNmFdVGvh23",
+      "uidMasked": "hxTWhdxQ",
+      "emailMasked": "p***@example.com",
+      "role": "gym_owner_pending",
+      "provision": "create",
+      "auth_uuid": "4cf44926-4d67-4135-91e0-b72202d3f19a",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "lToD65boPAaLbKr5wIdaAXflZXI2",
+      "uidMasked": "lToD65bo",
+      "emailMasked": "t***@gmail.com",
+      "role": "member",
+      "provision": "create",
+      "auth_uuid": "07f4ccb8-b449-4895-9d11-bfc6a3d9dd18",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "mFpTjk9hzqVE7A6mHuRHXEuNMxy1",
+      "uidMasked": "mFpTjk9h",
+      "emailMasked": "j***@gmail.com",
+      "role": "member",
+      "provision": "create",
+      "auth_uuid": "4b97a892-9401-4987-b98c-44d9b53bbca3",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "u2Rxn7c2GjOqFdl1Am8IjAxB3H33",
+      "uidMasked": "u2Rxn7c2",
+      "emailMasked": "r***@gmail.com",
+      "role": "member",
+      "provision": "create",
+      "auth_uuid": "1fd0e5a3-11ee-4951-bc03-9924dff680aa",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "y9lt1eCEl2fztfRSI07TMZPwmSy1",
+      "uidMasked": "y9lt1eCE",
+      "emailMasked": "m***@gmail.com",
+      "role": "super_admin",
+      "provision": "create",
+      "auth_uuid": "85d2de87-7bd6-41b4-a01a-cea76ca641bb",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "znZEEOkdy6OWii4B4kVQSXnmQTr1",
+      "uidMasked": "znZEEOkd",
+      "emailMasked": "t***@gmail.com",
+      "role": "trainer",
+      "provision": "create",
+      "auth_uuid": "0eeba85d-3e5c-4647-be73-544884b46a0d",
+      "banned": false,
+      "status": "mapped"
+    },
+    {
+      "firebase_uid": "A0kiygGnU8dSev0jZs4iJrrn3Fm1",
+      "uidMasked": "A0kiygGn",
+      "emailMasked": "g***@gmail.com",
+      "role": "rejected",
+      "provision": "manual-review",
+      "auth_uuid": "a7bb02b7-7b4b-40b5-9315-b5ae51ae6c1d",
+      "banned": true,
+      "status": "mapped"
+    }
+  ],
+  "missing": [],
+  "duplicates": [],
+  "unexpected": [],
+  "legacyOnlyAuthUsersFound": [],
+  "unresolvedReferences": [],
+  "security": {
+    "emails": "masked only (first char + domain)",
+    "passwords": "never read, never stored, never migrated",
+    "firebaseUids": "opaque, non-sensitive — required by the importer",
+    "authUuids": "recorded from live Auth at validation time"
+  }
+}

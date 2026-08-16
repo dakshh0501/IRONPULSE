@@ -1,0 +1,29 @@
+[
+  {
+    "table": "settings",
+    "legacyId": "platform",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gym_id: doc_id 'platform' → 'platform' (guard_settings_gym exempt, consumed by PlatformSettings.jsx)"
+    ],
+    "record": {
+      "gym_id": "platform",
+      "doc_id": "platform",
+      "data": {
+        "defaultTrialDays": 7,
+        "accentColor": "#1212bf",
+        "maxLoginAttempts": 10,
+        "environment": "Production",
+        "_testWhatsAppPhone": "9371880039",
+        "quarterlyPrice": 3399,
+        "platformName": "IRONPUSLEX",
+        "merchantId": "8600427693@ybl",
+        "yearlyPrice": 5899,
+        "monthlyPrice": 1200
+      },
+      "updated_at": null
+    }
+  }
+]

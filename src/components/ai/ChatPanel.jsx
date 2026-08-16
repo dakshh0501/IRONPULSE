@@ -19,7 +19,6 @@
 import { useEffect, useMemo, useRef, useState, memo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowUp, Bot, Eraser, FileDown, Menu, X } from 'lucide-react'
-import { increment } from 'firebase/firestore'
 import { useApp } from '../../context/AppContext'
 import { useAuth } from '../../context/AuthContext'
 import { sendMessage, isProviderConnected } from '../../services/ai/aiService'
@@ -51,10 +50,14 @@ const toUiMessage = (id, role, text, time, extra) => ({ id, role, text, time, ..
 
 function ChatPanel({ role, roleLabel, userName, gymName, open, onClose }) {
   const app = useApp()
-  const { currentUser, userGymId } = useAuth()
+  const { currentUser, userProfile, userGymId } = useAuth()
   const navigate = useNavigate()
 
-  const userId = currentUser?.uid || ''
+  // Owner identity for ai_conversations: profiles.firebase_uid (legacy Firebase
+  // UID for migrated users, self-reference UUID for Supabase-native users).
+  // RLS policies compare user_id to auth_firebase_uid(), so currentUser.uid
+  // (Supabase UUID) would violate them for migrated users.
+  const userId = userProfile?.firebaseUid || currentUser?.uid || ''
   const lastConvKey = userId ? `ironpulse-ai-conv-${userId}` : null
 
   // ── Conversation list ──────────────────────────────────────
@@ -446,7 +449,7 @@ function ChatPanel({ role, roleLabel, userName, gymName, open, onClose }) {
     ))
     updateConversation(convId, {
       lastMessage: String(last || '').slice(0, 140),
-      messageCount: increment(delta),
+      messageCount: delta,
     }).catch(() => {})
   }, [])
 

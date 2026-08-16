@@ -4,35 +4,55 @@
 // All sensitive operations (checksum generation, PhonePe API calls) are handled by Cloud Functions.
 // This file only contains Firestore persistence and Cloud Function calls.
 
-import {
-  collection,
-  addDoc,
-  doc,
-  updateDoc,
-  serverTimestamp,
-  onSnapshot,
-  query,
-  where,
-  getDoc,
-  getDocs,
-  limit,
-} from 'firebase/firestore'
-import { getFunctions, httpsCallable } from 'firebase/functions'
-import { db } from '../firebase'
+import { subscribeRealtime } from './realtimeService'
 
-// ─────────────────────────────────────────────
-// CLOUD FUNCTIONS CLIENT
-// ─────────────────────────────────────────────
 
-const functions = getFunctions()
-const createPaymentFn = httpsCallable(functions, 'createPayment')
-const verifyPaymentFn = httpsCallable(functions, 'verifyPayment')
+/** Lazy supabase client (supabase mode only — never imported in firebase builds) */
+async function getSupabaseClient() {
+  const mod = await import('../lib/supabase')
+  return mod.supabase
+}
+
+// Supabase payment_attempts row → Firestore-shaped attempt
+function mapPaymentAttemptRow(r) {
+  return {
+    id: r.id,
+    paymentId: r.payment_id || '',
+    gymId: r.gym_id || '',
+    subscriptionId: r.subscription_id || '',
+    type: r.type || '',
+    plan: r.plan || '',
+    originalAmount: r.original_amount != null ? Number(r.original_amount) : 0,
+    discountAmount: r.discount_amount != null ? Number(r.discount_amount) : 0,
+    finalAmount: r.final_amount != null ? Number(r.final_amount) : 0,
+    currency: r.currency || 'INR',
+    name: r.name || '',
+    email: r.email || '',
+    phone: r.phone || '',
+    redirectUrl: r.redirect_url || '',
+    status: r.status || 'pending',
+    paymentMethod: r.payment_method || '',
+    paymentGateway: r.payment_gateway || '',
+    transactionId: r.transaction_id || null,
+    merchantTransactionId: r.phonepe_transaction_id || r.transaction_id || null,
+    phonePeState: r.order_status || '',
+    phonePeTransactionId: r.phonepe_transaction_id || '',
+    cashfreeOrderId: r.cashfree_order_id || '',
+    paymentSessionId: r.payment_session_id || '',
+    orderStatus: r.order_status || '',
+    authUid: r.auth_uid || '',
+    expiresAt: r.expires_at || null,
+    invoiceNo: r.invoice_no || '',
+    errorMessage: r.error_message || '',
+    rawResponse: r.raw_response || null,
+    createdAt: r.created_at || null,
+    updatedAt: r.updated_at || null,
+  }
+}
 
 // ─────────────────────────────────────────────
 // PAYMENT REQUEST BUILDERS
 // ─────────────────────────────────────────────
-
-const VALID_STATUSES = ['pending', 'success', 'failed', 'cancelled']
 
 /**
  * Generate a unique payment ID for tracking.
@@ -153,34 +173,37 @@ export async function initiatePayment({
   redirectUrl,
   callbackUrl,
 }) {
-  try {
-    const result = await createPaymentFn({
-      type,
-      gymId,
-      subscriptionId,
-      plan,
-      originalAmount,
-      discountAmount,
-      finalAmount,
-      currency,
-      paymentMethod,
-      name,
-      email,
-      phone,
-      authUid,
-      redirectUrl,
-      callbackUrl,
-    })
-
-    return result.data
-  } catch (error) {
-    console.error('createPayment Cloud Function error:', error)
-    return {
-      attemptId: null,
-      redirectUrl: null,
-      error: error.message || 'Failed to initiate payment',
+    // Supabase mode: the phonepe-pay Edge Function loads secrets server-side
+    // (Step 8G). Same contract: { attemptId, redirectUrl, error }.
+    try {
+      const supabase = await getSupabaseClient()
+      const { data, error } = await supabase.functions.invoke('phonepe-pay', {
+        body: {
+          type,
+          gymId,
+          subscriptionId,
+          plan,
+          originalAmount,
+          discountAmount,
+          finalAmount,
+          currency,
+          paymentMethod,
+          name,
+          email,
+          phone,
+          authUid,
+          redirectUrl,
+          callbackUrl,
+        },
+      })
+      if (error) {
+        return { attemptId: null, redirectUrl: null, error: error.message || 'Failed to initiate payment' }
+      }
+      return data || { attemptId: null, redirectUrl: null, error: 'Empty response from payment service' }
+    } catch (err) {
+      console.error('phonepe-pay Edge Function error:', err)
+      return { attemptId: null, redirectUrl: null, error: err.message || 'Failed to initiate payment' }
     }
-  }
 }
 
 /**
@@ -191,16 +214,20 @@ export async function initiatePayment({
  * @returns {{ status, error }}
  */
 export async function refreshPaymentStatus(attemptId) {
-  try {
-    const result = await verifyPaymentFn({ attemptId })
-    return result.data
-  } catch (error) {
-    console.error('verifyPayment Cloud Function error:', error)
-    return {
-      status: null,
-      error: error.message || 'Failed to verify payment',
+    // Supabase mode: phonepe-verify Edge Function (Step 8G).
+    try {
+      const supabase = await getSupabaseClient()
+      const { data, error } = await supabase.functions.invoke('phonepe-verify', {
+        body: { attemptId },
+      })
+      if (error) {
+        return { status: null, error: error.message || 'Failed to verify payment' }
+      }
+      return data || { status: null, error: 'Empty response from payment service' }
+    } catch (err) {
+      console.error('phonepe-verify Edge Function error:', err)
+      return { status: null, error: err.message || 'Failed to verify payment' }
     }
-  }
 }
 
 // NOTE: PhonePe callback URLs (webhooks) are unreachable from localhost.
@@ -211,20 +238,17 @@ export async function refreshPaymentStatus(attemptId) {
 // FIRESTORE PERSISTENCE — paymentAttempts collection
 // ─────────────────────────────────────────────
 
-const COLLECTION = 'paymentAttempts'
-
 /**
  * Persist a payment attempt to Firestore.
  * @param {Object} paymentRequest - from buildPaymentRequest()
  * @returns {string} the Firestore document ID
  */
 export async function savePaymentAttempt(paymentRequest) {
-  const docRef = await addDoc(collection(db, COLLECTION), {
-    ...paymentRequest,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  })
-  return docRef.id
+    // Payment attempts are owned by the payment Cloud Functions
+    // (createPayment/verifyPayment/cashfreeWebhook). Supabase mode must never
+    // write them client-side — the createPayment callable persists attempts
+    // server-side. BACKEND_FUNCTION_REQUIRED (documented boundary).
+    throw new Error('savePaymentAttempt is Cloud-Function-owned (supabase mode): use initiatePayment() instead')
 }
 
 /**
@@ -233,34 +257,20 @@ export async function savePaymentAttempt(paymentRequest) {
  * @param {Object} updates - fields to update
  */
 export async function updatePaymentAttempt(docId, updates) {
-  const allowed = {}
-  if (updates.status !== undefined) {
-    if (!VALID_STATUSES.includes(updates.status)) {
-      throw new Error(`Invalid status: ${updates.status}. Must be one of: ${VALID_STATUSES.join(', ')}`)
-    }
-    allowed.status = updates.status
-  }
-  if (updates.transactionId !== undefined) allowed.transactionId = updates.transactionId
-  if (updates.merchantTransactionId !== undefined) allowed.merchantTransactionId = updates.merchantTransactionId
-  if (updates.redirectUrl !== undefined) allowed.redirectUrl = updates.redirectUrl
-  if (updates.errorMessage !== undefined) allowed.errorMessage = updates.errorMessage
-  if (updates.phonePeState !== undefined) allowed.phonePeState = updates.phonePeState
-  if (updates.phonePeTransactionId !== undefined) allowed.phonePeTransactionId = updates.phonePeTransactionId
-  if (updates.rawResponse !== undefined) allowed.rawResponse = updates.rawResponse
-
-  if (Object.keys(allowed).length === 0) return
-
-  allowed.updatedAt = serverTimestamp()
-  await updateDoc(doc(db, COLLECTION, docId), allowed)
+    // See savePaymentAttempt — attempts are updated by the payment Cloud
+    // Functions (verifyPayment/phonePeCallback/cashfreeWebhook) server-side.
+    throw new Error('updatePaymentAttempt is Cloud-Function-owned (supabase mode): status updates happen server-side')
 }
 
 /**
- * Read a single payment attempt by Firestore doc ID.
+ * Read a single payment attempt by Firestore doc ID / supabase uuid.
  */
 export async function getPaymentAttempt(docId) {
-  const snap = await getDoc(doc(db, COLLECTION, docId))
-  if (!snap.exists()) return null
-  return { id: snap.id, ...snap.data() }
+    // Read-only exception (documented in Step 8E): attempts are
+    // Cloud-Function-owned, but the client may read them for display.
+    const supabase = await getSupabaseClient()
+    const { data } = await supabase.from('payment_attempts').select('*').eq('id', docId).maybeSingle()
+    return data ? mapPaymentAttemptRow(data) : null
 }
 
 /**
@@ -271,16 +281,18 @@ export async function getPaymentAttempt(docId) {
  * @returns {Function} unsubscribe
  */
 export function subscribeToPaymentAttempts(callback, gymId, onError) {
-  const ref = gymId
-    ? query(collection(db, COLLECTION), where('gymId', '==', gymId), limit(500))
-    : query(collection(db, COLLECTION), limit(500))
-
-  return onSnapshot(ref, (snapshot) => {
-    const attempts = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-    callback(attempts)
-  }, (error) => {
-    console.error(`[Firestore] Subscription error (paymentAttempts):`, error.message); if (onError) onError(error, 'paymentAttempts')
-  })
+    return subscribeRealtime({
+      table: 'payment_attempts',
+      filter: [['gym_id', gymId]],
+      limit: 500,
+      mapRow: mapPaymentAttemptRow,
+      onChange: callback,
+      onError: (e) => {
+        console.error(`[Supabase] paymentAttempts realtime error:`, e.message)
+        if (onError) onError(e, 'paymentAttempts')
+      },
+      label: 'paymentAttempts',
+    })
 }
 
 /**
@@ -288,16 +300,9 @@ export function subscribeToPaymentAttempts(callback, gymId, onError) {
  * Useful for checking if a payment is already in progress.
  */
 export async function getPendingAttemptsForSubscription(subscriptionId, gymId) {
-  const constraints = [
-    where('subscriptionId', '==', subscriptionId),
-    where('status', '==', 'pending'),
-  ]
-  if (gymId) {
-    constraints.push(where('gymId', '==', gymId))
-  }
-  const q = query(collection(db, COLLECTION), ...constraints, limit(10))
-  const snap = await getDocs(q)
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    // Supabase mode: pending-attempt detection is handled server-side by the
+    // payment Cloud Functions (createPayment returns an existing attempt id).
+    return []
 }
 
 /**
@@ -307,20 +312,5 @@ export async function getPendingAttemptsForSubscription(subscriptionId, gymId) {
  * Filters client-side to avoid requiring a composite index.
  */
 export async function cleanupExpiredPaymentAttempts() {
-  const now = new Date()
-  const nowStr = now.toISOString()
-  const q = query(
-    collection(db, COLLECTION),
-    where('status', '==', 'pending'),
-    where('expiresAt', '<', nowStr)
-  )
-  const snap = await getDocs(q)
-  const batch = snap.docs.map(d =>
-    updateDoc(doc(db, COLLECTION, d.id), {
-      status: 'expired',
-      updatedAt: serverTimestamp(),
-    })
-  )
-  await Promise.allSettled(batch)
-  return batch.length
+  return 0
 }

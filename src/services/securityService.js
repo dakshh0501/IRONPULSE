@@ -1,38 +1,40 @@
-import { collection, getDocs } from 'firebase/firestore'
-import { db } from '../firebase'
+/** Lazy supabase client */
+async function getSupabaseClient() {
+  const mod = await import('../lib/supabase')
+  return mod.supabase
+}
+
+const EMPTY_METRICS = {
+  totalGyms: 0,
+  totalUsers: 0,
+  activeSubscriptions: 0,
+  activeLicenses: 0,
+  totalDevices: 0,
+  authUserCount: 0,
+  platformStatus: 'degraded',
+}
 
 export async function fetchSecurityMetrics() {
   try {
-    const [gymsSnap, usersSnap, devicesSnap] = await Promise.all([
-      getDocs(collection(db, 'gyms')),
-      getDocs(collection(db, 'users')),
-      getDocs(collection(db, 'licensedDevices')),
-    ])
-
-    const gyms = gymsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
-    const activeSubs = gyms.filter(g => g.subscription?.status === 'active')
-    const activeLicenses = gyms.filter(g => g.subscription?.licenseStatus === 'active')
-
+    // Super-admin-only RPC (0006_rpc.sql get_security_metrics,
+    // granted to authenticated in 0008_rpc_grant_security_metrics.sql). The
+    // in-function is_super_admin gate is the authorization boundary.
+    const client = await getSupabaseClient()
+    const { data, error } = await client.rpc('get_security_metrics')
+    if (error) throw error
+    if (data && typeof data === 'object' && data.error) throw new Error(data.error)
+    const m = (data && data.metrics) || {}
     return {
-      totalGyms: gymsSnap.size,
-      totalUsers: usersSnap.size,
-      activeSubscriptions: activeSubs.length,
-      activeLicenses: activeLicenses.length,
-      totalDevices: devicesSnap.size,
-      authUserCount: usersSnap.size,
-      platformStatus: 'operational',
+      totalGyms: m.totalGyms ?? 0,
+      totalUsers: m.totalUsers ?? 0,
+      activeSubscriptions: m.activeSubscriptions ?? 0,
+      activeLicenses: m.activeLicenses ?? 0,
+      totalDevices: m.totalDevices ?? 0,
+      authUserCount: m.authUserCount ?? 0,
+      platformStatus: m.platformStatus || 'operational',
     }
   } catch (err) {
     console.error('[securityService] fetchSecurityMetrics failed:', err)
-    return {
-      totalGyms: 0,
-      totalUsers: 0,
-      activeSubscriptions: 0,
-      activeLicenses: 0,
-      totalDevices: 0,
-      authUserCount: 0,
-      platformStatus: 'degraded',
-      error: err.message,
-    }
+    return { ...EMPTY_METRICS, error: err.message }
   }
 }

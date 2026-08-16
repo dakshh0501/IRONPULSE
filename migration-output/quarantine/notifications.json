@@ -1,0 +1,142 @@
+[
+  {
+    "table": "notifications",
+    "legacyId": "2ZIs2Ozz8qmgKRctMVcf",
+    "reasons": [
+      "userId missing or has no users doc (notifications.user_id NOT NULL)"
+    ],
+    "missing": [],
+    "unresolved": [
+      "userId"
+    ],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL, nullable FK)"
+    ],
+    "record": {
+      "id": "1114bcbf-6901-5d21-89de-e462fbb8beea",
+      "user_id": null,
+      "gym_id": null,
+      "role": "admin",
+      "title": "Gym Approved",
+      "message": "Your gym \"testgym\" has been approved by the admin.",
+      "type": "gym",
+      "subtype": "gym_approved",
+      "priority": "high",
+      "icon": "✅",
+      "action_url": "/dashboard",
+      "related_document_id": "Vh305r5D0desNQtqxXiz",
+      "page": null,
+      "tab": null,
+      "contact_id": null,
+      "target_role": null,
+      "read": false,
+      "created_at": "2026-08-12T14:09:39.923Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "notifications",
+    "legacyId": "EiqwRUCfyqs27MMGtpAZ",
+    "reasons": [
+      "userId missing or has no users doc (notifications.user_id NOT NULL)"
+    ],
+    "missing": [],
+    "unresolved": [
+      "userId"
+    ],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL, nullable FK)"
+    ],
+    "record": {
+      "id": "2be0117c-3b37-58bb-a8a1-8b2894fcc66d",
+      "user_id": null,
+      "gym_id": null,
+      "role": "admin",
+      "title": "Gym Registration Rejected",
+      "message": "Your gym \"TestGym\" registration has been rejected.",
+      "type": "gym",
+      "subtype": "gym_rejected",
+      "priority": "high",
+      "icon": "❌",
+      "action_url": "",
+      "related_document_id": "6XND7bUXNAWEj0asIGWy",
+      "page": null,
+      "tab": null,
+      "contact_id": null,
+      "target_role": null,
+      "read": false,
+      "created_at": "2026-08-12T14:09:38.143Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "notifications",
+    "legacyId": "Z0MCp1n6I2M2GeMl4NO8",
+    "reasons": [
+      "userId missing or has no users doc (notifications.user_id NOT NULL)"
+    ],
+    "missing": [],
+    "unresolved": [
+      "userId"
+    ],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL, nullable FK)"
+    ],
+    "record": {
+      "id": "a8615f79-cd1b-5a31-be3f-ea4f031876e1",
+      "user_id": null,
+      "gym_id": null,
+      "role": "admin",
+      "title": "Gym Registration Rejected",
+      "message": "Your gym \"TestGym\" registration has been rejected.",
+      "type": "gym",
+      "subtype": "gym_rejected",
+      "priority": "high",
+      "icon": "❌",
+      "action_url": "",
+      "related_document_id": "3u8ObSiWlk60Mbo2qdp6",
+      "page": null,
+      "tab": null,
+      "contact_id": null,
+      "target_role": null,
+      "read": false,
+      "created_at": "2026-08-12T14:09:36.247Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "notifications",
+    "legacyId": "fjJDDSaEOSMjfmgazvyE",
+    "reasons": [
+      "userId missing or has no users doc (notifications.user_id NOT NULL)"
+    ],
+    "missing": [],
+    "unresolved": [
+      "userId"
+    ],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL, nullable FK)"
+    ],
+    "record": {
+      "id": "79b3fecc-2cc6-5918-ad70-ffa3636a6911",
+      "user_id": null,
+      "gym_id": null,
+      "role": "admin",
+      "title": "Gym Registration Rejected",
+      "message": "Your gym \"testgym\" registration has been rejected.",
+      "type": "gym",
+      "subtype": "gym_rejected",
+      "priority": "high",
+      "icon": "❌",
+      "action_url": "",
+      "related_document_id": "dDQ9v8qFQaIUaXlhzvuj",
+      "page": null,
+      "tab": null,
+      "contact_id": null,
+      "target_role": null,
+      "read": false,
+      "created_at": "2026-08-12T17:49:34.949Z",
+      "updated_at": null
+    }
+  }
+]

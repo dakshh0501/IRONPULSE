@@ -1,0 +1,48 @@
+[
+  {
+    "table": "members",
+    "legacyId": "CX5jO1U3pxm5KgzWtV2E",
+    "reasons": [
+      "field with sensitive name detected in source and stripped — never migrated",
+      "no resolvable gymId (members.gym_id NOT NULL)"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "b389fce9-c970-5d92-bbbf-a13d50e20763",
+      "legacy_id": "CX5jO1U3pxm5KgzWtV2E",
+      "auth_uid": null,
+      "gym_id": null,
+      "name": "jfdjhvs",
+      "email": "y***@gmail.com",
+      "contact": "",
+      "age": 0,
+      "weight": 66,
+      "height": 173,
+      "gender": null,
+      "plan": "Standard",
+      "plan_price": 1499,
+      "amount_paid": 0,
+      "balance_due": 1499,
+      "payment_status": "Pending",
+      "status": "Active",
+      "checkins": 0,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "avatar": "J",
+      "color": null,
+      "photo_url": null,
+      "storage_path": null,
+      "expiry": null,
+      "notes": null,
+      "join_date": null,
+      "referred_by": null,
+      "created_by": null,
+      "created_at": "2026-06-23T15:55:16.771Z",
+      "updated_at": null
+    }
+  }
+]

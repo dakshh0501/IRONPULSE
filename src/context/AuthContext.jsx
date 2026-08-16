@@ -13,7 +13,16 @@ import {
   getUserProfile,
   reloadUser,
   resendVerificationEmail,
+  authProvider,
+  isRecoveryActive,
+  markRecoveryActive,
+  clearRecoveryMarker,
 } from '../services/authService'
+
+// Build-time auth provider. When Supabase is active, the Firestore-bound
+// referral helpers below are skipped (anonymous sessions are rule-denied
+// until the firestoreService migration) — documented compatibility boundary.
+const SUPABASE_ACTIVE = authProvider === 'supabase'
 import { getSettings } from '../services/firestoreService'
 import {
   processPendingReferral,
@@ -78,6 +87,25 @@ export function AuthProvider({ children }) {
   const [biometricGate, setBiometricGate] = useState(false)
   const [biometricType, setBiometricType] = useState(null)
   const signingUpRef = useRef(false)
+  // Password-recovery callback flow: while true, PublicRoute must NOT
+  // redirect an authenticated user away from /auth (the GoTrue recovery
+  // session is established before the new password is set). The ref is set
+  // synchronously so the auth subscription gate can rely on it without a
+  // render cycle.
+  const [recoveryInProgress, setRecoveryInProgress] = useState(false)
+  const recoveryInProgressRef = useRef(false)
+
+  function startRecovery() {
+    recoveryInProgressRef.current = true
+    setRecoveryInProgress(true)
+    markRecoveryActive()
+  }
+
+  function finishRecovery() {
+    recoveryInProgressRef.current = false
+    setRecoveryInProgress(false)
+    clearRecoveryMarker()
+  }
 
   // ─────────────────────────────────────────────────────────────
   // ACCENT: apply the safe default immediately on mount so the
@@ -92,7 +120,7 @@ export function AuthProvider({ children }) {
   // SUBSCRIPTION: Listen to Firebase Auth state
   // ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    const unsubscribe = subscribeToAuthState(async (firebaseUser) => {
+    const unsubscribe = subscribeToAuthState(async (firebaseUser, authEvent) => {
       try {
         if (!firebaseUser) {
           setCurrentUser(null)
@@ -100,6 +128,9 @@ export function AuthProvider({ children }) {
           setRole(null)
           setIsSuperAdmin(false)
           setAuthLoading(false)
+          // A sign-out ends any recovery window — drop the refresh marker so
+          // a later reload can never re-enter recovery mode.
+          clearRecoveryMarker()
           return
         }
 
@@ -111,6 +142,32 @@ export function AuthProvider({ children }) {
           setAuthLoading(false)
           return
         }
+
+        // ── PASSWORD-RECOVERY GATE ────────────────────────────────
+        // True during a GoTrue recovery callback: the session exists but the
+        // new password is not set yet. Detected three ways:
+        //   1. PASSWORD_RECOVERY event — SDK-detected implicit/PKCE callback
+        //      link (the SDK establishes the session and strips the URL), or
+        //      verifyOtp({ type: 'recovery' }) in the token_hash flow.
+        //   2. recoveryInProgressRef — startRecovery() called by Auth.jsx
+        //      BEFORE the token exchange (token_hash links).
+        //   3. isRecoveryActive() — recovery callback still in the URL, or
+        //      the sessionStorage marker (refresh mid-recovery, URL already
+        //      stripped by the SDK).
+        // While active, the profile is STILL loaded (so routing works the
+        // moment finishRecovery() clears the gate) but the role sign-outs
+        // (pending/rejected/disabled) are skipped — they would kill the
+        // recovery session before the password can be changed. The auth page
+        // stays visible until finishRecovery().
+        const recoveryActive =
+          authEvent === 'PASSWORD_RECOVERY' ||
+          recoveryInProgressRef.current ||
+          isRecoveryActive()
+
+        // Belt-and-suspenders: keep the gate armed (state + sessionStorage
+        // marker) even if Auth.jsx's URL-based detection already consumed
+        // the callback (SDK strips the URL async) before startRecovery ran.
+        if (recoveryActive && !recoveryInProgressRef.current) startRecovery()
 
         // Retry profile fetch up to 3 times with 1s delay for transient Firestore errors
         // (e.g. app resume from Recents on Android where Firestore reconnects slowly)
@@ -135,8 +192,22 @@ export function AuthProvider({ children }) {
         // demotes to gym_admin and no session is reverted.
         profile = normalizeProfile(profile)
 
+        // Disabled accounts must never enter the application (Step 8B-6).
+        // Mid-recovery the account can still finish its password update, but
+        // no app state is set — the user stays on the auth page.
+        if (profile?.accountDisabled) {
+          if (!recoveryActive) await logOut()
+          setCurrentUser(null)
+          setUserProfile(null)
+          setRole(null)
+          setIsSuperAdmin(false)
+          setAuthError('This account has been disabled. Contact support.')
+          setAuthLoading(false)
+          return
+        }
+
         if (profileError && !profile) {
-          // All retries exhausted — Firestore is unavailable.
+          // All retries exhausted — data plane unavailable.
           // Keep the user logged in, show error, set authLoading=false so app renders.
           // The user will see auth-related UI and can retry manually.
           console.error('[AUDIT] All getUserProfile retries exhausted. Keeping user signed in.')
@@ -150,6 +221,13 @@ export function AuthProvider({ children }) {
         }
 
         if (!profile) {
+          if (recoveryActive) {
+            // Recovery session without a profile (e.g. provisioning failed on
+            // a network hiccup): keep the gate so the password can still be
+            // set; the session is reprocessed once recovery completes.
+            setAuthLoading(false)
+            return
+          }
           await logOut()
           setCurrentUser(null)
           setUserProfile(null)
@@ -160,47 +238,52 @@ export function AuthProvider({ children }) {
           return
         }
 
-        if (profile.role === 'rejected') {
-          if (isLocalhost()) {
+        // Role gates apply to normal sessions only — during recovery the
+        // pending/rejected/gym_owner_pending sign-outs would destroy the
+        // session before the new password is set.
+        if (!recoveryActive) {
+          if (profile.role === 'rejected') {
+            if (isLocalhost()) {
+              await logOut()
+              setCurrentUser(null)
+              setUserProfile(null)
+              setRole(null)
+              setIsSuperAdmin(false)
+              setAuthError('')
+              setAuthLoading(false)
+              window.location.replace('/auth')
+              return
+            }
+            setCurrentUser(firebaseUser)
+            setUserProfile(profile)
+            setRole('rejected')
+            setIsSuperAdmin(false)
+            setAuthError('Your account has been rejected.')
+            setAuthLoading(false)
+            return
+          }
+
+          if (profile.role === 'gym_owner_pending') {
             await logOut()
             setCurrentUser(null)
             setUserProfile(null)
             setRole(null)
             setIsSuperAdmin(false)
-            setAuthError('')
+            setAuthError('Your gym registration is awaiting admin approval.')
             setAuthLoading(false)
-            window.location.replace('/auth')
             return
           }
-          setCurrentUser(firebaseUser)
-          setUserProfile(profile)
-          setRole('rejected')
-          setIsSuperAdmin(false)
-          setAuthError('Your account has been rejected.')
-          setAuthLoading(false)
-          return
-        }
 
-        if (profile.role === 'gym_owner_pending') {
-          await logOut()
-          setCurrentUser(null)
-          setUserProfile(null)
-          setRole(null)
-          setIsSuperAdmin(false)
-          setAuthError('Your gym registration is awaiting admin approval.')
-          setAuthLoading(false)
-          return
-        }
-
-        if (profile.role === 'pending') {
-          await logOut()
-          setCurrentUser(null)
-          setUserProfile(null)
-          setRole(null)
-          setIsSuperAdmin(false)
-          setAuthError('Your account is awaiting admin approval.')
-          setAuthLoading(false)
-          return
+          if (profile.role === 'pending') {
+            await logOut()
+            setCurrentUser(null)
+            setUserProfile(null)
+            setRole(null)
+            setIsSuperAdmin(false)
+            setAuthError('Your account is awaiting admin approval.')
+            setAuthLoading(false)
+            return
+          }
         }
 
         // ── REFERRAL SELF-HEAL (Sprint 81E) ──────────────────────────
@@ -210,49 +293,57 @@ export function AuthProvider({ children }) {
         // missing → generated pure-locally (no users query — Spark-safe for
         // members) and written under the one-time-set rule. Trainers are
         // excluded by design (staff, not referrers). Never blocks the session.
-        const healed = await ensureSelfReferralCode({
-          uid: firebaseUser.uid,
-          referralCode: profile.referralCode,
-          role: profile.role,
-        })
-        if (healed.code && !profile.referralCode) {
-          profile = { ...profile, referralCode: healed.code }
-        }
+        //
+        // SUPABASE MODE: both helpers are Firestore-bound; anonymous sessions
+        // are rule-denied until the firestoreService migration, so they are
+        // skipped. Supabase profiles carry referralCode/referredBy on the row
+        // itself (provisioned at first sign-in) — referral registration
+        // resumes when the referrals collection migrates (documented boundary).
+        if (!SUPABASE_ACTIVE) {
+          const healed = await ensureSelfReferralCode({
+            uid: firebaseUser.uid,
+            referralCode: profile.referralCode,
+            role: profile.role,
+          })
+          if (healed.code && !profile.referralCode) {
+            profile = { ...profile, referralCode: healed.code }
+          }
 
-        // ── SPARK REFERRAL REGISTRATION (Sprint 81A-Spark) ─────────────
-        // Once an authenticated, approved session exists, resolve the
-        // signup-time referral code (profile.referredBy is immutable per the
-        // users update rule; localStorage is the pre-approval cache parked by
-        // register()). Idempotent + atomic in the service — a refresh, a
-        // second tab or a re-login can never duplicate the referral row.
-        // Fire-and-forget: referral processing must never block the session.
-        if (profile.role === 'member') {
-          const parkedCode = (typeof localStorage !== 'undefined' ? localStorage.getItem(PENDING_REFERRAL_KEY) : null) || ''
-          const pendingCode = profile.referredBy || parkedCode || ''
-          if (pendingCode) {
-            console.warn('[Referral] login trigger: member session processing pending referral', {
-              uid: firebaseUser.uid,
-              codeSource: profile.referredBy ? 'users.referredBy' : (parkedCode ? 'localStorage' : '(none)'),
-              code: pendingCode,
-            })
-            processPendingReferral({
-              referredUid: firebaseUser.uid,
-              referredName: profile.name || '',
-              referralCode: pendingCode,
-              gymId: profile.gymId || 'default',
-            }).then(
-              (res) => console.warn('[Referral] login trigger result:', res),
-              (err) => console.warn('[Referral] login trigger threw (service never throws):', err?.message || err)
-            )
+          // ── SPARK REFERRAL REGISTRATION (Sprint 81A-Spark) ─────────────
+          // Once an authenticated, approved session exists, resolve the
+          // signup-time referral code (profile.referredBy is immutable per the
+          // users update rule; localStorage is the pre-approval cache parked by
+          // register()). Idempotent + atomic in the service — a refresh, a
+          // second tab or a re-login can never duplicate the referral row.
+          // Fire-and-forget: referral processing must never block the session.
+          if (profile.role === 'member') {
+            const parkedCode = (typeof localStorage !== 'undefined' ? localStorage.getItem(PENDING_REFERRAL_KEY) : null) || ''
+            const pendingCode = profile.referredBy || parkedCode || ''
+            if (pendingCode) {
+              console.warn('[Referral] login trigger: member session processing pending referral', {
+                uid: firebaseUser.uid,
+                codeSource: profile.referredBy ? 'users.referredBy' : (parkedCode ? 'localStorage' : '(none)'),
+                code: pendingCode,
+              })
+              processPendingReferral({
+                referredUid: firebaseUser.uid,
+                referredName: profile.name || '',
+                referralCode: pendingCode,
+                gymId: profile.gymId || 'default',
+              }).then(
+                (res) => console.warn('[Referral] login trigger result:', res),
+                (err) => console.warn('[Referral] login trigger threw (service never throws):', err?.message || err)
+              )
+            } else {
+              console.warn('[Referral] login trigger SKIP: member session has no pending code', {
+                uid: firebaseUser.uid, usersReferredBy: profile.referredBy || '(empty)', parkedCode: parkedCode || '(none)',
+              })
+            }
           } else {
-            console.warn('[Referral] login trigger SKIP: member session has no pending code', {
-              uid: firebaseUser.uid, usersReferredBy: profile.referredBy || '(empty)', parkedCode: parkedCode || '(none)',
+            console.warn('[Referral] login trigger SKIP: role not member (referral registration runs for members only)', {
+              uid: firebaseUser.uid, role: profile.role,
             })
           }
-        } else {
-          console.warn('[Referral] login trigger SKIP: role not member (referral registration runs for members only)', {
-            uid: firebaseUser.uid, role: profile.role,
-          })
         }
 
         // Approved — set state
@@ -331,6 +422,14 @@ export function AuthProvider({ children }) {
       // Same normalization as the auth subscription listener: role
       // 'super_admin' OR isSuperAdmin=true → both set consistently.
       profile = normalizeProfile(profile)
+
+      // Disabled accounts must never enter the application (Step 8B-6).
+      // Belt-and-suspenders with the subscription listener + signIn gate.
+      if (profile?.accountDisabled) {
+        await logOut()
+        setAuthError('This account has been disabled. Contact support.')
+        throw new Error('auth/user-disabled')
+      }
 
       setCurrentUser(user)
       setUserProfile(profile)
@@ -431,6 +530,7 @@ export function AuthProvider({ children }) {
       'auth/user-not-found':                    'No account found with this email.',
       'auth/wrong-password':                    'Incorrect password.',
       'auth/invalid-credential':                'Incorrect email or password.',
+      'auth/email-not-verified':                'Please verify your email before signing in.',
       'auth/email-already-in-use':              'This email is already registered.',
       'auth/weak-password':                     'Password must be at least 6 characters.',
       'auth/invalid-email':                     'Enter a valid email address.',
@@ -521,6 +621,15 @@ export function AuthProvider({ children }) {
     clearBiometricCache()
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // PASSWORD RECOVERY (GoTrue link callback)
+  // Auth.jsx calls startRecovery() before completing a recovery link and
+  // finishRecovery() after the new password is set, so PublicRoute never
+  // redirects the mid-recovery session away. (startRecovery/finishRecovery
+  // are defined with the recoveryInProgress state above — ref-backed so the
+  // auth subscription gate sees them synchronously.)
+  // ─────────────────────────────────────────────────────────────
+
   async function verifyBiometricGate() {
     await verifyBiometric({
       reason: 'Unlock IRONPULSE',
@@ -554,6 +663,9 @@ export function AuthProvider({ children }) {
     authLoading,
     authError,
     needsVerification,
+    recoveryInProgress,
+    startRecovery,
+    finishRecovery,
     userGymId,
     isLoggedIn:     !!currentUser && role !== 'pending' && role !== 'rejected' && currentUser.emailVerified,
     isAdmin:        role === 'admin',

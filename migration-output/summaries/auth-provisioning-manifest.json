@@ -1,0 +1,410 @@
+{
+  "runId": "AP-20260814100425",
+  "mode": "dry-run",
+  "generatedAt": "2026-08-14T10:04:28.358Z",
+  "project": "ironpulse-32f31",
+  "targetSupabaseUrl": "https://osfhojfqytmqsqcmzvlf.supabase.co",
+  "expectedCounts": {
+    "approved": 25,
+    "normalCreate": 22,
+    "bannedCreate": 3
+  },
+  "conflictsFound": 0,
+  "canonicalG1Uid": "A0kiygGn",
+  "g1OwnerRedirectMap": [
+    {
+      "gymDocId": "Y3KJLfWvAM5YOOw5NIwj",
+      "ownerUid": "A0kiygGnU8dSev0jZs4iJrrn3Fm1"
+    },
+    {
+      "gymDocId": "1Gz4zHCN3vNqqyj2Kuva",
+      "ownerUid": "A0kiygGnU8dSev0jZs4iJrrn3Fm1"
+    },
+    {
+      "gymDocId": "zG3GB9viQp2DDYqM93HJ",
+      "ownerUid": "A0kiygGnU8dSev0jZs4iJrrn3Fm1"
+    }
+  ],
+  "users": [
+    {
+      "uidMasked": "6oPiPBcZ",
+      "emailMasked": "n***@gmail.com",
+      "role": "member",
+      "gymId": null,
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "248ef170-81ba-4728-831f-e1eba0eabd65"
+    },
+    {
+      "uidMasked": "A0kiygGn",
+      "emailMasked": "g***@gmail.com",
+      "role": "rejected",
+      "gymId": "LLrl5gO1TtouuroNkoLc",
+      "provision": "create-banned",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid, already banned)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "a7bb02b7-7b4b-40b5-9315-b5ae51ae6c1d"
+    },
+    {
+      "uidMasked": "A4EI9QVE",
+      "emailMasked": "t***@gym.com",
+      "role": "trainer",
+      "gymId": null,
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "78f1d8d8-89a8-47d4-b8bb-9fcf0f798db1"
+    },
+    {
+      "uidMasked": "AdenEc6J",
+      "emailMasked": "j***@gmail.com",
+      "role": "member",
+      "gymId": null,
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "3053e5a0-78a1-48f9-a0af-e5316ef8581d"
+    },
+    {
+      "uidMasked": "ArlmC1TZ",
+      "emailMasked": "s***@example.com",
+      "role": "rejected",
+      "gymId": "gym-1786295772301-372804",
+      "provision": "create-banned",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid, already banned)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "f98ac3c3-e12a-4120-8432-e851dce5f4b1"
+    },
+    {
+      "uidMasked": "C6kXWzCL",
+      "emailMasked": "t***@gmail.com",
+      "role": "member",
+      "gymId": null,
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "1ba3cf8b-226c-4d2c-a253-05ba46159747"
+    },
+    {
+      "uidMasked": "HoAU21xy",
+      "emailMasked": "g***@gmail.com",
+      "role": "gym_owner",
+      "gymId": "gTntxDaniBdKY7BhSfpw",
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "900500d2-1a21-4430-beea-1374d90b2d84"
+    },
+    {
+      "uidMasked": "JeFv6yMB",
+      "emailMasked": "t***@gmail.com",
+      "role": "rejected",
+      "gymId": "ogE7fL9i14EcAXUdV7fI",
+      "provision": "create-banned",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid, already banned)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "c7034d3b-7bdc-414f-b81a-d513d65ece6c"
+    },
+    {
+      "uidMasked": "Q85ZtPEg",
+      "emailMasked": "h***@gmail.com",
+      "role": "gym_owner",
+      "gymId": "yRTNmXSJQEcIGPgMnGWM",
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "73c7ad0a-428f-4fe7-a493-bae7954abf82"
+    },
+    {
+      "uidMasked": "SGWHqTsX",
+      "emailMasked": "g***@gmail.com",
+      "role": "gym_owner",
+      "gymId": "GadKLv237CdZFWz25M4R",
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "7a8c09fc-c147-4473-bfc2-0a4f024d12f1"
+    },
+    {
+      "uidMasked": "SbrLJMbT",
+      "emailMasked": "j***@gmail.com",
+      "role": "member",
+      "gymId": null,
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "ba230aee-c121-4fbb-b549-9317dfd57a16"
+    },
+    {
+      "uidMasked": "VRSS1PoS",
+      "emailMasked": "g***@gmail.com",
+      "role": "trainer",
+      "gymId": null,
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "4189ff66-744d-4101-a532-20f886c29329"
+    },
+    {
+      "uidMasked": "VkmrgSZI",
+      "emailMasked": "g***@gmail.com",
+      "role": "gym_owner",
+      "gymId": "P0oebgj7fbHU0IpWoeTm",
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "1c7caf3c-e989-4b96-a3ea-44fb0693cc70"
+    },
+    {
+      "uidMasked": "bRKcg3fw",
+      "emailMasked": "f***@mrworlds.com",
+      "role": "gym_owner",
+      "gymId": null,
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "ccfb704f-c00a-4272-b9a5-0f07122308cb"
+    },
+    {
+      "uidMasked": "clwHQsB3",
+      "emailMasked": "d***@doefy.com",
+      "role": "gym_owner",
+      "gymId": "r7bcZ14hpf4a2QMyTb3y",
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "252a7380-e86b-4acb-a8b1-a0442c40ed88"
+    },
+    {
+      "uidMasked": "e6qDcu7N",
+      "emailMasked": "r***@gmail.com",
+      "role": "member",
+      "gymId": null,
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "0e2bbbd8-d203-44e0-bdd5-dc2ddcb33a1b"
+    },
+    {
+      "uidMasked": "et6MpYMB",
+      "emailMasked": "f***@gmail.com",
+      "role": "gym_owner",
+      "gymId": "M6XqgpXbRF7w9ZJKWP6n",
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "ac12cead-b69b-4876-bc49-364e46668093"
+    },
+    {
+      "uidMasked": "fvPn9yyf",
+      "emailMasked": "m***@gym.com",
+      "role": "member",
+      "gymId": null,
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "750a7bf0-2555-4251-a01d-01c3dc40414b"
+    },
+    {
+      "uidMasked": "hVBdS5aY",
+      "emailMasked": "g***@gmail.com",
+      "role": "gym_owner",
+      "gymId": "5phqBpix968byObRNBWe",
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "43818fcb-6a38-4d59-bb5f-ae23bfa0574d"
+    },
+    {
+      "uidMasked": "hxTWhdxQ",
+      "emailMasked": "p***@example.com",
+      "role": "gym_owner_pending",
+      "gymId": null,
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "4cf44926-4d67-4135-91e0-b72202d3f19a"
+    },
+    {
+      "uidMasked": "lToD65bo",
+      "emailMasked": "t***@gmail.com",
+      "role": "member",
+      "gymId": null,
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "07f4ccb8-b449-4895-9d11-bfc6a3d9dd18"
+    },
+    {
+      "uidMasked": "mFpTjk9h",
+      "emailMasked": "j***@gmail.com",
+      "role": "member",
+      "gymId": null,
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "4b97a892-9401-4987-b98c-44d9b53bbca3"
+    },
+    {
+      "uidMasked": "u2Rxn7c2",
+      "emailMasked": "r***@gmail.com",
+      "role": "member",
+      "gymId": null,
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "1fd0e5a3-11ee-4951-bc03-9924dff680aa"
+    },
+    {
+      "uidMasked": "y9lt1eCE",
+      "emailMasked": "m***@gmail.com",
+      "role": "super_admin",
+      "gymId": null,
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "85d2de87-7bd6-41b4-a01a-cea76ca641bb"
+    },
+    {
+      "uidMasked": "znZEEOkd",
+      "emailMasked": "t***@gmail.com",
+      "role": "trainer",
+      "gymId": null,
+      "provision": "create",
+      "status": "skip",
+      "reason": "existing-correct (matching firebase_uid metadata)",
+      "recovery": null,
+      "recoveryReason": null,
+      "recoveryError": null,
+      "targetSupabaseUuid": "0eeba85d-3e5c-4647-be73-544884b46a0d"
+    }
+  ],
+  "excluded": [
+    {
+      "uidMasked": "37WD336c",
+      "reason": "duplicate-email legacy-only (G2/G3, approved Option D) — no auth, excluded from provisioning"
+    },
+    {
+      "uidMasked": "Y0BzZnBP",
+      "reason": "duplicate-email legacy-only (G2/G3, approved Option D) — no auth, excluded from provisioning"
+    },
+    {
+      "uidMasked": "hnfpV7jJ",
+      "reason": "duplicate-email legacy-only (G2/G3, approved Option D) — no auth, excluded from provisioning"
+    },
+    {
+      "uidMasked": "kh9tSKzD",
+      "reason": "duplicate-email legacy-only (G2/G3, approved Option D) — no auth, excluded from provisioning"
+    },
+    {
+      "uidMasked": "mNBFFQUH",
+      "reason": "duplicate-email legacy-only (G2/G3, approved Option D) — no auth, excluded from provisioning"
+    },
+    {
+      "uidMasked": "ZofzD9RL",
+      "reason": "duplicate-email legacy-only (G2/G3, approved Option D) — no auth, excluded from provisioning"
+    },
+    {
+      "uidMasked": "joShucWx",
+      "reason": "duplicate-email legacy-only (G2/G3, approved Option D) — no auth, excluded from provisioning"
+    },
+    {
+      "uidMasked": "JGQdw7v1",
+      "reason": "G1 non-canonical (approved Option A) — legacy-only, excluded from provisioning"
+    },
+    {
+      "uidMasked": "TitV32lD",
+      "reason": "G1 non-canonical (approved Option A) — legacy-only, excluded from provisioning"
+    },
+    {
+      "uidMasked": "nx0Qunp4",
+      "reason": "G1 non-canonical (approved Option A) — legacy-only, excluded from provisioning"
+    }
+  ],
+  "recoverySummary": {
+    "delivered": 0,
+    "deliveryFailed": [],
+    "manualReview": []
+  },
+  "security": {
+    "passwords": "generated in memory only at execution time; never stored or logged",
+    "recoveryLinks": "normal users only; delivered when the provider accepts the address; failures classified RECOVERY_DELIVERY_FAILED (never fatal, never rolled back); never sent to banned/rejected users",
+    "firebaseUid": "preserved in user_metadata and (later) profiles.firebase_uid; never used as auth.users.id",
+    "firebasePasswordHashes": "NEVER migrated — temporary passwords only, manual credential recovery for delivery failures",
+    "deletedUsers": 0,
+    "overwrittenUsers": 0
+  }
+}

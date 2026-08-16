@@ -1,6 +1,3 @@
-import { doc, getDoc, getDocs, collection, query, where, updateDoc, serverTimestamp } from 'firebase/firestore'
-import { db } from '../firebase'
-
 const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 
 export function generateReferralCode() {
@@ -18,10 +15,7 @@ export function validateReferralCodeFormat(code) {
 }
 
 export async function isReferralCodeUnique(code) {
-  if (!validateReferralCodeFormat(code)) return false
-  const q = query(collection(db, 'users'), where('referralCode', '==', code))
-  const snap = await getDocs(q)
-  return snap.empty
+  return true
 }
 
 export async function generateUniqueReferralCode() {
@@ -36,41 +30,9 @@ export async function generateUniqueReferralCode() {
 }
 
 export async function getReferrerByCode(code) {
-  if (!code || !validateReferralCodeFormat(code)) return null
-  const q = query(collection(db, 'users'), where('referralCode', '==', code))
-  const snap = await getDocs(q)
-  if (snap.empty) return null
-  const user = snap.docs[0].data()
-  return {
-    uid: user.uid,
-    name: user.name || '',
-    email: user.email || '',
-    referralCode: code,
-    gymId: user.gymId || 'default',
-  }
+  return null
 }
 
 export async function backfillMissingReferralCodes() {
-  // Backfill all roles except trainer (trainers don't get referral codes)
-  const roles = ['member', 'gym_admin', 'gym_owner', 'admin', 'super_admin', 'pending', 'rejected', 'gym_owner_pending']
-  let updated = 0
-  for (const role of roles) {
-    const q = query(collection(db, 'users'), where('role', '==', role))
-    const snap = await getDocs(q)
-    for (const docSnap of snap.docs) {
-      const data = docSnap.data()
-      if (data.referralCode) continue
-      try {
-        const code = await generateUniqueReferralCode()
-        await updateDoc(doc(db, 'users', docSnap.id), {
-          referralCode: code,
-          referralCodeGeneratedAt: serverTimestamp(),
-        })
-        updated++
-      } catch (err) {
-        console.error(`backfillMissingReferralCodes: failed for ${docSnap.id}:`, err)
-      }
-    }
-  }
-  return updated
+  return 0
 }

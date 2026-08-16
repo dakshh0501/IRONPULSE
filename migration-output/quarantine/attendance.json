@@ -1,0 +1,1691 @@
+[
+  {
+    "table": "attendance",
+    "legacyId": "2Ou6D5is07c0sd7kCZSG",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "c1401a49-5ae7-5f13-ae73-b6541504ba28",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "John",
+      "avatar": "J",
+      "color": "#00c8b4",
+      "plan": "Quarterly",
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": null,
+      "date": "2026-06-19",
+      "time": "11:08",
+      "method": "QR",
+      "duration": 90,
+      "created_at": "2026-06-19T05:39:00.570Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "3hInpncx7LBtvYvtefTP",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "8eb14a4d-6975-576d-8e86-6ec6ad55d57b",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T17:29:58.754Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "4KT6PD7DEsqHxd4Xn6vO",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "9f82a8d3-1ecc-5871-8eb3-71a2cf031ccb",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T17:29:58.394Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "6uRi9J9AsPq8Ccdynzbl",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "d2983c17-d761-5bcf-a64b-d84948bfc02c",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T17:29:59.198Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "9F7x2v3sbFWA0BXjvf8P",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "1bbff2fb-9e91-5941-9789-96bbbeb72fbd",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "John",
+      "avatar": "J",
+      "color": "#00c8b4",
+      "plan": "Quarterly",
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": null,
+      "date": "2026-06-02",
+      "time": "17:10",
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-06-02T11:40:57.771Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "9ZrCUfgsnz0Yf8B3gj7l",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "5243b985-bf74-5c07-87f5-e75f37eb17c1",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T17:30:00.251Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "AGPwz4jeooqTaIzy9r5C",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "7df9d5ff-52a8-5d1c-98bc-e3b522a44192",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": "W",
+      "color": "#00c8b4",
+      "plan": "Standard",
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": null,
+      "date": "2026-05-28",
+      "time": "02:14",
+      "method": "QR",
+      "duration": 90,
+      "created_at": "2026-05-28T20:44:33.062Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "CQMmg5sU3wLm0IW7v7ia",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "5abe5f4d-c78c-5beb-8c72-67ef67fabb4d",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T17:30:00.452Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "DWppykBLLopj8kRrN4ip",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "87795568-a155-5f05-b41e-3f22930ee491",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "ewfwd",
+      "avatar": "E",
+      "color": "#00c8b4",
+      "plan": "Standard",
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": null,
+      "date": "2026-05-28",
+      "time": "02:16",
+      "method": "QR",
+      "duration": 90,
+      "created_at": "2026-05-28T20:46:29.925Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "E0s0G4a1OCAPsCKMDG4O",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "ab43fbf2-5b09-5534-b493-18ef2bff8776",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "John",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "John",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-06-07T12:49:11.263Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "ElCyJbyjOYUkm0cjQilL",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "844bfa2e-6e85-5977-98a8-ce1f3cc963ee",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T17:29:58.540Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "EmoTSBFVgFM0TZHFPQTZ",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "32434a9b-ec91-5a83-9d24-792a5d8a51aa",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T17:30:00.676Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "Ga0Ahi4I7I5Q4EVts5I0",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "e153d163-5f57-5c75-b6c1-4422e6e3d4a2",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": "W",
+      "color": "#00c8b4",
+      "plan": "Standard",
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": null,
+      "date": "2026-05-27",
+      "time": "15:06",
+      "method": "QR",
+      "duration": 90,
+      "created_at": "2026-05-27T09:36:18.598Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "I5LF2eiEW87FW2A63fxY",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "ca7cb6a7-026f-549b-bf62-88e0abf9900b",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T17:29:58.992Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "J2WMY0jq904U3JFW8vGC",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "907e344e-dd20-5247-a620-b3481a25b7db",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "John",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "John",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-06-02T12:21:06.974Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "OaSYUQ7pTPm3WscRdfs9",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "047210b5-f95e-591f-8d2a-5b625ea714cf",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "ABC2",
+      "avatar": "A",
+      "color": "#00c8b4",
+      "plan": "Standard",
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": null,
+      "date": "2026-05-31",
+      "time": "17:23",
+      "method": "QR",
+      "duration": 90,
+      "created_at": "2026-05-31T11:53:52.899Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "PCpP0Aj3bx9vm0NSLmso",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "a9fe543e-d345-5f9b-be96-d7183e206053",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "ABC3",
+      "avatar": "A",
+      "color": "#00c8b4",
+      "plan": "Standard",
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": null,
+      "date": "2026-06-04",
+      "time": "09:46",
+      "method": "QR",
+      "duration": 90,
+      "created_at": "2026-06-04T04:16:10.238Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "PK5azdZTIZK7oIRviYlR",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "822dba65-dd2c-5383-89e7-dedf3ffa2fb2",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T17:56:15.226Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "PsJNDr0imnGTEh5GqOxQ",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "06b9723f-53ef-5f8f-b3ac-3989ee3e06a2",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "Joshua",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "John",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-06-07T12:46:44.132Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "Q2ybGuKAOpDCR44jxchT",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "b7fc1c35-1c41-568d-b16f-bda9fba636ca",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": "W",
+      "color": "#00c8b4",
+      "plan": "Standard",
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": null,
+      "date": "2026-06-04",
+      "time": "09:46",
+      "method": "QR",
+      "duration": 90,
+      "created_at": "2026-06-04T04:16:55.614Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "QZs1D9GBMNgjXBfAKHUl",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "06cf31bc-5aea-5c52-869a-60d320946008",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "ewfwd",
+      "avatar": "E",
+      "color": "#00c8b4",
+      "plan": "Standard",
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": null,
+      "date": "2026-06-04",
+      "time": "09:46",
+      "method": "QR",
+      "duration": 90,
+      "created_at": "2026-06-04T04:16:45.324Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "RBKrQHJ0hBpvZ1HVhtvu",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "memberId",
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "ab89aa8c-65a7-5e20-a911-b8623ac56845",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "Test",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": null,
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": null
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "RSeriLMh0WHryR0XlhhK",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "60576d0f-a650-51eb-ad3c-98f0360198b0",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "BETE",
+      "avatar": "B",
+      "color": "#00c8b4",
+      "plan": "Standard",
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": null,
+      "date": "2026-06-04",
+      "time": "09:46",
+      "method": "QR",
+      "duration": 90,
+      "created_at": "2026-06-04T04:16:31.588Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "RmkODyo930wB5ScVf2jZ",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "192e38b1-4584-59ab-921f-4b4491fab591",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T17:29:54.055Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "RwmocZUNeqbTcQjBnHWV",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "2dd2228e-d215-53f2-a88a-670528039261",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T17:29:58.877Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "TNDQc2txd7gdjblHlmb9",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "d1c6d475-b031-52d4-9747-3d2b09f422ad",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "BETE",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Trainer",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T18:48:38.344Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "TxrvGFea98jWoIFpzcaF",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "ab62a717-0c71-5855-bff9-c8676ca76a1e",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T17:29:52.213Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "YLvqDGZT0NdEEAR3OUjj",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "bcf93614-74ff-563d-9280-b17dc6f82ade",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "Test 2.0",
+      "avatar": "T2",
+      "color": "#00c8b4",
+      "plan": "Annual",
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": null,
+      "date": "2026-06-04",
+      "time": "09:45",
+      "method": "QR",
+      "duration": 90,
+      "created_at": "2026-06-04T04:15:45.681Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "ZRA6KJpkukJIj0Rwdfl6",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "412d2692-68a4-5d61-8c85-33e96833b64b",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T17:30:03.630Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "aJNnKJD6BwPfeIJ1j2ET",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "f94fdcc9-a48b-5a73-894a-d38721234337",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": "W",
+      "color": "#00c8b4",
+      "plan": "Standard",
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": null,
+      "date": "2026-05-29",
+      "time": "14:36",
+      "method": "QR",
+      "duration": 90,
+      "created_at": "2026-05-29T09:06:27.448Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "d61M3rwVvMvlUm33khue",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "05c7363c-e083-5d3f-8987-a26cee76d7ce",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "BETE",
+      "avatar": "B",
+      "color": "#00c8b4",
+      "plan": "Standard",
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": null,
+      "date": "2026-05-29",
+      "time": "14:36",
+      "method": "QR",
+      "duration": 90,
+      "created_at": "2026-05-29T09:06:15.240Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "gAfYo9wR4TGNBfWk9cZB",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "62305d25-cb65-5c2c-9c5d-2ca5c468876a",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T17:29:58.236Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "gOT5drVgdeEsHp1bsb5v",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "18491040-46c4-58be-ae74-872c258b5e20",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T17:29:59.757Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "jbWHtg2IQFwzp5AKVAsD",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "62f8f879-c65f-5a70-bdf5-945de539fc5a",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T17:29:58.071Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "n8b1XGGGtyUmVH68e96q",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "638df2f6-c02f-53b3-bfbc-16d5689b92fe",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "Joshua",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "John",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-06-07T12:49:13.405Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "no7MvrlIq4yvbSUVWWTa",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "ce326953-5354-533b-a323-25315d1c239d",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "Joshua",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "John",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-06-07T12:46:49.379Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "pYTOeKfQRZCAiEdg5nsO",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "bb883c95-1b8f-508c-869a-005d6c7f4ff7",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "ewfwd",
+      "avatar": "E",
+      "color": "#00c8b4",
+      "plan": "Standard",
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": null,
+      "date": "2026-05-27",
+      "time": "15:06",
+      "method": "QR",
+      "duration": 90,
+      "created_at": "2026-05-27T09:36:30.536Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "qHKMHuQM3xeNg6y2iVsH",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "edc7acf7-ba39-5c85-9c42-d4793eddc812",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T17:30:04.570Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "qaeYuqu8uqPe91HTDBYK",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "e9640a7e-15d1-57cd-9068-98e630bfb2b4",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T17:30:04.168Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "qz63uOYrzmIaXdRwscMa",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "588caaf0-3980-56a0-a53c-7394c4f62de5",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "ewfwd",
+      "avatar": "E",
+      "color": "#00c8b4",
+      "plan": "Standard",
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": null,
+      "date": "2026-05-29",
+      "time": "14:41",
+      "method": "QR",
+      "duration": 90,
+      "created_at": "2026-05-29T09:11:42.614Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "r3bFW6MVUdH09DgDjTU2",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "d3337f39-f740-506c-9c35-75002a2033c2",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "BETE",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Trainer",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T18:48:35.156Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "rMTbxtuNNNWlpDNm4hls",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "ac187e6d-899e-58bb-82ba-a9e9dbe6c2a0",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "ABC3",
+      "avatar": "A",
+      "color": "#00c8b4",
+      "plan": "Standard",
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": null,
+      "date": "2026-05-31",
+      "time": "17:47",
+      "method": "QR",
+      "duration": 90,
+      "created_at": "2026-05-31T12:17:35.391Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "rPa0PppIVWvZZaXMwMFs",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "6c41ac56-6f33-5776-ba06-6d6652fd1008",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T17:30:04.346Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "tr0oqgZ5hbCM2i6EZnSG",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "f4c81ee4-d892-5294-a307-8c81ac30dfb5",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "John",
+      "avatar": "J",
+      "color": "#00c8b4",
+      "plan": "Quarterly",
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": null,
+      "date": "2026-06-04",
+      "time": "09:45",
+      "method": "QR",
+      "duration": 90,
+      "created_at": "2026-06-04T04:15:29.173Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "un33OXKb8I9BxZlTm1JZ",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "a668a81d-36b7-56d1-9d55-d5bbd719437f",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T17:30:00.087Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "vLNYpdNdFPjmEhMoIQlY",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "9da54500-e0d3-5907-821f-689b741bf03d",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T17:29:59.920Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "y4mj0DgOk1Z2Yw7CTZpP",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId",
+      "date"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [
+      "method: defaulted to Manual (DDL default)",
+      "duration: defaulted to 90 (DDL default)"
+    ],
+    "record": {
+      "id": "67e89704-0f0c-5981-867f-0e783b80e343",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "wrgfrdsf",
+      "avatar": null,
+      "color": null,
+      "plan": null,
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": "Amit Kumar",
+      "date": null,
+      "time": null,
+      "method": "Manual",
+      "duration": 90,
+      "created_at": "2026-05-19T18:14:21.863Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "y5ExrSO95uYmHhVXBLIL",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "091de334-86bc-58b3-b5ca-8389a7a9b02f",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "BETE",
+      "avatar": "B",
+      "color": "#00c8b4",
+      "plan": "Standard",
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": null,
+      "date": "2026-05-27",
+      "time": "15:05",
+      "method": "QR",
+      "duration": 90,
+      "created_at": "2026-05-27T09:35:16.967Z"
+    }
+  },
+  {
+    "table": "attendance",
+    "legacyId": "zpBnYpI8IICD02RhLXTp",
+    "reasons": [
+      "memberId resolves to no member/users doc — not DERIVABLE"
+    ],
+    "missing": [
+      "gymId"
+    ],
+    "unresolved": [
+      "memberId"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "9c7a2c29-d969-5fc6-bb5a-810bc7c28447",
+      "gym_id": null,
+      "member_id": null,
+      "auth_uid": null,
+      "member_name": "Test",
+      "avatar": "T",
+      "color": "#00c8b4",
+      "plan": "Standard",
+      "trainer_id": null,
+      "trainer_auth_uid": null,
+      "trainer_name": null,
+      "date": "2026-05-31",
+      "time": "14:49",
+      "method": "QR",
+      "duration": 90,
+      "created_at": "2026-05-31T09:19:50.807Z"
+    }
+  }
+]

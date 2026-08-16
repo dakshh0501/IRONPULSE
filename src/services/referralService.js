@@ -1,25 +1,84 @@
-import {
-  collection,
-  addDoc,
-  doc,
-  getDoc,
-  getDocs,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  limit,
-  onSnapshot,
-  serverTimestamp,
-  setDoc,
-  runTransaction,
-} from 'firebase/firestore'
-import { db } from '../firebase'
 import { DEFAULT_GYM_ID } from './firestoreService'
 import { validateReferralCodeFormat, generateReferralCode } from '../utils/referralCode'
+import { subscribeRealtime } from './realtimeService'
 
 export const REFERRAL_SETTINGS_ID = 'referralSettings'
+
+
+// Supabase referrals row → Firestore-shaped referral
+function mapReferralRow(r) {
+  return {
+    id: r.referred_uid || r.id,
+    referredUid: r.referred_uid || '',
+    referrerUid: r.referrer_uid || '',
+    referralCode: r.referral_code || '',
+    gymId: r.gym_id || '',
+    referredName: r.referred_name || '',
+    status: r.status || 'Pending',
+    rewardType: r.reward_type || '',
+    rewardValue: r.reward_value != null ? Number(r.reward_value) : 0,
+    rewardIssued: Boolean(r.reward_issued),
+    firstPaymentId: r.first_payment_id || '',
+    expiresAt: r.expires_at || null,
+    qualifiedAt: r.qualified_at || null,
+    rewardedAt: r.rewarded_at || null,
+    rewardRef: r.reward_ref || '',
+    createdAt: r.created_at || null,
+    updatedAt: r.updated_at || null,
+  }
+}
+
+// Supabase reward_ledger row → Firestore-shaped ledger item
+function mapRewardLedgerRow(r) {
+  return {
+    id: r.id,
+    type: r.type || '',
+    rewardType: r.reward_type || '',
+    rewardValue: r.reward_value != null ? Number(r.reward_value) : 0,
+    extensionDays: r.extension_days || 0,
+    referrerUid: r.referrer_uid || '',
+    referredUid: r.referred_uid || '',
+    userId: r.user_id || '',
+    referralId: r.referral_id || '',
+    gymId: r.gym_id || '',
+    status: r.status || 'pending',
+    issuedAt: r.issued_at || null,
+    description: r.description || '',
+    rewardRef: r.reward_ref || '',
+    createdAt: r.created_at || null,
+    updatedAt: r.updated_at || null,
+  }
+}
+
+// Supabase discount_coupons row → Firestore-shaped coupon
+function mapDiscountCouponRow(r) {
+  return {
+    id: r.id,
+    userId: r.user_id || '',
+    gymId: r.gym_id || '',
+    code: r.code || '',
+    status: r.status || 'available',
+    value: r.value != null ? Number(r.value) : 0,
+    createdAt: r.created_at || null,
+    usedAt: r.used_at || null,
+  }
+}
+
+function referralSubscribe({ table, filter, orderBy, limitN, mapRow, label, callback, onError }) {
+  return subscribeRealtime({
+    table,
+    filter,
+    orderBy,
+    limit: limitN,
+    mapRow,
+    onChange: callback,
+    onError: (e) => {
+      console.error(`[Supabase] ${label} realtime error:`, e.message)
+      if (onError) onError(e, label)
+    },
+    label,
+  })
+}
 
 // Key under which the signup referral code is parked locally until the
 // approved member's first authenticated session can process it.
@@ -49,167 +108,88 @@ export function validateReferralStatus(status) {
 // ── SETTINGS ─────────────────────────────────────
 
 export async function getReferralSettings() {
-  refDevLog('read settings', { collection: 'settings', path: `settings/${REFERRAL_SETTINGS_ID}` })
-  try {
-    const snap = await getDoc(doc(db, 'settings', REFERRAL_SETTINGS_ID))
-    return snap.exists() ? snap.data() : null
-  } catch (err) {
-    console.error('referralService: getReferralSettings error:', err)
-    refDevLog('read settings FAILED', { collection: 'settings', path: `settings/${REFERRAL_SETTINGS_ID}`, code: err.code, message: err.message })
-    return null
-  }
+  return supabaseGetReferralSettings()
 }
 
 export function subscribeToReferralSettings(callback, onError) {
-  return onSnapshot(
-    doc(db, 'settings', REFERRAL_SETTINGS_ID),
-    (snapshot) => {
-      callback(snapshot.exists() ? snapshot.data() : null)
-    },
-    (error) => {
-      console.error('[ReferralService] Subscription error (referralSettings):', error.message)
-      if (onError) onError(error, 'referralSettings')
-    }
-  )
+  return subscribeRealtime({
+      table: 'settings',
+      filter: [['gym_id', 'platform'], ['doc_id', REFERRAL_SETTINGS_ID]],
+      limit: 1,
+      keyFn: (r) => (r ? `${r.gym_id}:${r.doc_id}` : null),
+      mapRow: (r) => r.data,
+      onChange: (rows) => callback(rows[0] || null),
+      onError: (e) => {
+        console.error('[Supabase] referralSettings realtime error:', e.message)
+        if (onError) onError(e, 'referralSettings')
+      },
+      label: 'referralSettings',
+    })
 }
 
 export async function updateReferralSettings(data, changedBy) {
-  try {
-    const payload = { ...data, updatedAt: serverTimestamp() }
-    await setDoc(doc(db, 'settings', REFERRAL_SETTINGS_ID), payload, { merge: true })
-
-    // Audit log
-    const auditData = {
-      action: 'update_referral_settings',
-      changedBy: changedBy || 'unknown',
-      changes: data,
-      previousValues: {},
-      timestamp: new Date().toISOString(),
-    }
-    try {
-      const prevSnap = await getDoc(doc(db, 'settings', REFERRAL_SETTINGS_ID))
-      if (prevSnap.exists()) {
-        auditData.previousValues = prevSnap.data()
-      }
-    } catch (_) {}
-    await addDoc(collection(db, 'auditLog'), auditData)
-  } catch (err) {
-    console.error('referralService: updateReferralSettings error:', err)
-    throw err
-  }
+  return supabaseUpdateReferralSettings(data, changedBy)
 }
 
 // ── CRUD ─────────────────────────────────────────
 
 export async function createReferral(referralData) {
-  refDevLog('create', {
-    collection: 'referrals',
-    referrerUid: referralData.referrerUid,
-    referredUid: referralData.referredUid,
-    gymId: referralData.gymId,
-    status: 'Pending',
-  })
-  try {
-    const docRef = await addDoc(collection(db, 'referrals'), {
-      referrerUid: referralData.referrerUid || '',
-      referredUid: referralData.referredUid || '',
-      referralCode: referralData.referralCode || '',
-      gymId: referralData.gymId || DEFAULT_GYM_ID,
-      status: 'Pending',
-      rewardType: referralData.rewardType || '',
-      rewardValue: Number(referralData.rewardValue) || 0,
-      rewardIssued: false,
-      firstPaymentId: referralData.firstPaymentId || '',
-      expiresAt: referralData.expiresAt || null,
-      createdAt: serverTimestamp(),
-      qualifiedAt: null,
-      rewardedAt: null,
-    })
-    return docRef.id
-  } catch (err) {
-    console.error('referralService: createReferral error:', err)
-    refDevLog('create FAILED', { collection: 'referrals', code: err.code, message: err.message })
-    throw err
-  }
+  return supabaseCreateReferral(referralData)
 }
 
 export async function updateReferral(referralId, data) {
-  refDevLog('update', { collection: 'referrals', path: `referrals/${referralId}` })
-  try {
-    await updateDoc(doc(db, 'referrals', referralId), data)
-  } catch (err) {
-    console.error('referralService: updateReferral error:', err)
-    refDevLog('update FAILED', { collection: 'referrals', path: `referrals/${referralId}`, code: err.code, message: err.message })
-    throw err
-  }
+  return supabaseUpdateReferral(referralId, data)
 }
 
 export async function getReferralById(referralId) {
-  const snap = await getDoc(doc(db, 'referrals', referralId))
-  return snap.exists() ? { id: referralId, ...snap.data() } : null
+  return supabaseGetReferralById(referralId)
 }
 
 export async function deleteReferral(referralId) {
-  await deleteDoc(doc(db, 'referrals', referralId))
+  return supabaseDeleteReferral(referralId)
 }
 
 // ── SUBSCRIPTIONS ────────────────────────────────
 
 export function subscribeToMyReferrals(referrerUid, callback, onError) {
   if (!referrerUid) return () => {}
-  const q = query(
-    collection(db, 'referrals'),
-    where('referrerUid', '==', referrerUid),
-    orderBy('createdAt', 'desc'),
-    limit(500)
-  )
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const referrals = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-      callback(referrals)
-    },
-    (error) => {
-      console.error('[ReferralService] Subscription error (myReferrals):', error.message)
-      if (onError) onError(error, 'myReferrals')
-    }
-  )
+  return referralSubscribe({
+      table: 'referrals',
+      filter: [['referrer_uid', referrerUid]],
+      orderBy: { column: 'created_at', ascending: false },
+      limitN: 500,
+      mapRow: mapReferralRow,
+      label: 'myReferrals',
+      callback,
+      onError,
+    })
 }
 
 export function subscribeToGymReferrals(gymId, callback, onError) {
   if (!gymId) return () => {}
-  const q = query(
-    collection(db, 'referrals'),
-    where('gymId', '==', gymId),
-    orderBy('createdAt', 'desc'),
-    limit(500)
-  )
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const referrals = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-      callback(referrals)
-    },
-    (error) => {
-      console.error('[ReferralService] Subscription error (gymReferrals):', error.message)
-      if (onError) onError(error, 'gymReferrals')
-    }
-  )
+  return referralSubscribe({
+      table: 'referrals',
+      filter: [['gym_id', gymId]],
+      orderBy: { column: 'created_at', ascending: false },
+      limitN: 500,
+      mapRow: mapReferralRow,
+      label: 'gymReferrals',
+      callback,
+      onError,
+    })
 }
 
 export function subscribeToAllReferrals(callback, onError) {
-  const q = query(collection(db, 'referrals'), orderBy('createdAt', 'desc'), limit(1000))
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const referrals = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-      callback(referrals)
-    },
-    (error) => {
-      console.error('[ReferralService] Subscription error (allReferrals):', error.message)
-      if (onError) onError(error, 'allReferrals')
-    }
-  )
+  return referralSubscribe({
+      table: 'referrals',
+      filter: [],
+      orderBy: { column: 'created_at', ascending: false },
+      limitN: 1000,
+      mapRow: mapReferralRow,
+      label: 'allReferrals',
+      callback,
+      onError,
+    })
 }
 
 // ── STATS ────────────────────────────────────────
@@ -273,122 +253,73 @@ export function checkReferralFraud(referral) {
 // ── REWARD ENGINE ────────────────────────────────
 
 export async function getRewardLedger(userId) {
-  try {
-    const q = query(
-      collection(db, 'rewardLedger'),
-      where('referrerUid', '==', userId)
-    )
-    const snap = await getDocs(q)
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }))
-  } catch (err) {
-    console.error('referralService: getRewardLedger error:', err)
-    return []
-  }
+  return supabaseGetRewardLedger(userId)
 }
 
 export function subscribeToRewardLedger(userId, callback, onError) {
   if (!userId) return () => {}
-  const q = query(
-    collection(db, 'rewardLedger'),
-    where('referrerUid', '==', userId),
-    orderBy('issuedAt', 'desc'),
-    limit(500)
-  )
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-      callback(items)
-    },
-    (error) => {
-      console.error('[ReferralService] rewardLedger subscription error:', error.message)
-      if (onError) onError(error, 'rewardLedger')
-    }
-  )
+  return referralSubscribe({
+      table: 'reward_ledger',
+      filter: [['referrer_uid', userId]],
+      orderBy: { column: 'issued_at', ascending: false },
+      limitN: 500,
+      mapRow: mapRewardLedgerRow,
+      label: 'rewardLedger',
+      callback,
+      onError,
+    })
 }
 
 export function subscribeToGymRewardLedger(gymId, callback, onError) {
   if (!gymId) return () => {}
-  const q = query(
-    collection(db, 'rewardLedger'),
-    where('gymId', '==', gymId),
-    orderBy('issuedAt', 'desc'),
-    limit(500)
-  )
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-      callback(items)
-    },
-    (error) => {
-      console.error('[ReferralService] gym rewardLedger subscription error:', error.message)
-      if (onError) onError(error, 'rewardLedger')
-    }
-  )
+  return referralSubscribe({
+      table: 'reward_ledger',
+      filter: [['gym_id', gymId]],
+      orderBy: { column: 'issued_at', ascending: false },
+      limitN: 500,
+      mapRow: mapRewardLedgerRow,
+      label: 'gymRewardLedger',
+      callback,
+      onError,
+    })
 }
 
 // ── DISCOUNT COUPONS ─────────────────────────────
 
 export function subscribeToMyDiscountCoupons(userId, callback, onError) {
   if (!userId) return () => {}
-  const q = query(
-    collection(db, 'discountCoupons'),
-    where('userId', '==', userId),
-    orderBy('createdAt', 'desc'),
-    limit(500)
-  )
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-      callback(items)
-    },
-    (error) => {
-      console.error('[ReferralService] discountCoupons subscription error:', error.message)
-      if (onError) onError(error, 'discountCoupons')
-    }
-  )
+  return referralSubscribe({
+      table: 'discount_coupons',
+      filter: [['user_id', userId]],
+      orderBy: { column: 'created_at', ascending: false },
+      limitN: 500,
+      mapRow: mapDiscountCouponRow,
+      label: 'discountCoupons',
+      callback,
+      onError,
+    })
 }
 
 export function subscribeToGymDiscountCoupons(gymId, callback, onError) {
   if (!gymId) return () => {}
-  const q = query(
-    collection(db, 'discountCoupons'),
-    where('gymId', '==', gymId),
-    orderBy('createdAt', 'desc'),
-    limit(500)
-  )
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-      callback(items)
-    },
-    (error) => {
-      console.error('[ReferralService] gym discountCoupons subscription error:', error.message)
-      if (onError) onError(error, 'discountCoupons')
-    }
-  )
+  return referralSubscribe({
+      table: 'discount_coupons',
+      filter: [['gym_id', gymId]],
+      orderBy: { column: 'created_at', ascending: false },
+      limitN: 500,
+      mapRow: mapDiscountCouponRow,
+      label: 'gymDiscountCoupons',
+      callback,
+      onError,
+    })
 }
 
 export async function getDiscountCoupon(couponCode) {
-  try {
-    const q = query(collection(db, 'discountCoupons'), where('code', '==', couponCode), limit(1))
-    const snap = await getDocs(q)
-    if (snap.empty) return null
-    return { id: snap.docs[0].id, ...snap.docs[0].data() }
-  } catch (err) {
-    console.error('referralService: getDiscountCoupon error:', err)
-    return null
-  }
+  return supabaseGetDiscountCoupon(couponCode)
 }
 
 export async function redeemDiscountCoupon(couponId) {
-  await updateDoc(doc(db, 'discountCoupons', couponId), {
-    status: 'redeemed',
-    redeemedAt: serverTimestamp(),
-  })
+  return supabaseRedeemDiscountCoupon(couponId)
 }
 
 // ── REFERRAL LINK UTILS ──────────────────────────
@@ -403,15 +334,7 @@ export function buildReferralLink(referralCode) {
 // ── DUPLICATE REFERRAL CHECK ─────────────────────
 
 export async function hasPendingReferral(referredUid) {
-  if (!referredUid) return false
-  const q = query(
-    collection(db, 'referrals'),
-    where('referredUid', '==', referredUid),
-    where('status', '==', 'Pending'),
-    limit(1)
-  )
-  const snap = await getDocs(q)
-  return !snap.empty
+  return supabaseHasPendingReferral(referredUid)
 }
 
 // ─────────────────────────────────────────────
@@ -441,33 +364,7 @@ export function clearPendingReferralStorage() {
 
 // Directory entry each code owner maintains for their own code.
 export async function ensureOwnReferralCodeMapping(userId, referralCode) {
-  if (!userId || !validateReferralCodeFormat(referralCode)) {
-    console.warn('[Referral] ensureOwnReferralCodeMapping SKIP:', { hasUid: !!userId, code: referralCode || '' })
-    return false
-  }
-  const ref = doc(db, 'referralCodes', referralCode)
-  try {
-    const snap = await getDoc(ref)
-    if (snap.exists()) {
-      const owned = snap.data().referrerUid === userId
-      if (!owned) {
-        console.warn('[Referral] ensureOwnReferralCodeMapping CONFLICT:', {
-          collection: 'referralCodes', docId: referralCode,
-          owner: snap.data().referrerUid, caller: userId,
-        })
-      }
-      return owned
-    }
-    await setDoc(ref, {
-      referrerUid: userId,
-      createdAt: serverTimestamp(),
-    }, { merge: true })
-    console.warn('[Referral] ensureOwnReferralCodeMapping CREATED:', { collection: 'referralCodes', docId: referralCode, referrerUid: userId })
-    return true
-  } catch (err) {
-    console.warn('[Referral] ensureOwnReferralCodeMapping failed (non-blocking):', { code: err.code, message: err.message, collection: 'referralCodes', docId: referralCode })
-    return false
-  }
+  return supabaseEnsureOwnReferralCodeMapping(userId, referralCode)
 }
 
 // ─────────────────────────────────────────────
@@ -489,33 +386,7 @@ export async function ensureOwnReferralCodeMapping(userId, referralCode) {
 //     matches backfillMissingReferralCodes which skips the role).
 // NEVER throws — referral healing must never block the session.
 export async function ensureSelfReferralCode({ uid, referralCode, role } = {}) {
-  if (!uid) {
-    console.warn('[Referral] ensureSelfReferralCode SKIP: no uid')
-    return { code: '', created: false }
-  }
-  const existing = typeof referralCode === 'string' ? referralCode.trim() : ''
-  if (validateReferralCodeFormat(existing)) {
-    const mapped = await ensureOwnReferralCodeMapping(uid, existing).catch(() => false)
-    console.warn('[Referral] ensureSelfReferralCode: existing code converged', { uid, code: existing, mappingOk: mapped })
-    return { code: existing, created: false }
-  }
-  if (role === 'trainer') {
-    console.warn('[Referral] ensureSelfReferralCode SKIP: trainer role (staff, no referral codes by design)', { uid })
-    return { code: '', created: false }
-  }
-  const code = generateReferralCode()
-  try {
-    await updateDoc(doc(db, 'users', uid), {
-      referralCode: code,
-      referralCodeGeneratedAt: serverTimestamp(),
-    })
-    await ensureOwnReferralCodeMapping(uid, code)
-    console.warn('[Referral] ensureSelfReferralCode GENERATED:', { collection: 'users', docId: uid, code })
-    return { code, created: true }
-  } catch (err) {
-    console.warn('[Referral] ensureSelfReferralCode failed (non-blocking):', { code: err.code, message: err.message, uid })
-    return { code: '', created: false }
-  }
+  return supabaseEnsureSelfReferralCode({ uid, referralCode, role })
 }
 
 // Resolve a referral code to its owner via the directory collection.
@@ -524,21 +395,7 @@ export async function resolveReferralCode(code) {
     console.warn('[Referral] resolveReferralCode SKIP: invalid format', { code })
     return null
   }
-  try {
-    const snap = await getDoc(doc(db, 'referralCodes', code.toUpperCase()))
-    if (!snap.exists()) {
-      console.warn('[Referral] resolveReferralCode MISSING DOC:', {
-        collection: 'referralCodes', docId: code.toUpperCase(),
-        hint: 'code owner never wrote their directory entry (pre-81A-Spark account, or signup batch failed)',
-      })
-      return null
-    }
-    console.warn('[Referral] resolveReferralCode OK:', { code, referrerUid: snap.data().referrerUid })
-    return { referrerUid: snap.data().referrerUid || '', createdAt: snap.data().createdAt || null }
-  } catch (err) {
-    console.error('[Referral] resolveReferralCode ERROR:', { code: err.code, message: err.message })
-    return null
-  }
+  return supabaseResolveReferralCode(code)
 }
 
 /**
@@ -563,118 +420,7 @@ export async function processPendingReferral({ referredUid, referredName, referr
     return { created: false, reason: 'in-flight' }
   }
 
-  const resolved = await resolveReferralCode(code)
-  if (!resolved || !resolved.referrerUid) {
-    console.warn('[Referral] processPendingReferral SKIP: invalid-code', {
-      referredUid, code,
-      directoryEntry: resolved ? 'exists-but-no-referrerUid' : 'missing-doc',
-      hint: resolved ? 'referralCodes/' + code + ' has no referrerUid field' : 'referralCodes/' + code + ' does not exist',
-    })
-    return { created: false, reason: 'invalid-code' }
-  }
-  if (resolved.referrerUid === referredUid) {
-    console.warn('[Referral] processPendingReferral SKIP: self-referral', { referredUid, code })
-    return { created: false, reason: 'self-referral' }
-  }
-
-  processingInFlight = true
-  try {
-    const ref = doc(db, 'referrals', referredUid)
-    const notifReferrer = doc(db, 'notifications', `ref-registered-${resolved.referrerUid}-${referredUid}`)
-    const notifReferred = doc(db, 'notifications', `ref-applied-${referredUid}`)
-    const auditRef = doc(db, 'referralAuditLogs', `ref-created-${referredUid}`)
-    const now = new Date().toISOString()
-    const referralGymId = gymId || DEFAULT_GYM_ID
-
-    const outcome = await runTransaction(db, async (tx) => {
-      const existing = await tx.get(ref)
-      if (existing.exists()) {
-        console.warn('[Referral] processPendingReferral SKIP: already-registered (idempotency hit)', {
-          referralId: referredUid, code, referrerUid: resolved.referrerUid,
-        })
-        return 'already-registered'
-      }
-      tx.set(ref, {
-        referrerUid: resolved.referrerUid,
-        referredUid,
-        referralCode: code,
-        gymId: referralGymId,
-        referredName: referredName || '',
-        status: 'Pending',
-        rewardType: '',
-        rewardValue: 0,
-        rewardIssued: false,
-        firstPaymentId: '',
-        expiresAt: null,
-        createdAt: now,
-        qualifiedAt: null,
-        rewardedAt: null,
-      })
-      tx.set(notifReferrer, {
-        userId: resolved.referrerUid,
-        gymId: referralGymId,
-        role: 'member',
-        title: 'Referral Registered!',
-        message: `${referredName || 'Someone'} signed up using your referral code!`,
-        type: 'referral',
-        subtype: 'referral_registered',
-        priority: 'normal',
-        icon: '📋',
-        actionUrl: '/referral',
-        relatedDocumentId: referredUid,
-        read: false,
-        createdAt: now,
-      })
-      tx.set(notifReferred, {
-        userId: referredUid,
-        gymId: referralGymId,
-        role: 'member',
-        title: 'Referral Applied',
-        message: 'Your referral code was applied! Welcome aboard.',
-        type: 'referral',
-        subtype: 'referral_applied',
-        priority: 'normal',
-        icon: '✅',
-        actionUrl: '',
-        relatedDocumentId: referredUid,
-        read: false,
-        createdAt: now,
-      })
-      tx.set(auditRef, {
-        timestamp: now,
-        createdAt: now,
-        action: 'REFERRAL_CREATED',
-        performedBy: referredUid,
-        targetUid: resolved.referrerUid,
-        referralId: referredUid,
-        metadata: { referralCode: code, referredName: referredName || '' },
-      })
-      return 'created'
-    })
-
-    if (outcome === 'created') {
-      console.warn('[Referral] processPendingReferral CREATED:', {
-        collection: 'referrals', docId: referredUid, referralCode: code,
-        referrerUid: resolved.referrerUid, gymId: referralGymId,
-        notifications: [`notifications/ref-registered-${resolved.referrerUid}-${referredUid}`, `notifications/ref-applied-${referredUid}`],
-        auditDoc: `referralAuditLogs/ref-created-${referredUid}`,
-      })
-      clearPendingReferralStorage()
-    }
-    return { created: outcome === 'created', reason: outcome === 'created' ? undefined : outcome }
-  } catch (err) {
-    console.error('[Referral] processPendingReferral ERROR — no referral doc was created:', {
-      reason: err.code || err.name,
-      message: err.message,
-      collection: 'referrals',
-      docId: referredUid,
-      referralCode: code,
-      hint: "reason 'permission-denied' on the first registration means the referrals read rule denied the transaction's existence probe of the NOT-YET-CREATED doc (rules cannot dereference resource.data on a missing doc) — deploy firestore.rules; smoke harnesses do not enforce read rules, this only fails in real Firestore",
-    })
-    return { created: false, reason: 'error' }
-  } finally {
-    processingInFlight = false
-  }
+  return supabaseProcessPendingReferral({ referredUid, referredName, referralCode: code, gymId })
 }
 
 // ── EXPIRY CHECK ─────────────────────────────────
@@ -706,18 +452,342 @@ export function getShareMessageTemplate(settings) {
 
 export async function logReferralAudit({ action, performedBy, targetUid, referralId, metadata }) {
   refDevLog('audit', { collection: 'referralAuditLogs', action, performedBy, targetUid })
+  // DOCUMENTED_EXCEPTION: referral_audit_logs has select-only RLS; audit
+  // trail is Firebase-only in supabase mode (see FIREBASE_WRITE_PATH_AUDIT.md).
+  return
+}
+
+// ============================================================================
+// SUPABASE DATA PLANE (Step 8E)
+// ============================================================================
+let _supabaseClient = null
+async function getSupabaseClient() {
+  if (_supabaseClient) return _supabaseClient
+  const m = await import('../lib/supabase')
+  _supabaseClient = m.supabase
+  return _supabaseClient
+}
+
+function mapSupabaseError(err, fallbackMsg) {
+  const msg = (err && (err.message || err.details || err.hint)) || String(err || fallbackMsg || 'Supabase error')
+  const codeStr = msg + ' ' + (err && err.code ? String(err.code) : '')
+  const code =
+    /42501|42502|42504|permission denied|row-level security|new row violates/i.test(codeStr) ? 'permission-denied'
+    : /23505|duplicate key|already exists/i.test(codeStr) ? 'already-exists'
+    : /PGRST116|404|not found/i.test(codeStr) ? 'not-found'
+    : /network|fetch failed|ECONN|timeout|Failed to fetch/i.test(codeStr) ? 'unavailable'
+    : /22P02|22007|23514|invalid input|invalid enum|violates check/i.test(codeStr) ? 'invalid-argument'
+    : /23503|foreign key/i.test(codeStr) ? 'foreign-key-violation'
+    : undefined
+  const error = new Error(msg)
+  if (code) error.code = code
+  return error
+}
+
+async function supabaseGetReferralSettings() {
+  const client = await getSupabaseClient()
+  const { data, error } = await client
+    .from('settings')
+    .select('data')
+    .eq('gym_id', 'platform')
+    .eq('doc_id', REFERRAL_SETTINGS_ID)
+    .maybeSingle()
+  if (error) {
+    console.error('referralService: getReferralSettings error:', error)
+    return null
+  }
+  return data ? data.data : null
+}
+
+async function supabaseUpdateReferralSettings(data, changedBy) {
+  const client = await getSupabaseClient()
+  const existing = await supabaseGetReferralSettings()
+  const merged = {
+    ...(existing || {}),
+    ...data,
+    updatedAt: new Date().toISOString(),
+  }
+  const { error } = await client
+    .from('settings')
+    .upsert(
+      { gym_id: 'platform', doc_id: REFERRAL_SETTINGS_ID, data: merged },
+      { onConflict: 'gym_id,doc_id' }
+    )
+  if (error) {
+    const mapped = mapSupabaseError(error, 'Failed to update referral settings')
+    console.error('referralService: updateReferralSettings error:', mapped)
+    throw mapped
+  }
+  // audit_log skip — DOCUMENTED_EXCEPTION (select-only RLS).
+  void changedBy
+}
+
+async function supabaseCreateReferral(referralData) {
+  const client = await getSupabaseClient()
+  const { data: row, error } = await client.from('referrals').insert({
+    referred_uid: referralData.referredUid || '',
+    referrer_uid: referralData.referrerUid || '',
+    referral_code: referralData.referralCode || '',
+    gym_id: referralData.gymId || DEFAULT_GYM_ID,
+    status: 'Pending',
+    reward_type: referralData.rewardType || '',
+    reward_value: Number(referralData.rewardValue) || 0,
+    reward_issued: false,
+    first_payment_id: referralData.firstPaymentId || '',
+    expires_at: referralData.expiresAt || null,
+    qualified_at: null,
+    rewarded_at: null,
+  }).select('referred_uid').single()
+  if (error) throw mapSupabaseError(error, 'Failed to create referral')
+  return row.referred_uid
+}
+
+// RLS: referrals update is RPC-only (update_referral_status).
+async function supabaseUpdateReferral(referralId, data) {
+  const client = await getSupabaseClient()
+  const { error } = await client.rpc('update_referral_status', {
+    p_referred_uid: referralId,
+    p_status: data.status || 'Pending',
+  })
+  if (error) throw mapSupabaseError(error, 'Failed to update referral')
+}
+
+async function supabaseGetReferralById(referralId) {
+  const client = await getSupabaseClient()
+  const { data, error } = await client
+    .from('referrals')
+    .select('*')
+    .eq('referred_uid', referralId)
+    .maybeSingle()
+  if (error || !data) return null
+  return mapReferralRow(data)
+}
+
+async function supabaseDeleteReferral(referralId) {
+  const client = await getSupabaseClient()
+  const { error } = await client.rpc('delete_referral', { p_referred_uid: referralId })
+  if (error) throw mapSupabaseError(error, 'Failed to delete referral')
+}
+
+async function supabaseGetRewardLedger(userId) {
+  const client = await getSupabaseClient()
+  const { data, error } = await client
+    .from('reward_ledger')
+    .select('*')
+    .eq('referrer_uid', userId)
+    .order('issued_at', { ascending: false })
+    .limit(500)
+  if (error) {
+    console.error('referralService: getRewardLedger error:', error)
+    return []
+  }
+  return (data || []).map(mapRewardLedgerRow)
+}
+
+async function supabaseGetDiscountCoupon(couponCode) {
+  const client = await getSupabaseClient()
+  const { data, error } = await client
+    .from('discount_coupons')
+    .select('*')
+    .eq('code', couponCode)
+    .limit(1)
+  if (error) {
+    console.error('referralService: getDiscountCoupon error:', error)
+    return null
+  }
+  if (!data || !data.length) return null
+  return mapDiscountCouponRow(data[0])
+}
+
+async function supabaseRedeemDiscountCoupon(couponId) {
+  const client = await getSupabaseClient()
+  const { error } = await client.rpc('redeem_discount_coupon', { p_coupon_id: couponId })
+  if (error) throw mapSupabaseError(error, 'Failed to redeem coupon')
+}
+
+async function supabaseResolveReferralCode(code) {
+  const client = await getSupabaseClient()
+  const { data, error } = await client
+    .from('referral_codes')
+    .select('referrer_uid, created_at')
+    .eq('code', code.toUpperCase())
+    .maybeSingle()
+  if (error || !data) return null
+  return { referrerUid: data.referrer_uid || '', createdAt: data.created_at || null }
+}
+
+// Supabase Spark-compatible registration: ONE atomic INSERT keyed on the
+// PK referred_uid (23505 = already-registered). No transaction emulation.
+// Notification side-writes are best-effort (member sessions cannot insert
+// notifications — staff-only RLS) and the audit trail is Firebase-only.
+async function supabaseProcessPendingReferral({ referredUid, referredName, referralCode, gymId }) {
+  const code = referralCode
+  const resolved = await resolveReferralCode(code)
+  if (!resolved || !resolved.referrerUid) {
+    return { created: false, reason: 'invalid-code' }
+  }
+  if (resolved.referrerUid === referredUid) {
+    return { created: false, reason: 'self-referral' }
+  }
+
+  processingInFlight = true
   try {
-    await addDoc(collection(db, 'referralAuditLogs'), {
-      timestamp: serverTimestamp(),
-      action,
-      performedBy: performedBy || '',
-      targetUid: targetUid || '',
-      referralId: referralId || '',
-      metadata: metadata || {},
-      createdAt: serverTimestamp(),
+    const referralGymId = gymId || DEFAULT_GYM_ID
+    const client = await getSupabaseClient()
+    const { error: insErr } = await client.from('referrals').insert({
+      referred_uid: referredUid,
+      referrer_uid: resolved.referrerUid,
+      referral_code: code,
+      gym_id: referralGymId,
+      referred_name: referredName || '',
+      status: 'Pending',
+      reward_type: '',
+      reward_value: 0,
+      reward_issued: false,
+      first_payment_id: '',
+      expires_at: null,
+      qualified_at: null,
+      rewarded_at: null,
     })
+    if (insErr) {
+      if (mapSupabaseError(insErr).code === 'already-exists') {
+        return { created: false, reason: 'already-registered' }
+      }
+      console.error('[Referral] supabase processPendingReferral ERROR:', insErr.message)
+      return { created: false, reason: 'error' }
+    }
+
+    // Best-effort notification side-writes (RLS: staff-only insert — member
+    // sessions will be denied; never fail the registration for it).
+    try {
+      await client.from('notifications').insert([
+        {
+          user_id: resolved.referrerUid,
+          gym_id: referralGymId,
+          role: 'member',
+          title: 'Referral Registered!',
+          message: `${referredName || 'Someone'} signed up using your referral code!`,
+          type: 'referral',
+          subtype: 'referral_registered',
+          priority: 'normal',
+          icon: '📋',
+          action_url: '/referral',
+          related_document_id: referredUid,
+          read: false,
+        },
+        {
+          user_id: referredUid,
+          gym_id: referralGymId,
+          role: 'member',
+          title: 'Referral Applied',
+          message: 'Your referral code was applied! Welcome aboard.',
+          type: 'referral',
+          subtype: 'referral_applied',
+          priority: 'normal',
+          icon: '✅',
+          action_url: '',
+          related_document_id: referredUid,
+          read: false,
+        },
+      ])
+    } catch (e) {
+      console.warn('[Referral] supabase notification side-writes skipped (non-blocking):', e.message)
+    }
+
+    clearPendingReferralStorage()
+    return { created: true }
   } catch (err) {
-    console.error('[ReferralService] Audit log error (non-blocking):', err)
-    refDevLog('audit FAILED', { collection: 'referralAuditLogs', action, code: err.code, message: err.message })
+    console.error('[Referral] supabase processPendingReferral ERROR — no referral row was created:', err.message)
+    return { created: false, reason: 'error' }
+  } finally {
+    processingInFlight = false
+  }
+}
+
+async function supabaseHasPendingReferral(referredUid) {
+  if (!referredUid) return false
+  const client = await getSupabaseClient()
+  const { data, error } = await client
+    .from('referrals')
+    .select('referred_uid')
+    .eq('referred_uid', referredUid)
+    .eq('status', 'Pending')
+    .limit(1)
+  if (error) {
+    console.warn('[Referral] supabase hasPendingReferral error (non-blocking):', error.message)
+    return false
+  }
+  return !!(data && data.length)
+}
+
+// Supabase referral_codes directory: converge the owner mapping for a code.
+// Insert is best-effort (owner-code-match RLS); never throws.
+async function supabaseEnsureOwnReferralCodeMapping(userId, referralCode) {
+  if (!userId || !validateReferralCodeFormat(referralCode)) return false
+  const client = await getSupabaseClient()
+  const code = referralCode.toUpperCase()
+  const { data: existing, error: selErr } = await client
+    .from('referral_codes')
+    .select('referrer_uid')
+    .eq('code', code)
+    .maybeSingle()
+  if (selErr) {
+    console.warn('[Referral] supabase mapping lookup failed (non-blocking):', selErr.message)
+    return false
+  }
+  if (existing) {
+    const owned = existing.referrer_uid === userId
+    if (!owned) {
+      console.warn('[Referral] supabase mapping CONFLICT:', { code, owner: existing.referrer_uid, caller: userId })
+    }
+    return owned
+  }
+  const { error: insErr } = await client.from('referral_codes').insert({
+    code,
+    referrer_uid: userId,
+  })
+  if (insErr) {
+    console.warn('[Referral] supabase mapping create failed (non-blocking):', insErr.message)
+    return false
+  }
+  return true
+}
+
+// Supabase self-heal: profiles carry referral_code (provisioned at first
+// sign-in); converge the directory entry, or generate + persist when missing.
+// Never throws — referral healing must never block the session.
+async function supabaseEnsureSelfReferralCode({ uid, referralCode, role } = {}) {
+  if (!uid) {
+    console.warn('[Referral] supabase ensureSelfReferralCode SKIP: no uid')
+    return { code: '', created: false }
+  }
+  const existing = typeof referralCode === 'string' ? referralCode.trim().toUpperCase() : ''
+  if (validateReferralCodeFormat(existing)) {
+    const mapped = await supabaseEnsureOwnReferralCodeMapping(uid, existing)
+    console.warn('[Referral] supabase ensureSelfReferralCode: existing code', { uid, code: existing, mappingOk: mapped })
+    return { code: existing, created: false }
+  }
+  if (role === 'trainer') {
+    console.warn('[Referral] supabase ensureSelfReferralCode SKIP: trainer role (staff, no referral codes by design)', { uid })
+    return { code: '', created: false }
+  }
+  const code = generateReferralCode()
+  try {
+    const client = await getSupabaseClient()
+    const { error: updErr } = await client
+      .from('profiles')
+      .update({ referral_code: code })
+      .eq('id', uid)
+      .is('referral_code', null)
+    if (updErr) {
+      console.warn('[Referral] supabase ensureSelfReferralCode update failed (non-blocking):', updErr.message)
+      return { code: '', created: false }
+    }
+    await supabaseEnsureOwnReferralCodeMapping(uid, code)
+    console.warn('[Referral] supabase ensureSelfReferralCode GENERATED:', { uid, code })
+    return { code, created: true }
+  } catch (err) {
+    console.warn('[Referral] supabase ensureSelfReferralCode failed (non-blocking):', { code: err.code, message: err.message, uid })
+    return { code: '', created: false }
   }
 }

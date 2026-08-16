@@ -1,0 +1,15 @@
+[
+  {
+    "table": "referral_codes",
+    "legacyId": "IP-H6POBD",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "code": "IP-H6POBD",
+      "referrer_uid": "bRKcg3fwzQbvspZLoHU4nBvBuOu2",
+      "created_at": "2026-08-13T03:02:48.694Z"
+    }
+  }
+]

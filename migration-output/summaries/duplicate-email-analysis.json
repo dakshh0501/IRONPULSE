@@ -1,0 +1,362 @@
+{
+  "project": "ironpulse-32f31",
+  "generatedAt": "2026-08-14T09:05:22.490Z",
+  "mode": "READ-ONLY ANALYSIS — ZERO AUTH USERS / ZERO WRITES",
+  "totalApprovedUsers": 35,
+  "groupCount": 3,
+  "groups": [
+    {
+      "size": 5,
+      "emailMasked": "h***@gmail.com",
+      "users": [
+        {
+          "uid": "37WD336c",
+          "role": "gym_owner_pending",
+          "gymId": "default",
+          "gymExists": false,
+          "gymStatus": null,
+          "ownerGymCount": 0,
+          "ownerGymIds": [],
+          "ownerGymStatuses": [],
+          "accountDisabled": false,
+          "members": 0,
+          "trainers": 0,
+          "createdAt": "2026-06-27T08:01:08.107Z",
+          "fieldInventory": {
+            "email": true,
+            "role": true,
+            "gymId": true,
+            "name": true,
+            "phone": false,
+            "createdAt": true,
+            "accountDisabled": false,
+            "referralCode": false,
+            "referredBy": false,
+            "approved": false,
+            "extra": [
+              "uid"
+            ]
+          }
+        },
+        {
+          "uid": "Y0BzZnBP",
+          "role": "rejected",
+          "gymId": "default",
+          "gymExists": false,
+          "gymStatus": null,
+          "ownerGymCount": 0,
+          "ownerGymIds": [],
+          "ownerGymStatuses": [],
+          "accountDisabled": false,
+          "members": 0,
+          "trainers": 0,
+          "createdAt": "2026-06-27T08:47:30.024Z",
+          "fieldInventory": {
+            "email": true,
+            "role": true,
+            "gymId": true,
+            "name": true,
+            "phone": false,
+            "createdAt": true,
+            "accountDisabled": false,
+            "referralCode": false,
+            "referredBy": false,
+            "approved": false,
+            "extra": [
+              "uid"
+            ]
+          }
+        },
+        {
+          "uid": "hnfpV7jJ",
+          "role": "gym_owner_pending",
+          "gymId": "default",
+          "gymExists": false,
+          "gymStatus": null,
+          "ownerGymCount": 0,
+          "ownerGymIds": [],
+          "ownerGymStatuses": [],
+          "accountDisabled": false,
+          "members": 0,
+          "trainers": 0,
+          "createdAt": "2026-06-27T08:02:23.693Z",
+          "fieldInventory": {
+            "email": true,
+            "role": true,
+            "gymId": true,
+            "name": true,
+            "phone": false,
+            "createdAt": true,
+            "accountDisabled": false,
+            "referralCode": false,
+            "referredBy": false,
+            "approved": false,
+            "extra": [
+              "uid"
+            ]
+          }
+        },
+        {
+          "uid": "kh9tSKzD",
+          "role": "gym_owner_pending",
+          "gymId": "default",
+          "gymExists": false,
+          "gymStatus": null,
+          "ownerGymCount": 0,
+          "ownerGymIds": [],
+          "ownerGymStatuses": [],
+          "accountDisabled": false,
+          "members": 0,
+          "trainers": 0,
+          "createdAt": "2026-06-27T08:20:14.246Z",
+          "fieldInventory": {
+            "email": true,
+            "role": true,
+            "gymId": true,
+            "name": true,
+            "phone": false,
+            "createdAt": true,
+            "accountDisabled": false,
+            "referralCode": false,
+            "referredBy": false,
+            "approved": false,
+            "extra": [
+              "uid"
+            ]
+          }
+        },
+        {
+          "uid": "mNBFFQUH",
+          "role": "gym_owner_pending",
+          "gymId": "default",
+          "gymExists": false,
+          "gymStatus": null,
+          "ownerGymCount": 0,
+          "ownerGymIds": [],
+          "ownerGymStatuses": [],
+          "accountDisabled": false,
+          "members": 0,
+          "trainers": 0,
+          "createdAt": "2026-06-27T08:15:00.389Z",
+          "fieldInventory": {
+            "email": true,
+            "role": true,
+            "gymId": true,
+            "name": true,
+            "phone": false,
+            "createdAt": true,
+            "accountDisabled": false,
+            "referralCode": false,
+            "referredBy": false,
+            "approved": false,
+            "extra": [
+              "uid"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "size": 4,
+      "emailMasked": "g***@gmail.com",
+      "users": [
+        {
+          "uid": "A0kiygGn",
+          "role": "rejected",
+          "gymId": "default",
+          "gymExists": false,
+          "gymStatus": null,
+          "ownerGymCount": 1,
+          "ownerGymIds": [
+            "LLrl5gO1Ttou"
+          ],
+          "ownerGymStatuses": [
+            "rejected"
+          ],
+          "accountDisabled": false,
+          "members": 0,
+          "trainers": 0,
+          "createdAt": "2026-07-25T15:26:08.958Z",
+          "fieldInventory": {
+            "email": true,
+            "role": true,
+            "gymId": true,
+            "name": true,
+            "phone": false,
+            "createdAt": true,
+            "accountDisabled": false,
+            "referralCode": true,
+            "referredBy": true,
+            "approved": false,
+            "extra": [
+              "uid"
+            ]
+          }
+        },
+        {
+          "uid": "JGQdw7v1",
+          "role": "rejected",
+          "gymId": "default",
+          "gymExists": false,
+          "gymStatus": null,
+          "ownerGymCount": 1,
+          "ownerGymIds": [
+            "Y3KJLfWvAM5Y"
+          ],
+          "ownerGymStatuses": [
+            "rejected"
+          ],
+          "accountDisabled": false,
+          "members": 0,
+          "trainers": 0,
+          "createdAt": "2026-07-25T15:27:33.438Z",
+          "fieldInventory": {
+            "email": true,
+            "role": true,
+            "gymId": true,
+            "name": true,
+            "phone": false,
+            "createdAt": true,
+            "accountDisabled": false,
+            "referralCode": true,
+            "referredBy": true,
+            "approved": false,
+            "extra": [
+              "uid"
+            ]
+          }
+        },
+        {
+          "uid": "TitV32lD",
+          "role": "rejected",
+          "gymId": "default",
+          "gymExists": false,
+          "gymStatus": null,
+          "ownerGymCount": 1,
+          "ownerGymIds": [
+            "1Gz4zHCN3vNq"
+          ],
+          "ownerGymStatuses": [
+            "rejected"
+          ],
+          "accountDisabled": false,
+          "members": 0,
+          "trainers": 0,
+          "createdAt": "2026-07-25T15:27:03.217Z",
+          "fieldInventory": {
+            "email": true,
+            "role": true,
+            "gymId": true,
+            "name": true,
+            "phone": false,
+            "createdAt": true,
+            "accountDisabled": false,
+            "referralCode": true,
+            "referredBy": true,
+            "approved": false,
+            "extra": [
+              "uid"
+            ]
+          }
+        },
+        {
+          "uid": "nx0Qunp4",
+          "role": "rejected",
+          "gymId": "default",
+          "gymExists": false,
+          "gymStatus": null,
+          "ownerGymCount": 1,
+          "ownerGymIds": [
+            "zG3GB9viQp2D"
+          ],
+          "ownerGymStatuses": [
+            "rejected"
+          ],
+          "accountDisabled": false,
+          "members": 0,
+          "trainers": 0,
+          "createdAt": "2026-07-25T15:26:20.514Z",
+          "fieldInventory": {
+            "email": true,
+            "role": true,
+            "gymId": true,
+            "name": true,
+            "phone": false,
+            "createdAt": true,
+            "accountDisabled": false,
+            "referralCode": true,
+            "referredBy": true,
+            "approved": false,
+            "extra": [
+              "uid"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "size": 2,
+      "emailMasked": "h***@gmail.com",
+      "users": [
+        {
+          "uid": "ZofzD9RL",
+          "role": "gym_owner_pending",
+          "gymId": "default",
+          "gymExists": false,
+          "gymStatus": null,
+          "ownerGymCount": 0,
+          "ownerGymIds": [],
+          "ownerGymStatuses": [],
+          "accountDisabled": false,
+          "members": 0,
+          "trainers": 0,
+          "createdAt": "2026-06-27T08:58:47.225Z",
+          "fieldInventory": {
+            "email": true,
+            "role": true,
+            "gymId": true,
+            "name": true,
+            "phone": false,
+            "createdAt": true,
+            "accountDisabled": false,
+            "referralCode": false,
+            "referredBy": false,
+            "approved": false,
+            "extra": [
+              "uid"
+            ]
+          }
+        },
+        {
+          "uid": "joShucWx",
+          "role": "rejected",
+          "gymId": "default",
+          "gymExists": false,
+          "gymStatus": null,
+          "ownerGymCount": 0,
+          "ownerGymIds": [],
+          "ownerGymStatuses": [],
+          "accountDisabled": false,
+          "members": 0,
+          "trainers": 0,
+          "createdAt": "2026-06-27T09:24:25.602Z",
+          "fieldInventory": {
+            "email": true,
+            "role": true,
+            "gymId": true,
+            "name": true,
+            "phone": false,
+            "createdAt": true,
+            "accountDisabled": false,
+            "referralCode": false,
+            "referredBy": false,
+            "approved": false,
+            "extra": [
+              "uid"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

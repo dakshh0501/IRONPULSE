@@ -1,9 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
 import { useAuth } from '../../context/AuthContext'
-import { doc, getDoc, writeBatch, collection, query, where, getDocs } from 'firebase/firestore'
-import { db } from '../../firebase'
-import { updateSubscription } from '../../services/firestoreService'
 import {
   activateSubscription as activateSubForGym,
   assignTrial as assignTrialForGym,
@@ -17,6 +14,14 @@ import {
 } from '../../services/subscriptionService'
 import { PLAN_AMOUNTS } from '../../constants/plans'
 import { useSearchParams } from 'react-router-dom'
+
+let _supabaseClient = null
+async function getSupabaseClient() {
+  if (_supabaseClient) return _supabaseClient
+  const m = await import('../../lib/supabase')
+  _supabaseClient = m.supabase
+  return _supabaseClient
+}
 
 const PLAN_OPTIONS = ['Trial', 'Standard', 'Premium', 'Quarterly', 'Annual', 'Lifetime', 'Day Pass']
 const ROWS_PER_PAGE = 10
@@ -655,20 +660,9 @@ export default function SuperAdminSubscriptions() {
             break
         }
 
-        // Mirror to subscriptions collection for consistency
-        const gymSnap = await getDoc(doc(db, 'gyms', gymId))
-        if (gymSnap.exists()) {
-          const subData = gymSnap.data().subscription || {}
-          await updateSubscription(selectedSub.id, {
-            status: subData.status,
-            plan: subData.planName,
-            planType: subData.planType,
-            paymentStatus: subData.paymentStatus,
-            startDate: subData.startDate,
-            expiryDate: subData.expiryDate,
-            amount: subData.amount,
-          })
-        }
+        // Mirror to subscriptions collection for consistency.
+        // Supabase mode: the lifecycle RPCs already maintain the
+        // subscriptions row (Step 9A).
       }
 
       setActionType(null)
@@ -689,31 +683,13 @@ export default function SuperAdminSubscriptions() {
       const subId = selectedSub.id
       const gymId = selectedSub.gymId || ''
       const gymName = gyms.find(g => g.id === gymId || g.gymId === gymId)?.gymName || gymId || 'Unknown Gym'
-      const toDelete = []
 
-      // Subscription record: this doc + any mirrors for the same gym
-      toDelete.push(doc(db, 'subscriptions', subId))
-      if (gymId) {
-        const mirrorSnap = await getDocs(query(collection(db, 'subscriptions'), where('gymId', '==', gymId)))
-        mirrorSnap.docs.forEach(d => toDelete.push(d.ref))
-      }
-
-      // PhonePe payment attempts tied to this subscription / gym
-      const attSnap = await getDocs(query(collection(db, 'paymentAttempts'), where('subscriptionId', '==', subId)))
-      attSnap.docs.forEach(d => toDelete.push(d.ref))
-      if (gymId) {
-        const attGymSnap = await getDocs(query(collection(db, 'paymentAttempts'), where('gymId', '==', gymId)))
-        attGymSnap.docs.forEach(d => toDelete.push(d.ref))
-      }
-
-      // Commit in chunks (batch limit is 500 writes)
-      for (let i = 0; i < toDelete.length; i += 450) {
-        const batch = writeBatch(db)
-        toDelete.slice(i, i + 450).forEach(ref => batch.delete(ref))
-        await batch.commit()
-      }
-
-      showToast(`Subscription record for "${gymName}" deleted along with its payment attempts. The gym itself is unchanged.`)
+      // Supabase mode: subscriptions is a super-write table; payment_attempts
+      // cascades via gym/subscription FK — delete the subscription row directly.
+      const client = await getSupabaseClient()
+      const { error } = await client.from('subscriptions').delete().eq('id', subId)
+      if (error) throw error
+      showToast(`Subscription record for "${gymName}" deleted along with its payment attempts (FK cascade). The gym itself is unchanged.`)
       setSelectedSubId(null)
       setConfirmAction(null)
       setActionError('')

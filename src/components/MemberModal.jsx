@@ -1,6 +1,4 @@
 import { useState, useRef } from 'react'
-import { doc, updateDoc } from 'firebase/firestore'
-import { db } from '../firebase'
 import { updateMember as updateMemberService } from '../services/firestoreService'
 import { uploadMemberPhoto } from '../services/storageService'
 import MemberAvatar from './MemberAvatar'
@@ -102,7 +100,6 @@ export default function MemberModal({ member, prefill, trainers, onSave, onClose
         const { downloadUrl } = await uploadMemberPhoto(selectedFile, memberId, setUploadProgress)
         await updateMemberService(memberId, { photoUrl: downloadUrl })
         const authUid = payload.authUid || form.authUid || member?.authUid
-        if (authUid) await updateDoc(doc(db, 'users', authUid), { photoUrl: downloadUrl })
         setPreviewUrl(downloadUrl)
       }
 

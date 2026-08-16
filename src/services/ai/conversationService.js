@@ -26,21 +26,38 @@
 //     an on-demand message cache (no collection-group query).
 // ─────────────────────────────────────────────────────────────
 
-import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  getDocs,
-  onSnapshot,
-  query,
-  where,
-  orderBy,
-  limit,
-  startAfter,
-  serverTimestamp,
-} from 'firebase/firestore'
-import { db } from '../../firebase'
+import { subscribeRealtime } from '../realtimeService'
+
+// Supabase ai_conversations row → Firestore-shaped conversation
+function mapConversationRow(r) {
+  return {
+    id: r.id,
+    userId: r.user_id || '',
+    gymId: r.gym_id || '',
+    role: r.role || '',
+    title: r.title || '',
+    pinned: Boolean(r.pinned),
+    archived: Boolean(r.archived),
+    deleted: Boolean(r.deleted),
+    deletedAt: r.deleted_at || null,
+    lastMessage: r.last_message || '',
+    messageCount: Number(r.message_count) || 0,
+    createdAt: r.created_at || null,
+    updatedAt: r.updated_at || null,
+  }
+}
+
+// Supabase ai_conversation_messages row → Firestore-shaped message
+function mapConversationMessageRow(r) {
+  return {
+    id: r.id,
+    conversationId: r.conversation_id || '',
+    role: r.role || 'user',
+    content: r.content || '',
+    metadata: r.metadata || {},
+    createdAt: r.created_at || null,
+  }
+}
 
 /**
  * Recursively strips `undefined` from an object so it is always safe
@@ -130,47 +147,13 @@ export function autoTitleFor(prompt) {
  * Creates a new conversation. Returns { id, ...dataWithoutTimestamps }.
  */
 export async function createConversation({ gymId, userId, role, title }) {
-  const now = serverTimestamp()
-  const docRef = await addDoc(
-    collection(db, CONVERSATIONS_COLLECTION),
-    sanitizeFirestoreData({
-      gymId: gymId || 'default',
-      userId,
-      role: role || 'gym_admin',
-      title: title || 'New conversation',
-      createdAt: now,
-      updatedAt: now,
-      pinned: false,
-      archived: false,
-      deleted: false,
-      lastMessage: '',
-      messageCount: 0,
-    })
-  )
-  return {
-    id: docRef.id,
-    gymId: gymId || 'default',
-    userId,
-    role: role || 'gym_admin',
-    title: title || 'New conversation',
-    pinned: false,
-    archived: false,
-    deleted: false,
-    lastMessage: '',
-    messageCount: 0,
-  }
+  return supabaseCreateConversation({ gymId, userId, role, title })
 }
 
 /** Lightweight meta updates accepted on a conversation doc. */
 export async function updateConversation(conversationId, data) {
   if (!conversationId) throw new Error('Missing conversation id')
-  await updateDoc(
-    doc(db, CONVERSATIONS_COLLECTION, conversationId),
-    sanitizeFirestoreData({
-      ...data,
-      updatedAt: serverTimestamp(),
-    })
-  )
+  return supabaseUpdateConversation(conversationId, data)
 }
 
 export function renameConversation(conversationId, title) {
@@ -195,7 +178,7 @@ export function setConversationArchived(conversationId, archived) {
 export function softDeleteConversation(conversationId) {
   return updateConversation(conversationId, {
     deleted: true,
-    deletedAt: serverTimestamp(),
+    deletedAt: new Date().toISOString(),
   })
 }
 
@@ -209,32 +192,25 @@ export function softDeleteConversation(conversationId) {
  */
 export function subscribeToConversations(userId, callback, onError, pageSize = LIST_PAGE_SIZE) {
   if (!userId) return () => {}
-  const ref = query(
-    collection(db, CONVERSATIONS_COLLECTION),
-    where('userId', '==', userId),
-    where('deleted', '==', false),
-    orderBy('updatedAt', 'desc'),
-    limit(pageSize)
-  )
-  return onSnapshotWith(ref, callback, onError, 'aiConversations')
+  return subscribeRealtime({
+      table: 'ai_conversations',
+      filter: [['user_id', userId], ['deleted', false]],
+      orderBy: { column: 'updated_at', ascending: false },
+      limit: pageSize,
+      mapRow: mapConversationRow,
+      onChange: callback,
+      onError: (e) => {
+        console.error('[Supabase] aiConversations realtime error:', e.message)
+        if (onError) onError(e, 'aiConversations')
+      },
+      label: 'aiConversations',
+    })
 }
 
 /** Loads the next page of older conversations (manual load-more). */
 export async function loadMoreConversations(userId, beforeSnapshot, pageSize = LIST_PAGE_SIZE) {
-  if (!userId || !beforeSnapshot) return { items: [], hasMore: false }
-  const ref = query(
-    collection(db, CONVERSATIONS_COLLECTION),
-    where('userId', '==', userId),
-    where('deleted', '==', false),
-    orderBy('updatedAt', 'desc'),
-    startAfter(beforeSnapshot),
-    limit(pageSize)
-  )
-  const snap = await getDocs(ref)
-  return {
-    items: snap.docs.map(d => ({ id: d.id, ...d.data() })),
-    hasMore: snap.docs.length === pageSize,
-  }
+  if (!userId) return { items: [], hasMore: false }
+  return supabaseLoadMoreConversations(userId, beforeSnapshot, pageSize)
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -244,12 +220,19 @@ export async function loadMoreConversations(userId, beforeSnapshot, pageSize = L
 /** Realtime subscription to one conversation's messages. */
 export function subscribeConversationMessages(conversationId, callback, onError) {
   if (!conversationId) return () => {}
-  const ref = query(
-    collection(db, CONVERSATIONS_COLLECTION, conversationId, MESSAGES_SUBCOLLECTION),
-    orderBy('createdAt', 'asc'),
-    limit(MESSAGES_LIMIT)
-  )
-  return onSnapshotWith(ref, callback, onError, 'aiMessages')
+  return subscribeRealtime({
+      table: 'ai_conversation_messages',
+      filter: [['conversation_id', conversationId]],
+      orderBy: { column: 'created_at', ascending: true },
+      limit: MESSAGES_LIMIT,
+      mapRow: mapConversationMessageRow,
+      onChange: callback,
+      onError: (e) => {
+        console.error('[Supabase] aiMessages realtime error:', e.message)
+        if (onError) onError(e, 'aiMessages')
+      },
+      label: 'aiMessages',
+    })
 }
 
 /**
@@ -258,29 +241,13 @@ export function subscribeConversationMessages(conversationId, callback, onError)
  * render the bubble before the snapshot arrives.
  */
 export async function addConversationMessage(conversationId, { role, content, metadata }) {
-  const ref = await addDoc(
-    collection(db, CONVERSATIONS_COLLECTION, conversationId, MESSAGES_SUBCOLLECTION),
-    sanitizeFirestoreData({
-      role: role === 'assistant' ? 'assistant' : 'user',
-      content: String(content || '').slice(0, 8000),
-      createdAt: serverTimestamp(),
-      metadata: metadata || {},
-    })
-  )
-  return ref.id
+  return supabaseAddConversationMessage(conversationId, { role, content, metadata })
 }
 
 /** One-shot message read — used by the on-demand search cache. */
 export async function fetchConversationMessages(conversationId, max = 500) {
   if (!conversationId) return []
-  const snap = await getDocs(
-    query(
-      collection(db, CONVERSATIONS_COLLECTION, conversationId, MESSAGES_SUBCOLLECTION),
-      orderBy('createdAt', 'asc'),
-      limit(max)
-    )
-  )
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+  return supabaseFetchConversationMessages(conversationId, max)
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -384,25 +351,147 @@ export function formatTimeString(value) {
   return new Date(tsToMs(value)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-function onSnapshotWith(ref, callback, onError, label) {
-  let unsub = null
-  try {
-    unsub = onSnapshot(
-      ref,
-      (snapshot) => {
-        const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-        callback(items, snapshot)
-      },
-      (error) => {
-        console.error(`[Conversation] Subscription error (${label}):`, error.message)
-        if (typeof onError === 'function') onError(error, label)
-      }
-    )
-  } catch (error) {
-    console.error(`[Conversation] Subscription setup error (${label}):`, error.message)
-    if (typeof onError === 'function') onError(error, label)
+// ============================================================================
+// SUPABASE DATA PLANE (Step 8E)
+// ============================================================================
+let _supabaseClient = null
+async function getSupabaseClient() {
+  if (_supabaseClient) return _supabaseClient
+  const m = await import('../../lib/supabase')
+  _supabaseClient = m.supabase
+  return _supabaseClient
+}
+
+function mapSupabaseError(err, fallbackMsg) {
+  const msg = (err && (err.message || err.details || err.hint)) || String(err || fallbackMsg || 'Supabase error')
+  const codeStr = msg + ' ' + (err && err.code ? String(err.code) : '')
+  const code =
+    /42501|42502|42504|permission denied|row-level security|new row violates/i.test(codeStr) ? 'permission-denied'
+    : /23505|duplicate key|already exists/i.test(codeStr) ? 'already-exists'
+    : /PGRST116|404|not found/i.test(codeStr) ? 'not-found'
+    : /network|fetch failed|ECONN|timeout|Failed to fetch/i.test(codeStr) ? 'unavailable'
+    : /22P02|22007|23514|invalid input|invalid enum|violates check/i.test(codeStr) ? 'invalid-argument'
+    : /23503|foreign key/i.test(codeStr) ? 'foreign-key-violation'
+    : undefined
+  const error = new Error(msg)
+  if (code) error.code = code
+  return error
+}
+
+function nowIso() {
+  return new Date().toISOString()
+}
+
+// Only conversation metadata fields are mapped (snake_case); anything else
+// in `data` (e.g. Firestore FieldValue sentinels) is ignored.
+const CONV_FIELD_MAP = {
+  title: 'title',
+  pinned: 'pinned',
+  archived: 'archived',
+  deleted: 'deleted',
+  deletedAt: 'deleted_at',
+  lastMessage: 'last_message',
+  messageCount: 'message_count',
+}
+
+async function supabaseCreateConversation({ gymId, userId, role, title }) {
+  const client = await getSupabaseClient()
+  const now = nowIso()
+  // 'default' is the Firestore-era tenant sentinel; the supabase gyms table has
+  // no such row and all existing ai_conversations rows are NULL (platform-
+  // scoped). Map it to NULL so the gym_id FK is satisfied for gym-less users
+  // (super admin). Real gym ids pass through unchanged.
+  const resolvedGymId = gymId && gymId !== 'default' ? gymId : null
+  const { data: row, error } = await client.from('ai_conversations').insert({
+    gym_id: resolvedGymId,
+    user_id: userId,
+    role: role || 'gym_admin',
+    title: title || 'New conversation',
+    created_at: now,
+    updated_at: now,
+    pinned: false,
+    archived: false,
+    deleted: false,
+    last_message: '',
+    message_count: 0,
+  }).select('id').single()
+  if (error) throw mapSupabaseError(error, 'Failed to create conversation')
+  return {
+    id: row.id,
+    gymId: resolvedGymId,
+    userId,
+    role: role || 'gym_admin',
+    title: title || 'New conversation',
+    pinned: false,
+    archived: false,
+    deleted: false,
+    lastMessage: '',
+    messageCount: 0,
   }
-  return unsub
+}
+
+async function supabaseUpdateConversation(conversationId, data) {
+  const client = await getSupabaseClient()
+  const patch = {}
+  for (const [key, col] of Object.entries(CONV_FIELD_MAP)) {
+    if (data[key] !== undefined) patch[col] = data[key]
+  }
+  // ChatPanel bumps messageCount with a numeric delta — resolve it to a
+  // read-then-set increment (single-user conversation; benign).
+  if (data.messageCount && typeof data.messageCount === 'number') {
+    const { data: conv, error: readErr } = await client
+      .from('ai_conversations')
+      .select('message_count')
+      .eq('id', conversationId)
+      .maybeSingle()
+    if (readErr) throw mapSupabaseError(readErr, 'Failed to update conversation')
+    patch.message_count = (Number((conv && conv.message_count) || 0) || 0) + data.messageCount
+  }
+  patch.updated_at = nowIso()
+  const { error } = await client.from('ai_conversations').update(patch).eq('id', conversationId)
+  if (error) throw mapSupabaseError(error, 'Failed to update conversation')
+}
+
+async function supabaseLoadMoreConversations(userId, beforeSnapshot, pageSize) {
+  const offset = typeof beforeSnapshot === 'number' ? beforeSnapshot : 0
+  const client = await getSupabaseClient()
+  const { data, error } = await client
+    .from('ai_conversations')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('deleted', false)
+    .order('updated_at', { ascending: false })
+    .range(offset, offset + pageSize - 1)
+  if (error) throw mapSupabaseError(error, 'Failed to load conversations')
+  return {
+    items: (data || []).map(mapConversationRow),
+    hasMore: (data || []).length === pageSize,
+  }
+}
+
+async function supabaseAddConversationMessage(conversationId, { role, content, metadata }) {
+  const client = await getSupabaseClient()
+  const { data: row, error } = await client.from('ai_conversation_messages').insert({
+    conversation_id: conversationId,
+    role: role === 'assistant' ? 'assistant' : 'user',
+    content: String(content || '').slice(0, 8000),
+    created_at: nowIso(),
+    metadata: metadata || {},
+  }).select('id').single()
+  if (error) throw mapSupabaseError(error, 'Failed to add message')
+  return row.id
+}
+
+async function supabaseFetchConversationMessages(conversationId, max) {
+  const client = await getSupabaseClient()
+  const { data, error } = await client
+    .from('ai_conversation_messages')
+    .select('*')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: true })
+    .limit(max)
+  if (error) throw mapSupabaseError(error, 'Failed to load messages')
+  return (data || []).map(mapConversationMessageRow)
 }
 
 export default {

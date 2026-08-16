@@ -1,7 +1,4 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
-import { updateDoc, doc, deleteDoc, serverTimestamp, writeBatch, collection, query, where, getDocs } from 'firebase/firestore'
-import { getFunctions, httpsCallable } from 'firebase/functions'
-import { db } from '../../firebase'
 import { useApp } from '../../context/AppContext'
 import { generateUniqueLicenseKey } from '../../utils/license'
 import { addLicenseHistory } from '../../services/licenseHistoryService'
@@ -215,7 +212,7 @@ function SkeletonRow() {
 
 export default function SuperAdminGymOwners() {
   const [searchParams] = useSearchParams(); const parentSearch = searchParams.get('q') || ''
-  const { gyms, subscriptions, members, trainers, payments, approveGymOwner, rejectGymOwner, fireNotif } = useApp()
+  const { gyms, subscriptions, members, trainers, payments, approveGymOwner, rejectGymOwner, updateGym, deleteGym, fireNotif } = useApp()
 
   const [drawerGym, setDrawerGym] = useState(null)
   const [drawerTab, setDrawerTab] = useState('overview')
@@ -332,12 +329,12 @@ export default function SuperAdminGymOwners() {
   const getGymSub = useCallback((gymId) => subscriptions.find(s => s.gymId === gymId), [subscriptions])
 
   const handleSuspend = async (gym) => {
-    await updateDoc(doc(db, 'gyms', gym.id), { status: 'suspended', approvalStatus: 'suspended' })
+    await updateGym(gym.id, { status: 'suspended', approvalStatus: 'suspended' })
     if (fireNotif) fireNotif('gym_suspended', { gymId: gym.id, userId: gym.ownerUid, title:'Gym Suspended', message:`${gym.gymName || gym.name} has been suspended.` }).catch(() => {})
     setConfirmAction(null)
   }
   const handleActivate = async (gym) => {
-    await updateDoc(doc(db, 'gyms', gym.id), { status: 'active', approvalStatus: 'approved' })
+    await updateGym(gym.id, { status: 'active', approvalStatus: 'approved' })
     if (fireNotif) fireNotif('gym_activated', { gymId: gym.id, userId: gym.ownerUid, title:'Gym Activated', message:`${gym.gymName || gym.name} has been activated.` }).catch(() => {})
     setConfirmAction(null)
   }
@@ -349,64 +346,11 @@ export default function SuperAdminGymOwners() {
     setLoading(true)
     try {
       const gid = gym.id
-      const toDelete = []
-      const authUids = new Set()
-      const failedUids = new Set()
-
-      // License & device data
-      const devicesSnap = await getDocs(query(collection(db, 'licensedDevices'), where('gymId', '==', gid)))
-      devicesSnap.docs.forEach(d => toDelete.push(d.ref))
-      const historySnap = await getDocs(query(collection(db, 'licenseHistory'), where('gymId', '==', gid)))
-      historySnap.docs.forEach(d => toDelete.push(d.ref))
-
-      // All gym-scoped collections (deletion is authorized for super_admin)
-      const scoped = ['members','trainers','payments','plans','progressLogs','dietPlans','workoutPlans','attendance','supportTickets','featureRequests','notifications','settings','whatsappLogs','whatsappCampaigns','generatedReports','referrals','rewardLedger','discountCoupons','referralAuditLogs','auditLog']
-      for (const col of scoped) {
-        const snap = await getDocs(query(collection(db, col), where('gymId', '==', gid)))
-        snap.docs.forEach(d => {
-          if ((col === 'members' || col === 'trainers') && d.data().authUid) authUids.add(d.data().authUid)
-          toDelete.push(d.ref)
-        })
-      }
-
-      // PhonePe payment attempts (gym-scoped + subscription-linked)
-      const attSnap = await getDocs(query(collection(db, 'paymentAttempts'), where('gymId', '==', gid)))
-      attSnap.docs.forEach(d => toDelete.push(d.ref))
-      const attSubSnap = await getDocs(query(collection(db, 'paymentAttempts'), where('subscriptionId', '==', gid)))
-      attSubSnap.docs.forEach(d => toDelete.push(d.ref))
-
-      // Subscription mirror docs (billing platform plan)
-      const subSnap = await getDocs(query(collection(db, 'subscriptions'), where('gymId', '==', gid)))
-      subSnap.docs.forEach(d => toDelete.push(d.ref))
-      toDelete.push(doc(db, 'subscriptions', gid))
-
-      // Owner + staff auth users: delete Auth accounts FIRST via Cloud Function;
-      // a failed one keeps its users doc but is marked disabled (blocked login)
-      if (gym.ownerUid) authUids.add(gym.ownerUid)
-      let authFailed = 0
-      for (const uid of Array.from(authUids).slice(0, 100)) {
-        try {
-          const deleteUserFn = httpsCallable(getFunctions(), 'deleteAuthUser')
-          await deleteUserFn({ uid })
-        } catch {
-          authFailed++
-          failedUids.add(uid)
-          try { await updateDoc(doc(db, 'users', uid), { accountDisabled: true, disabledReason: 'Gym deleted by Super Admin', disabledAt: serverTimestamp() }) } catch { /* best-effort */ }
-        }
-      }
-      Array.from(authUids)
-        .filter(uid => !failedUids.has(uid))
-        .forEach(uid => toDelete.push(doc(db, 'users', uid)))
-
-      // Commit deletions in chunks (batch limit is 500 writes)
-      for (let i = 0; i < toDelete.length; i += 450) {
-        const batch = writeBatch(db)
-        toDelete.slice(i, i + 450).forEach(ref => batch.delete(ref))
-        await batch.commit()
-      }
-
-      await deleteDoc(doc(db, 'gyms', gid))
-      flashDeleteMsg('success', `Gym "${gym.gymName || gym.name}" deleted along with all members, trainers, payments, attendance, plans, devices, licenses, logs and notifications.${authFailed ? ` ${authFailed} auth account(s) could not be removed and were marked disabled instead.` : ''}`)
+      // Supabase mode: FK cascade (gyms.id ON DELETE CASCADE) wipes every
+      // gym-scoped table. Auth accounts / profiles are NOT deleted here
+      // (deleteAuthUser Cloud Function is Firebase-only) — documented.
+      await deleteGym(gid)
+      flashDeleteMsg('success', `Gym "${gym.gymName || gym.name}" deleted with all members, trainers, payments, attendance, plans, devices, licenses, logs and notifications (FK cascade).`)
       setConfirmAction(null)
       if (drawerGym?.id === gym.id) setDrawerGym(null)
     } catch (err) {
@@ -419,10 +363,10 @@ export default function SuperAdminGymOwners() {
     setLoading(true)
     try {
       const newKey = await generateUniqueLicenseKey()
-      await updateDoc(doc(db, 'gyms', gym.id), {
+      await updateGym(gym.id, {
         'subscription.licenseKey': newKey,
         'subscription.licenseStatus': 'active',
-        'subscription.updatedAt': serverTimestamp(),
+        'subscription.updatedAt': new Date().toISOString(),
       })
       await resetAllDevices(gym.id)
       await addLicenseHistory({
@@ -441,7 +385,19 @@ export default function SuperAdminGymOwners() {
     }
   }
   const handleEdit = async (gym, field, value) => {
-    await updateDoc(doc(db, 'gyms', gym.id), { [field]: value })
+    await updateGym(gym.id, { [field]: value })
+  }
+
+  const reviewDocument = async (gym, docId, status) => {
+    const merged = {
+      ...(gym.documents || {}),
+      [docId]: {
+        ...((gym.documents || {})[docId] || {}),
+        status,
+        reviewedAt: new Date().toISOString(),
+      },
+    }
+    await updateGym(gym.id, { documents: merged })
   }
 
   const DOCUMENT_TYPES = useMemo(() => [
@@ -544,8 +500,8 @@ export default function SuperAdminGymOwners() {
                     <span className="go-pill" style={{ background: meta.bg, color: meta.color, fontSize:10, padding:'2px 8px' }}>{meta.label}</span>
                     {st === 'pending' && (
                       <>
-                        <button className="go-btn-primary" aria-label="Approve document" style={{ padding:'4px 10px', fontSize:10 }} onClick={e => { e.stopPropagation(); updateDoc(doc(db, 'gyms', gId), { [`documents.${d.id}.status`]: 'approved', [`documents.${d.id}.reviewedAt`]: serverTimestamp() }) }}>✓</button>
-                        <button className="go-btn-secondary" aria-label="Reject document" style={{ padding:'4px 10px', fontSize:10, color:'#ef4444' }} onClick={e => { e.stopPropagation(); updateDoc(doc(db, 'gyms', gId), { [`documents.${d.id}.status`]: 'rejected', [`documents.${d.id}.reviewedAt`]: serverTimestamp() }) }}>✕</button>
+                        <button className="go-btn-primary" aria-label="Approve document" style={{ padding:'4px 10px', fontSize:10 }} onClick={e => { e.stopPropagation(); reviewDocument(g, d.id, 'approved') }}>✓</button>
+                        <button className="go-btn-secondary" aria-label="Reject document" style={{ padding:'4px 10px', fontSize:10, color:'#ef4444' }} onClick={e => { e.stopPropagation(); reviewDocument(g, d.id, 'rejected') }}>✕</button>
                       </>
                     )}
                     {st === 'verified' && (
@@ -592,7 +548,7 @@ export default function SuperAdminGymOwners() {
         </div>
       </div>
     )
-  }, [DOCUMENT_TYPES, formatDate])
+  }, [DOCUMENT_TYPES, formatDate, fireNotif, reviewDocument])
 
   const drawerContent = useMemo(() => {
     if (!drawerGym) return null

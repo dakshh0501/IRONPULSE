@@ -1,0 +1,805 @@
+[
+  {
+    "table": "profiles",
+    "legacyId": "37WD336c0YUt3pmFMl8Q9b4xI9g1",
+    "reasons": [
+      "approval pending (decision: provision or wait)"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' has no gym doc — resolved via gym.ownerUid or NULL"
+    ],
+    "record": {
+      "id": "2ef0d02d-80a7-5e72-9482-858996177004",
+      "firebase_uid": "37WD336c0YUt3pmFMl8Q9b4xI9g1",
+      "email": "h***@gmail.com",
+      "name": "Hehe",
+      "photo_url": null,
+      "role": "gym_owner_pending",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-06-27T08:01:08.107Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "6oPiPBcZU4N2znxa4JjRnizb2hv1",
+    "reasons": [
+      "no gymId field",
+      "unresolved gym for member/trainer"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "d9104fb1-a430-57fe-a893-3fd360b6a1c3",
+      "firebase_uid": "6oPiPBcZU4N2znxa4JjRnizb2hv1",
+      "email": "n***@gmail.com",
+      "phone": "***",
+      "name": "member",
+      "photo_url": null,
+      "role": "member",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": null,
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "A0kiygGnU8dSev0jZs4iJrrn3Fm1",
+    "reasons": [
+      "rejected account (decision: import as disabled or exclude)"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' has no gym doc — resolved via gym.ownerUid or NULL"
+    ],
+    "record": {
+      "id": "be4f8ff2-8e55-5e73-be93-81893fd69dca",
+      "firebase_uid": "A0kiygGnU8dSev0jZs4iJrrn3Fm1",
+      "email": "g***@gmail.com",
+      "name": "Gaurav Mathanikar",
+      "photo_url": null,
+      "role": "rejected",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": "",
+      "referred_by": "",
+      "account_disabled": true,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-07-25T15:26:08.958Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "A4EI9QVEcYgZNIdTLK1gJPKoEzB3",
+    "reasons": [
+      "no gymId field",
+      "unresolved gym for member/trainer"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "40d92e16-3aa5-5780-8014-94a30fd17230",
+      "firebase_uid": "A4EI9QVEcYgZNIdTLK1gJPKoEzB3",
+      "email": "t***@gym.com",
+      "phone": "***",
+      "name": "Trainer 1",
+      "photo_url": null,
+      "role": "trainer",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": null,
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "AdenEc6J2ZRycIBMQCVMjdjx2RU2",
+    "reasons": [
+      "no gymId field",
+      "unresolved gym for member/trainer"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "93fe9556-94c0-539a-8d6c-543d6c3313f2",
+      "firebase_uid": "AdenEc6J2ZRycIBMQCVMjdjx2RU2",
+      "email": "j***@gmail.com",
+      "name": "John5",
+      "photo_url": null,
+      "role": "member",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-06-13T23:30:09.408Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "ArlmC1TZ0ANhCHArNPJTk9YoIbL2",
+    "reasons": [
+      "rejected account (decision: import as disabled or exclude)"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "572ffec4-97e5-5eed-8815-b300b4777d55",
+      "firebase_uid": "ArlmC1TZ0ANhCHArNPJTk9YoIbL2",
+      "email": "s***@example.com",
+      "name": "Gym Owner",
+      "photo_url": null,
+      "role": "rejected",
+      "is_super_admin": false,
+      "gym_id": "gym-1786295772301-372804",
+      "referral_code": "IP-LIVE01",
+      "referred_by": "",
+      "account_disabled": true,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-08-09T17:16:16.242Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "C6kXWzCLFXeDwzp9b42KBRZxCXv2",
+    "reasons": [
+      "no gymId field",
+      "unresolved gym for member/trainer"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "3ab39bfa-038a-5e91-891f-629b27d0cb1f",
+      "firebase_uid": "C6kXWzCLFXeDwzp9b42KBRZxCXv2",
+      "email": "t***@gmail.com",
+      "name": "Test99",
+      "photo_url": null,
+      "role": "member",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-06-23T10:40:13.118Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "JGQdw7v1aLavo7WsS2IgIzHncjO2",
+    "reasons": [
+      "rejected account (decision: import as disabled or exclude)"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' has no gym doc — resolved via gym.ownerUid or NULL"
+    ],
+    "record": {
+      "id": "cebc0ccf-f872-5d29-b3a4-a1c1ed713e54",
+      "firebase_uid": "JGQdw7v1aLavo7WsS2IgIzHncjO2",
+      "email": "g***@gmail.com",
+      "name": "Gaurav Mathanikar",
+      "photo_url": null,
+      "role": "rejected",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": "",
+      "referred_by": "",
+      "account_disabled": true,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-07-25T15:27:33.438Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "JeFv6yMBaihoqWTbgAmJhma62al2",
+    "reasons": [
+      "rejected account (decision: import as disabled or exclude)"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "fd531da1-0adc-54ed-9d46-8eacaf5b25c8",
+      "firebase_uid": "JeFv6yMBaihoqWTbgAmJhma62al2",
+      "email": "t***@gmail.com",
+      "name": "Test",
+      "photo_url": null,
+      "role": "rejected",
+      "is_super_admin": false,
+      "gym_id": "ogE7fL9i14EcAXUdV7fI",
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": true,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-07-06T09:03:55.158Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "SbrLJMbTSdToFsXPhyT3WsOokMl1",
+    "reasons": [
+      "no gymId field",
+      "unresolved gym for member/trainer"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "9c75a0b1-d790-584d-a623-b5344f626440",
+      "firebase_uid": "SbrLJMbTSdToFsXPhyT3WsOokMl1",
+      "email": "j***@gmail.com",
+      "phone": "***",
+      "name": "Jonny",
+      "photo_url": null,
+      "role": "member",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": null,
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "TitV32lDaQV3Gi9pJEgrduUn8is2",
+    "reasons": [
+      "rejected account (decision: import as disabled or exclude)"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' has no gym doc — resolved via gym.ownerUid or NULL"
+    ],
+    "record": {
+      "id": "f3071f52-cf61-5273-8469-25b13e7c868d",
+      "firebase_uid": "TitV32lDaQV3Gi9pJEgrduUn8is2",
+      "email": "g***@gmail.com",
+      "name": "Gaurav Mathanikar",
+      "photo_url": null,
+      "role": "rejected",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": "",
+      "referred_by": "",
+      "account_disabled": true,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-07-25T15:27:03.217Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "VRSS1PoSNmNgj8pvBeYqiOdVZ2z2",
+    "reasons": [
+      "no gymId field",
+      "unresolved gym for member/trainer"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "72996df7-0385-5a15-881b-da3e5283c277",
+      "firebase_uid": "VRSS1PoSNmNgj8pvBeYqiOdVZ2z2",
+      "email": "g***@gmail.com",
+      "phone": "***",
+      "name": "Trainer",
+      "photo_url": null,
+      "role": "trainer",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": null,
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "Y0BzZnBP2GODAo48o0xEnV5svmE3",
+    "reasons": [
+      "rejected account (decision: import as disabled or exclude)"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' has no gym doc — resolved via gym.ownerUid or NULL"
+    ],
+    "record": {
+      "id": "54f39f5b-a204-57e9-b12b-742ed065e61c",
+      "firebase_uid": "Y0BzZnBP2GODAo48o0xEnV5svmE3",
+      "email": "h***@gmail.com",
+      "name": "hehe",
+      "photo_url": null,
+      "role": "rejected",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": true,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-06-27T08:47:30.024Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "ZofzD9RL5jO5ml2gX9UhyODtxFI2",
+    "reasons": [
+      "approval pending (decision: provision or wait)"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' has no gym doc — resolved via gym.ownerUid or NULL"
+    ],
+    "record": {
+      "id": "88555c62-b2b8-5e9f-8ee5-0ad9c9f98773",
+      "firebase_uid": "ZofzD9RL5jO5ml2gX9UhyODtxFI2",
+      "email": "h***@gmail.com",
+      "name": "hehe1",
+      "photo_url": null,
+      "role": "gym_owner_pending",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-06-27T08:58:47.225Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "bRKcg3fwzQbvspZLoHU4nBvBuOu2",
+    "reasons": [
+      "gymId 'RAlIvHATmLoqSVxty21v' has no gym doc",
+      "owner gym unresolved"
+    ],
+    "missing": [],
+    "unresolved": [
+      "gymId"
+    ],
+    "transformed": [],
+    "record": {
+      "id": "bc6edfe5-f93d-520c-afc1-7844bc206a1e",
+      "firebase_uid": "bRKcg3fwzQbvspZLoHU4nBvBuOu2",
+      "email": "f***@mrworlds.com",
+      "name": "Fin",
+      "photo_url": null,
+      "role": "gym_owner",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": "IP-H6POBD",
+      "referred_by": "",
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-08-13T03:02:48.694Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "e6qDcu7NaCSEadPTyOfE5eUatqQ2",
+    "reasons": [
+      "no gymId field",
+      "unresolved gym for member/trainer"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "4ef188ed-788f-5580-ae1f-c1bc7516fba4",
+      "firebase_uid": "e6qDcu7NaCSEadPTyOfE5eUatqQ2",
+      "email": "r***@gmail.com",
+      "name": "Rajul",
+      "photo_url": null,
+      "role": "member",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-06-21T15:04:16.922Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "fvPn9yyfqEQT1cEV9r4mO7lxex82",
+    "reasons": [
+      "no gymId field",
+      "unresolved gym for member/trainer"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "c47c735b-8661-5881-a7f8-1c1a7e3e0091",
+      "firebase_uid": "fvPn9yyfqEQT1cEV9r4mO7lxex82",
+      "email": "m***@gym.com",
+      "phone": "***",
+      "name": "Member 1",
+      "photo_url": null,
+      "role": "member",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": null,
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "hnfpV7jJW5gIsNX4TQwVNI1xDxC2",
+    "reasons": [
+      "approval pending (decision: provision or wait)"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' has no gym doc — resolved via gym.ownerUid or NULL"
+    ],
+    "record": {
+      "id": "5a2b3895-ca6c-5748-9c4b-720620768e92",
+      "firebase_uid": "hnfpV7jJW5gIsNX4TQwVNI1xDxC2",
+      "email": "h***@gmail.com",
+      "name": "hehe",
+      "photo_url": null,
+      "role": "gym_owner_pending",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-06-27T08:02:23.693Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "hxTWhdxQrnUFFd6R8zNmFdVGvh23",
+    "reasons": [
+      "approval pending (decision: provision or wait)"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' has no gym doc — resolved via gym.ownerUid or NULL"
+    ],
+    "record": {
+      "id": "50eaafb6-967d-57e4-bb40-8cc14051ab66",
+      "firebase_uid": "hxTWhdxQrnUFFd6R8zNmFdVGvh23",
+      "email": "p***@example.com",
+      "name": "Probe",
+      "photo_url": null,
+      "role": "gym_owner_pending",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": "",
+      "referred_by": "",
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-08-09T17:19:32.923Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "joShucWxPFV1R34ZeG1a3qv8lCi2",
+    "reasons": [
+      "rejected account (decision: import as disabled or exclude)"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' has no gym doc — resolved via gym.ownerUid or NULL"
+    ],
+    "record": {
+      "id": "23f5e1bb-04df-57e4-bafe-3701c2395370",
+      "firebase_uid": "joShucWxPFV1R34ZeG1a3qv8lCi2",
+      "email": "h***@gmail.com",
+      "name": "hehe1",
+      "photo_url": null,
+      "role": "rejected",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": true,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-06-27T09:24:25.602Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "kh9tSKzDLRQbgMbJ5alqPCNJqaa2",
+    "reasons": [
+      "approval pending (decision: provision or wait)"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' has no gym doc — resolved via gym.ownerUid or NULL"
+    ],
+    "record": {
+      "id": "af473457-90ad-5388-a3f1-a757791b7a4a",
+      "firebase_uid": "kh9tSKzDLRQbgMbJ5alqPCNJqaa2",
+      "email": "h***@gmail.com",
+      "name": "hehe",
+      "photo_url": null,
+      "role": "gym_owner_pending",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-06-27T08:20:14.246Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "lToD65boPAaLbKr5wIdaAXflZXI2",
+    "reasons": [
+      "no gymId field",
+      "unresolved gym for member/trainer"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "4172b42f-1eb8-5d9d-806f-a86dd90de1a1",
+      "firebase_uid": "lToD65boPAaLbKr5wIdaAXflZXI2",
+      "email": "t***@gmail.com",
+      "phone": "***",
+      "name": "Time Pass",
+      "photo_url": null,
+      "role": "member",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": null,
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "mFpTjk9hzqVE7A6mHuRHXEuNMxy1",
+    "reasons": [
+      "no gymId field",
+      "unresolved gym for member/trainer"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "2475732c-4e25-54ee-af74-e08093c03359",
+      "firebase_uid": "mFpTjk9hzqVE7A6mHuRHXEuNMxy1",
+      "email": "j***@gmail.com",
+      "name": "john6",
+      "photo_url": null,
+      "role": "member",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-06-15T06:04:09.767Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "mNBFFQUHZYcDcWh55gof1gU3BCF3",
+    "reasons": [
+      "approval pending (decision: provision or wait)"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' has no gym doc — resolved via gym.ownerUid or NULL"
+    ],
+    "record": {
+      "id": "1631c5ad-798c-5bdb-88bb-5d59c4d9f2c2",
+      "firebase_uid": "mNBFFQUHZYcDcWh55gof1gU3BCF3",
+      "email": "h***@gmail.com",
+      "name": "hehe",
+      "photo_url": null,
+      "role": "gym_owner_pending",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-06-27T08:15:00.389Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "nx0Qunp43GPMv2s4PhnghQPHIWg2",
+    "reasons": [
+      "rejected account (decision: import as disabled or exclude)"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' has no gym doc — resolved via gym.ownerUid or NULL"
+    ],
+    "record": {
+      "id": "4fdfdecf-3d06-5ddd-82a6-eedfb9b4ccfe",
+      "firebase_uid": "nx0Qunp43GPMv2s4PhnghQPHIWg2",
+      "email": "g***@gmail.com",
+      "name": "Gaurav Mathanikar",
+      "photo_url": null,
+      "role": "rejected",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": "",
+      "referred_by": "",
+      "account_disabled": true,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-07-25T15:26:20.514Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "u2Rxn7c2GjOqFdl1Am8IjAxB3H33",
+    "reasons": [
+      "unresolved gym for member/trainer"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' has no gym doc — resolved via gym.ownerUid or NULL"
+    ],
+    "record": {
+      "id": "15ae93b4-04ae-5d5a-9a30-a2284f863387",
+      "firebase_uid": "u2Rxn7c2GjOqFdl1Am8IjAxB3H33",
+      "email": "r***@gmail.com",
+      "name": "Rohit jha",
+      "photo_url": null,
+      "role": "member",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-06-26T14:46:17.256Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "znZEEOkdy6OWii4B4kVQSXnmQTr1",
+    "reasons": [
+      "unresolved gym for member/trainer"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' has no gym doc — resolved via gym.ownerUid or NULL"
+    ],
+    "record": {
+      "id": "02838a9f-105f-5e3d-8dc5-5e7ecf081609",
+      "firebase_uid": "znZEEOkdy6OWii4B4kVQSXnmQTr1",
+      "email": "t***@gmail.com",
+      "name": "amit kumar ",
+      "photo_url": null,
+      "role": "trainer",
+      "is_super_admin": false,
+      "gym_id": null,
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-06-26T15:10:03.767Z",
+      "updated_at": null
+    }
+  }
+]

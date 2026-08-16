@@ -1,0 +1,222 @@
+[
+  {
+    "table": "profiles",
+    "legacyId": "HoAU21xy3eSGuErZ6d8ZtMwCLKo1",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "e302faab-dcea-5137-9148-b805c32ec9ca",
+      "firebase_uid": "HoAU21xy3eSGuErZ6d8ZtMwCLKo1",
+      "email": "g***@gmail.com",
+      "name": "Gaurav Mathanikar",
+      "photo_url": null,
+      "role": "gym_owner",
+      "is_super_admin": false,
+      "gym_id": "gTntxDaniBdKY7BhSfpw",
+      "referral_code": "",
+      "referred_by": "",
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-08-11T15:43:39.583Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "Q85ZtPEgQKSfNLYnjYWBwiHqb6D3",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' has no gym doc — resolved via gym.ownerUid or NULL",
+      "gymId: backfilled from gym.ownerUid (authoritative owner→gym link)"
+    ],
+    "record": {
+      "id": "053a1b5c-2873-59cc-93e0-7daf149794ab",
+      "firebase_uid": "Q85ZtPEgQKSfNLYnjYWBwiHqb6D3",
+      "email": "h***@gmail.com",
+      "name": "hehe2",
+      "photo_url": null,
+      "role": "gym_owner",
+      "is_super_admin": false,
+      "gym_id": "yRTNmXSJQEcIGPgMnGWM",
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-06-28T07:35:33.217Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "SGWHqTsXHGMLbLts2rTVLYkCHtX2",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "82e980e6-2017-5737-83a6-154fa9834a8b",
+      "firebase_uid": "SGWHqTsXHGMLbLts2rTVLYkCHtX2",
+      "email": "g***@gmail.com",
+      "name": "Gaurav Mathanikar",
+      "photo_url": null,
+      "role": "gym_owner",
+      "is_super_admin": false,
+      "gym_id": "GadKLv237CdZFWz25M4R",
+      "referral_code": "",
+      "referred_by": "",
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-08-10T17:51:11.923Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "VkmrgSZIOeXstCljf468sYLdLKn1",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' has no gym doc — resolved via gym.ownerUid or NULL",
+      "gymId: backfilled from gym.ownerUid (authoritative owner→gym link)"
+    ],
+    "record": {
+      "id": "a245e3a5-3a9d-5686-819b-93b718346fff",
+      "firebase_uid": "VkmrgSZIOeXstCljf468sYLdLKn1",
+      "email": "g***@gmail.com",
+      "name": "Gaurav Mathanikar",
+      "photo_url": null,
+      "role": "gym_owner",
+      "is_super_admin": false,
+      "gym_id": "P0oebgj7fbHU0IpWoeTm",
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-06-29T11:12:55.654Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "clwHQsB3kaVvAGl8MsxqOqfeUK63",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "7eadb410-d31d-5558-b0fd-e4a7a9907517",
+      "firebase_uid": "clwHQsB3kaVvAGl8MsxqOqfeUK63",
+      "email": "d***@doefy.com",
+      "name": "dahip",
+      "photo_url": null,
+      "role": "gym_owner",
+      "is_super_admin": false,
+      "gym_id": "r7bcZ14hpf4a2QMyTb3y",
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-07-06T09:06:53.274Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "et6MpYMBGrYN1ukFid49H3NQTQi1",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' has no gym doc — resolved via gym.ownerUid or NULL",
+      "gymId: backfilled from gym.ownerUid (authoritative owner→gym link)"
+    ],
+    "record": {
+      "id": "cccd2e5d-6767-537c-8dd3-fd5fa6ede4a3",
+      "firebase_uid": "et6MpYMBGrYN1ukFid49H3NQTQi1",
+      "email": "f***@gmail.com",
+      "name": "fitness gym",
+      "photo_url": null,
+      "role": "gym_owner",
+      "is_super_admin": false,
+      "gym_id": "M6XqgpXbRF7w9ZJKWP6n",
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-06-27T15:25:19.327Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "hVBdS5aYrjTRSKdEu3WmlT4Zj8x1",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "9e470d8e-4f90-5724-9879-ea30c1e0b644",
+      "firebase_uid": "hVBdS5aYrjTRSKdEu3WmlT4Zj8x1",
+      "email": "g***@gmail.com",
+      "name": "Gaurav Mathanikar",
+      "photo_url": null,
+      "role": "gym_owner",
+      "is_super_admin": false,
+      "gym_id": "5phqBpix968byObRNBWe",
+      "referral_code": "",
+      "referred_by": "",
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": "2026-08-10T17:53:29.746Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "profiles",
+    "legacyId": "y9lt1eCEl2fztfRSI07TMZPwmSy1",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: 'COMMANDOGYM' not resolvable (cosmetic on super_admin) → NULL"
+    ],
+    "record": {
+      "id": "578ea5f6-60f5-529a-9a1f-63356a3d8f4e",
+      "firebase_uid": "y9lt1eCEl2fztfRSI07TMZPwmSy1",
+      "email": "m***@gmail.com",
+      "phone": "***",
+      "name": "GHOST",
+      "photo_url": null,
+      "role": "super_admin",
+      "is_super_admin": true,
+      "gym_id": null,
+      "referral_code": null,
+      "referred_by": null,
+      "account_disabled": false,
+      "disabled_reason": null,
+      "disabled_at": null,
+      "referral_code_generated_at": null,
+      "created_at": null,
+      "updated_at": null
+    }
+  }
+]

@@ -1,0 +1,375 @@
+[
+  {
+    "table": "ai_conversations",
+    "legacyId": "0dOdYyMeKqRKgVLmaIjk",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL)"
+    ],
+    "record": {
+      "id": "53fa9c54-fee8-5fb5-a101-abb55623860e",
+      "user_id": "y9lt1eCEl2fztfRSI07TMZPwmSy1",
+      "gym_id": null,
+      "role": "super_admin",
+      "title": "Report",
+      "pinned": false,
+      "archived": false,
+      "deleted": false,
+      "deleted_at": null,
+      "last_message": "I couldn't find that information. Try rephrasing — for example: 'Open payments' or 'How many members?'",
+      "message_count": 8,
+      "created_at": "2026-08-10T17:43:30.603Z",
+      "updated_at": "2026-08-10T17:56:46.946Z"
+    }
+  },
+  {
+    "table": "ai_conversations",
+    "legacyId": "5FaVUW2o6ZaKkE980Kbp",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "337300cd-1144-5312-99b3-bcc9660ff527",
+      "user_id": "clwHQsB3kaVvAGl8MsxqOqfeUK63",
+      "gym_id": "r7bcZ14hpf4a2QMyTb3y",
+      "role": "gym_admin",
+      "title": "Attendance",
+      "pinned": false,
+      "archived": false,
+      "deleted": false,
+      "deleted_at": null,
+      "last_message": "I couldn't find that information. Please try again.",
+      "message_count": 2,
+      "created_at": "2026-08-09T17:27:27.579Z",
+      "updated_at": "2026-08-09T17:27:28.909Z"
+    }
+  },
+  {
+    "table": "ai_conversations",
+    "legacyId": "7FP5SG37wWYsNz3oOopo",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL)"
+    ],
+    "record": {
+      "id": "87449d87-4b86-52b0-8551-1ea442b31c7e",
+      "user_id": "y9lt1eCEl2fztfRSI07TMZPwmSy1",
+      "gym_id": null,
+      "role": "super_admin",
+      "title": "Members",
+      "pinned": false,
+      "archived": false,
+      "deleted": false,
+      "deleted_at": null,
+      "last_message": "5 gyms awaiting approval.",
+      "message_count": 10,
+      "created_at": "2026-08-10T13:53:04.998Z",
+      "updated_at": "2026-08-10T13:53:57.402Z"
+    }
+  },
+  {
+    "table": "ai_conversations",
+    "legacyId": "CJHJQhti2uM1HITWWKdY",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL)"
+    ],
+    "record": {
+      "id": "99645bbb-37e7-5b92-8ed2-c4d079bb1a4b",
+      "user_id": "y9lt1eCEl2fztfRSI07TMZPwmSy1",
+      "gym_id": null,
+      "role": "super_admin",
+      "title": "Report",
+      "pinned": false,
+      "archived": false,
+      "deleted": false,
+      "deleted_at": null,
+      "last_message": "As a professional gym assistant, I can:\n\n1. **Create workout plans**: Design personalized exercise routines for members.\n2. **Provide nutrit",
+      "message_count": 6,
+      "created_at": "2026-08-10T17:00:08.841Z",
+      "updated_at": "2026-08-10T17:04:05.716Z"
+    }
+  },
+  {
+    "table": "ai_conversations",
+    "legacyId": "PmVGzdPteqayVsDnXZt5",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL)"
+    ],
+    "record": {
+      "id": "db9ec311-fa8e-5c9d-ba88-797c3a166d05",
+      "user_id": "y9lt1eCEl2fztfRSI07TMZPwmSy1",
+      "gym_id": null,
+      "role": "super_admin",
+      "title": "Report",
+      "pinned": false,
+      "archived": false,
+      "deleted": false,
+      "deleted_at": null,
+      "last_message": "Platform Report\n\nActive gyms: 4\nTrial gyms: 0\nExpired gyms: 0\nPending approvals: 5\nMonthly revenue: ₹0\nMRR: ₹29,997\n\nObservations\n- 5 approv",
+      "message_count": 2,
+      "created_at": "2026-08-10T17:38:07.340Z",
+      "updated_at": "2026-08-10T17:38:08.636Z"
+    }
+  },
+  {
+    "table": "ai_conversations",
+    "legacyId": "Rz71ZWXBeX9Gg7xS4O8G",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL)"
+    ],
+    "record": {
+      "id": "7867f739-6340-55f8-8d7b-fbc22a292c0a",
+      "user_id": "y9lt1eCEl2fztfRSI07TMZPwmSy1",
+      "gym_id": null,
+      "role": "super_admin",
+      "title": "Greeting",
+      "pinned": false,
+      "archived": false,
+      "deleted": false,
+      "deleted_at": null,
+      "last_message": "I couldn't find that information. Please try again.",
+      "message_count": 2,
+      "created_at": "2026-08-09T17:29:29.729Z",
+      "updated_at": "2026-08-09T17:29:30.998Z"
+    }
+  },
+  {
+    "table": "ai_conversations",
+    "legacyId": "VnzAW0JZX5qzQr4W5zpx",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL)"
+    ],
+    "record": {
+      "id": "42af80e3-406f-5010-a6e2-2d6b9201f7cd",
+      "user_id": "y9lt1eCEl2fztfRSI07TMZPwmSy1",
+      "gym_id": null,
+      "role": "super_admin",
+      "title": "Greeting",
+      "pinned": false,
+      "archived": false,
+      "deleted": false,
+      "deleted_at": null,
+      "last_message": "On it — opening the workout plan creator.",
+      "message_count": 6,
+      "created_at": "2026-08-10T16:59:32.994Z",
+      "updated_at": "2026-08-10T16:59:54.569Z"
+    }
+  },
+  {
+    "table": "ai_conversations",
+    "legacyId": "XfIt4W9gUuZ1C4PMQ1zz",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL)"
+    ],
+    "record": {
+      "id": "dc23dbd5-bea9-57cb-9788-287d9c19a867",
+      "user_id": "y9lt1eCEl2fztfRSI07TMZPwmSy1",
+      "gym_id": null,
+      "role": "super_admin",
+      "title": "Which gyms are awaiting approval",
+      "pinned": false,
+      "archived": false,
+      "deleted": false,
+      "deleted_at": null,
+      "last_message": "I'm having trouble reaching the AI service right now.",
+      "message_count": 6,
+      "created_at": "2026-08-10T13:49:01.796Z",
+      "updated_at": "2026-08-10T13:49:25.769Z"
+    }
+  },
+  {
+    "table": "ai_conversations",
+    "legacyId": "fpXpqX5PnuZcPPV1Q2T3",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL)"
+    ],
+    "record": {
+      "id": "29e75bb0-76d6-55dc-aa7e-be2cfbe4e36d",
+      "user_id": "y9lt1eCEl2fztfRSI07TMZPwmSy1",
+      "gym_id": null,
+      "role": "super_admin",
+      "title": "Report",
+      "pinned": false,
+      "archived": false,
+      "deleted": false,
+      "deleted_at": null,
+      "last_message": "I couldn't find that information. Try rephrasing — for example: 'Open payments' or 'How many members?'",
+      "message_count": 10,
+      "created_at": "2026-08-09T17:34:29.903Z",
+      "updated_at": "2026-08-10T05:49:12.438Z"
+    }
+  },
+  {
+    "table": "ai_conversations",
+    "legacyId": "hDHgoBgCWbxauBwwekTb",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL)"
+    ],
+    "record": {
+      "id": "78288422-4d25-5570-808c-c12bed85427c",
+      "user_id": "y9lt1eCEl2fztfRSI07TMZPwmSy1",
+      "gym_id": null,
+      "role": "super_admin",
+      "title": "List active gym subscriptions",
+      "pinned": false,
+      "archived": false,
+      "deleted": false,
+      "deleted_at": null,
+      "last_message": "I couldn't find that information. Please try again.",
+      "message_count": 4,
+      "created_at": "2026-08-09T17:28:48.409Z",
+      "updated_at": "2026-08-09T17:28:56.368Z"
+    }
+  },
+  {
+    "table": "ai_conversations",
+    "legacyId": "jykjM8rizQLSIZUQa4zB",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL)"
+    ],
+    "record": {
+      "id": "7eefc697-ffe8-59f9-a66d-869cd6d03f25",
+      "user_id": "y9lt1eCEl2fztfRSI07TMZPwmSy1",
+      "gym_id": null,
+      "role": "super_admin",
+      "title": "Revenue Report",
+      "pinned": false,
+      "archived": false,
+      "deleted": false,
+      "deleted_at": null,
+      "last_message": "₹0 collected from member payments across gyms, plus ₹29,997 in active gym subscription revenue.",
+      "message_count": 2,
+      "created_at": "2026-08-10T05:49:17.049Z",
+      "updated_at": "2026-08-10T05:49:18.206Z"
+    }
+  },
+  {
+    "table": "ai_conversations",
+    "legacyId": "lzmW6yyKKzqilG9vAlmm",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL)"
+    ],
+    "record": {
+      "id": "0e9ad5b5-b420-5edf-b10a-dc2fd8ba668a",
+      "user_id": "y9lt1eCEl2fztfRSI07TMZPwmSy1",
+      "gym_id": null,
+      "role": "super_admin",
+      "title": "heyy",
+      "pinned": false,
+      "archived": false,
+      "deleted": false,
+      "deleted_at": null,
+      "last_message": "I couldn't find that information. Please try again.",
+      "message_count": 2,
+      "created_at": "2026-08-09T17:34:15.598Z",
+      "updated_at": "2026-08-09T17:34:16.827Z"
+    }
+  },
+  {
+    "table": "ai_conversations",
+    "legacyId": "tpqtlUr4TeOGHjxMzJhQ",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL)"
+    ],
+    "record": {
+      "id": "92f835ed-ef53-5476-8e37-58023670d1b5",
+      "user_id": "y9lt1eCEl2fztfRSI07TMZPwmSy1",
+      "gym_id": null,
+      "role": "super_admin",
+      "title": "Report",
+      "pinned": false,
+      "archived": false,
+      "deleted": false,
+      "deleted_at": null,
+      "last_message": "I couldn't find that information. Try rephrasing — for example: 'Open payments' or 'How many members?'",
+      "message_count": 2,
+      "created_at": "2026-08-10T05:49:26.701Z",
+      "updated_at": "2026-08-10T05:49:27.927Z"
+    }
+  },
+  {
+    "table": "ai_conversations",
+    "legacyId": "vStSGXMlytIKoFn9bzBB",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL)"
+    ],
+    "record": {
+      "id": "ec435d0e-3d31-5bf7-a89a-27344b828908",
+      "user_id": "y9lt1eCEl2fztfRSI07TMZPwmSy1",
+      "gym_id": null,
+      "role": "super_admin",
+      "title": "Which gyms are awaiting approval",
+      "pinned": false,
+      "archived": false,
+      "deleted": false,
+      "deleted_at": null,
+      "last_message": "I couldn't find that information. Please try again.",
+      "message_count": 4,
+      "created_at": "2026-08-09T17:36:37.637Z",
+      "updated_at": "2026-08-09T17:36:43.620Z"
+    }
+  },
+  {
+    "table": "ai_conversations",
+    "legacyId": "vcHYdqvirekvCJdC4KUa",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: sentinel 'default' → NULL (R-SENTINEL-NULL)"
+    ],
+    "record": {
+      "id": "384bd50b-eb22-582c-bcc1-889c7c3bdf95",
+      "user_id": "y9lt1eCEl2fztfRSI07TMZPwmSy1",
+      "gym_id": null,
+      "role": "super_admin",
+      "title": "Which gyms are awaiting approval",
+      "pinned": false,
+      "archived": false,
+      "deleted": false,
+      "deleted_at": null,
+      "last_message": "5 gyms awaiting approval.",
+      "message_count": 2,
+      "created_at": "2026-08-10T05:49:21.914Z",
+      "updated_at": "2026-08-10T05:49:23.220Z"
+    }
+  }
+]

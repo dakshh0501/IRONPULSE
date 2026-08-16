@@ -1,8 +1,5 @@
-import { doc, getDoc, updateDoc, collection, addDoc, query, where, orderBy, limit, onSnapshot, serverTimestamp, runTransaction } from 'firebase/firestore'
-import { db } from '../firebase'
 import { generateLicenseKey } from '../utils/license'
-
-const HISTORY_COLLECTION = 'subscriptionHistory'
+import { subscribeRealtime } from './realtimeService'
 
 function getDeviceLimit(planType) {
   switch (planType?.toLowerCase()) {
@@ -15,72 +12,137 @@ function getDeviceLimit(planType) {
   }
 }
 
+// Supabase subscription_history row → Firestore-shaped record
+function mapHistoryRow(r) {
+  return {
+    id: r.id,
+    gymId: r.gym_id || '',
+    subscriptionId: r.subscription_id || '',
+    action: r.action || '',
+    actorUid: r.actor_uid || '',
+    changes: r.changes || {},
+    createdAt: r.created_at || null,
+  }
+}
+
+// Supabase gyms row → Firestore-shaped gym doc (subscription jsonb)
+function mapGymRowForSubscription(r) {
+  return {
+    id: r.id,
+    subscription: r.subscription || {},
+    updatedAt: r.updated_at || null,
+  }
+}
+
 export function subscribeToGymSubscription(gymId, callback) {
   if (!gymId) return () => {}
-  const unsub = onSnapshot(doc(db, 'gyms', gymId), (snap) => {
-    if (snap.exists()) {
-      callback(snap.data().subscription || null)
-    }
-  })
-  return unsub
+  return subscribeRealtime({
+      table: 'gyms',
+      filter: [['id', 'eq', gymId]],
+      limit: 1,
+      keyFn: (r) => (r ? r.id : null),
+      mapRow: mapGymRowForSubscription,
+      onChange: (rows) => callback((rows[0] && rows[0].subscription) || null),
+      onError: (e) => console.error('[Supabase] gymSubscription realtime error:', e.message),
+      label: 'gymSubscription',
+    })
 }
 
 export function subscribeToSubscriptionHistory(gymId, callback) {
   if (!gymId) return () => {}
-  const q = query(
-    collection(db, HISTORY_COLLECTION),
-    where('gymId', '==', gymId),
-    orderBy('createdAt', 'desc'),
-    limit(200)
-  )
-  return onSnapshot(q, (snap) => {
-    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-  })
+  return subscribeRealtime({
+      table: 'subscription_history',
+      filter: [['gym_id', gymId]],
+      orderBy: { column: 'created_at', ascending: false },
+      limit: 200,
+      mapRow: mapHistoryRow,
+      onChange: callback,
+      onError: (e) => console.error('[Supabase] subscriptionHistory realtime error:', e.message),
+      label: 'subscriptionHistory',
+    })
 }
 
 async function updateGymSubscription(gymId, updates) {
   if (!gymId) throw new Error('gymId required')
-  const gymRef = doc(db, 'gyms', gymId)
-
-  // Use a transaction for the auto-provisioning read-then-write to
-  // eliminate the race condition between getDoc and updateDoc.
-  await runTransaction(db, async (transaction) => {
-    // Auto-provision a license key when a subscription first becomes active
-    // or trial, but never overwrite an existing key (preserved across renewals,
-    // upgrades, downgrades, reactivations, and extensions).
-    if (updates.status === 'active' || updates.status === 'trial') {
-      const snap = await transaction.get(gymRef)
-      const existing = snap.data()?.subscription
-      if (existing && !existing.licenseKey) {
-        updates.licenseKey = generateLicenseKey()
-        updates.licenseStatus = 'active'
-        updates.generatedAt = new Date().toISOString()
-      }
-    }
-
-    const fieldUpdates = {}
-    if (updates.planType) {
-      fieldUpdates['subscription.deviceLimit'] = getDeviceLimit(updates.planType)
-    }
-    for (const [key, value] of Object.entries(updates)) {
-      fieldUpdates[`subscription.${key}`] = value
-    }
-    fieldUpdates['subscription.updatedAt'] = serverTimestamp()
-    fieldUpdates.subscriptionId = gymId
-    if (updates.status) {
-      fieldUpdates.subscriptionStatus = updates.status
-    }
-    fieldUpdates.updatedAt = serverTimestamp()
-
-    transaction.update(gymRef, fieldUpdates)
-  })
+  return supabaseUpdateGymSubscription(gymId, updates)
 }
 
 async function addHistoryRecord(record) {
-  await addDoc(collection(db, HISTORY_COLLECTION), {
-    ...record,
-    createdAt: serverTimestamp(),
+  return supabaseAddHistoryRecord(record)
+}
+
+// ============================================================================
+// SUPABASE DATA PLANE (Step 8E)
+// ============================================================================
+let _supabaseClient = null
+async function getSupabaseClient() {
+  if (_supabaseClient) return _supabaseClient
+  const m = await import('../lib/supabase')
+  _supabaseClient = m.supabase
+  return _supabaseClient
+}
+
+function mapSupabaseError(err, fallbackMsg) {
+  const msg = (err && (err.message || err.details || err.hint)) || String(err || fallbackMsg || 'Supabase error')
+  const codeStr = msg + ' ' + (err && err.code ? String(err.code) : '')
+  const code =
+    /42501|42502|42504|permission denied|row-level security|new row violates/i.test(codeStr) ? 'permission-denied'
+    : /23505|duplicate key|already exists/i.test(codeStr) ? 'already-exists'
+    : /PGRST116|404|not found/i.test(codeStr) ? 'not-found'
+    : /network|fetch failed|ECONN|timeout|Failed to fetch/i.test(codeStr) ? 'unavailable'
+    : /22P02|22007|23514|invalid input|invalid enum|violates check/i.test(codeStr) ? 'invalid-argument'
+    : /23503|foreign key/i.test(codeStr) ? 'foreign-key-violation'
+    : undefined
+  const error = new Error(msg)
+  if (code) error.code = code
+  return error
+}
+
+// Supabase branch: single-statement atomic jsonb merge via the
+// update_gym_subscription RPC (super-admin only, mirrors gyms RLS).
+// License-key auto-provisioning happens client-side after an atomic read;
+// concurrent double-activation without a key is not possible in practice
+// (single super-admin operator in supabase mode — see report §4).
+async function supabaseUpdateGymSubscription(gymId, updates) {
+  const client = await getSupabaseClient()
+  const payload = { ...updates }
+  if (payload.status === 'active' || payload.status === 'trial') {
+    const { data: gym, error: readErr } = await client
+      .from('gyms')
+      .select('subscription')
+      .eq('id', gymId)
+      .maybeSingle()
+    if (readErr) throw mapSupabaseError(readErr, 'Failed to load subscription')
+    const existing = (gym && gym.subscription) || {}
+    if (existing && !existing.licenseKey) {
+      payload.licenseKey = generateLicenseKey()
+      payload.licenseStatus = 'active'
+      payload.generatedAt = new Date().toISOString()
+    }
+  }
+  if (payload.planType) {
+    payload.deviceLimit = getDeviceLimit(payload.planType)
+  }
+  payload.updatedAt = new Date().toISOString()
+  const { error } = await client.rpc('update_gym_subscription', {
+    p_gym_id: gymId,
+    p_updates: payload,
   })
+  if (error) throw mapSupabaseError(error, 'Failed to update subscription')
+}
+
+// Supabase branch: subscription_history has no plan/amount columns — pack the
+// Firestore-shaped flat record into `changes` jsonb (matches mapHistoryRow).
+// RLS: insert super-only (documented 8C difference).
+async function supabaseAddHistoryRecord(record) {
+  const client = await getSupabaseClient()
+  const { error } = await client.from('subscription_history').insert({
+    gym_id: record.gymId,
+    action: record.action || 'action',
+    actor_uid: record.createdBy || null,
+    changes: { ...record, createdAt: new Date().toISOString() },
+  })
+  if (error) throw mapSupabaseError(error, 'Failed to record subscription history')
 }
 
 export async function activateSubscription(gymId, planName, planType, amount, actorUid) {

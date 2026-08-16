@@ -1,0 +1,156 @@
+[
+  {
+    "table": "settings",
+    "legacyId": "default:gym",
+    "reasons": [
+      "settings.gym_id 'default' fails guard_settings_gym (not 'platform', no gym doc) — tenant decision required"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gym_id: 'default' fails guard_settings_gym (tenant decision, not an ID break)"
+    ],
+    "record": {
+      "gym_id": "default",
+      "doc_id": "gym",
+      "data": {
+        "website": "www.ironforge.in",
+        "currency": "INR",
+        "contact": "+91 98765 00001",
+        "name": "IronForge Gym",
+        "email": "a***@ironpulse.app",
+        "closeTime": "22:00",
+        "openTime": "05:30",
+        "address": "12, Fitness Avenue, Sector 18, Noida, UP 201301",
+        "tagline": "Train Hard. Stay Strong.",
+        "timezone": "Asia/Kolkata",
+        "primaryColor": "#100100100"
+      },
+      "updated_at": null
+    }
+  },
+  {
+    "table": "settings",
+    "legacyId": "gym",
+    "reasons": [
+      "settings.gym_id 'default' fails guard_settings_gym (not 'platform', no gym doc) — tenant decision required"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gym_id: 'default' fails guard_settings_gym (tenant decision, not an ID break)"
+    ],
+    "record": {
+      "gym_id": "default",
+      "doc_id": "gym",
+      "data": {
+        "email": "g***@gmail.com",
+        "address": "VINKAR VASAHAT MANEWADA RING ROAD NAHPUR",
+        "tagline": "Train Hard. Stay Strong.",
+        "closeTime": "22:00",
+        "openTime": "06:00",
+        "primaryColor": "#000000",
+        "timezone": "Asia/Kolkata",
+        "contact": "+91 98765 00001",
+        "website": "www.ironforge.in",
+        "currency": "INR",
+        "name": "COMMANDOGYM"
+      },
+      "updated_at": null
+    }
+  },
+  {
+    "table": "settings",
+    "legacyId": "notifications",
+    "reasons": [
+      "settings.gym_id 'default' fails guard_settings_gym (not 'platform', no gym doc) — tenant decision required"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gym_id: 'default' fails guard_settings_gym (tenant decision, not an ID break)"
+    ],
+    "record": {
+      "gym_id": "default",
+      "doc_id": "notifications",
+      "data": {
+        "newMemberAlert": true,
+        "whatsappAlerts": false,
+        "workoutReminders": false,
+        "smsAlerts": false,
+        "weeklyReport": true,
+        "paymentReminders": false,
+        "emailAlerts": false,
+        "expiryAlerts": true
+      },
+      "updated_at": null
+    }
+  },
+  {
+    "table": "settings",
+    "legacyId": "pricing",
+    "reasons": [
+      "settings.gym_id 'default' fails guard_settings_gym (not 'platform', no gym doc) — tenant decision required"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gym_id: 'default' fails guard_settings_gym (tenant decision, not an ID break)"
+    ],
+    "record": {
+      "gym_id": "default",
+      "doc_id": "pricing",
+      "data": {
+        "quarterly": 3999,
+        "trial": 399,
+        "dayPass": 199,
+        "annual": 12999,
+        "premium": 2999,
+        "standard": 1499
+      },
+      "updated_at": null
+    }
+  },
+  {
+    "table": "settings",
+    "legacyId": "profile_y9lt1eCEl2fztfRSI07TMZPwmSy1",
+    "reasons": [
+      "settings.gym_id 'default' fails guard_settings_gym (not 'platform', no gym doc) — tenant decision required"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gym_id: 'default' fails guard_settings_gym (tenant decision, not an ID break)"
+    ],
+    "record": {
+      "gym_id": "default",
+      "doc_id": "profile_y9lt1eCEl2fztfRSI07TMZPwmSy1",
+      "data": {
+        "bio": "",
+        "name": "GHOST",
+        "phone": ""
+      },
+      "updated_at": null
+    }
+  },
+  {
+    "table": "settings",
+    "legacyId": "theme",
+    "reasons": [
+      "settings.gym_id 'default' fails guard_settings_gym (not 'platform', no gym doc) — tenant decision required"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gym_id: 'default' fails guard_settings_gym (tenant decision, not an ID break)"
+    ],
+    "record": {
+      "gym_id": "default",
+      "doc_id": "theme",
+      "data": {
+        "accentColor": "#e8420a"
+      },
+      "updated_at": null
+    }
+  }
+]

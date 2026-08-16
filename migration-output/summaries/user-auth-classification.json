@@ -1,0 +1,234 @@
+[
+  {
+    "firebaseUid": "HoAU21xy3eSGuErZ6d8ZtMwCLKo1",
+    "classification": "SAFE_AUTH_PROVISION"
+  },
+  {
+    "firebaseUid": "Q85ZtPEgQKSfNLYnjYWBwiHqb6D3",
+    "classification": "SAFE_AUTH_PROVISION"
+  },
+  {
+    "firebaseUid": "SGWHqTsXHGMLbLts2rTVLYkCHtX2",
+    "classification": "SAFE_AUTH_PROVISION"
+  },
+  {
+    "firebaseUid": "VkmrgSZIOeXstCljf468sYLdLKn1",
+    "classification": "SAFE_AUTH_PROVISION"
+  },
+  {
+    "firebaseUid": "clwHQsB3kaVvAGl8MsxqOqfeUK63",
+    "classification": "SAFE_AUTH_PROVISION"
+  },
+  {
+    "firebaseUid": "et6MpYMBGrYN1ukFid49H3NQTQi1",
+    "classification": "SAFE_AUTH_PROVISION"
+  },
+  {
+    "firebaseUid": "hVBdS5aYrjTRSKdEu3WmlT4Zj8x1",
+    "classification": "SAFE_AUTH_PROVISION"
+  },
+  {
+    "firebaseUid": "y9lt1eCEl2fztfRSI07TMZPwmSy1",
+    "classification": "SAFE_AUTH_PROVISION"
+  },
+  {
+    "firebaseUid": "37WD336c0YUt3pmFMl8Q9b4xI9g1",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "approval pending (decision: provision or wait)"
+    ]
+  },
+  {
+    "firebaseUid": "6oPiPBcZU4N2znxa4JjRnizb2hv1",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "no gymId field",
+      "unresolved gym for member/trainer"
+    ]
+  },
+  {
+    "firebaseUid": "A0kiygGnU8dSev0jZs4iJrrn3Fm1",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "rejected account (decision: import as disabled or exclude)"
+    ]
+  },
+  {
+    "firebaseUid": "A4EI9QVEcYgZNIdTLK1gJPKoEzB3",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "no gymId field",
+      "unresolved gym for member/trainer"
+    ]
+  },
+  {
+    "firebaseUid": "AdenEc6J2ZRycIBMQCVMjdjx2RU2",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "no gymId field",
+      "unresolved gym for member/trainer"
+    ]
+  },
+  {
+    "firebaseUid": "ArlmC1TZ0ANhCHArNPJTk9YoIbL2",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "rejected account (decision: import as disabled or exclude)"
+    ]
+  },
+  {
+    "firebaseUid": "C6kXWzCLFXeDwzp9b42KBRZxCXv2",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "no gymId field",
+      "unresolved gym for member/trainer"
+    ]
+  },
+  {
+    "firebaseUid": "JGQdw7v1aLavo7WsS2IgIzHncjO2",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "rejected account (decision: import as disabled or exclude)"
+    ]
+  },
+  {
+    "firebaseUid": "JeFv6yMBaihoqWTbgAmJhma62al2",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "rejected account (decision: import as disabled or exclude)"
+    ]
+  },
+  {
+    "firebaseUid": "SbrLJMbTSdToFsXPhyT3WsOokMl1",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "no gymId field",
+      "unresolved gym for member/trainer"
+    ]
+  },
+  {
+    "firebaseUid": "TitV32lDaQV3Gi9pJEgrduUn8is2",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "rejected account (decision: import as disabled or exclude)"
+    ]
+  },
+  {
+    "firebaseUid": "VRSS1PoSNmNgj8pvBeYqiOdVZ2z2",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "no gymId field",
+      "unresolved gym for member/trainer"
+    ]
+  },
+  {
+    "firebaseUid": "Y0BzZnBP2GODAo48o0xEnV5svmE3",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "rejected account (decision: import as disabled or exclude)"
+    ]
+  },
+  {
+    "firebaseUid": "ZofzD9RL5jO5ml2gX9UhyODtxFI2",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "approval pending (decision: provision or wait)"
+    ]
+  },
+  {
+    "firebaseUid": "bRKcg3fwzQbvspZLoHU4nBvBuOu2",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "gymId 'RAlIvHATmLoqSVxty21v' has no gym doc",
+      "owner gym unresolved"
+    ]
+  },
+  {
+    "firebaseUid": "e6qDcu7NaCSEadPTyOfE5eUatqQ2",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "no gymId field",
+      "unresolved gym for member/trainer"
+    ]
+  },
+  {
+    "firebaseUid": "fvPn9yyfqEQT1cEV9r4mO7lxex82",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "no gymId field",
+      "unresolved gym for member/trainer"
+    ]
+  },
+  {
+    "firebaseUid": "hnfpV7jJW5gIsNX4TQwVNI1xDxC2",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "approval pending (decision: provision or wait)"
+    ]
+  },
+  {
+    "firebaseUid": "hxTWhdxQrnUFFd6R8zNmFdVGvh23",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "approval pending (decision: provision or wait)"
+    ]
+  },
+  {
+    "firebaseUid": "joShucWxPFV1R34ZeG1a3qv8lCi2",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "rejected account (decision: import as disabled or exclude)"
+    ]
+  },
+  {
+    "firebaseUid": "kh9tSKzDLRQbgMbJ5alqPCNJqaa2",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "approval pending (decision: provision or wait)"
+    ]
+  },
+  {
+    "firebaseUid": "lToD65boPAaLbKr5wIdaAXflZXI2",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "no gymId field",
+      "unresolved gym for member/trainer"
+    ]
+  },
+  {
+    "firebaseUid": "mFpTjk9hzqVE7A6mHuRHXEuNMxy1",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "no gymId field",
+      "unresolved gym for member/trainer"
+    ]
+  },
+  {
+    "firebaseUid": "mNBFFQUHZYcDcWh55gof1gU3BCF3",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "approval pending (decision: provision or wait)"
+    ]
+  },
+  {
+    "firebaseUid": "nx0Qunp43GPMv2s4PhnghQPHIWg2",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "rejected account (decision: import as disabled or exclude)"
+    ]
+  },
+  {
+    "firebaseUid": "u2Rxn7c2GjOqFdl1Am8IjAxB3H33",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "unresolved gym for member/trainer"
+    ]
+  },
+  {
+    "firebaseUid": "znZEEOkdy6OWii4B4kVQSXnmQTr1",
+    "classification": "MANUAL_REVIEW",
+    "reasons": [
+      "unresolved gym for member/trainer"
+    ]
+  }
+]

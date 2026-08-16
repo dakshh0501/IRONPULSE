@@ -1,0 +1,36 @@
+[
+  {
+    "table": "subscription_history",
+    "legacyId": "AkAA9YH4PQucf0UGOFmt",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "70ee8437-2998-5121-b1d7-51ddddd0c7f0",
+      "gym_id": "P0oebgj7fbHU0IpWoeTm",
+      "subscription_id": "c474207a-a90d-5d90-842a-222fcde4b6ed",
+      "action": "plan_changed",
+      "actor_uid": null,
+      "changes": {},
+      "created_at": "2026-07-03T15:36:14.868Z"
+    }
+  },
+  {
+    "table": "subscription_history",
+    "legacyId": "u1sQyLDBnMJHijqdtql5",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "cca21f45-633e-554d-818d-02548723b227",
+      "gym_id": "P0oebgj7fbHU0IpWoeTm",
+      "subscription_id": "c474207a-a90d-5d90-842a-222fcde4b6ed",
+      "action": "upgraded",
+      "actor_uid": null,
+      "changes": {},
+      "created_at": "2026-07-03T15:35:40.242Z"
+    }
+  }
+]

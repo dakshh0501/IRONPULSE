@@ -230,10 +230,15 @@ function isLocalhost() {
 }
 
 function ProtectedRoute({ children, allowedRoles }) {
-  const { isLoggedIn, role, effectiveRole, authLoading, userProfile, currentUser, biometricGate } = useAuth()
+  const { isLoggedIn, role, effectiveRole, authLoading, userProfile, currentUser, biometricGate, recoveryInProgress } = useAuth()
   const checkRole = effectiveRole || role
 
   if (authLoading) return <LoadingScreen />
+
+  // Mid-recovery the session exists but the new password is not set yet —
+  // keep the user on the auth page; ProtectedRoute must never admit the
+  // recovery session to the app shell.
+  if (recoveryInProgress) return <Navigate to="/auth" replace />
 
   if (userProfile?.role === 'rejected') return <Navigate to="/rejected" replace />
   if (!isLoggedIn) {
@@ -249,9 +254,13 @@ function ProtectedRoute({ children, allowedRoles }) {
 }
 
 function PublicRoute({ children }) {
-  const { isLoggedIn, authLoading } = useAuth()
+  const { isLoggedIn, authLoading, recoveryInProgress } = useAuth()
 
   if (authLoading) return <LoadingScreen />
+  // During the password-recovery callback the GoTrue session exists but the
+  // new password is not set yet — keep the user on /auth until the flow
+  // completes (finishRecovery clears the flag).
+  if (recoveryInProgress) return children
   return isLoggedIn ? <Navigate to="/dashboard" replace /> : children
 }
 

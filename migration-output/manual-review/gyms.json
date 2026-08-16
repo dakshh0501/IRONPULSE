@@ -1,0 +1,166 @@
+[
+  {
+    "table": "gyms",
+    "legacyId": "1Gz4zHCN3vNqqyj2Kuva",
+    "reasons": [
+      "owner account role=rejected (decision: import gym as inactive / keep owner link)"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "1Gz4zHCN3vNqqyj2Kuva",
+      "gym_name": "nuteral gym",
+      "owner_name": "Gaurav Mathanikar",
+      "email": "g***@gmail.com",
+      "phone": "11***818",
+      "owner_uid": "TitV32lDaQV3Gi9pJEgrduUn8is2",
+      "status": null,
+      "approval_status": "rejected",
+      "approval_reviewed_at": null,
+      "approved_at": null,
+      "rejected_reason": null,
+      "documents": {},
+      "subscription": {},
+      "created_at": "2026-07-25T15:27:03.392Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "gyms",
+    "legacyId": "LLrl5gO1TtouuroNkoLc",
+    "reasons": [
+      "owner account role=rejected (decision: import gym as inactive / keep owner link)"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "LLrl5gO1TtouuroNkoLc",
+      "gym_name": "nuteral gym",
+      "owner_name": "Gaurav Mathanikar",
+      "email": "g***@gmail.com",
+      "phone": "11***818",
+      "owner_uid": "A0kiygGnU8dSev0jZs4iJrrn3Fm1",
+      "status": null,
+      "approval_status": "rejected",
+      "approval_reviewed_at": null,
+      "approved_at": null,
+      "rejected_reason": null,
+      "documents": {},
+      "subscription": {},
+      "created_at": "2026-07-25T15:26:09.204Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "gyms",
+    "legacyId": "Y3KJLfWvAM5YOOw5NIwj",
+    "reasons": [
+      "owner account role=rejected (decision: import gym as inactive / keep owner link)"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "Y3KJLfWvAM5YOOw5NIwj",
+      "gym_name": "nuteral gym",
+      "owner_name": "Gaurav Mathanikar",
+      "email": "g***@gmail.com",
+      "phone": "11***818",
+      "owner_uid": "JGQdw7v1aLavo7WsS2IgIzHncjO2",
+      "status": null,
+      "approval_status": "rejected",
+      "approval_reviewed_at": null,
+      "approved_at": null,
+      "rejected_reason": null,
+      "documents": {},
+      "subscription": {},
+      "created_at": "2026-07-25T15:27:36.464Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "gyms",
+    "legacyId": "gym-1786295772301-372804",
+    "reasons": [
+      "owner account role=rejected (decision: import gym as inactive / keep owner link)"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "gym-1786295772301-372804",
+      "gym_name": "79F Live Verification",
+      "owner_name": "Daksh Gautam",
+      "email": "s***@example.com",
+      "phone": "90***000",
+      "owner_uid": "ArlmC1TZ0ANhCHArNPJTk9YoIbL2",
+      "status": null,
+      "approval_status": "rejected",
+      "approval_reviewed_at": null,
+      "approved_at": null,
+      "rejected_reason": null,
+      "documents": {},
+      "subscription": {},
+      "created_at": "2026-08-09T17:16:14.648Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "gyms",
+    "legacyId": "ogE7fL9i14EcAXUdV7fI",
+    "reasons": [
+      "owner account role=rejected (decision: import gym as inactive / keep owner link)"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [
+      "gymId: doc-id fallback (R-GYMID-DOCID)"
+    ],
+    "record": {
+      "id": "ogE7fL9i14EcAXUdV7fI",
+      "gym_name": "RohitGym",
+      "owner_name": "Test",
+      "email": "t***@gmail.com",
+      "phone": "87***654",
+      "owner_uid": "JeFv6yMBaihoqWTbgAmJhma62al2",
+      "status": null,
+      "approval_status": "rejected",
+      "approval_reviewed_at": null,
+      "approved_at": null,
+      "rejected_reason": null,
+      "documents": {},
+      "subscription": {},
+      "created_at": "2026-07-06T09:03:55.248Z",
+      "updated_at": null
+    }
+  },
+  {
+    "table": "gyms",
+    "legacyId": "zG3GB9viQp2DDYqM93HJ",
+    "reasons": [
+      "owner account role=rejected (decision: import gym as inactive / keep owner link)"
+    ],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "zG3GB9viQp2DDYqM93HJ",
+      "gym_name": "nuteral gym",
+      "owner_name": "Gaurav Mathanikar",
+      "email": "g***@gmail.com",
+      "phone": "11***818",
+      "owner_uid": "nx0Qunp43GPMv2s4PhnghQPHIWg2",
+      "status": null,
+      "approval_status": "rejected",
+      "approval_reviewed_at": null,
+      "approved_at": null,
+      "rejected_reason": null,
+      "documents": {},
+      "subscription": {},
+      "created_at": "2026-07-25T15:26:20.858Z",
+      "updated_at": null
+    }
+  }
+]

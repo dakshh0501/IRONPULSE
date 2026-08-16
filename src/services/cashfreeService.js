@@ -11,10 +11,15 @@
 // payment_session_id from the Cloud Function and opens the Cashfree v3 SDK
 // checkout modal.
 
-import { getFunctions, httpsCallable } from 'firebase/functions'
 
 const API_VERSION = '2023-08-01'
-const functions = getFunctions()
+
+
+/** Lazy supabase client (supabase mode only) */
+async function getSupabaseClient() {
+  const mod = await import('../lib/supabase')
+  return mod.supabase
+}
 
 export function getCashfreeMode() {
   return import.meta.env.VITE_CASHFREE_MODE === 'production' ? 'production' : 'sandbox'
@@ -37,24 +42,6 @@ export function isCashfreeConfigured() {
   return !!(cfg.appId && cfg.clientId)
 }
 
-// httpsCallable wrappers (identical pattern to paymentService.initiatePayment)
-let createCashfreeOrderFn = null
-let verifyCashfreePaymentFn = null
-
-function getCreateCashfreeOrder() {
-  if (!createCashfreeOrderFn) {
-    createCashfreeOrderFn = httpsCallable(functions, 'createCashfreeOrder')
-  }
-  return createCashfreeOrderFn
-}
-
-function getVerifyCashfreePayment() {
-  if (!verifyCashfreePaymentFn) {
-    verifyCashfreePaymentFn = httpsCallable(functions, 'verifyCashfreePayment')
-  }
-  return verifyCashfreePaymentFn
-}
-
 /**
  * Create a Cashfree order server-side.
  * @param {Object} params — mirrors the PhonePe initiatePayment params:
@@ -63,8 +50,11 @@ function getVerifyCashfreePayment() {
  * @returns {Promise<{attemptId, redirectUrl, paymentSessionId, orderId, error}>}
  */
 export async function createCashfreeOrder(params) {
-  const res = await getCreateCashfreeOrder()(params)
-  return res.data
+    // Supabase mode: cashfree-order Edge Function (Step 8G). Same contract.
+    const supabase = await getSupabaseClient()
+    const { data, error } = await supabase.functions.invoke('cashfree-order', { body: params })
+    if (error) return { attemptId: null, redirectUrl: null, paymentSessionId: null, orderId: null, error: error.message || 'Failed to create Cashfree order' }
+    return data || { attemptId: null, redirectUrl: null, paymentSessionId: null, orderId: null, error: 'Empty response from payment service' }
 }
 
 /**
@@ -73,8 +63,11 @@ export async function createCashfreeOrder(params) {
  * @returns {Promise<{status: 'pending'|'success'|'failed'|'cancelled', error}>}
  */
 export async function verifyCashfreePayment(attemptId) {
-  const res = await getVerifyCashfreePayment()({ attemptId })
-  return res.data
+    // Supabase mode: cashfree-verify Edge Function (Step 8G).
+    const supabase = await getSupabaseClient()
+    const { data, error } = await supabase.functions.invoke('cashfree-verify', { body: { attemptId } })
+    if (error) return { status: null, error: error.message || 'Failed to verify payment' }
+    return data || { status: null, error: 'Empty response from payment service' }
 }
 
 // Lazy Cashfree SDK singleton (loaded only on first checkout)

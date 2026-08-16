@@ -1,0 +1,1042 @@
+[
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "D49rx5001QXpe4yEKu64",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "382068de-bdf0-52a3-a9b2-a4c54b3d4956",
+      "conversation_id": "53fa9c54-fee8-5fb5-a101-abb55623860e",
+      "role": "user",
+      "content": "tell about subscription",
+      "metadata": {},
+      "created_at": "2026-08-10T17:56:36.200Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "Di1wMOBO8xwzVXxEh656",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "9aa0d9c8-1124-5217-9339-dbba963943b9",
+      "conversation_id": "53fa9c54-fee8-5fb5-a101-abb55623860e",
+      "role": "assistant",
+      "content": "Platform Report\n\nActive gyms: 4\nTrial gyms: 0\nExpired gyms: 0\nPending approvals: 5\nMonthly revenue: ₹0\nMRR: ₹29,997\n\nObservations\n- 5 approvals are pending.\n- Revenue has not started yet.\n- No WhatsApp messages sent in the last 24 hours.\n- No WhatsApp campaigns created yet.\n\nRecommendations\n- Review pending approvals in the Gym Owners page to unblock new gyms.\n- Collect the first payments and verify the PhonePe gateway configuration.\n- MRR is ₹29,997 — focus on retention to keep subscription renewals on time.\n- Run a campaign or announce an offer from the Campaign Manager.\n- Launch your first campaign (festival wishes, discount or referral).",
+      "metadata": {},
+      "created_at": "2026-08-10T17:43:31.585Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "JmjSbIHA0gFy0w8VxqGH",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "f8825d9a-553c-5313-b742-e1111cd22030",
+      "conversation_id": "53fa9c54-fee8-5fb5-a101-abb55623860e",
+      "role": "assistant",
+      "content": "5 active gym subscriptions on the platform.",
+      "metadata": {},
+      "created_at": "2026-08-10T17:56:37.200Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "Q5dwaMhnoiAGRHRc5M3b",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "612ffc32-89b2-5435-8d9b-40546995eb2a",
+      "conversation_id": "53fa9c54-fee8-5fb5-a101-abb55623860e",
+      "role": "assistant",
+      "content": "I couldn't find that information. Try rephrasing — for example: 'Open payments' or 'How many members?'",
+      "metadata": {},
+      "created_at": "2026-08-10T17:56:46.769Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "RXmoN55DWi2OoTe1j03G",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "05156e34-2345-5860-85eb-d3bfbe934f24",
+      "conversation_id": "53fa9c54-fee8-5fb5-a101-abb55623860e",
+      "role": "assistant",
+      "content": "I couldn't find that information. Try rephrasing — for example: 'Open payments' or 'How many members?'",
+      "metadata": {},
+      "created_at": "2026-08-10T17:43:44.923Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "YsvyDVAKnxyLxToDahyK",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "b961b479-c597-5903-a3fb-f7fa7e9b8502",
+      "conversation_id": "53fa9c54-fee8-5fb5-a101-abb55623860e",
+      "role": "user",
+      "content": "tell in detailed",
+      "metadata": {},
+      "created_at": "2026-08-10T17:56:45.760Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "eq84qcdQECqdyhBWNcNT",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "58e79a31-e22a-5603-b4bb-263593c14951",
+      "conversation_id": "53fa9c54-fee8-5fb5-a101-abb55623860e",
+      "role": "user",
+      "content": "what about refer and earn",
+      "metadata": {},
+      "created_at": "2026-08-10T17:43:43.927Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "yF6KgGEXmGCwTSion1jJ",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "df282d3e-f361-5683-909a-86cbdb85e3a7",
+      "conversation_id": "53fa9c54-fee8-5fb5-a101-abb55623860e",
+      "role": "user",
+      "content": "Create a platform usage report",
+      "metadata": {},
+      "created_at": "2026-08-10T17:43:30.669Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "6P8zIa4mcGmXogQUugw6",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "4b944974-e1af-592e-bac3-34dd7a1d9e66",
+      "conversation_id": "337300cd-1144-5312-99b3-bcc9660ff527",
+      "role": "assistant",
+      "content": "I couldn't find that information. Please try again.",
+      "metadata": {},
+      "created_at": "2026-08-09T17:27:28.729Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "rdLKkh0sg3lGraNdXHIp",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "36752dd1-9180-5f44-ab4c-a418f8d6bb1f",
+      "conversation_id": "337300cd-1144-5312-99b3-bcc9660ff527",
+      "role": "user",
+      "content": "How many check-ins today?",
+      "metadata": {},
+      "created_at": "2026-08-09T17:27:27.739Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "BK30F98vqG67xGZ3uBFH",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "8d8858ce-4fcb-5226-bb39-b1f51f8f465c",
+      "conversation_id": "87449d87-4b86-52b0-8551-1ea442b31c7e",
+      "role": "user",
+      "content": "How many members do I have?",
+      "metadata": {},
+      "created_at": "2026-08-10T13:53:05.081Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "EPkE7qv3WHiZKRGFuadw",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "11ecf526-2b53-5128-8ae6-9878eabf33b6",
+      "conversation_id": "87449d87-4b86-52b0-8551-1ea442b31c7e",
+      "role": "assistant",
+      "content": "On it — opening the workout plan creator.",
+      "metadata": {},
+      "created_at": "2026-08-10T13:53:18.197Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "P27Q09XVDQfYi5aUVHIk",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "921b6331-72bd-5c3c-b28d-a1222d77271e",
+      "conversation_id": "87449d87-4b86-52b0-8551-1ea442b31c7e",
+      "role": "user",
+      "content": "Create workout plan",
+      "metadata": {},
+      "created_at": "2026-08-10T13:53:17.973Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "PiSA2QgHPRZAt8YWY5c6",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "f35980ae-12bf-5746-b5c2-8339fe09655e",
+      "conversation_id": "87449d87-4b86-52b0-8551-1ea442b31c7e",
+      "role": "user",
+      "content": "Analyze gym health",
+      "metadata": {},
+      "created_at": "2026-08-10T13:53:32.841Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "Rg6gusKyqFloRIALIJq6",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "e712d25a-c7e3-5044-9676-18349a494ae2",
+      "conversation_id": "87449d87-4b86-52b0-8551-1ea442b31c7e",
+      "role": "user",
+      "content": "Show pending approvals",
+      "metadata": {},
+      "created_at": "2026-08-10T13:53:56.043Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "bYvgCvo5rXsZqNmZtFrv",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "8ac9f9d5-15b9-5a95-a367-616a4ac7ed25",
+      "conversation_id": "87449d87-4b86-52b0-8551-1ea442b31c7e",
+      "role": "assistant",
+      "content": "I'm having trouble reaching the AI service right now.",
+      "metadata": {},
+      "created_at": "2026-08-10T13:53:33.063Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "fEkEu9hjsnPoqmknVI8s",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "67ca1772-1de5-5328-9786-55e1bc31e16d",
+      "conversation_id": "87449d87-4b86-52b0-8551-1ea442b31c7e",
+      "role": "assistant",
+      "content": "Hi GHOST! Ask me about anything in your gym — membership, attendance, payments, revenue, reports — or say 'Open payments' and I'll take you there.",
+      "metadata": {},
+      "created_at": "2026-08-10T13:53:40.731Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "hESiNk00CUw6y0VMwfMY",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "8cb1d5a1-40c2-5485-92aa-0ddbf7cbcf29",
+      "conversation_id": "87449d87-4b86-52b0-8551-1ea442b31c7e",
+      "role": "user",
+      "content": "Hello",
+      "metadata": {},
+      "created_at": "2026-08-10T13:53:39.762Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "jbkdiVKddzknxwgphR8I",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "570fbac4-dbf2-51db-bb1d-ea0ba79f4c71",
+      "conversation_id": "87449d87-4b86-52b0-8551-1ea442b31c7e",
+      "role": "assistant",
+      "content": "5 gyms awaiting approval.",
+      "metadata": {},
+      "created_at": "2026-08-10T13:53:57.234Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "zWDi29f5BO5XHC7zaI6t",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "67ddaf49-0864-55a2-908d-c9ec2d8217a6",
+      "conversation_id": "87449d87-4b86-52b0-8551-1ea442b31c7e",
+      "role": "assistant",
+      "content": "You currently have 1 member.",
+      "metadata": {},
+      "created_at": "2026-08-10T13:53:05.996Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "04BpCgwuKTgjWTzdOqWS",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "a61dd7c7-963f-502f-8a8a-c3ad2bc4413e",
+      "conversation_id": "99645bbb-37e7-5b92-8ed2-c4d079bb1a4b",
+      "role": "assistant",
+      "content": "As a super admin, you have access to comprehensive platform insights. Here's a general outline for a platform usage report:\n\n1. **User Engagement**: Overview of active users, sessions, and time spent on the platform.\n2. **Feature Adoption**: Breakdown of features used, such as workout tracking, nutrition advice, and community engagement.\n3. **Content Performance**: Analysis of popular content, including blog posts, videos, and tutorials.\n4. **Membership and Subscription**: Overview of membership plans, subscription rates, and revenue generated.\n5. **Technical Performance**: Metrics on platform uptime, loading speeds, and error rates.\n\nWould you like me to elaborate on any specific section or provide a more detailed report?",
+      "metadata": {},
+      "created_at": "2026-08-10T17:00:09.990Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "P4CPbhjUkFU1OVDgRh4L",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "441e0601-fccc-56a2-97e5-1ed456ce9918",
+      "conversation_id": "99645bbb-37e7-5b92-8ed2-c4d079bb1a4b",
+      "role": "assistant",
+      "content": "As a professional gym assistant, I can:\n\n1. **Create workout plans**: Design personalized exercise routines for members.\n2. **Provide nutrition advice**: Offer guidance on healthy eating and meal planning.\n3. **Track progress**: Monitor member progress, including workouts, weight, and measurements.\n4. **Offer motivation**: Provide motivational support and encouragement to members.\n5. **Answer fitness questions**: Respond to questions about exercises, equipment, and fitness techniques.\n6. **Generate reports**: Create reports on member engagement, workout trends, and gym performance.\n7. **Assist with marketing**: Help with marketing efforts, such as social media management and campaign creation.\n8. **Provide gym information**: Answer questions about gym hours, amenities, and services.\n9. **Help with member support**: Assist with member inquiries, issues, and concerns.\n10. **Offer fitness tips**: Share tips and advice on various fitness topics, such as goal setting, injury prevention, and recovery techniques.\n\nAs a super admin, I can also help with:\n\n1. **Gym management**: Assist with managing gym operations, including staffing, scheduling, and maintenance.\n2. **Member management**: Help with managing member data, including profiles, payments, and attendance.\n3. **Report generation**: Create detailed reports on gym performance, member engagement, and financials.\n\nLet me know how I can assist you specifically.",
+      "metadata": {},
+      "created_at": "2026-08-10T17:04:05.510Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "cT37ClniwgDbv1xpwXgu",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "bd73cc19-4404-585c-9537-b64f8fd042c3",
+      "conversation_id": "99645bbb-37e7-5b92-8ed2-c4d079bb1a4b",
+      "role": "user",
+      "content": "Create a monthly marketing campaign for my gym",
+      "metadata": {},
+      "created_at": "2026-08-10T17:00:44.805Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "e1tCPNXsLg5QQxbo2riV",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "eed62e25-610d-5ebd-b8db-b700db3852f0",
+      "conversation_id": "99645bbb-37e7-5b92-8ed2-c4d079bb1a4b",
+      "role": "user",
+      "content": "Create a platform usage report",
+      "metadata": {},
+      "created_at": "2026-08-10T17:00:08.972Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "ygJTXQ3Ty5y5FKg32fyx",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "5b1ac9c7-779f-581a-bc4c-329bbf84fbbe",
+      "conversation_id": "99645bbb-37e7-5b92-8ed2-c4d079bb1a4b",
+      "role": "assistant",
+      "content": "As a super admin, I've outlined a monthly marketing campaign for your gym:\n\n**Campaign Name:** \"Get Fit, Feel Strong\"\n\n**Objective:** Attract new members, increase engagement, and drive revenue growth.\n\n**Target Audience:** Fitness enthusiasts, health-conscious individuals, and local community members.\n\n**Marketing Strategies:**\n\n1. **Social Media**:\n\t* Post weekly workout tips, motivational quotes, and member success stories.\n\t* Collaborate with influencers and fitness experts for sponsored content.\n\t* Run targeted ads on Facebook, Instagram, and Twitter.\n2. **Email Marketing**:\n\t* Send monthly newsletters with exclusive promotions, events, and updates.\n\t* Offer limited-time discounts for new members and referrals.\n3. **Local Outreach**:\n\t* Partner with local businesses for joint promotions and events.\n\t* Host free fitness classes or workshops in the community.\n4. **Content Marketing**:\n\t* Create informative blog posts on fitness, nutrition, and wellness.\n\t* Produce video content (tutorials, workouts, and member testimonials).\n5. **Promotions and Events**:\n\t* Offer a \"Bring a Friend\" free trial month.\n\t* Host a \"Fitness Challenge\" with prizes and recognition.\n\n**Budget Allocation:**\n\n1. Social Media (30%)\n2. Email Marketing (20%)\n3. Local Outreach (20%)\n4. Content Marketing (15%)\n5. Promotions and Events (15%)\n\n**Timeline:**\n\n* Week 1-2: Set up social media campaigns and email marketing automation.\n* Week 3-4: Launch local outreach and content marketing efforts.\n* Week 5-6: Host promotions and events.\n\n**Tracking and Evaluation:**\n\n* Monitor social media engagement, email open rates, and website traffic.\n* Track new member acquisitions, revenue growth, and customer satisfaction.\n\nThis campaign aims to create a buzz around your gym, attract new members, and engage existing ones. Let me know if you'd like me to adjust or add anything.",
+      "metadata": {},
+      "created_at": "2026-08-10T17:00:46.237Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "zBoEbSuxYRioCtPJ9M9Q",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "b6994c05-b754-5c0d-8c57-086d90f2f5f9",
+      "conversation_id": "99645bbb-37e7-5b92-8ed2-c4d079bb1a4b",
+      "role": "user",
+      "content": "what things u can do ??",
+      "metadata": {},
+      "created_at": "2026-08-10T17:04:04.066Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "44OTyyj7wDWc4uZZNm7U",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "4b4353cd-dce0-57b5-91c7-283a2c5e0a1b",
+      "conversation_id": "db9ec311-fa8e-5c9d-ba88-797c3a166d05",
+      "role": "assistant",
+      "content": "Platform Report\n\nActive gyms: 4\nTrial gyms: 0\nExpired gyms: 0\nPending approvals: 5\nMonthly revenue: ₹0\nMRR: ₹29,997\n\nObservations\n- 5 approvals are pending.\n- Revenue has not started yet.\n- No WhatsApp messages sent in the last 24 hours.\n- No WhatsApp campaigns created yet.\n\nRecommendations\n- Review pending approvals in the Gym Owners page to unblock new gyms.\n- Collect the first payments and verify the PhonePe gateway configuration.\n- MRR is ₹29,997 — focus on retention to keep subscription renewals on time.\n- Run a campaign or announce an offer from the Campaign Manager.\n- Launch your first campaign (festival wishes, discount or referral).",
+      "metadata": {},
+      "created_at": "2026-08-10T17:38:08.503Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "G7NFsPR079w9PpGGD1sc",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "e764cab4-8e84-596f-9a8f-f0005162ee98",
+      "conversation_id": "db9ec311-fa8e-5c9d-ba88-797c3a166d05",
+      "role": "user",
+      "content": "Generate report",
+      "metadata": {},
+      "created_at": "2026-08-10T17:38:07.505Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "2OqqgIGGmbvBYqWoOjUc",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "c50f30a1-85fd-5046-89e1-25a406ebb1f4",
+      "conversation_id": "7867f739-6340-55f8-8d7b-fbc22a292c0a",
+      "role": "assistant",
+      "content": "I couldn't find that information. Please try again.",
+      "metadata": {},
+      "created_at": "2026-08-09T17:29:30.876Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "kQdnHpXDbBqQuzGLo2XO",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "2eef5c2d-9a37-53a9-b16b-a27684670b35",
+      "conversation_id": "7867f739-6340-55f8-8d7b-fbc22a292c0a",
+      "role": "user",
+      "content": "hey",
+      "metadata": {},
+      "created_at": "2026-08-09T17:29:29.846Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "3830REbFZ2ktoc1iF6mU",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "306ce412-bde0-5b93-8b57-232f171c794f",
+      "conversation_id": "42af80e3-406f-5010-a6e2-2d6b9201f7cd",
+      "role": "assistant",
+      "content": "No pending or overdue payments right now.",
+      "metadata": {},
+      "created_at": "2026-08-10T16:59:41.198Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "F8D0NLpBeb6eE7z2nmZp",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "27773730-5732-5b29-b73d-ade0540f3d3b",
+      "conversation_id": "42af80e3-406f-5010-a6e2-2d6b9201f7cd",
+      "role": "user",
+      "content": "Generate invoices",
+      "metadata": {},
+      "created_at": "2026-08-10T16:59:40.098Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "PeaWDTWhGg6c8u99Zp57",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "52135292-b982-5cf1-96f4-8e52a8fce7de",
+      "conversation_id": "42af80e3-406f-5010-a6e2-2d6b9201f7cd",
+      "role": "user",
+      "content": "Create a workout plan",
+      "metadata": {},
+      "created_at": "2026-08-10T16:59:54.137Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "T7j7MTTuiqyOT4fOuB30",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "ec36a191-c00b-5a21-85de-7a214da9d937",
+      "conversation_id": "42af80e3-406f-5010-a6e2-2d6b9201f7cd",
+      "role": "assistant",
+      "content": "Hi GHOST! Ask me about anything in your gym — membership, attendance, payments, revenue, reports — or say 'Open payments' and I'll take you there.",
+      "metadata": {},
+      "created_at": "2026-08-10T16:59:34.420Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "pWSpuhbeCGwPMytiyHik",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "5ff75c23-9797-5f54-8699-1ee0017efdb9",
+      "conversation_id": "42af80e3-406f-5010-a6e2-2d6b9201f7cd",
+      "role": "assistant",
+      "content": "On it — opening the workout plan creator.",
+      "metadata": {},
+      "created_at": "2026-08-10T16:59:54.469Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "uXgw0Xnbwdls5OnRTaRg",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "46969c41-f970-54ef-a435-757269a0ea6f",
+      "conversation_id": "42af80e3-406f-5010-a6e2-2d6b9201f7cd",
+      "role": "user",
+      "content": "HELLO",
+      "metadata": {},
+      "created_at": "2026-08-10T16:59:33.334Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "3porVtIeE53YIZDKgTz2",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "e87c3c0d-f218-5672-98ef-523944b8b5af",
+      "conversation_id": "dc23dbd5-bea9-57cb-9788-287d9c19a867",
+      "role": "user",
+      "content": "hey",
+      "metadata": {},
+      "created_at": "2026-08-10T13:49:07.921Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "A9RSqUrO8SWKrWFq6Fn1",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "35f37eea-a719-5fce-a13c-7fdcd091b2f2",
+      "conversation_id": "dc23dbd5-bea9-57cb-9788-287d9c19a867",
+      "role": "assistant",
+      "content": "I'm having trouble reaching the AI service right now.",
+      "metadata": {},
+      "created_at": "2026-08-10T13:49:25.678Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "JQTHRoT9oiSCHxJC2VZX",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "03902c88-510c-569d-a5ee-96dac284d5b5",
+      "conversation_id": "dc23dbd5-bea9-57cb-9788-287d9c19a867",
+      "role": "assistant",
+      "content": "I'm having trouble reaching the AI service right now.",
+      "metadata": {},
+      "created_at": "2026-08-10T13:49:08.190Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "ii1fIzSFQlmkp52Bzaq7",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "c5928a48-be18-5cbf-9909-2f0e16e0c185",
+      "conversation_id": "dc23dbd5-bea9-57cb-9788-287d9c19a867",
+      "role": "user",
+      "content": "hypothetical",
+      "metadata": {},
+      "created_at": "2026-08-10T13:49:25.482Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "yELDTT8eSJ1QK7e7bUg2",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "7efc67ce-6c2e-548e-b55b-e7184ff9a734",
+      "conversation_id": "dc23dbd5-bea9-57cb-9788-287d9c19a867",
+      "role": "user",
+      "content": "Which gyms are awaiting approval?",
+      "metadata": {},
+      "created_at": "2026-08-10T13:49:01.891Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "yQgj46ifL5BohuyOkpaO",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "31e0fb94-9061-5f73-8d26-cc2accf56f94",
+      "conversation_id": "dc23dbd5-bea9-57cb-9788-287d9c19a867",
+      "role": "assistant",
+      "content": "5 gyms awaiting approval.",
+      "metadata": {},
+      "created_at": "2026-08-10T13:49:02.818Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "DnNyjL8sXlwtJ7TbN426",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "847d40e4-b9cf-58a7-ba0d-4b80cf9f2318",
+      "conversation_id": "29e75bb0-76d6-55dc-aa7e-be2cfbe4e36d",
+      "role": "user",
+      "content": "Create a platform usage report",
+      "metadata": {},
+      "created_at": "2026-08-09T17:34:30.006Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "Mj6p68cdgRd1Adsu4bz1",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "98c56bad-5689-54b8-a689-8036999e80a5",
+      "conversation_id": "29e75bb0-76d6-55dc-aa7e-be2cfbe4e36d",
+      "role": "assistant",
+      "content": "I couldn't find that information. Try rephrasing — for example: 'Open payments' or 'How many members?'",
+      "metadata": {},
+      "created_at": "2026-08-10T05:49:12.333Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "hU9HOIV11WdM2A5e4jpE",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "28a7a4af-23ed-5d59-a43f-69ad2dc595e3",
+      "conversation_id": "29e75bb0-76d6-55dc-aa7e-be2cfbe4e36d",
+      "role": "user",
+      "content": "Open payments",
+      "metadata": {},
+      "created_at": "2026-08-09T18:01:36.877Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "mxInpBfhnkVXGaI46fvC",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "6672410c-c285-5b4c-bdfd-8b7a33858066",
+      "conversation_id": "29e75bb0-76d6-55dc-aa7e-be2cfbe4e36d",
+      "role": "assistant",
+      "content": "I couldn't find that information. Please try again.",
+      "metadata": {},
+      "created_at": "2026-08-09T17:34:30.997Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "nj4YCIUikKa4VvjdaiBK",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "42c7fda9-97d4-5ac8-8d7f-9a471da9ebb1",
+      "conversation_id": "29e75bb0-76d6-55dc-aa7e-be2cfbe4e36d",
+      "role": "user",
+      "content": "hey",
+      "metadata": {},
+      "created_at": "2026-08-09T18:01:08.567Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "v7rFs8rCLYMtocn2DRaO",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "6d3de2b8-9e22-5105-90ce-1e5ee5986c94",
+      "conversation_id": "29e75bb0-76d6-55dc-aa7e-be2cfbe4e36d",
+      "role": "user",
+      "content": "hey",
+      "metadata": {},
+      "created_at": "2026-08-10T05:49:11.333Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "y7J34tFQ167PyIYogRfe",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "b8bf1eee-1127-5e7d-83d9-b70e4a07eca7",
+      "conversation_id": "29e75bb0-76d6-55dc-aa7e-be2cfbe4e36d",
+      "role": "user",
+      "content": "Open payments",
+      "metadata": {},
+      "created_at": "2026-08-09T18:01:19.097Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "0bCq42tbgJrr9f62WO7E",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "8941c6a9-813f-5ae8-9206-89be890be013",
+      "conversation_id": "78288422-4d25-5570-808c-c12bed85427c",
+      "role": "assistant",
+      "content": "I couldn't find that information. Please try again.",
+      "metadata": {},
+      "created_at": "2026-08-09T17:28:49.521Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "JpUS9fjYdDDZ7o8eIWXY",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "73ee29b6-9046-59a5-bf99-703697402355",
+      "conversation_id": "78288422-4d25-5570-808c-c12bed85427c",
+      "role": "user",
+      "content": "hey",
+      "metadata": {},
+      "created_at": "2026-08-09T17:28:55.228Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "UvhzGuSMKBoB3BiM67MR",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "0a856d0f-0cbb-5550-aabf-372f07cebb55",
+      "conversation_id": "78288422-4d25-5570-808c-c12bed85427c",
+      "role": "assistant",
+      "content": "I couldn't find that information. Please try again.",
+      "metadata": {},
+      "created_at": "2026-08-09T17:28:56.256Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "nDFhdvLVmxwkJIt0S6KQ",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "f90fd998-d9ab-578d-9080-838a75462def",
+      "conversation_id": "78288422-4d25-5570-808c-c12bed85427c",
+      "role": "user",
+      "content": "List active gym subscriptions",
+      "metadata": {},
+      "created_at": "2026-08-09T17:28:48.550Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "j0pKjvGtClJjkomiyBNO",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "cc6bc1ca-3cdf-5c8a-a20c-937bf35555e5",
+      "conversation_id": "7eefc697-ffe8-59f9-a66d-869cd6d03f25",
+      "role": "user",
+      "content": "What is platform revenue?",
+      "metadata": {},
+      "created_at": "2026-08-10T05:49:17.156Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "udsAdqn8OFMBJ326RgJM",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "50bfe2db-c4b9-5877-86b6-302356e61d68",
+      "conversation_id": "7eefc697-ffe8-59f9-a66d-869cd6d03f25",
+      "role": "assistant",
+      "content": "₹0 collected from member payments across gyms, plus ₹29,997 in active gym subscription revenue.",
+      "metadata": {},
+      "created_at": "2026-08-10T05:49:18.109Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "hyPBewUzuVQAJCjWnb0r",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "d58b0d93-2680-5ac0-8d94-6ea93d18778f",
+      "conversation_id": "0e9ad5b5-b420-5edf-b10a-dc2fd8ba668a",
+      "role": "assistant",
+      "content": "I couldn't find that information. Please try again.",
+      "metadata": {},
+      "created_at": "2026-08-09T17:34:16.720Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "ymTae0U3FojIvVswUyg6",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "f9f0f8d9-2dd4-5358-9bec-92aedbf172a0",
+      "conversation_id": "0e9ad5b5-b420-5edf-b10a-dc2fd8ba668a",
+      "role": "user",
+      "content": "heyy",
+      "metadata": {},
+      "created_at": "2026-08-09T17:34:15.716Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "TwwdzsDPxGmMKHj89KNZ",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "adf0dece-63db-5acf-8fdd-0277abde5d05",
+      "conversation_id": "92f835ed-ef53-5476-8e37-58023670d1b5",
+      "role": "user",
+      "content": "Create a platform usage report",
+      "metadata": {},
+      "created_at": "2026-08-10T05:49:26.818Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "bIFDtGvYNmmtpaDi1hWL",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "a91549ae-493a-5099-97f5-8c0fc2135380",
+      "conversation_id": "92f835ed-ef53-5476-8e37-58023670d1b5",
+      "role": "assistant",
+      "content": "I couldn't find that information. Try rephrasing — for example: 'Open payments' or 'How many members?'",
+      "metadata": {},
+      "created_at": "2026-08-10T05:49:27.812Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "6rgmREMgUupjVuYAMCLi",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "884d8782-306f-58dd-b88d-5e26fbd7e38e",
+      "conversation_id": "ec435d0e-3d31-5bf7-a89a-27344b828908",
+      "role": "assistant",
+      "content": "I couldn't find that information. Please try again.",
+      "metadata": {},
+      "created_at": "2026-08-09T17:36:38.686Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "A518CnhtABK7Jf473SNM",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "fd5dad51-f0ee-52fe-8278-d5f8a5e80489",
+      "conversation_id": "ec435d0e-3d31-5bf7-a89a-27344b828908",
+      "role": "user",
+      "content": "Which gyms are awaiting approval?",
+      "metadata": {},
+      "created_at": "2026-08-09T17:36:37.735Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "JHxMPxiZN0i9sgFhI2lU",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "773cd538-1082-5bfe-8634-660d2d1e9af2",
+      "conversation_id": "ec435d0e-3d31-5bf7-a89a-27344b828908",
+      "role": "assistant",
+      "content": "I couldn't find that information. Please try again.",
+      "metadata": {},
+      "created_at": "2026-08-09T17:36:43.499Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "ntF1iY0tWnQROykQlElO",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "a539bb81-94e1-5946-bbd5-dd4ad7fd7be4",
+      "conversation_id": "ec435d0e-3d31-5bf7-a89a-27344b828908",
+      "role": "user",
+      "content": "hey",
+      "metadata": {},
+      "created_at": "2026-08-09T17:36:42.395Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "bWtA0UI0Q2bbI988bybA",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "e3deb273-c201-5455-acf8-6b3008405e48",
+      "conversation_id": "384bd50b-eb22-582c-bcc1-889c7c3bdf95",
+      "role": "user",
+      "content": "Which gyms are awaiting approval?",
+      "metadata": {},
+      "created_at": "2026-08-10T05:49:22.091Z"
+    }
+  },
+  {
+    "table": "ai_conversation_messages",
+    "legacyId": "qclczPTdQ2BYkjszXGi4",
+    "reasons": [],
+    "missing": [],
+    "unresolved": [],
+    "transformed": [],
+    "record": {
+      "id": "ae1ab6fc-33bf-519e-abc5-de97f423aee5",
+      "conversation_id": "384bd50b-eb22-582c-bcc1-889c7c3bdf95",
+      "role": "assistant",
+      "content": "5 gyms awaiting approval.",
+      "metadata": {},
+      "created_at": "2026-08-10T05:49:23.058Z"
+    }
+  }
+]

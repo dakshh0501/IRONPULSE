@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { verifyEmailWithCode } from '../services/authService'
+import { verifyEmailWithCode, completeRecoveryLink, updatePassword, isRecoveryActive } from '../services/authService'
 import { openSupportWhatsApp } from '../utils/whatsappSupport'
 import HexBackground from './HexBackground'
 
@@ -76,10 +76,27 @@ const inpIcon = {
 }
 
 export default function Auth() {
-  const { login, register, sendPasswordReset, sendVerificationEmail, refreshEmailStatus, authError, setAuthError, currentUser, needsVerification, logout } = useAuth()
+  const { login, register, sendPasswordReset, sendVerificationEmail, refreshEmailStatus, authError, setAuthError, currentUser, needsVerification, logout, startRecovery, finishRecovery } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const [mode, setMode] = useState(() => {
+    // GoTrue auth links land on this page with `token_hash` + `type`
+    // (query or hash fragment): type=email (verification), type=recovery
+    // (password reset), type=email_change (email confirmation). Recovery
+    // renders the "set new password" form directly.
+    const params = new URLSearchParams(window.location.search)
+    const hashParams = new URLSearchParams(window.location.hash.slice(1))
+    const tokenHash = hashParams.get('token_hash') || params.get('token_hash')
+    const linkType = hashParams.get('type') || params.get('type')
+    if (tokenHash && linkType === 'recovery') return 'reset-new'
+    // SDK-handled recovery callbacks (#access_token / #code + type=recovery):
+    // supabase-js establishes the session itself and strips the URL — the
+    // form must render without a token exchange.
+    if (linkType === 'recovery') return 'reset-new'
+    // Refresh mid-recovery: the SDK already consumed the callback URL, but
+    // the sessionStorage marker (set by startRecovery) keeps us on the form
+    // instead of letting PublicRoute redirect to the dashboard.
+    if (isRecoveryActive()) return 'reset-new'
     // The verification email lands here with `oobCode` + `mode=verifyEmail`
     // (handleCodeInApp flow). Do NOT show "Email Verified" before the code
     // is actually applied via applyActionCode.
@@ -103,6 +120,22 @@ export default function Auth() {
   const verifyCooldownRef = useRef(null)
   const [loginBlockedEmail, setLoginBlockedEmail] = useState('')
   const [verifyDone, setVerifyDone] = useState(false)
+
+  // GoTrue recovery callback: token exchanged (recoveryReady) then the
+  // user submits the new password. token_hash links need verifyOtp first
+  // (recoveryReady=false); SDK-handled callbacks (access_token/code) and
+  // refresh-mid-recovery (marker) already have a session (recoveryReady=true).
+  const [recoveryReady, setRecoveryReady] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const hashParams = new URLSearchParams(window.location.hash.slice(1))
+      return !(hashParams.get('token_hash') || params.get('token_hash'))
+    } catch {
+      return true
+    }
+  })
+  const [newPassword, setNewPassword] = useState('')
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState('')
 
   const [form, setForm] = useState(() => {
     const params = new URLSearchParams(window.location.search)
@@ -204,13 +237,71 @@ export default function Auth() {
         setResetSent(true)
         setResetEmail(email)
         setCooldown(30)
+      } else if (mode === 'reset-new') {
+        if (newPassword.length < 6) {
+          setAuthError('Password must be at least 6 characters.')
+          setLoading(false)
+          return
+        }
+        if (newPassword !== newPasswordConfirm) {
+          setAuthError('Passwords do not match.')
+          setLoading(false)
+          return
+        }
+        try {
+          await updatePassword(newPassword)
+          // Password set — the recovery session is now a normal session.
+          // finishRecovery() lets PublicRoute/ProtectedRoute take over
+          // (dashboard for approved accounts, /verify-email or approval
+          // gates as appropriate).
+          finishRecovery()
+          setRecoveryReady(false)
+          setNewPassword('')
+          setNewPasswordConfirm('')
+          setAuthError('')
+          // Fallback when routing does not take over immediately (e.g. a
+          // pending-role account): land on the login screen.
+          setMode('login')
+        } catch (err) {
+          const code = err?.code || ''
+          const sessionDead =
+            code === 'auth/expired-action-code' ||
+            code === 'auth/invalid-action-code' ||
+            code === 'auth/user-token-expired' ||
+            code === 'auth/session-expired' ||
+            code === 'auth/invalid-jwt' ||
+            code === 'auth/invalid_jwt' || // GoTrue raw code passthrough
+            code === 'auth/internal-error'
+          if (sessionDead) {
+            // Recovery session expired/invalid — leave recovery mode so the
+            // user can request a fresh reset link.
+            try { await logout() } catch { /* best-effort sign-out */ }
+            finishRecovery()
+            setRecoveryReady(false)
+            setNewPassword('')
+            setNewPasswordConfirm('')
+            setMode('login')
+            setAuthError('This reset link has expired or is invalid. Request a new one.')
+          } else if (code === 'auth/weak-password') {
+            // Keep recoveryInProgress active so the user can retry on the
+            // same page.
+            setAuthError('Password must be at least 6 characters.')
+          } else {
+            // Keep recoveryInProgress active so the user can retry on the
+            // same page with the mapped Supabase error visible.
+            setAuthError(
+              err?.message && !/auth\//.test(code) ? err.message
+              : 'Unable to update your password. Please try again.'
+            )
+          }
+        }
       }
     } catch (err) {
       // Error already surfaced via authError
     } finally {
       setLoading(false)
     }
-  }, [mode, signupStep, form, confirmPassword, remember, login, register, sendPasswordReset, setAuthError])
+  }, [mode, signupStep, form, confirmPassword, remember, login, register, sendPasswordReset, setAuthError, newPassword, newPasswordConfirm, updatePassword, finishRecovery, logout])
 
   useEffect(() => {
     if (mode === 'signup') setSignupStep(1)
@@ -274,16 +365,84 @@ export default function Auth() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ── PROCESS EMAIL-VERIFICATION LINK ─────────────────────────
-  // Verification emails are sent with handleCodeInApp:true, so the link
-  // opens this page with an oobCode that MUST be applied via
-  // applyActionCode — merely opening the link does not verify the email.
+  // ── PROCESS AUTH LINKS ──────────────────────────────────────
+  // GoTrue links land here with `token_hash` + `type` in the query string
+  // or hash fragment (email = verification, recovery = password reset,
+  // email_change = email confirmation). Legacy Firebase links carry an
+  // `oobCode` + `mode=verifyEmail` and are applied via applyActionCode —
+  // merely opening the link does not verify the email.
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const hashParams = new URLSearchParams(window.location.hash.slice(1))
+    const tokenHash = hashParams.get('token_hash') || params.get('token_hash')
+    const linkType = hashParams.get('type') || params.get('type')
     const oobCode = searchParams.get('oobCode')
     const actionMode = searchParams.get('mode')
-    if (!oobCode || actionMode !== 'verifyEmail') return
     let cancelled = false
     ;(async () => {
+      // ── GoTrue recovery link (type=recovery) ──
+      // Two formats: `token_hash` (the app exchanges the token via verifyOtp)
+      // and `access_token`/`code` (an implicit-grant/PKCE callback that
+      // supabase-js already processed — it established the session, fired
+      // PASSWORD_RECOVERY and stripped the URL; no verifyOtp here).
+      if (linkType === 'recovery') {
+        setLoading(true)
+        setAuthError('')
+        // Hold recoveryInProgress BEFORE the token exchange so the session
+        // created by verifyOtp (or detected by the SDK) cannot trigger
+        // PublicRoute redirects or the subscription's role gates
+        // (pending/rejected would sign it out).
+        startRecovery()
+        try {
+          if (tokenHash) {
+            await completeRecoveryLink(tokenHash)
+            if (cancelled) return
+          }
+          // Clean the fragment so a refresh doesn't re-run a consumed token.
+          window.history.replaceState({}, '', window.location.pathname + window.location.search)
+          setRecoveryReady(true)
+        } catch (err) {
+          if (cancelled) return
+          finishRecovery()
+          const code = err?.code || ''
+          setAuthError(
+            code === 'auth/expired-action-code' || code === 'auth/invalid-action-code'
+              ? 'This reset link has expired or is invalid. Request a new one.'
+              : 'Unable to process the reset link. Please try again.'
+          )
+          setMode('login')
+        } finally {
+          if (!cancelled) setLoading(false)
+        }
+        return
+      }
+
+      // ── GoTrue email verification / email-change link ──
+      if (tokenHash && (linkType === 'email' || linkType === 'email_change')) {
+        setLoading(true)
+        setAuthError('')
+        try {
+          await verifyEmailWithCode(null, linkType)
+          if (cancelled) return
+          setSearchParams({ verified: 'true' }, { replace: true })
+          setMode('verify-done')
+        } catch (err) {
+          if (cancelled) return
+          const code = err?.code || ''
+          setAuthError(
+            code === 'auth/expired-action-code' || code === 'auth/invalid-action-code'
+              ? 'This verification link has expired or is invalid. Sign in and request a new one.'
+              : 'Unable to verify your email. Please try again or request a new link.'
+          )
+          setMode('login')
+        } finally {
+          if (!cancelled) setLoading(false)
+        }
+        return
+      }
+
+      // ── Legacy Firebase oobCode links (handleCodeInApp flow) ──
+      if (!oobCode || actionMode !== 'verifyEmail') return
       setLoading(true)
       setAuthError('')
       try {
@@ -491,6 +650,7 @@ export default function Auth() {
               {mode === 'login' && <><h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px', color: '#e4e8f0' }}>Welcome Back</h1><p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Sign in to continue to your dashboard.</p></>}
               {mode === 'signup' && <><h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px', color: '#e4e8f0' }}>Create Account</h1><p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Register your gym in a few steps.</p></>}
               {mode === 'reset' && !resetSent && <><h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px', color: '#e4e8f0' }}>Reset Password</h1><p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Enter your email to receive a reset link.</p></>}
+              {mode === 'reset-new' && <><h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px', color: '#e4e8f0' }}>Set New Password</h1><p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Choose a new password for your account.</p></>}
               {mode === 'pending' && <><h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px', color: '#e4e8f0' }}>Pending Approval</h1><p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Your account is under review.</p></>}
               {mode === 'verify' && <><h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px', color: '#e4e8f0' }}>Verify Your Email</h1><p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Almost done! Check your inbox.</p></>}
               {mode === 'verify-done' && <><h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px', color: '#e4e8f0' }}>Email Verified</h1><p style={{ fontSize: 13, color: '#6070a0', margin: 0 }}>Your email has been confirmed.</p></>}
@@ -615,6 +775,52 @@ export default function Auth() {
                 <button className="auth-btn-secondary" style={{ width: '100%' }} onClick={() => openSupportWhatsApp({ user: currentUser, page: 'Pending Approval', issue: 'Approval Status' })}>
                   Contact Support
                 </button>
+              </div>
+            ) : mode === 'reset-new' ? (
+              <div style={{ animation: 'auth-slide-up 0.5s ease' }}>
+                {authError && (
+                  <div role="alert" style={{
+                    background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)',
+                    borderRadius: 10, padding: '10px 14px', marginBottom: 16,
+                    fontSize: 13, color: '#f87171', textAlign: 'center'
+                  }}>{authError}</div>
+                )}
+                {!recoveryReady ? (
+                  <p style={{ fontSize: 13, color: '#6070a0', textAlign: 'center', margin: '20px 0' }}>
+                    Processing your reset link…
+                  </p>
+                ) : (
+                  <form onSubmit={handleSubmit}>
+                    <div style={{ position: 'relative', marginBottom: 14 }}>
+                      <span style={inpIcon} aria-hidden="true">🔒</span>
+                      <label htmlFor="auth-new-pw" className="sr-only">New Password</label>
+                      <input id="auth-new-pw" type="password" placeholder="New password (min 6 chars)" value={newPassword} onChange={e => setNewPassword(e.target.value)} required className="auth-input" aria-required="true" />
+                    </div>
+                    <div style={{ position: 'relative', marginBottom: 14 }}>
+                      <span style={inpIcon} aria-hidden="true">🔒</span>
+                      <label htmlFor="auth-new-pw2" className="sr-only">Confirm New Password</label>
+                      <input id="auth-new-pw2" type="password" placeholder="Confirm new password" value={newPasswordConfirm} onChange={e => setNewPasswordConfirm(e.target.value)} required className="auth-input" aria-required="true" />
+                    </div>
+                    <button type="submit" className="auth-btn-primary" disabled={loading} style={{ marginTop: 4 }}>
+                      {loading ? 'Updating…' : 'Update Password'}
+                    </button>
+                    <button type="button" onClick={async () => {
+                      // Abandon the recovery session entirely: sign out (clears
+                      // the session + marker via SIGNED_OUT), then release the
+                      // gate so the login screen can render.
+                      try { await logout() } catch { /* best-effort sign-out */ }
+                      finishRecovery()
+                      setRecoveryReady(false)
+                      setNewPassword('')
+                      setNewPasswordConfirm('')
+                      setMode('login')
+                      setAuthError('')
+                    }} style={{
+                      background: 'none', border: 'none', color: '#ff6a2a',
+                      cursor: 'pointer', fontSize: 13, fontWeight: 600, marginTop: 14, width: '100%'
+                    }}>← Back to Sign In</button>
+                  </form>
+                )}
               </div>
             ) : (
               <>

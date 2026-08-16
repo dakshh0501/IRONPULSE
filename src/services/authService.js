@@ -1,519 +1,579 @@
 // src/services/authService.js
-// Minimal, single-responsibility auth service
-// No secondary auth complexity
-// Only 4 functions: signup, signin, logout, subscribe
+// Auth service — Supabase Auth (GoTrue) is the identity backend: sessions,
+// sign-in, email verification, password reset, recovery, reauth. Profiles
+// come from the Supabase `profiles` table (Step 4 of the 8B contract).
+//
+// COMPATIBILITY NOTES (documented, Step 8B-10):
+//   - signUp() provisions the Supabase auth account only; the profiles
+//     row, referral directory row, and (for gym owners) the gyms row are
+//     created at FIRST SIGN-IN (profiles insert-self policy allows it;
+//     guards block role/gym_id updates later, so provisioning inserts the
+//     full row in one shot).
+//   - approveUser()/rejectUser() operate on the Supabase profiles row and
+//     succeed only for super admins (guard_profiles_update semantics).
 
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  sendPasswordResetEmail,
-  sendEmailVerification,
-  onAuthStateChanged,
-  reload,
-  applyActionCode,
-} from 'firebase/auth'
-import { serverTimestamp } from 'firebase/firestore'
-import {
-  doc,
-  setDoc,
-  getDoc,
-  addDoc,
-  collection,
-  query,
-  where,
-  limit,
-  getDocs,
-  updateDoc,
-  deleteDoc,
-  writeBatch,
-} from 'firebase/firestore'
-import { auth, db } from '../firebase'
-import { getFunctions, httpsCallable } from 'firebase/functions'
-import { addGym } from './firestoreService'
-import { generateReferralCode } from '../utils/referralCode'
+import { supabase } from '../lib/supabase'
 import { getAppUrl } from '../utils/appUrl'
+import { generateReferralCode } from '../utils/referralCode'
+import { PENDING_REFERRAL_KEY } from './referralService'
 
-export async function signUp({ name, email, password, gymData, role, referredBy }) {
-  let authUser = null
+export const authProvider = import.meta.env.VITE_AUTH_PROVIDER || 'supabase'
 
-  // ───── Step 1: createUserWithEmailAndPassword (Auth API, not Firestore) ─────
-  try {
-    const authResult = await createUserWithEmailAndPassword(auth, email, password)
-    authUser = authResult.user
-  } catch (e) {
-    console.error('[SIGNUP AUTH] createUserWithEmailAndPassword', '', e.code, e.message, e)
-    // auth/email-already-in-use: no Auth/Firestore resource was created or
-    // rolled back here — surface the original error for a clean retry path.
-    throw e
-  }
+// ─────────────────────────────────────────────────────────────────────────
+// SUPABASE HELPERS
+// ─────────────────────────────────────────────────────────────────────────
 
-  // ───── Step 1.5: sendEmailVerification ─────
-  try {
-    const appUrl = getAppUrl()
-    const actionCodeSettings = {
-      url: `${appUrl}/auth?verified=true`,
-      handleCodeInApp: true,
-    }
-    await sendEmailVerification(authUser, actionCodeSettings)
-  } catch (e) {
-    // Non-fatal: email verification is best-effort. Auth account exists.
-    console.error('[SIGNUP AUTH] sendEmailVerification failed:', e.code, e.message)
-  }
-
-  // ───── Step 2 (gym owners): create the gym FIRST ─────
-  // The users/{uid} doc must reference the real gym doc ID from the very
-  // first create — the own-user update rule forbids changing gymId, so the
-  // old flow (create users with 'default' gymId, then updateDoc gymId) was
-  // permission-denied and rolled back while leaving an orphaned gym doc.
-  let gymDocId = null
-  if (role === 'gym_owner_pending') {
-    try {
-      gymDocId = await addGym(gymData, authUser.uid)
-    } catch (e) {
-      console.error('[SIGNUP FIRESTORE] addGym FAILED', {
-        operation: 'addDoc',
-        collection: 'gyms',
-        code: e.code,
-        message: e.message,
-        error: e,
-      })
-      // Rollback: gym was never created — only the Auth user needs cleanup
-      try { await authUser.delete() } catch (cleanupErr) {
-        console.error('[SIGNUP ROLLBACK] Failed to delete orphaned Auth user:', cleanupErr)
-      }
-      throw e
-    }
-  }
-
-  // ───── Step 3: batch write — users/{uid} + own referralCodes directory ─────
-  // Referral code is generated locally (crypto-random, IP- + 6 chars) with NO
-  // uniqueness query: the users collection read rule denies non-staff roles
-  // (pending/gym_owner_pending), and the uniqueness check used to fail there.
-  // Collision odds are ~1 in 2.2 billion per draw; the staff-side post-approval
-  // autogen (AuthContext) still backfills any empty codes.
-  //
-  // The referralCodes/{code} directory entry (referrerUid -> owner) is written
-  // in the SAME atomic batch as the users doc so Spark clients can resolve this
-  // code post-approval WITHOUT the users read rule (Sprint 81A-Spark).
-  const referralCode = generateReferralCode()
-  console.warn('[Referral] signUp: referral code generated + referredBy captured', {
-    role,
-    collection: 'users', docId: authUser.uid,
-    referralCode,
-    referredBy: referredBy || '(none)',
-  })
-
-  const userData = {
-    uid: authUser.uid,
-    email: authUser.email,
-    name: name || '',
-    role: role || 'pending',
-    gymId: gymDocId || gymData?.gymId || 'default',
-    referralCode: referralCode || '',
-    referredBy: referredBy || '',
-    createdAt: serverTimestamp(),
-  }
-
-  try {
-    const batch = writeBatch(db)
-    batch.set(doc(db, 'users', authUser.uid), userData)
-    if (referralCode) {
-      batch.set(doc(db, 'referralCodes', referralCode), {
-        referrerUid: authUser.uid,
-        createdAt: serverTimestamp(),
-      })
-    }
-    await batch.commit()
-    console.warn('[Referral] signUp: batch WROTE OK', {
-      documents: [`users/${authUser.uid}`, `referralCodes/${referralCode}`],
-      fields: { referralCode, referredBy: referredBy || '' },
-    })
-  } catch (e) {
-    console.error('[SIGNUP FIRESTORE] setDoc(users) FAILED', {
-      operation: 'setDoc',
-      collection: 'users',
-      path: `users/${authUser.uid}`,
-      code: e.code,
-      message: e.message,
-      error: e,
-    })
-    // Rollback — remove EVERY resource created in this attempt (gym doc,
-    // users doc, referralCodes entry, Auth user) so a retry starts clean
-    // with no orphans.
-    if (gymDocId) {
-      try { await deleteDoc(doc(db, 'gyms', gymDocId)) } catch (cleanupErr) {
-        console.error('[SIGNUP ROLLBACK] Failed to delete orphaned gyms doc:', cleanupErr)
-      }
-    }
-    if (referralCode) {
-      try { await deleteDoc(doc(db, 'referralCodes', referralCode)) } catch (cleanupErr) {
-        console.error('[SIGNUP ROLLBACK] Failed to delete orphaned referralCodes doc:', cleanupErr)
-      }
-    }
-    try { await deleteDoc(doc(db, 'users', authUser.uid)) } catch (cleanupErr) {
-      console.error('[SIGNUP ROLLBACK] Failed to delete orphaned users doc:', cleanupErr)
-    }
-    try { await authUser.delete() } catch (cleanupErr) {
-      console.error('[SIGNUP ROLLBACK] Failed to delete orphaned Auth user:', cleanupErr)
-    }
-    throw e
-  }
-
-  // ───── Step 4: signOut (Auth API, not Firestore) ─────
-  // Best-effort: the account is fully created at this point; a local signOut
-  // failure must not surface as a failed signup (retry would hit
-  // auth/email-already-in-use on a completed account).
-  try {
-    await signOut(auth)
-  } catch (e) {
-    console.warn('[SIGNUP AUTH] signOut FAILED (account already created):', e.code, e.message)
-  }
-
-  return { uid: authUser.uid, email }
-}
-
-export async function signIn(email, password) {
-  try {
-    // 1. Authenticate with Firebase
-    const result = await signInWithEmailAndPassword(auth, email, password)
-    const user = result.user
-
-    // 2. Get role from /users/{uid}
-    const userRef = doc(db, 'users', user.uid)
-
-    let userDoc = await getDoc(userRef)
-    if (!userDoc.exists()) {
-      const recovered = await recoverUserProfile(user.uid, user.email)
-      if (recovered) {
-        userDoc = await getDoc(doc(db, 'users', user.uid))
-      }
-    }
-
-    if (!userDoc || !userDoc.exists()) {
-      await signOut(auth)
-      throw new Error('User profile not found')
-    }
-
-    const role = userDoc.data().role
-
-    // 3. If pending, gym_owner_pending, or rejected, immediately sign out
-    if (role === 'pending' || role === 'gym_owner_pending' || role === 'rejected') {
-      await signOut(auth)
-      throw new Error(role) // distinct error per role
-    }
-
-    // 4. Verify email — all approved roles must have a verified email
-    if (!user.emailVerified) {
-      throw new Error('email-not-verified')
-    }
-
-    return { user, role }
-  } catch (err) {
-    throw err
+/** GoTrue user → application user shape (firebase-compatible fields). */
+export function adaptSupabaseUser(user) {
+  if (!user) return null
+  const meta = user.user_metadata || {}
+  return {
+    uid: user.id,
+    email: user.email || '',
+    emailVerified: !!(user.email_confirmed_at || user.confirmed_at),
+    displayName: meta.name || meta.full_name || meta.ownerName || '',
+    photoURL: meta.avatar_url || meta.photo_url || null,
+    phoneNumber: user.phone || null,
+    metadata: {
+      creationTime: user.created_at || null,
+      lastSignInTime: user.last_sign_in_at || user.created_at || null,
+    },
+    providerId: 'supabase',
   }
 }
 
-export async function logOut() {
-  try {
-    await signOut(auth)
-  } catch (err) {
-    throw err
+/** Supabase profiles row → application user profile shape. */
+export function mapProfileRow(r) {
+  if (!r) return null
+  return {
+    uid: r.id,
+    id: r.id,
+    email: r.email || '',
+    name: r.name || '',
+    role: r.role,
+    gymId: r.gym_id,
+    referralCode: r.referral_code || '',
+    referredBy: r.referred_by || '',
+    isSuperAdmin: !!r.is_super_admin,
+    accountDisabled: !!r.account_disabled,
+    disabledReason: r.disabled_reason || '',
+    photoURL: r.photo_url || '',
+    createdAt: r.created_at || '',
+    firebaseUid: r.firebase_uid || null,
+    _source: 'supabase',
   }
 }
 
-export async function resetPassword(email) {
+/** Parse GoTrue link tokens from the current URL (hash or query). */
+export function getUrlTokenParams() {
   try {
-    // handleCodeInApp:false — the Firebase-hosted action page performs the
-    // reset, then redirects to the app's /auth page (continue URL must be in
-    // the Firebase console Authorized Domains list).
-    const appUrl = getAppUrl()
-    await sendPasswordResetEmail(auth, email, {
-      url: `${appUrl}/auth`,
-      handleCodeInApp: false,
-    })
-  } catch (err) {
-    throw err
+    const hash = new URLSearchParams(window.location.hash.slice(1))
+    const query = new URLSearchParams(window.location.search)
+    return {
+      token_hash: hash.get('token_hash') || query.get('token_hash') || '',
+      type: hash.get('type') || query.get('type') || '',
+    }
+  } catch {
+    return { token_hash: '', type: '' }
   }
 }
 
 /**
- * Recover a missing users/{uid} document by searching companion collections.
- *
- * Strategy (in order):
- *   1. Query `members` for authUid == uid  → role: 'member'
- *   2. Query `trainers` for authUid == uid  → role: 'trainer'
- *   3. Query `gyms`    for ownerUid == uid  → role: derived from approvalStatus
- *
- * Unrecoverable roles (no companion collection exists):
- *   - admin    → deliberate; admin accounts are never auto-recovered
- *   - pending  → login is blocked anyway by the role check
- *
- * This handles both document-ID strategies used by the app:
- *   - addMember() / addTrainer() → auto-generated doc ID + authUid field
- *   - approveUser()              → Auth UID as doc ID + authUid field
- * The same query covers both because both store authUid.
+ * Detect a password-recovery callback in the CURRENT URL. Two link formats
+ * exist (both carry `type=recovery`):
+ *   1. `token_hash` + `type=recovery` — the app exchanges the token itself
+ *      via verifyOtp (completeRecoveryLink).
+ *   2. `access_token`/`code` + `type=recovery` — an implicit-grant or PKCE
+ *      callback. supabase-js (detectSessionInUrl, default on) auto-detects
+ *      these, establishes the session, fires PASSWORD_RECOVERY and strips
+ *      the URL — the app must NOT call verifyOtp for these.
  */
-export async function recoverUserProfile(uid, email) {
+export function isRecoveryCallbackInUrl() {
   try {
-    // ── 1. Try members (most common for this app) ──
-    const membersSnap = await getDocs(query(
-      collection(db, 'members'),
-      where('authUid', '==', uid)
-    ))
-    if (!membersSnap.empty) {
-      const m = membersSnap.docs[0].data()
-      // Local generation with no uniqueness query: the users read rule denies
-      // this lookup for non-staff roles (same reason signUp generates locally).
-      const code = generateReferralCode()
-      const userData = {
-        uid,
-        email: email || m.email || '',
-        name: m.name || '',
-        role: 'member',
-        gymId: m.gymId || 'default',
-        referralCode: code,
-        createdAt: serverTimestamp(),
-      }
-      await setDoc(doc(db, 'users', uid), userData)
-      // Referral directory entry (Sprint 81A-Spark) — best-effort, converges
-      // at next login if this fails.
-      try {
-        await setDoc(doc(db, 'referralCodes', code), {
-          referrerUid: uid,
-          createdAt: serverTimestamp(),
-        }, { merge: true })
-      } catch (mappingErr) {
-        console.warn('recoverUserProfile: referralCodes mapping failed (non-blocking):', mappingErr.code || mappingErr.message)
-      }
-      return userData
-    }
-
-    // ── 2. Try trainers (no referral code) ──
-    const trainersSnap = await getDocs(query(
-      collection(db, 'trainers'),
-      where('authUid', '==', uid)
-    ))
-    if (!trainersSnap.empty) {
-      const t = trainersSnap.docs[0].data()
-      const userData = {
-        uid,
-        email: email || t.email || '',
-        name: t.name || '',
-        role: 'trainer',
-        gymId: t.gymId || 'default',
-        createdAt: serverTimestamp(),
-      }
-      await setDoc(doc(db, 'users', uid), userData)
-      return userData
-    }
-
-    // ── 3. Try gym owners (gyms collection stores ownerUid) ──
-    const gymsSnap = await getDocs(query(
-      collection(db, 'gyms'),
-      where('ownerUid', '==', uid)
-    ))
-    if (!gymsSnap.empty) {
-      const g = gymsSnap.docs[0].data()
-      const status = g.approvalStatus || 'pending'
-      // Map approvalStatus back to the user's role
-      const role = status === 'approved'  ? 'gym_owner'
-                 : status === 'suspended' ? 'gym_owner'  // suspension is at gym level, not user level
-                 : status === 'rejected'  ? 'rejected'
-                 : status === 'pending'   ? 'gym_owner_pending'
-                                          : 'gym_owner_pending'
-      const code = generateReferralCode()
-      const userData = {
-        uid,
-        email: email || g.email || '',
-        name: g.ownerName || g.name || '',
-        role,
-        gymId: g.gymId || g.id || 'default',
-        referralCode: code,
-        createdAt: serverTimestamp(),
-      }
-      await setDoc(doc(db, 'users', uid), userData)
-      // Referral directory entry (Sprint 81E — mirrors the member branch) —
-      // best-effort, converges at next login if this fails.
-      try {
-        await setDoc(doc(db, 'referralCodes', code), {
-          referrerUid: uid,
-          createdAt: serverTimestamp(),
-        }, { merge: true })
-      } catch (mappingErr) {
-        console.warn('recoverUserProfile: referralCodes mapping failed (non-blocking):', mappingErr.code || mappingErr.message)
-      }
-      return userData
-    }
-
-    // Not found in any companion collection — cannot recover.
-    // Roles without a recoverable source: admin, pending
-    return null
-  } catch (err) {
-    console.error('recoverUserProfile error:', err)
-    return null
+    const hash = new URLSearchParams(window.location.hash.slice(1))
+    const query = new URLSearchParams(window.location.search)
+    const type = hash.get('type') || query.get('type')
+    if (type !== 'recovery') return false
+    return !!(hash.get('token_hash') || query.get('token_hash') ||
+              hash.get('access_token') || query.get('access_token') ||
+              hash.get('code') || query.get('code'))
+  } catch {
+    return false
   }
 }
 
-export async function getUserProfile(uid, email) {
-  try {
-    const ref = doc(db, 'users', uid)
-    const snap = await getDoc(ref)
-    if (snap.exists()) {
-      return snap.data()
-    }
+/**
+ * Recovery-window marker (sessionStorage). The SDK strips the recovery
+ * callback from the URL after processing, so a refresh mid-recovery would
+ * otherwise look like a normal login and redirect to the dashboard before
+ * the new password is set. The marker survives reloads in the same tab and
+ * is cleared by finishRecovery()/sign-out.
+ */
+export const RECOVERY_MARKER_KEY = 'ironpulse-recovery-active'
 
-    const recovered = await recoverUserProfile(uid, email || null)
-    return recovered
-  } catch (err) {
-    // Firestore error (network unavailable, permission denied, etc.)
-    // This is NOT "profile not found" — re-throw so caller can retry.
-    console.error('[AUDIT] getUserProfile FIRESTORE ERROR:', err.code || err.name, err.message)
+export function markRecoveryActive() {
+  try { sessionStorage.setItem(RECOVERY_MARKER_KEY, '1') } catch { /* storage unavailable */ }
+}
+
+export function clearRecoveryMarker() {
+  try { sessionStorage.removeItem(RECOVERY_MARKER_KEY) } catch { /* storage unavailable */ }
+}
+
+export function isRecoveryMarkerActive() {
+  try { return sessionStorage.getItem(RECOVERY_MARKER_KEY) === '1' } catch { return false }
+}
+
+/** True while a recovery callback is present in the URL or the marker is set. */
+export function isRecoveryActive() {
+  return isRecoveryCallbackInUrl() || isRecoveryMarkerActive()
+}
+
+/** Supabase error → application error shape (firebase-style `code`). */
+const SUPABASE_TO_FIREBASE_CODE = {
+  invalid_credentials: 'auth/invalid-credential',
+  email_not_confirmed: 'auth/email-not-verified',
+  user_not_found: 'auth/user-not-found',
+  user_already_exists: 'auth/email-already-in-use',
+  email_exists: 'auth/email-already-in-use',
+  weak_password: 'auth/weak-password',
+  invalid_email: 'auth/invalid-email',
+  email_address_invalid: 'auth/invalid-email',
+  over_request_rate_limit: 'auth/too-many-requests',
+  over_email_send_rate_limit: 'auth/too-many-requests',
+  invalid_otp: 'auth/invalid-action-code',
+  invalid_token: 'auth/invalid-action-code',
+  otp_expired: 'auth/expired-action-code',
+  expired_otp: 'auth/expired-action-code',
+  token_expired: 'auth/expired-action-code',
+  user_disabled: 'auth/user-disabled',
+  session_not_found: 'auth/user-token-expired',
+  refresh_token_not_found: 'auth/user-token-expired',
+}
+
+export function mapSupabaseAuthError(error) {
+  const raw = error?.code || error?.name || ''
+  const msg = error?.message || ''
+  let code
+  if (SUPABASE_TO_FIREBASE_CODE[raw]) {
+    code = SUPABASE_TO_FIREBASE_CODE[raw]
+  } else if (!raw && /fetch|network|ECONN|timed out/i.test(msg)) {
+    code = 'auth/network-request-failed'
+  } else {
+    code = raw ? `auth/${raw.replace(/^auth\//, '')}` : 'auth/internal-error'
+  }
+  const e = new Error(error?.message || 'Authentication error')
+  e.code = code
+  e.supabaseError = error || null
+  return e
+}
+
+/**
+ * First sign-in provisioning for Supabase-native users (Step 8B-4).
+ * Inserts the profiles row (insert-self policy), the referral directory row
+ * (owner-code-match policy), and — for gym-owner signups — the gyms row
+ * (owner_uid = auth_firebase_uid() + approval_status 'pending'). All inserts
+ * happen in one pass because role/gym_id are NOT user-writable after insert
+ * (guard_profiles_update), so the full row must be correct on creation.
+ */
+export async function provisionProfile(user) {
+  if (!user) return null
+  const meta = user.user_metadata || {}
+  const parkedCode =
+    (typeof localStorage !== 'undefined' ? localStorage.getItem(PENDING_REFERRAL_KEY) : null) || ''
+  const isGymOwner = !!(meta.gymName || meta.ownerName)
+  const role = isGymOwner ? 'gym_owner_pending' : meta.role || 'pending'
+  const referralCode = generateReferralCode()
+  const gymId = isGymOwner ? `gym-${Date.now()}` : meta.gymId || 'default'
+
+  const row = {
+    id: user.id,
+    firebase_uid: user.id, // Supabase-native identity (self-reference convention)
+    email: user.email || '',
+    phone: meta.phone || null,
+    name: meta.name || meta.ownerName || '',
+    photo_url: null,
+    role,
+    is_super_admin: false,
+    gym_id: gymId,
+    referral_code: referralCode,
+    referred_by: meta.referredBy || parkedCode || null,
+    account_disabled: false,
+  }
+
+  const { data, error } = await supabase.from('profiles').insert(row).select().single()
+  if (error) {
+    // PK conflict (23505) = concurrent provisioning already won — re-read.
+    if (error.code === '23505') {
+      const { data: existing } = await supabase
+        .from('profiles').select('*').eq('id', user.id).maybeSingle()
+      return existing ? mapProfileRow(existing) : null
+    }
+    throw error
+  }
+
+  try {
+    await supabase.from('referral_codes').insert({
+      code: referralCode,
+      referrer_uid: user.id,
+    })
+  } catch (e) {
+    console.warn('[AUTH] referral_codes directory insert deferred/failed (non-blocking):', e?.message || e)
+  }
+
+  if (isGymOwner) {
+    try {
+      await supabase.from('gyms').insert({
+        id: gymId,
+        gym_name: meta.gymName || '',
+        owner_name: meta.ownerName || meta.name || '',
+        email: user.email || '',
+        phone: meta.phone || null,
+        owner_uid: user.id,
+        approval_status: 'pending',
+      })
+      console.warn('[AUTH][supabase] Gym registered (approval pending):', { gymId, role })
+    } catch (e) {
+      console.warn('[AUTH] gyms insert failed (approval visibility requires the firestoreService migration):', e?.message || e)
+    }
+  }
+
+  return mapProfileRow(data)
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SIGNUP
+// ─────────────────────────────────────────────────────────────────────────
+export async function signUp({ name, email, password, gymData, _role, referredBy }) {
+  // ───── SUPABASE MODE (active) ─────
+  // Step 1: GoTrue signup. Email confirmation is required in the project
+  // config, so no session is created here — the confirmation link redirects
+  // back to /auth (emailRedirectTo) carrying `?token_hash=...&type=email`.
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${getAppUrl()}/auth?verified=true`,
+      data: {
+        name: name || '',
+        phone: gymData?.phone || '',
+        gymName: gymData?.gymName || '',
+        ownerName: gymData?.ownerName || '',
+        referredBy: referredBy || '',
+      },
+    },
+  })
+  if (error) throw mapSupabaseAuthError(error)
+
+  const authUser = data?.user
+  if (!authUser) throw new Error('Signup failed — no user returned')
+
+  console.warn('[AUTH][supabase] signUp OK (confirmation pending):', {
+    uid: authUser.id,
+    email,
+    confirmation: authUser.email_confirmed_at ? 'confirmed' : 'pending',
+  })
+
+  // Step 2: COMPATIBILITY BOUNDARY — the Firestore signup artifacts (gyms doc,
+  // users/{uid} doc, referralCodes directory) require an authenticated
+  // Firebase session, which Supabase-native users do not have. Those rows are
+  // provisioned in Supabase at first sign-in (profiles + referral directory +
+  // gyms row) — see getUserProfile()/provisionProfile().
+  return { uid: authUser.id, email }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SIGN IN
+// ─────────────────────────────────────────────────────────────────────────
+export async function signIn(email, password) {
+  // ───── SUPABASE MODE (active) ─────
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: (email || '').trim(),
+    password,
+  })
+  if (error) {
+    // GoTrue rejects unconfirmed sign-ins before returning a session.
+    if (error.code === 'email_not_confirmed') throw new Error('email-not-verified')
+    throw mapSupabaseAuthError(error)
+  }
+
+  const user = adaptSupabaseUser(data.user)
+  const profile = await getUserProfile(user.uid, user.email)
+
+  if (!profile) {
+    await supabase.auth.signOut()
+    throw new Error('User profile not found')
+  }
+
+  const role = profile.role
+
+  // Pending/rejected semantics preserved: sign out and surface a distinct
+  // error message per role (AuthContext.login maps these).
+  if (role === 'pending' || role === 'gym_owner_pending' || role === 'rejected') {
+    await supabase.auth.signOut()
+    throw new Error(role)
+  }
+
+  // Disabled accounts must never enter the application (Step 8B-6).
+  if (profile.accountDisabled) {
+    await supabase.auth.signOut()
+    const err = new Error('This account has been disabled.')
+    err.code = 'auth/user-disabled'
     throw err
   }
+
+  return { user, role }
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// LOGOUT
+// ─────────────────────────────────────────────────────────────────────────
+export async function logOut() {
+  const { error } = await supabase.auth.signOut()
+  if (error) throw error
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// PASSWORD RESET (request)
+// ─────────────────────────────────────────────────────────────────────────
+export async function resetPassword(email) {
+  // GoTrue recovery link → app (recovery callback handled in Auth.jsx via
+  // completeRecoveryLink + updatePassword). Unknown emails are not revealed
+  // (anti-enumeration, mirrors Sprint 81I).
+  const { error } = await supabase.auth.resetPasswordForEmail((email || '').trim(), {
+    redirectTo: `${getAppUrl()}/auth`,
+  })
+  if (error) throw mapSupabaseAuthError(error)
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// PROFILE LOADING (Step 8B-4)
+// ─────────────────────────────────────────────────────────────────────────
+export async function getUserProfile(uid, _email) {
+  // ───── SUPABASE MODE (active) ─────
+  // 1. Resolve profiles where profiles.id = auth.users.id.
+  const { data: row, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', uid)
+    .maybeSingle()
+  if (error) {
+    console.error('[AUDIT] getUserProfile SUPABASE ERROR:', error.code || error.name, error.message)
+    throw error
+  }
+  if (row) return mapProfileRow(row)
+
+  // 2. Missing → first sign-in provisioning (insert-self policy).
+  let user = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data?.user
+  } catch (e) {
+    console.warn('[AUDIT] getUserProfile getUser failed:', e?.message || e)
+  }
+  if (!user || user.id !== uid) {
+    console.warn('[AUDIT] getUserProfile: provisioning skipped (no session for uid)', { uid })
+    throw new Error('User profile not found')
+  }
+
+  const provisioned = await provisionProfile(user)
+  if (!provisioned) throw new Error('User profile not found')
+  return provisioned
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// AUTH STATE SUBSCRIPTION (Step 8B-3)
+// ─────────────────────────────────────────────────────────────────────────
 export function subscribeToAuthState(callback) {
-  return onAuthStateChanged(auth, callback)
+  // GoTrue fires INITIAL_SESSION on subscribe when a persisted session exists
+  // (startup restoration — handled by the SDK's storage, no manual tokens).
+  // Recovery callbacks fire PASSWORD_RECOVERY (SDK-detected implicit/PKCE
+  // links) or SIGNED_IN (verifyOtp exchanges) — the event is forwarded so
+  // AuthContext can gate role handling until the new password is set.
+  const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    callback(session?.user ? adaptSupabaseUser(session.user) : null, event)
+  })
+  return () => data.subscription.unsubscribe()
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// EMAIL VERIFICATION (Step 8B-8)
+// ─────────────────────────────────────────────────────────────────────────
 export async function reloadUser(user) {
-  await reload(user)
-  return user.emailVerified
+  try {
+    const { data } = await supabase.auth.getUser()
+    const fresh = data?.user ? adaptSupabaseUser(data.user) : null
+    if (user && fresh) Object.assign(user, fresh)
+    return fresh ? fresh.emailVerified : (user?.emailVerified ?? false)
+  } catch (err) {
+    console.warn('reloadUser: refresh failed (non-fatal):', err?.message || err)
+    return user?.emailVerified ?? false
+  }
 }
 
 export async function resendVerificationEmail(user) {
-  const appUrl = getAppUrl()
-  const actionCodeSettings = {
-    url: `${appUrl}/auth?verified=true`,
-    handleCodeInApp: true,
-  }
-  await sendEmailVerification(user, actionCodeSettings)
+  const { error } = await supabase.auth.resend({
+    type: 'email',
+    email: user?.email || '',
+    options: { emailRedirectTo: `${getAppUrl()}/auth?verified=true` },
+  })
+  if (error) throw mapSupabaseAuthError(error)
 }
 
 /**
- * Complete an email verification link (handleCodeInApp flow).
- *
- * With `handleCodeInApp: true` the verification email link opens the app
- * instead of the Firebase-hosted page — clicking the link alone does NOT
- * verify the email. The app MUST apply the oobCode via applyActionCode,
- * otherwise `emailVerified` stays false and login is blocked forever by
- * the 'email-not-verified' check in signIn().
+ * Complete an email verification / email-change link (GoTrue flow).
+ * The link from the confirmation email carries `?token_hash=...&type=email`
+ * (or `#token_hash=` hash form). verifyOtp exchanges the token for a session.
+ * `type` defaults to 'email'; callers with an email_change link pass the type.
  */
-export async function verifyEmailWithCode(oobCode) {
-  if (!oobCode) throw new Error('Missing verification code')
-  try {
-    await applyActionCode(auth, oobCode)
-    // Refresh the local user so emailVerified reflects the change immediately
-    try {
-      if (auth.currentUser) await reload(auth.currentUser)
-    } catch (reloadErr) {
-      console.warn('verifyEmailWithCode: reload after applyActionCode failed (non-fatal):', reloadErr.code || reloadErr.message)
-    }
-    return true
-  } catch (err) {
-    // Log and rethrow deliberately — the caller (Auth page) needs both the
-    // meaningful log AND the original Firebase error code to render the
-    // correct user-facing message (expired vs invalid vs network).
-    console.error('[AUTH] verifyEmailWithCode failed:', err.code || err.name, err.message || err)
+export async function verifyEmailWithCode(oobCode, tokenType = 'email') {
+  const { token_hash, type } = getUrlTokenParams()
+  const token = token_hash || oobCode
+  const t = type || tokenType || 'email'
+  if (!token) throw new Error('Missing verification code')
+  const { error } = await supabase.auth.verifyOtp({ type: t, token_hash: token })
+  if (error) {
+    console.error('[AUTH] verifyEmailWithCode failed:', error.code || error.name, error.message || error)
+    throw mapSupabaseAuthError(error)
+  }
+  return true
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// PASSWORD RECOVERY CALLBACK + UPDATE (Step 8B-7)
+// ─────────────────────────────────────────────────────────────────────────
+/**
+ * Complete a recovery link (`?token_hash=...&type=recovery`). Establishes the
+ * recovery session so updatePassword() can set the new password. Callers must
+ * hold `recoveryInProgress` in AuthContext so public routes do not redirect
+ * before the new password is set.
+ */
+export async function completeRecoveryLink(tokenHash) {
+  const { token_hash } = getUrlTokenParams()
+  const token = token_hash || tokenHash
+  if (!token) throw new Error('Missing recovery code')
+  const { error } = await supabase.auth.verifyOtp({ type: 'recovery', token_hash: token })
+  if (error) {
+    console.error('[AUTH] completeRecoveryLink failed:', error.code || error.name, error.message || error)
+    throw mapSupabaseAuthError(error)
+  }
+  return true
+}
+
+/** Set a new password with an active session (recovery flow, settings). */
+export async function updatePassword(newPassword) {
+  const { error } = await supabase.auth.updateUser({ password: newPassword })
+  if (error) throw mapSupabaseAuthError(error)
+  return true
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// REAUTHENTICATION (Step 8B-9)
+// GoTrue has no reauthenticate API — the safe equivalent is a
+// signInWithPassword probe with the current password before the sensitive
+// update. Security intent preserved (credential verified before change);
+// documented difference: the probe replaces the session tokens of the SAME
+// user (harmless in this app; other tabs share the same identity).
+// ─────────────────────────────────────────────────────────────────────────
+async function supabaseReauthProbe(currentPassword) {
+  const { data } = await supabase.auth.getUser()
+  const email = data?.user?.email
+  if (!email) {
+    const err = new Error('No email on this account. Set an email first.')
+    err.code = 'auth/missing-email'
     throw err
   }
+  const probe = await supabase.auth.signInWithPassword({ email, password: currentPassword })
+  if (probe.error) {
+    const isWrongPw =
+      probe.error.code === 'invalid_credentials' ||
+      /invalid login credentials/i.test(probe.error.message || '')
+    const err = isWrongPw
+      ? new Error('Current password is incorrect')
+      : mapSupabaseAuthError(probe.error)
+    if (isWrongPw) err.code = 'auth/wrong-password'
+    throw err
+  }
+  return email
+}
+
+/** Change password — verifies the current password first. */
+export async function changePassword(currentPassword, newPassword) {
+  await supabaseReauthProbe(currentPassword)
+  const { error } = await supabase.auth.updateUser({ password: newPassword })
+  if (error) throw mapSupabaseAuthError(error)
+  return true
+}
+
+/**
+ * Change email — verifies the current password first. GoTrue sends a
+ * confirmation link to the NEW address (email_change OTP); the old email
+ * stays active until confirmed. Firebase's verifyBeforeUpdateEmail blocked
+ * the account during the pending change — documented difference: with GoTrue
+ * the account keeps working with the old email until the link is clicked.
+ */
+export async function changeEmail(currentPassword, newEmail) {
+  await supabaseReauthProbe(currentPassword)
+  const { error } = await supabase.auth.updateUser({ email: newEmail })
+  if (error) throw mapSupabaseAuthError(error)
+  return true
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// RECOVER / APPROVE / REJECT / PENDING LISTS
+// ─────────────────────────────────────────────────────────────────────────
+/**
+ * Recover a missing profile by searching companion collections.
+ * Supabase-native users are provisioned from GoTrue metadata at first
+ * sign-in (provisionProfile) instead, so this helper always returns null.
+ */
+export async function recoverUserProfile(_uid, _email) {
+  console.warn('[AUTH][supabase] recoverUserProfile is Firestore-bound and unused in supabase mode.')
+  return null
 }
 
 export async function approveUser(uid, newRole) {
-  try {
-    if (!['member', 'trainer'].includes(newRole)) {
-      throw new Error('Invalid role')
-    }
-    const userSnap = await getDoc(doc(db, 'users', uid))
-    const userData = userSnap.exists() ? userSnap.data() : {}
-
-    await updateDoc(doc(db, 'users', uid), {
-      role: newRole,
-      approvedAt: serverTimestamp(),
-    })
-
-    try {
-      await addDoc(collection(db, 'auditLog'), {
-        action: 'role_change',
-        targetUid: uid,
-        newRole,
-        performedBy: auth.currentUser?.uid,
-        gymId: userData.gymId || null,
-        timestamp: serverTimestamp(),
-      })
-    } catch (e) { /* non-critical */ }
-
-    if (newRole === 'member') {
-      const memberRef = doc(db, 'members', uid)
-      const memberSnap = await getDoc(memberRef)
-      if (!memberSnap.exists()) {
-        await setDoc(memberRef, {
-          authUid: uid,
-          name: userData.name || '',
-          email: userData.email || '',
-          status: 'Active',
-          gymId: userData.gymId || 'default',
-          createdAt: serverTimestamp(),
-        })
-      }
-    }
-
-    if (newRole === 'trainer') {
-      const trainerRef = doc(db, 'trainers', uid)
-      const trainerSnap = await getDoc(trainerRef)
-      if (!trainerSnap.exists()) {
-        await setDoc(trainerRef, {
-          authUid: uid,
-          name: userData.name || '',
-          email: userData.email || '',
-          gymId: userData.gymId || 'default',
-          createdAt: serverTimestamp(),
-        })
-      }
-    }
-  } catch (err) {
-    throw err
+  // ───── SUPABASE MODE ─────
+  // profiles.role is not user-writable (guard_profiles_update); only a super
+  // admin can promote. Gym-admin approval flows remain Firestore-bound until
+  // the firestoreService migration (compatibility boundary).
+  if (!['member', 'trainer'].includes(newRole)) {
+    throw new Error('Invalid role')
+  }
+  const { data: current } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle()
+  if (!current) throw new Error('Profile not found')
+  const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', uid)
+  if (error) {
+    console.warn('[AUTH][supabase] approveUser role update denied (super admin required until Firestore migration):', error?.message || error)
+    throw mapSupabaseAuthError(error)
   }
 }
 
 export async function rejectUser(uid) {
-  try {
-    const userSnap = await getDoc(doc(db, 'users', uid))
-    const userData = userSnap.exists() ? userSnap.data() : {}
-
-    await deleteDoc(doc(db, 'users', uid))
-
-    try {
-      await addDoc(collection(db, 'auditLog'), {
-        action: 'role_change',
-        targetUid: uid,
-        newRole: 'rejected',
-        performedBy: auth.currentUser?.uid,
-        gymId: userData.gymId || null,
-        timestamp: serverTimestamp(),
-      })
-    } catch (e) { /* non-critical */ }
-
-    const functions = getFunctions()
-    const deleteUserFn = httpsCallable(functions, 'deleteAuthUser')
-    await deleteUserFn({ uid })
-  } catch (err) {
-    console.error('rejectUser error:', err)
-    throw err
+  // ───── SUPABASE MODE ─────
+  // Disable the profile row (super admin only per guard_profiles_update);
+  // sign-in is blocked for account_disabled rows (see signIn).
+  const { data: current } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle()
+  if (!current) throw new Error('Profile not found')
+  const { error } = await supabase.from('profiles').update({
+    account_disabled: true,
+    disabled_reason: 'Rejected by admin',
+    disabled_at: new Date().toISOString(),
+  }).eq('id', uid)
+  if (error) {
+    console.warn('[AUTH][supabase] rejectUser disable denied (super admin required until Firestore migration):', error?.message || error)
+    throw mapSupabaseAuthError(error)
   }
 }
 
 export async function getPendingUsers(gymId) {
+  // ───── SUPABASE MODE ─────
+  // profiles are staff-readable (pol_profiles_select_self_or_staff).
   try {
-    const constraints = [where('role', '==', 'pending')]
-    if (gymId) {
-      constraints.push(where('gymId', '==', gymId))
-    }
-    constraints.push(limit(500))
-    const q = query(collection(db, 'users'), ...constraints)
-    const snap = await getDocs(q)
-    return snap.docs.map(doc => ({ uid: doc.id, ...doc.data() }))
+    let q = supabase.from('profiles').select('*').eq('role', 'pending').limit(500)
+    if (gymId) q = q.eq('gym_id', gymId)
+    const { data, error } = await q
+    if (error) throw error
+    return (data || []).map(r => ({ uid: r.id, ...mapProfileRow(r) }))
   } catch (err) {
     console.error('getPendingUsers error:', err)
     return []
@@ -521,13 +581,14 @@ export async function getPendingUsers(gymId) {
 }
 
 export async function getGymOwnerPending() {
+  // ───── SUPABASE MODE ─────
   try {
-    const q = query(
-      collection(db, 'users'),
-      where('role', '==', 'gym_owner_pending')
-    )
-    const snap = await getDocs(q)
-    return snap.docs.map(doc => ({ uid: doc.id, ...doc.data() }))
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('role', 'gym_owner_pending')
+    if (error) throw error
+    return (data || []).map(r => ({ uid: r.id, ...mapProfileRow(r) }))
   } catch (err) {
     console.error('getGymOwnerPending error:', err)
     return []
@@ -536,12 +597,12 @@ export async function getGymOwnerPending() {
 
 // DEPRECATED: Use AppContext.approveGymOwner(gymId) instead.
 // This function is kept for backward compatibility only and will throw if called.
-export async function approveGymOwner(uid) {
+export async function approveGymOwner(_uid) {
   throw new Error('authService.approveGymOwner is deprecated. Use AppContext.approveGymOwner(gymId) instead — it handles gym, user, and subscription updates atomically.')
 }
 
 // DEPRECATED: Use AppContext.rejectGymOwner(gymId) instead.
 // This function is kept for backward compatibility only and will throw if called.
-export async function rejectGymOwner(uid) {
+export async function rejectGymOwner(_uid) {
   throw new Error('authService.rejectGymOwner is deprecated. Use AppContext.rejectGymOwner(gymId) instead — it handles gym and user updates atomically.')
 }
