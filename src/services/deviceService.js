@@ -161,6 +161,26 @@ function nowIso() {
   return new Date().toISOString()
 }
 
+// licensed_devices.created_by references profiles(firebase_uid) ON DELETE
+// SET NULL. Resolve the acting user's firebase_uid from the session so the
+// insert never violates the FK (gym id is NOT a valid firebase_uid).
+// Never throws: on any lookup failure the row is written with NULL.
+async function resolveActorFirebaseUid(client) {
+  try {
+    const { data: sessionData } = await client.auth.getSession()
+    const uid = sessionData?.session?.user?.id
+    if (!uid) return null
+    const { data: profile } = await client
+      .from('profiles')
+      .select('firebase_uid')
+      .eq('id', uid)
+      .maybeSingle()
+    return (profile && profile.firebase_uid) || uid || null
+  } catch {
+    return null
+  }
+}
+
 async function supabaseRegisterDevice(gymId, licenseKey) {
   const client = await getSupabaseClient()
   const deviceId = getOrCreateDeviceId()
@@ -204,13 +224,14 @@ async function supabaseRegisterDevice(gymId, licenseKey) {
     }
   }
 
+  const actorUid = await resolveActorFirebaseUid(client)
   const { error: insErr } = await client.from('licensed_devices').insert({
     device_id: deviceId,
     ...infoFields,
     gym_id: gymId,
     license_key: licenseKey,
     status: 'active',
-    created_by: gymId,
+    created_by: actorUid,
     registered_at: nowIso(),
   })
   if (insErr) {

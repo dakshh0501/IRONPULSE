@@ -310,7 +310,7 @@ create type report_format as enum ('CSV','TSV','PDF','Print');
 ### 4.25 `licensed_devices` (was `licensedDevices`)
 
 - **PK**: `id uuid`. **FKs**: `gym_id → gyms.id`, `created_by → profiles(firebase_uid)`.
-- **Columns**: `id uuid pk`, `gym_id text not null`, `device_id text not null` (client UUID), `device_name text`, `platform text`, `app_version text`, `user_agent text` (≤500), `status device_status default 'active'`, `created_by text`, `last_seen timestamptz`, `created_at`, `updated_at`.
+- **Columns**: `id uuid pk`, `gym_id text not null`, `device_id text not null` (client UUID), `device_name text`, `platform text`, `app_version text`, `user_agent text` (≤500), `status device_status default 'active'`, `created_by text`, `last_seen timestamptz`, `license_key text` (added 0011 — app `registerDevice` persists the gym's license key per device), `registered_at timestamptz` (added 0011), `created_at`, `updated_at`.
 - **UNIQUE**: `(gym_id, device_id)`.
 - **Indexes**: `(gym_id)`, `(status)`.
 - **RLS**: staff own gym; super_admin cross-gym (DeviceManagement).
