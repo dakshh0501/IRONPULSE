@@ -1,7 +1,9 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import { openSupportWhatsApp } from '../utils/whatsappSupport'
+import { getSubscriptionByGymId } from '../services/firestoreService'
 import { PLAN_AMOUNTS } from '../constants/plans'
 
 const subStyles = document.createElement('style')
@@ -47,14 +49,34 @@ export default function GymSubscription() {
   const {
     currentSubscription: sub, subscriptionHistory,
     renewSubscription, upgradeSubscription,
-    activateSubscription, extendSubscription, gymSettings,
+    activateSubscription, extendSubscription, gymSettings, gymId,
   } = useApp()
   const { currentUser } = useAuth()
+  const navigate = useNavigate()
   const [showRenew, setShowRenew] = useState(false)
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [showExtend, setShowExtend] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState('Standard')
   const [extendDays, setExtendDays] = useState(30)
+
+  // The checkout page resolves the subscription row from the platform-level
+  // `subscriptions` state (super_admin only) or a one-shot read by id. This
+  // page only has the gyms-row subscription jsonb (no row id), so resolve the
+  // billing row id by gymId once — hidden when no billing row exists.
+  const [subRowId, setSubRowId] = useState(null)
+  useEffect(() => {
+    if (!gymId) return
+    let alive = true
+    getSubscriptionByGymId(gymId)
+      .then(row => { if (alive) setSubRowId(row?.id || null) })
+      .catch(() => { if (alive) setSubRowId(null) })
+    return () => { alive = false }
+  }, [gymId])
+
+  const goPayNow = useCallback(() => {
+    if (!subRowId) return
+    navigate(`/checkout?subId=${encodeURIComponent(subRowId)}&type=new`)
+  }, [subRowId, navigate])
 
   const daysRemaining = sub?.expiryDate
     ? Math.ceil((new Date(sub.expiryDate) - new Date()) / (1000 * 60 * 60 * 24))
@@ -212,6 +234,9 @@ export default function GymSubscription() {
             {/* Action buttons */}
             {(sub.status === 'active' || sub.status === 'trial' || sub.status === 'expired') && (
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 28 }}>
+                {subRowId && (
+                  <button className="sub-btn-primary" onClick={goPayNow}>💳 Pay Now</button>
+                )}
                 {sub.status !== 'expired' && (
                   <button className="sub-btn-primary" onClick={() => setShowRenew(true)}>🔄 Renew</button>
                 )}

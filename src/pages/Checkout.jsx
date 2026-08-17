@@ -4,11 +4,12 @@
 // Collects payer name, email, and phone before initiating PhonePe payment.
 // Navigated to from Subscriptions page before PhonePe redirect.
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import { getPendingAttemptsForSubscription } from '../services/paymentService'
+import { getSubscriptionById } from '../services/firestoreService'
 import {
   handleCollectPayment,
   isCashfreeConfigured,
@@ -24,7 +25,20 @@ export default function Checkout() {
   const subId = searchParams.get('subId')
   const paymentType = searchParams.get('type') || 'new'
 
-  const sub = useMemo(() => subscriptions.find(s => s.id === subId), [subscriptions, subId])
+  // The platform-level `subscriptions` state is loaded only for super_admin.
+  // For other roles (gym_admin etc.) fall back to a one-shot row read — RLS
+  // permits super_admin (all) and gym_admin (own gym).
+  const [fallbackSub, setFallbackSub] = useState(null)
+  useEffect(() => {
+    if (!subId || subscriptions.some(s => s.id === subId)) return
+    let alive = true
+    getSubscriptionById(subId)
+      .then(row => { if (alive) setFallbackSub(row) })
+      .catch(() => { if (alive) setFallbackSub(null) })
+    return () => { alive = false }
+  }, [subId, subscriptions])
+
+  const sub = useMemo(() => subscriptions.find(s => s.id === subId) || fallbackSub, [subscriptions, subId, fallbackSub])
   const gym = useMemo(() => gyms.find(g => g.id === sub?.gymId), [gyms, sub])
 
   const amount = sub?.finalAmount || sub?.amount || PLAN_AMOUNTS[sub?.plan] || 0

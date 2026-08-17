@@ -625,6 +625,12 @@ export async function getSubscriptionByGymId(gymId) {
   return supabaseGetSubscriptionByGymId(gymId)
 }
 
+// Fetch a single subscription row by id (RLS: super_admin all, gym_admin own gym).
+// Used by /checkout when the caller's role has no platform-level subscriptions state.
+export async function getSubscriptionById(id) {
+  return supabaseGetSubscriptionById(id)
+}
+
 // Calculate subscription dates based on plan
 function calculateSubscriptionDates(plan, billingSettings) {
   const trialDays = billingSettings?.trialDays || 7;
@@ -1823,6 +1829,15 @@ async function supabaseDeleteSubscription(subId) {
 async function supabaseGetSubscriptionByGymId(gymId) {
   const sb = await getSupabaseClient()
   const { data, error } = await sbTable(sb, 'subscriptions').select('*').eq('gym_id', gymId).limit(1).maybeSingle()
+  if (error && error.code !== 'PGRST116') throw sbError(error)
+  return data ? mapSubscriptionRow(data) : null
+}
+
+async function supabaseGetSubscriptionById(id) {
+  if (!id) return null
+  const sb = await getSupabaseClient()
+  const resolved = await resolveId(id)
+  const { data, error } = await sbTable(sb, 'subscriptions').select('*').eq('id', resolved).maybeSingle()
   if (error && error.code !== 'PGRST116') throw sbError(error)
   return data ? mapSubscriptionRow(data) : null
 }

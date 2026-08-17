@@ -13,7 +13,7 @@ import {
   changePlan as changePlanForGym,
 } from '../../services/subscriptionService'
 import { PLAN_AMOUNTS } from '../../constants/plans'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 let _supabaseClient = null
 async function getSupabaseClient() {
@@ -474,6 +474,7 @@ const ACTION_STYLES = {
 
 export default function SuperAdminSubscriptions() {
   const [searchParams] = useSearchParams(); const globalSearch = searchParams.get('q') || ''
+  const navigate = useNavigate()
   const { currentUser } = useAuth()
   const { subscriptions, gyms } = useApp()
   const [selectedSubId, setSelectedSubId] = useState(null)
@@ -1089,6 +1090,7 @@ export default function SuperAdminSubscriptions() {
                     Manage the subscription lifecycle for this gym.
                   </p>
                   {[
+                    { key: 'paynow', disabled: false, color: '#3b82f6', label: 'Pay Now (Cashfree)' },
                     { key: 'activate', disabled: selectedSub.status === 'active' || selectedSub.status === 'trial', color: '#22c55e', label: 'Activate' },
                     { key: 'trial', disabled: selectedSub.trialUsed || selectedSub.status === 'trial', color: '#00c8b4', label: 'Assign Trial' },
                     { key: 'renew', disabled: false, color: '#3b82f6', label: 'Renew' },
@@ -1102,7 +1104,9 @@ export default function SuperAdminSubscriptions() {
                   ].map(({ key, disabled, color, label }) => (
                     <button key={key} disabled={disabled}
                       onClick={() => {
-                        if (key === 'activate' || key === 'trial' || key === 'suspend' || key === 'expire' || key === 'delete') {
+                        if (key === 'paynow') {
+                          navigate(`/checkout?subId=${encodeURIComponent(selectedSub.id)}&type=new`)
+                        } else if (key === 'activate' || key === 'trial' || key === 'suspend' || key === 'expire' || key === 'delete') {
                           setConfirmAction({ type: key })
                         } else if (key === 'extend') {
                           setActionType('extend'); setFormDays(30)
