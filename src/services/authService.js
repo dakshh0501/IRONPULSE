@@ -174,6 +174,11 @@ export function mapSupabaseAuthError(error) {
  * (owner_uid = auth_firebase_uid() + approval_status 'pending'). All inserts
  * happen in one pass because role/gym_id are NOT user-writable after insert
  * (guard_profiles_update), so the full row must be correct on creation.
+ *
+ * gym_id is NULL at insert: the gyms row does not exist yet for owners and the
+ * Firestore-era 'default' sentinel has no gyms row — both would violate
+ * fk_profiles_gym (23503 → HTTP 409, the production signup blocker). Owners
+ * receive their gym_id at approval via the set_profile_gym_id RPC.
  */
 export async function provisionProfile(user) {
   if (!user) return null
@@ -183,7 +188,7 @@ export async function provisionProfile(user) {
   const isGymOwner = !!(meta.gymName || meta.ownerName)
   const role = isGymOwner ? 'gym_owner_pending' : meta.role || 'pending'
   const referralCode = generateReferralCode()
-  const gymId = isGymOwner ? `gym-${Date.now()}` : meta.gymId || 'default'
+  const gymId = isGymOwner ? `gym-${Date.now()}` : null
 
   const row = {
     id: user.id,
@@ -194,7 +199,7 @@ export async function provisionProfile(user) {
     photo_url: null,
     role,
     is_super_admin: false,
-    gym_id: gymId,
+    gym_id: null, // FK-safe at insert; owners get it at approval (set_profile_gym_id)
     referral_code: referralCode,
     referred_by: meta.referredBy || parkedCode || null,
     account_disabled: false,

@@ -141,6 +141,15 @@ async function setProfileRole(uid, role) {
   if (error) throw error
 }
 
+// profiles.gym_id is trigger-guarded + RLS has no cross-user UPDATE policy →
+// super-admin-only definer RPC (mirrors set_profile_role). Sets the approved
+// gym owner's tenancy link (auth_gym_id() RLS depends on it).
+async function setProfileGymId(uid, gymId) {
+  const client = await getSupabaseClient()
+  const { error } = await client.rpc('set_profile_gym_id', { p_uid: uid, p_gym_id: gymId })
+  if (error) throw error
+}
+
 async function getUserRole(uid) {
   if (!uid) return ''
   const client = await getSupabaseClient()
@@ -263,6 +272,7 @@ export function AppProvider({ children }) {
         const ownerRole = await getUserRole(ownerUid)
         if (ownerRole === 'gym_owner_pending') {
           await setProfileRole(ownerUid, 'gym_owner')
+          await setProfileGymId(ownerUid, gymId)
           stepsCompleted.push('user_role_updated')
         }
       }
