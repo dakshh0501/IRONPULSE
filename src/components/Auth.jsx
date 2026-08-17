@@ -689,6 +689,13 @@ export default function Auth() {
                 </div>
                 <p style={{ fontSize: 15, color: '#a0aac0', fontWeight: 500, margin: '0 0 4px' }}>Email Verified Successfully</p>
                 <p style={{ fontSize: 12, color: '#506080', margin: '0 0 20px' }}>Your email has been confirmed. You can now sign in.</p>
+                {authError && (
+                  <div role="alert" style={{
+                    background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)',
+                    borderRadius: 10, padding: '10px 14px', marginBottom: 16,
+                    fontSize: 13, color: '#f87171', textAlign: 'center'
+                  }}>{authError}</div>
+                )}
                 <button onClick={() => setMode('login')} className="auth-btn-primary">
                   Sign In
                 </button>

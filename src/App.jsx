@@ -245,7 +245,7 @@ function ProtectedRoute({ children, allowedRoles }) {
     const target = isLocalhost() ? '/auth' : '/'
     return <Navigate to={target} replace />
   }
-  if (userProfile?.role === 'pending') return <Navigate to="/auth" replace />
+  if (userProfile?.role === 'pending' || userProfile?.role === 'gym_owner_pending') return <Navigate to="/auth" replace />
   if (currentUser && !currentUser.emailVerified) return <Navigate to="/verify-email" replace />
   if (allowedRoles && !allowedRoles.includes(checkRole)) return <Navigate to="/dashboard" replace />
   if (biometricGate) return <BiometricGate />

@@ -667,7 +667,7 @@ export function AuthProvider({ children }) {
     startRecovery,
     finishRecovery,
     userGymId,
-    isLoggedIn:     !!currentUser && role !== 'pending' && role !== 'rejected' && currentUser.emailVerified,
+    isLoggedIn:     !!currentUser && role !== 'pending' && role !== 'gym_owner_pending' && role !== 'rejected' && currentUser.emailVerified,
     isAdmin:        role === 'admin',
     isSuperAdmin,
     isGymAdmin:     effectiveRole === 'gym_admin',

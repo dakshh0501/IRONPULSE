@@ -1,5 +1,5 @@
-const CACHE = 'ironpulse-v2'
-const STATIC_CACHE = 'ironpulse-static-v2'
+const CACHE = 'ironpulse-v3'
+const STATIC_CACHE = 'ironpulse-static-v3'
 const SHELL_URLS = ['/']
 
 self.addEventListener('install', (e) => {
