@@ -98,6 +98,19 @@ function mapSupabaseError(err, fallbackMsg) {
   return error
 }
 
+// Supabase branch: read the current gym subscription jsonb (one-shot).
+// Used by renew/upgrade/downgrade to compute renewalCount and expiry math.
+async function supabaseGetGymSubscription(gymId) {
+  const client = await getSupabaseClient()
+  const { data: gym, error } = await client
+    .from('gyms')
+    .select('subscription')
+    .eq('id', gymId)
+    .maybeSingle()
+  if (error) throw mapSupabaseError(error, 'Failed to load subscription')
+  return (gym && gym.subscription) || {}
+}
+
 // Supabase branch: single-statement atomic jsonb merge via the
 // update_gym_subscription RPC (super-admin only, mirrors gyms RLS).
 // License-key auto-provisioning happens client-side after an atomic read;
@@ -107,13 +120,7 @@ async function supabaseUpdateGymSubscription(gymId, updates) {
   const client = await getSupabaseClient()
   const payload = { ...updates }
   if (payload.status === 'active' || payload.status === 'trial') {
-    const { data: gym, error: readErr } = await client
-      .from('gyms')
-      .select('subscription')
-      .eq('id', gymId)
-      .maybeSingle()
-    if (readErr) throw mapSupabaseError(readErr, 'Failed to load subscription')
-    const existing = (gym && gym.subscription) || {}
+    const existing = await supabaseGetGymSubscription(gymId)
     if (existing && !existing.licenseKey) {
       payload.licenseKey = generateLicenseKey()
       payload.licenseStatus = 'active'
@@ -209,8 +216,7 @@ export async function renewSubscription(gymId, planName, planType, amount, actor
   const daysMap = { trial: 14, monthly: 30, quarterly: 90, yearly: 365, annual: 365, lifetime: 9999 }
   const duration = daysMap[planType] || 30
 
-  const gymSnap = await getDoc(doc(db, 'gyms', gymId))
-  const current = gymSnap.data()?.subscription || {}
+  const current = await supabaseGetGymSubscription(gymId)
   const renewalCount = (current.renewalCount || 0) + 1
   const base = current.expiryDate ? new Date(Math.max(new Date(current.expiryDate).getTime(), now.getTime())) : now
   const expiry = new Date(base)
@@ -249,8 +255,7 @@ export async function upgradePlan(gymId, newPlanName, newPlanType, newAmount, ac
   const daysMap = { trial: 14, monthly: 30, quarterly: 90, yearly: 365, annual: 365, lifetime: 9999 }
   const duration = daysMap[newPlanType] || 30
 
-  const snap = await getDoc(doc(db, 'gyms', gymId))
-  const current = snap.data()?.subscription || {}
+  const current = await supabaseGetGymSubscription(gymId)
   const base = current.expiryDate ? new Date(Math.max(new Date(current.expiryDate).getTime(), now.getTime())) : now
   const expiry = new Date(base)
   expiry.setDate(expiry.getDate() + duration)
@@ -286,8 +291,7 @@ export async function downgradePlan(gymId, newPlanName, newPlanType, newAmount, 
   const daysMap = { trial: 14, monthly: 30, quarterly: 90, yearly: 365, annual: 365, lifetime: 9999 }
   const duration = daysMap[newPlanType] || 30
 
-  const snap = await getDoc(doc(db, 'gyms', gymId))
-  const current = snap.data()?.subscription || {}
+  const current = await supabaseGetGymSubscription(gymId)
   const base = current.expiryDate ? new Date(Math.max(new Date(current.expiryDate).getTime(), now.getTime())) : now
   const expiry = new Date(base)
   expiry.setDate(expiry.getDate() + duration)
@@ -365,6 +369,46 @@ export async function extendExpiry(gymId, newExpiryDate, actorUid) {
     status: 'active', paymentId: '', transactionId: '',
     startDate: '', expiryDate: newExpiryDate, createdBy: actorUid || '',
     action: 'extended',
+  })
+}
+
+// Reactivate a suspended/expired subscription back to 'active'. Extends from
+// the later of the current expiry (if still in the future) and today, by one
+// billing interval of the existing plan — matching renewSubscription's date
+// math and the AppContext inline reactivate behavior, plus history.
+export async function reactivateSubscription(gymId, actorUid) {
+  const now = new Date()
+  const daysMap = { trial: 14, monthly: 30, quarterly: 90, yearly: 365, annual: 365, lifetime: 9999 }
+
+  const current = await supabaseGetGymSubscription(gymId)
+  const planType = current.planType || 'monthly'
+  const duration = daysMap[planType] || 30
+  const base = current.expiryDate ? new Date(Math.max(new Date(current.expiryDate).getTime(), now.getTime())) : now
+  const expiry = new Date(base)
+  expiry.setDate(expiry.getDate() + duration)
+
+  await updateGymSubscription(gymId, {
+    status: 'active',
+    licenseStatus: 'active',
+    expiryDate: expiry.toISOString(),
+    cancelledAt: null,
+    planId: planType,
+    planType,
+  })
+
+  await addHistoryRecord({
+    gymId,
+    planId: planType,
+    planName: current.planName || '',
+    amount: Number(current.amount) || 0,
+    currency: 'INR',
+    status: 'active',
+    paymentId: '',
+    transactionId: '',
+    startDate: now.toISOString(),
+    expiryDate: expiry.toISOString(),
+    createdBy: actorUid || '',
+    action: 'reactivated',
   })
 }
 

@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext'
 import { applyAccentColor, DEFAULT_ACCENT } from '../utils/theme'
 import { useAuth } from '../context/AuthContext'
 import { getSettings, saveSettings } from '../services/firestoreService'
-import { uploadGymLogo } from '../services/storageService'
+import { uploadGymLogo, uploadMemberPhoto } from '../services/storageService'
 import { extractDominantColor } from '../utils/colorExtractor'
 import { SUPPORT_EMAIL, SUPPORT_HOURS, SUPPORT_RESPONSE_TIME } from '../config/support'
 import { openSupportWhatsApp } from '../utils/whatsappSupport'
@@ -223,7 +223,7 @@ export default function Settings() {
 
   useEffect(() => {
     if (!currentUser?.uid) return
-    getSettings(`profile_${currentUser.uid}`)
+    getSettings(`profile_${currentUser.uid}`, gymId || 'platform')
       .then(data => {
         const photoFromProfile = data?.photoURL || currentUser?.photoURL || ''
         if (data) { setProfileState(prev => ({ ...prev, ...data, photoURL: photoFromProfile })); profileSavedRef.current = { ...data, photoURL: photoFromProfile } }
@@ -240,7 +240,7 @@ export default function Settings() {
     setProfileSaving(true)
     try {
       const { name, phone, bio, photoURL } = profile
-      await saveSettings(`profile_${currentUser.uid}`, { name, phone, bio, photoURL })
+      await saveSettings(`profile_${currentUser.uid}`, { name, phone, bio, photoURL }, gymId || 'platform')
       updateUserProfile({ name, photoURL })
       profileSavedRef.current = { ...profile }
       setProfileSaved(true); setTimeout(() => setProfileSaved(false), 2500)
@@ -296,7 +296,7 @@ export default function Settings() {
     try {
       // Step 8B: reauth + password change now live in authService
       // (changePassword) — Supabase mode probes the current password via
-      // signInWithPassword, Firebase mode reauthenticates with a credential.
+      // signInWithPassword, reauthentication probes the current password.
       const { changePassword } = await import('../services/authService')
       await changePassword(pwForm.current, pwForm.newPw)
       setPwSaved(true); setPwForm({ current:'', newPw:'', confirm:'' }); setTimeout(() => setPwSaved(false), 2500)
@@ -580,7 +580,7 @@ export default function Settings() {
                             if (file.size > 5*1024*1024) { setProfilePhotoError('File must be under 5MB.'); return }
                             setProfilePhotoSaving(true)
                             try {
-                              const { downloadUrl } = await uploadGymLogo(file, undefined, gymId)
+                              const { downloadUrl } = await uploadMemberPhoto(file, currentUser?.uid || 'profile')
                               setProf('photoURL', downloadUrl)
                               await updateUserProfile({ photoURL: downloadUrl })
                             } catch (err) {
@@ -670,7 +670,7 @@ export default function Settings() {
                           if (!pw) { setProfileEmailSaving(false); return }
                           await changeEmail(pw, newEmail)
                           try {
-                            await saveSettings(`profile_${currentUser.uid}`, { email: newEmail })
+                            await saveSettings(`profile_${currentUser.uid}`, { email: newEmail }, gymId || 'platform')
                           } catch (settingsErr) {
                             // Non-fatal: the auth email already changed;
                             // the profile doc sync is best-effort.
@@ -1254,7 +1254,6 @@ export default function Settings() {
               <Section icon="⚠️" title="Danger Zone" desc="Irreversible actions — proceed with caution" className="settings-danger-section">
                 {[
                   { label:'Sign Out Current Device', desc:'Signs out this device only.', btn:'Sign Out', action:() => { if (window.confirm('Sign out from this device?')) logout() } },
-                  { label:'Reset All App Data', desc:'Resets all members, payments and settings to demo defaults.', btn:'Reset Data', action:() => { if (window.confirm('This will reset all members, payments, and settings to defaults. This cannot be undone. Are you sure?')) { logout(); navigate('/') } } },
                   { label:'Delete Gym Account', desc:'Permanently deletes this gym and all associated data. Cannot undo.', btn:'Delete Account', action:async () => { if (!window.confirm('Are you sure you want to permanently delete this gym account? This action CANNOT be undone. All data will be lost.')) return; if (!window.confirm('FINAL CONFIRMATION: This cannot be reversed.')) return; try { const { deleteGym } = await import('../services/firestoreService'); await deleteGym(gymId); logout(); navigate('/') } catch (err) { setDeleteError('Delete failed: ' + (err.message || 'Unknown error')); console.error(err) } } },
                 ].map(item => (
                   <div key={item.label} className="setting-row" style={{ borderBottom:'1px solid rgba(239,68,68,0.1)' }}>
@@ -1337,7 +1336,7 @@ export default function Settings() {
 
               <Section icon="❓" title="Frequently Asked Questions" desc="Quick answers to common questions">
                 {[
-                  { q:'How do I add a new member?', a:'Go to Members → click "+ Add Member" → fill in the details → save. A Firebase account is created automatically for the member.' },
+                  { q:'How do I add a new member?', a:'Go to Members → click "+ Add Member" → fill in the details → save. The member record is saved to the gym database.' },
                   { q:'How do renewals work?', a:'Click the 🔄 button on a member row. The system extends expiry based on the plan duration and creates a payment record with the plan price.' },
                   { q:'Can I customize membership plans?', a:'Yes. Go to Settings → Plans to add, edit, or deactivate plans.' },
                   { q:'How do I send WhatsApp reminders?', a:'Go to WhatsApp Reminders from the sidebar. The system auto-detects members expiring soon.' },
@@ -1358,7 +1357,7 @@ export default function Settings() {
 
               <Section icon="ℹ️" title="About IRONPULSE" desc="Software version and information">
                 <div className="settings-about-grid">
-                  {[['Product Name','IRONPULSE'],['Version','1.0.0'],['Build Date','June 2026'],['Platform','Web (PWA)'],['Developer','IRONPULSE Team'],['Contact',gymEmail],['License','Proprietary'],['Stack','React + Firebase']].map(([k,v]) => (
+                  {[['Product Name','IRONPULSE'],['Version','1.0.0'],['Build Date','June 2026'],['Platform','Web (PWA)'],['Developer','IRONPULSE Team'],['Contact',gymEmail],['License','Proprietary'],['Stack','React + Supabase']].map(([k,v]) => (
                     <div key={k} className="settings-about-item">
                       <div className="settings-about-label">{k}</div>
                       <div className="settings-about-value">{v}</div>
@@ -1436,7 +1435,7 @@ export default function Settings() {
             </div>
             <div style={{ padding:'16px 24px', maxHeight:'60vh', overflowY:'auto' }}>
               {[
-                { title:<><span aria-hidden="true">👥</span> Managing Members</>, steps:['Navigate to Members from the sidebar.','Click "+ Add Member" to register a new member.','Fill in personal info, assign a plan and trainer.','A Firebase account is auto-created so members can sign in.','Use the 🔄 button to renew memberships.'] },
+                { title:<><span aria-hidden="true">👥</span> Managing Members</>, steps:['Navigate to Members from the sidebar.','Click "+ Add Member" to register a new member.','Fill in personal info, assign a plan and trainer.','The member record is saved to the gym database.','Use the 🔄 button to renew memberships.'] },
                 { title:<><span aria-hidden="true">💳</span> Payments & Billing</>, steps:['Go to Payments to view all invoices.','Click "New Invoice" to generate a bill for any member.','Use filters to view Paid, Pending, or Overdue invoices.','Click an invoice to view details, print, or send via WhatsApp.','Revenue charts show monthly collection vs targets.'] },
                 { title:<><span aria-hidden="true">🏋️</span> Trainer Management</>, steps:['Go to Trainers to add or edit trainers.','Assign members to trainers from the Members page.','Each trainer can log in and view their assigned clients.','Trainer performance metrics are shown on the Dashboard.'] },
                 { title:<><span aria-hidden="true">📱</span> QR Check-in</>, steps:['Each member has a unique QR code.','Open QR Check-in from the sidebar and scan the code.','Check-ins are logged and visible in the attendance report.'] },

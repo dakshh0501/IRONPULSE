@@ -1,6 +1,8 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
+import { useAuth } from '../../context/AuthContext'
 import { subscribeToContactMessages, updateContactMessage } from '../../services/firestoreService'
+import { addSupportReply, addSupportNote, addSupportAttachment } from '../../services/supportService'
 
 const ssptStyles = document.createElement('style')
 ssptStyles.textContent = `
@@ -203,11 +205,60 @@ function convertStatusEventToTimeline(status) {
 }
 
 function TicketDrawer({ ticket, gymName, onClose }) {
+  const { currentUser } = useAuth()
   const [drawerTab, setDrawerTab] = useState('conversation')
   const [replyText, setReplyText] = useState('')
   const [noteText, setNoteText] = useState('')
   const [closing, setClosing] = useState(false)
   const [drawerMsg, setDrawerMsg] = useState('')
+  const [drawerSaving, setDrawerSaving] = useState(false)
+  const attachmentInputRef = useRef(null)
+
+  const handleSendReply = async () => {
+    if (!replyText.trim()) { setDrawerMsg('Type a reply first'); return }
+    setDrawerSaving(true)
+    setDrawerMsg('')
+    try {
+      await addSupportReply(ticket.id, { text: replyText.trim(), by: currentUser?.uid || null })
+      setReplyText('')
+      setDrawerMsg('Reply sent')
+    } catch (err) {
+      setDrawerMsg('Reply failed: ' + (err.message || 'Unknown error'))
+    } finally {
+      setDrawerSaving(false)
+    }
+  }
+
+  const handleSaveNote = async () => {
+    if (!noteText.trim()) { setDrawerMsg('Type a note first'); return }
+    setDrawerSaving(true)
+    setDrawerMsg('')
+    try {
+      await addSupportNote(ticket.id, { text: noteText.trim(), by: currentUser?.uid || null })
+      setNoteText('')
+      setDrawerMsg('Note saved')
+    } catch (err) {
+      setDrawerMsg('Note failed: ' + (err.message || 'Unknown error'))
+    } finally {
+      setDrawerSaving(false)
+    }
+  }
+
+  const handleAttachment = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setDrawerSaving(true)
+    setDrawerMsg('')
+    try {
+      await addSupportAttachment(ticket.id, { name: file.name, size: file.size, type: file.type })
+      setDrawerMsg(`Attached: ${file.name}`)
+    } catch (err) {
+      setDrawerMsg('Attach failed: ' + (err.message || 'Unknown error'))
+    } finally {
+      setDrawerSaving(false)
+      if (attachmentInputRef.current) attachmentInputRef.current.value = ''
+    }
+  }
 
   const handleClose = () => {
     setClosing(true)
@@ -293,7 +344,7 @@ function TicketDrawer({ ticket, gymName, onClose }) {
               <div style={{ marginTop: 'auto', paddingTop: 12 }}>
                 <div className="sspt-reply-box">
                   <textarea placeholder="Type your reply..." value={replyText} onChange={e => { setReplyText(e.target.value); setDrawerMsg('') }} aria-label="Type your reply" />
-                  <button className="sspt-reply-btn" onClick={() => { if (replyText.trim()) setDrawerMsg('Reply functionality will be available after Firestore replies collection is implemented.'); else setDrawerMsg('Type a reply first') }}>Send Reply</button>
+                  <button className="sspt-reply-btn" onClick={handleSendReply} disabled={drawerSaving}>{drawerSaving ? 'Sending...' : 'Send Reply'}</button>
                   {drawerMsg && <div role="alert" style={{ fontSize: 11, color: drawerMsg === 'Type a reply first' ? 'var(--text-muted)' : 'var(--teal)', marginTop: 4, position: 'absolute', bottom: -18, left: 0 }}>{drawerMsg}</div>}
                 </div>
               </div>
@@ -324,7 +375,7 @@ function TicketDrawer({ ticket, gymName, onClose }) {
               <div style={{ marginTop: 'auto', paddingTop: 8 }}>
                 <div className="sspt-reply-box" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
                   <textarea placeholder="Add an internal note..." value={noteText} onChange={e => { setNoteText(e.target.value); setDrawerMsg('') }} style={{ minHeight: 80 }} aria-label="Add an internal note" />
-                  <button className="sspt-reply-btn" style={{ alignSelf: 'flex-end' }} onClick={() => { if (noteText.trim()) setDrawerMsg('Note saved. Internal notes will be visible after a Firestore notes collection is added.'); else setDrawerMsg('Type a note first') }}>Save Note</button>
+                  <button className="sspt-reply-btn" style={{ alignSelf: 'flex-end' }} onClick={handleSaveNote} disabled={drawerSaving}>{drawerSaving ? 'Saving...' : 'Save Note'}</button>
                 </div>
               </div>
             </>
@@ -334,9 +385,10 @@ function TicketDrawer({ ticket, gymName, onClose }) {
             <div className="sspt-empty-state">
               <div className="sspt-empty-state-icon" aria-hidden="true">📎</div>
               <div className="sspt-empty-state-title">No Attachments</div>
-              <p className="sspt-empty-state-desc">Drag and drop files here or click to upload.</p>
-              <div className="sspt-upload-hint" style={{ marginTop: 8 }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#384860" strokeWidth="1.5" style={{ margin: '0 auto 4px', display: 'block' }} aria-hidden="true">
+              <p className="sspt-empty-state-desc">Attach a file to this ticket.</p>
+              <input ref={attachmentInputRef} type="file" style={{ display: 'none' }} onChange={handleAttachment} aria-label="Attach file" />
+              <div className="sspt-upload-hint" style={{ marginTop: 8, cursor: 'pointer' }} onClick={() => attachmentInputRef.current?.click()} role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') attachmentInputRef.current?.click() }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="1.5" style={{ margin: '0 auto 4px', display: 'block' }} aria-hidden="true">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
                 <p>Click to browse or drop files here</p>
@@ -491,7 +543,7 @@ export default function SuperAdminSupport() {
                       <td style={{ color: '#6070a0' }}>{t.category || '—'}</td>
                       <td><StatusBadge status={t.status || 'Open'} /></td>
                       <td style={{ color: '#a0aac0' }}>{t.priority || 'Normal'}</td>
-                      <td style={{ color: '#6070a0', fontSize: 12, whiteSpace: 'nowrap' }}>{t.createdAt?.seconds ? new Date(t.createdAt.seconds * 1000).toLocaleDateString() : '—'}</td>
+                      <td style={{ color: 'var(--text-muted)', fontSize: 12, whiteSpace: 'nowrap' }}>{t.createdAt?.seconds ? new Date(t.createdAt.seconds * 1000).toLocaleDateString() : t.createdAt ? new Date(t.createdAt).toLocaleDateString() : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -530,7 +582,7 @@ export default function SuperAdminSupport() {
                         <td style={{ fontWeight: 500, color: '#a0aac0' }}>{f.title || '—'}</td>
                         <td><span className="sspt-pill" style={{ background: 'rgba(168,85,247,0.12)', color: '#a855f7' }}>{f.type === 'feedback' ? 'Feedback' : 'Feature'}</span></td>
                         <td><StatusBadge status={f.status || 'Under Review'} /></td>
-                        <td style={{ color: '#6070a0', fontSize: 12, whiteSpace: 'nowrap' }}>{f.createdAt?.seconds ? new Date(f.createdAt.seconds * 1000).toLocaleDateString() : '—'}</td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: 12, whiteSpace: 'nowrap' }}>{f.createdAt?.seconds ? new Date(f.createdAt.seconds * 1000).toLocaleDateString() : f.createdAt ? new Date(f.createdAt).toLocaleDateString() : '—'}</td>
                       </tr>
                     )
                   })}
@@ -564,7 +616,7 @@ export default function SuperAdminSupport() {
                 <tbody>
                   {[...contactMessages].reverse().map(m => (
                     <tr key={m.id}>
-                      <td style={{ color: '#6070a0', fontSize: 12, whiteSpace: 'nowrap' }}>{m.createdAt?.seconds ? new Date(m.createdAt.seconds * 1000).toLocaleDateString() : '—'}</td>
+                      <td style={{ color: 'var(--text-muted)', fontSize: 12, whiteSpace: 'nowrap' }}>{m.createdAt?.seconds ? new Date(m.createdAt.seconds * 1000).toLocaleDateString() : m.createdAt ? new Date(m.createdAt).toLocaleDateString() : '—'}</td>
                       <td style={{ fontWeight: 600, color: '#e4e8f0' }}>{m.name || '—'}</td>
                       <td style={{ color: '#a0aac0' }}>{m.email || '—'}</td>
                       <td style={{ color: '#6070a0' }}>{m.phone || '—'}</td>

@@ -208,7 +208,7 @@ const features = [
 
 const benefits = [
   { icon: 'Zap', title: 'Lightning Fast', desc: 'Optimized for speed. Pages load instantly with lazy loading and code splitting.' },
-  { icon: 'Shield', title: 'Secure', desc: 'Firebase Auth, Firestore security rules, encrypted data, and role-based access control.' },
+  { icon: 'Shield', title: 'Secure', desc: 'Supabase Auth, database security rules, encrypted data, and role-based access control.' },
   { icon: 'Cloud', title: 'Cloud Sync', desc: 'Real-time sync across devices. Changes reflect instantly for all users.' },
   { icon: 'Users', title: 'Role Based', desc: 'Admin, trainer, member, and owner roles with granular permissions and access control.' },
   { icon: 'PieChart', title: 'Rich Reports', desc: 'Interactive charts, exportable data, revenue analytics, and business insights.' },

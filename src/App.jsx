@@ -121,7 +121,7 @@ function RoleGate({ allowedRoles, children }) {
 function Guarded({ children }) {
   const { effectiveRole, role } = useAuth()
   const navRole = effectiveRole || role
-  if (navRole === 'gym_admin') return <LicenseGuard>{children}</LicenseGuard>
+  if (navRole === 'gym_admin' || navRole === 'gym_owner') return <LicenseGuard>{children}</LicenseGuard>
   return children
 }
 
@@ -287,7 +287,7 @@ function RouterTree() {
 
         {/* ── Standalone authenticated (no sidebar) ── */}
         <Route path="/payment-status" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']}><SEOHead /><PaymentStatus /><AiAssistant /></ProtectedRoute>} />
-        <Route path="/checkout" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']}><SEOHead /><Checkout /><AiAssistant /></ProtectedRoute>} />
+        <Route path="/checkout" element={<ProtectedRoute allowedRoles={['super_admin','gym_admin']}><SEOHead /><Checkout /><AiAssistant /></ProtectedRoute>} />
 
         {/* ── Authenticated with AppShell (sidebar + header) ── */}
         <Route element={<ProtectedRoute allowedRoles={['super_admin','gym_admin','trainer','member']} />}>

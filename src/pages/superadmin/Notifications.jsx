@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
+import { broadcastNotification } from '../../services/notificationService'
 
 const sntfStyles = document.createElement('style')
 sntfStyles.textContent = `
@@ -91,12 +92,13 @@ function StatCard({ label, value, icon, color, delay = 0 }) {
 }
 
 export default function SuperAdminNotifications() {
-  const { notifications, markAllNotifsRead, markNotifRead, deleteNotif, addNotifToFirestore } = useApp()
+  const { notifications, markAllNotifsRead, markNotifRead, markNotifUnread, deleteNotif } = useApp()
   const [filter, setFilter] = useState('all')
   const [showBroadcast, setShowBroadcast] = useState(false)
   const [broadcastTitle, setBroadcastTitle] = useState('')
   const [broadcastMsg, setBroadcastMsg] = useState('')
   const [broadcastSending, setBroadcastSending] = useState(false)
+  const [toast, setToast] = useState(null)
 
   const typeCounts = useMemo(() => {
     const counts = {}
@@ -108,6 +110,8 @@ export default function SuperAdminNotifications() {
     if (filter === 'all') return notifications
     if (filter === 'unread') return notifications.filter(n => !n.read)
     if (filter === 'read') return notifications.filter(n => n.read)
+    if (filter === 'announcements') return notifications.filter(n => n.type === 'announcement')
+    if (filter === 'expiry') return notifications.filter(n => n.type === 'subscription')
     return notifications.filter(n => n.type === filter)
   }, [notifications, filter])
 
@@ -205,7 +209,7 @@ export default function SuperAdminNotifications() {
                       onClick={() => markNotifRead(n.id)}>Read</button>
                   ) : (
                     <button className="btn btn-sm" style={{ background: 'var(--hover)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-muted)', padding: '4px 10px', fontSize: 10, cursor: 'pointer' }}
-                      onClick={() => markNotifRead(n.id)}>Unread</button>
+                      onClick={() => markNotifUnread(n.id)}>Unread</button>
                   )}
                   <button className="btn btn-sm" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.1)', borderRadius: 8, color: '#ef4444', padding: '4px 10px', fontSize: 10, cursor: 'pointer' }}
                     onClick={() => deleteNotif(n.id)}>Delete</button>
@@ -240,18 +244,23 @@ export default function SuperAdminNotifications() {
                 onClick={async () => {
                   setBroadcastSending(true)
                   try {
-                    await addNotifToFirestore({
+                    const res = await broadcastNotification({
                       type: 'announcement',
                       title: broadcastTitle.trim(),
                       message: broadcastMsg.trim(),
                       icon: '📢',
-                      createdAt: new Date().toISOString(),
                     })
                     setShowBroadcast(false)
                     setBroadcastTitle('')
                     setBroadcastMsg('')
+                    const parts = [`Broadcast sent to ${res.sent} user${res.sent === 1 ? '' : 's'}`]
+                    if (res.failed) parts.push(`${res.failed} failed`)
+                    setToast(parts.join(' · '))
+                    setTimeout(() => setToast(null), 4000)
                   } catch (e) {
                     console.error('Broadcast failed:', e)
+                    setToast('Broadcast failed — please try again')
+                    setTimeout(() => setToast(null), 4000)
                   } finally {
                     setBroadcastSending(false)
                   }
@@ -260,6 +269,19 @@ export default function SuperAdminNotifications() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {toast && (
+        <div role="status" style={{
+          position: 'fixed', top: 80, right: 24, zIndex: 9999,
+          background: 'var(--card)', border: '1px solid rgba(0,200,180,0.3)',
+          borderRadius: 12, padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 10,
+          boxShadow: '0 8px 30px rgba(0,0,0,0.4)', animation: 'slideLeft 0.25s ease', maxWidth: 320,
+        }}>
+          <span style={{ fontSize: 16 }} aria-hidden="true">✅</span>
+          <p style={{ fontSize: 13, color: 'var(--text)', flex: 1, margin: 0 }}>{toast}</p>
+          <button onClick={() => setToast(null)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: 14, cursor: 'pointer', padding: 4 }} aria-label="Dismiss">✕</button>
         </div>
       )}
     </div>

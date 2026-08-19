@@ -1,5 +1,5 @@
 // src/utils/appUrl.js
-// Single source of truth for the public app base URL used in Firebase
+// Single source of truth for the public app base URL used in auth email links
 // Auth email action links (email verification, password reset).
 // - Local development: always the dev server origin (http://localhost:3000)
 //   so links point at the local app even when .env defines a production URL.

@@ -22,6 +22,7 @@ function mapReferralRow(r) {
     expiresAt: r.expires_at || null,
     qualifiedAt: r.qualified_at || null,
     rewardedAt: r.rewarded_at || null,
+    rejectedAt: r.rejected_at || null,
     rewardRef: r.reward_ref || '',
     createdAt: r.created_at || null,
     updatedAt: r.updated_at || null,
@@ -41,7 +42,7 @@ function mapRewardLedgerRow(r) {
     userId: r.user_id || '',
     referralId: r.referral_id || '',
     gymId: r.gym_id || '',
-    status: r.status || 'pending',
+    status: r.status === 'used' ? 'redeemed' : (r.status || 'pending'),
     issuedAt: r.issued_at || null,
     description: r.description || '',
     rewardRef: r.reward_ref || '',
@@ -57,7 +58,7 @@ function mapDiscountCouponRow(r) {
     userId: r.user_id || '',
     gymId: r.gym_id || '',
     code: r.code || '',
-    status: r.status || 'available',
+    status: r.status === 'used' ? 'redeemed' : (r.status || 'available'),
     value: r.value != null ? Number(r.value) : 0,
     createdAt: r.created_at || null,
     usedAt: r.used_at || null,
@@ -322,6 +323,10 @@ export async function redeemDiscountCoupon(couponId) {
   return supabaseRedeemDiscountCoupon(couponId)
 }
 
+export async function redeemWalletReward(ledgerId) {
+  return supabaseRedeemWalletReward(ledgerId)
+}
+
 // ── REFERRAL LINK UTILS ──────────────────────────
 
 const APP_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_APP_URL) || (typeof window !== 'undefined' ? window.location.origin : '')
@@ -545,10 +550,12 @@ async function supabaseCreateReferral(referralData) {
 // RLS: referrals update is RPC-only (update_referral_status).
 async function supabaseUpdateReferral(referralId, data) {
   const client = await getSupabaseClient()
-  const { error } = await client.rpc('update_referral_status', {
+  const payload = {
     p_referred_uid: referralId,
     p_status: data.status || 'Pending',
-  })
+  }
+  if (data.rejectedAt) payload.p_rejected_at = data.rejectedAt
+  const { error } = await client.rpc('update_referral_status', payload)
   if (error) throw mapSupabaseError(error, 'Failed to update referral')
 }
 
@@ -603,6 +610,12 @@ async function supabaseRedeemDiscountCoupon(couponId) {
   const client = await getSupabaseClient()
   const { error } = await client.rpc('redeem_discount_coupon', { p_coupon_id: couponId })
   if (error) throw mapSupabaseError(error, 'Failed to redeem coupon')
+}
+
+async function supabaseRedeemWalletReward(ledgerId) {
+  const client = await getSupabaseClient()
+  const { error } = await client.rpc('redeem_wallet_reward', { p_ledger_id: ledgerId })
+  if (error) throw mapSupabaseError(error, 'Failed to redeem wallet reward')
 }
 
 async function supabaseResolveReferralCode(code) {

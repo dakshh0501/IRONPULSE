@@ -18,6 +18,13 @@ function StatusBadge({ status }) {
   return <span className={`badge ${cls}`}>{status || 'unknown'}</span>
 }
 
+function fmtDate(value, time = false) {
+  if (!value) return '—'
+  const d = value?.seconds ? new Date(value.seconds * 1000) : new Date(value)
+  if (isNaN(d.getTime())) return '—'
+  return time ? d.toLocaleString() : d.toLocaleDateString()
+}
+
 export default function DeviceManagement() {
   const { effectiveRole } = useAuth()
   const { gymId, currentSubscription } = useApp()
@@ -155,10 +162,10 @@ export default function DeviceManagement() {
                   <td style={{ fontSize:12, color:'var(--text-dim)' }}>{dev.appVersion || '—'}</td>
                   <td><StatusBadge status={dev.status} /></td>
                   <td style={{ fontSize:12, color:'var(--text-dim)' }}>
-                    {dev.registeredAt?.seconds ? new Date(dev.registeredAt.seconds * 1000).toLocaleDateString() : '—'}
+                    {fmtDate(dev.registeredAt)}
                   </td>
                   <td style={{ fontSize:12, color:'var(--text-dim)' }}>
-                    {dev.lastSeen?.seconds ? new Date(dev.lastSeen.seconds * 1000).toLocaleString() : '—'}
+                    {fmtDate(dev.lastSeen, true)}
                   </td>
                   {canManage && (
                     <td>

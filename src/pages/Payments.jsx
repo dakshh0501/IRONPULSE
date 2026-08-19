@@ -122,7 +122,7 @@ function PaymentDetailsDrawer({ invoice, onClose, onMarkPaid, gymName, gymSettin
   }, [onClose])
 
   const c       = STATUS_CFG[invoice.status]
-  const balance = (Number(invoice.amount) || 0) - (Number(invoice.paid) || 1)
+  const balance = (Number(invoice.amount) || 0) - (Number(invoice.paid) || 0)
   const contactInfo = gymSettings?.contact || ''
   const addressInfo = gymSettings?.address || ''
   const emailInfo = gymSettings?.email || ''

@@ -7,7 +7,6 @@ import {
   getReferralStats,
   getTopReferrers,
   checkReferralFraud,
-  deleteReferral,
 } from '../../services/referralService'
 
 const FRAUD_TYPES = {

@@ -33,8 +33,8 @@ subStyles.textContent = `
 document.head.appendChild(subStyles)
 
 const PLAN_OPTIONS = ['Standard', 'Premium', 'Quarterly', 'Annual', 'Lifetime']
-const defaultAmount = 9999
-function getAmount(plan) { return PLAN_AMOUNTS[plan] || defaultAmount }
+function getAmount(plan) { return PLAN_AMOUNTS[plan] || 0 }
+function formatAmount(plan) { return `₹${(getAmount(plan) / 100).toFixed(2)}` }
 
 const benefits = [
   { icon: '👥', title: 'Member Management', desc: 'Full profiles, check-ins, plans & communication' },
@@ -49,7 +49,7 @@ export default function GymSubscription() {
   const {
     currentSubscription: sub, subscriptionHistory,
     renewSubscription, upgradeSubscription,
-    activateSubscription, extendSubscription, gymSettings, gymId,
+    activateSubscription, extendSubscription, reactivateSubscription, gymSettings, gymId,
   } = useApp()
   const { currentUser } = useAuth()
   const navigate = useNavigate()
@@ -111,7 +111,11 @@ export default function GymSubscription() {
   const handleExtend = async () => {
     setActionError(''); setSaving('extend')
     try {
-      const d = new Date(); d.setDate(d.getDate() + extendDays)
+      const now = new Date()
+      const base = sub?.expiryDate
+        ? new Date(Math.max(new Date(sub.expiryDate).getTime(), now.getTime()))
+        : now
+      const d = new Date(base); d.setDate(d.getDate() + extendDays)
       await extendSubscription(d.toISOString())
       setShowExtend(false)
     } catch (err) {
@@ -124,6 +128,14 @@ export default function GymSubscription() {
       await activateSubscription(sub?.planName || 'Standard', sub?.planType || 'monthly', getAmount(sub?.planName || 'Standard'))
     } catch (err) {
       setActionError('Activation failed. Please try again.')
+    } finally { setSaving('') }
+  }
+  const handleReactivate = async () => {
+    setActionError(''); setSaving('activate')
+    try {
+      await reactivateSubscription()
+    } catch (err) {
+      setActionError('Reactivation failed. Please try again.')
     } finally { setSaving('') }
   }
 
@@ -147,15 +159,15 @@ export default function GymSubscription() {
             border: '1px solid rgba(232,66,10,0.12)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24
           }} aria-hidden="true">{sub?.status === 'expired' ? '🚫' : '🔑'}</div>
-          <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 36, fontWeight: 800, color: '#e4e8f0', margin: '0 0 6px' }}>Subscription</h1>
-          <p style={{ fontSize: 14, color: '#6070a0', margin: 0 }}>{sub ? 'Manage your gym\'s subscription plan' : 'No subscription found for this gym'}</p>
+          <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 36, fontWeight: 800, color: 'var(--text)', margin: '0 0 6px' }}>Subscription</h1>
+          <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: 0 }}>{sub ? 'Manage your gym\'s subscription plan' : 'No subscription found for this gym'}</p>
         </div>
 
         {!sub ? (
           <div className="sub-glass" style={{ textAlign: 'center', padding: 40 }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>📋</div>
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#e4e8f0', marginBottom: 8 }}>No Active Subscription</h3>
-            <p style={{ fontSize: 13, color: '#6070a0', marginBottom: 20, maxWidth: 400, margin: '0 auto 20px' }}>
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>No Active Subscription</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, maxWidth: 400, margin: '0 auto 20px' }}>
               Your gym does not have an active subscription plan. Contact the super admin to get started.
             </p>
           </div>
@@ -174,13 +186,13 @@ export default function GymSubscription() {
                   : <span aria-hidden="true" style={{ fontSize: 32, color: '#8b5cf6' }}>●</span>}
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 12, color: '#506080', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Current Plan</div>
-                <div style={{ fontSize: 24, fontWeight: 700, color: '#e4e8f0', fontFamily: "'Barlow Condensed', sans-serif" }}>
+                <div style={{ fontSize: 12, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Current Plan</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text)', fontFamily: "'Barlow Condensed', sans-serif" }}>
                   {sub.planName || sub.planType || '—'}
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 12, color: '#506080', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Status</div>
+                <div style={{ fontSize: 12, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Status</div>
                 <div style={{
                   display: 'inline-block', padding: '3px 12px', borderRadius: 20,
                   background: `${statusColor}15`, color: statusColor,
@@ -192,20 +204,20 @@ export default function GymSubscription() {
             {/* Stats grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 20 }}>
               <div className="sub-glass" style={{ padding: 18 }}>
-                <div style={{ fontSize: 10, color: '#506080', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Expiry</div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: '#a0aac0' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Expiry</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-muted)' }}>
                   {sub.expiryDate ? new Date(sub.expiryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                 </div>
               </div>
               <div className="sub-glass" style={{ padding: 18 }}>
-                <div style={{ fontSize: 10, color: '#506080', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Days Remaining</div>
+                <div style={{ fontSize: 10, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Days Remaining</div>
                 <div style={{ fontSize: 15, fontWeight: 600, color: daysRemaining !== null && daysRemaining > 0 ? (daysRemaining <= 7 ? '#ef4444' : daysRemaining <= 30 ? '#f59e0b' : '#10b981') : '#ef4444' }}>
                   {daysRemaining !== null ? `${daysRemaining}d` : sub?.status === 'expired' ? 'Expired' : '—'}
                 </div>
               </div>
               <div className="sub-glass" style={{ padding: 18 }}>
-                <div style={{ fontSize: 10, color: '#506080', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Payment</div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: '#a0aac0' }}>{sub.paymentStatus || '—'}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Payment</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-muted)' }}>{sub.paymentStatus || '—'}</div>
               </div>
             </div>
 
@@ -223,11 +235,11 @@ export default function GymSubscription() {
                 }}>🚫</div>
                 <div style={{ flex: 1 }}>
                   <p style={{ fontWeight: 700, color: '#f87171', margin: '0 0 2px', fontSize: 14 }}>Subscription Expired</p>
-                  <p style={{ fontSize: 12, color: '#6070a0', margin: 0 }}>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
                     Some features may be limited. Renew or reactivate to restore full access.
                   </p>
                 </div>
-                <button onClick={handleActivate} className="sub-btn-primary" style={{ flexShrink: 0 }} disabled={saving}>{saving === 'activate' ? 'Activating...' : 'Reactivate'}</button>
+                <button onClick={handleReactivate} className="sub-btn-primary" style={{ flexShrink: 0 }} disabled={saving}>{saving === 'activate' ? 'Reactivating...' : 'Reactivate'}</button>
               </div>
             )}
 
@@ -255,14 +267,14 @@ export default function GymSubscription() {
 
             {/* Benefits */}
             <div style={{ marginBottom: 24 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#e4e8f0', marginBottom: 14, fontFamily: "'Barlow Condensed', sans-serif" }}>What you get</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 14, fontFamily: "'Barlow Condensed', sans-serif" }}>What you get</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
                 {benefits.map(b => (
                   <div key={b.title} className="sub-glass" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
                     <span aria-hidden="true" style={{ fontSize: 18 }}>{b.icon}</span>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#a0aac0' }}>{b.title}</div>
-                      <div style={{ fontSize: 11, color: '#506080' }}>{b.desc}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>{b.title}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>{b.desc}</div>
                     </div>
                   </div>
                 ))}
@@ -273,24 +285,24 @@ export default function GymSubscription() {
             {subscriptionHistory?.length > 0 && (
               <div className="sub-glass" style={{ overflow: 'hidden' }}>
                 <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: '#a0aac0', margin: 0, letterSpacing: '0.04em' }}>Subscription History</p>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', margin: 0, letterSpacing: '0.04em' }}>Subscription History</p>
                 </div>
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
                         {['Action', 'Plan', 'Amount', 'Date', 'Status'].map(h => (
-                          <th key={h} scope="col" style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#384860', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
+                          <th key={h} scope="col" style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-dim)', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {subscriptionHistory.map(h => (
                         <tr key={h.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                          <td style={{ padding: '10px 16px', fontWeight: 600, color: '#a0aac0' }}>{h.action || '—'}</td>
-                          <td style={{ padding: '10px 16px', color: '#6070a0' }}>{h.planName || '—'}</td>
-                          <td style={{ padding: '10px 16px', color: '#a0aac0' }}>₹{(h.amount || 0).toLocaleString('en-IN')}</td>
-                          <td style={{ padding: '10px 16px', fontSize: 12, color: '#384860' }}>
+                          <td style={{ padding: '10px 16px', fontWeight: 600, color: 'var(--text-muted)' }}>{h.action || '—'}</td>
+                          <td style={{ padding: '10px 16px', color: 'var(--text-muted)' }}>{h.planName || '—'}</td>
+                          <td style={{ padding: '10px 16px', color: 'var(--text-muted)' }}>₹{(h.amount != null ? (h.amount / 100) : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          <td style={{ padding: '10px 16px', fontSize: 12, color: 'var(--text-dim)' }}>
                             {h.createdAt?.seconds ? new Date(h.createdAt.seconds * 1000).toLocaleDateString() : h.createdAt || h.startDate || '—'}
                           </td>
                           <td style={{ padding: '10px 16px' }}>
@@ -318,7 +330,7 @@ export default function GymSubscription() {
             <h3 style={{ marginBottom: 16 }}>Renew Subscription</h3>
             <label className="form-label">Select Plan</label>
             <select className="form-select" value={selectedPlan} onChange={e => setSelectedPlan(e.target.value)} style={{ marginBottom: 16 }}>
-              {PLAN_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+              {PLAN_OPTIONS.map(p => <option key={p} value={p}>{p} — {formatAmount(p)}</option>)}
             </select>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="btn btn-ghost" onClick={() => setShowRenew(false)}>Cancel</button>
@@ -333,7 +345,7 @@ export default function GymSubscription() {
             <h3 style={{ marginBottom: 16 }}>Upgrade Plan</h3>
             <label className="form-label">Select New Plan</label>
             <select className="form-select" value={selectedPlan} onChange={e => setSelectedPlan(e.target.value)} style={{ marginBottom: 16 }}>
-              {PLAN_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+              {PLAN_OPTIONS.map(p => <option key={p} value={p}>{p} — {formatAmount(p)}</option>)}
             </select>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="btn btn-ghost" onClick={() => setShowUpgrade(false)}>Cancel</button>

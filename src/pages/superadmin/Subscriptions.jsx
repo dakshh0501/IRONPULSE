@@ -628,7 +628,14 @@ export default function SuperAdminSubscriptions() {
       const realAmount = selectedSub.amount || PLAN_AMOUNTS[formPlan] || 0
 
       if (gymId) {
-        const expiryStr = now.toISOString()
+        // Extend adds `formDays` from the later of the current expiry (if still
+        // in the future) and today — matches the gym-facing Extend behavior.
+        const curEnd = selectedSub.endDate?.seconds
+          ? new Date(selectedSub.endDate.seconds * 1000)
+          : selectedSub.endDate ? new Date(selectedSub.endDate) : now
+        const extendBase = new Date(Math.max(curEnd.getTime(), now.getTime()))
+        extendBase.setDate(extendBase.getDate() + formDays)
+        const expiryStr = extendBase.toISOString()
         switch (action) {
           case 'activate':
             await activateSubForGym(gymId, formPlan, formPlan === 'Trial' ? 'trial' : formPlan.toLowerCase(), realAmount, currentUser?.uid)

@@ -29,6 +29,11 @@ function formatDate(ts) {
   return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
+function isCampaignExpired(r, expiryDays) {
+  const created = r?.createdAt?.seconds ? r.createdAt.seconds * 1000 : r?.createdAt ? new Date(r.createdAt).getTime() : 0
+  return !!created && !isNaN(created) && Date.now() - created > (expiryDays || 90) * 86400000
+}
+
 export default function ReferralFraud() {
   const { referrals, referralSettings, members } = useApp()
 
@@ -39,11 +44,8 @@ export default function ReferralFraud() {
     return referrals
       .map(r => {
         const flags = checkReferralFraud(r)
-        if (r.createdAt?.seconds) {
-          const created = r.createdAt.seconds * 1000
-          if (Date.now() - created > (referralSettings?.referralExpiryDays || 90) * 86400000) {
-            if (!flags.includes('CAMPAIGN_EXPIRED')) flags.push('CAMPAIGN_EXPIRED')
-          }
+        if (isCampaignExpired(r, referralSettings?.referralExpiryDays || 90)) {
+          if (!flags.includes('CAMPAIGN_EXPIRED')) flags.push('CAMPAIGN_EXPIRED')
         }
         return { id: r.id, flags, referral: r, fraudScore: Math.round((flags.length / 5) * 100) }
       })

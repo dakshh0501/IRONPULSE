@@ -245,7 +245,7 @@ export default function MemberModal({ member, prefill, trainers, onSave, onClose
 
           {!isEdit && (
             <div className="members-modal-info">
-              💡 A Firebase account will be created with the temporary password above. Share the email + password with the member so they can sign in directly.
+              💡 On the current platform, member records are created in the gym database without a separate sign-in credential. Members can be onboarded on-site by staff; member self-service sign-in is a roadmap item.
             </div>
           )}
         </div>

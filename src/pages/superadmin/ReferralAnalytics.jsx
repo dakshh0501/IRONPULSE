@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react'
 import { useApp } from '../../context/AppContext'
 import { useAuth } from '../../context/AuthContext'
-import { getReferralStats, getTopReferrers, buildReferralLink } from '../../services/referralService'
+import { getReferralStats } from '../../services/referralService'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area } from 'recharts'
-import { Copy, Users, Gift, TrendingUp, Clock, Award, ExternalLink, DollarSign, Target, CheckCircle, XCircle } from 'lucide-react'
+import { Copy, Users, Gift, TrendingUp, Clock, Award, DollarSign, Target, CheckCircle, XCircle } from 'lucide-react'
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 

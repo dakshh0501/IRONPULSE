@@ -137,11 +137,9 @@ function ChatPanel({ role, roleLabel, userName, gymName, open, onClose }) {
     setConvsLoading(true)
     const unsub = subscribeToConversations(
       userId,
-      (items, snapshot) => {
-        cursorRef.current = snapshot?.docs?.length
-          ? snapshot.docs[snapshot.docs.length - 1]
-          : null
-        setHasMore(snapshot ? snapshot.docs.length === LIST_PAGE_SIZE : false)
+      (items) => {
+        cursorRef.current = items.length
+        setHasMore(items.length >= LIST_PAGE_SIZE)
         setConvs(prev => {
           const incoming = new Set(items.map(i => i.id))
           const keepOld = prev.filter(c => !incoming.has(c.id))
@@ -325,6 +323,7 @@ function ChatPanel({ role, roleLabel, userName, gymName, open, onClose }) {
     setLoadingMore(true)
     try {
       const res = await loadMoreConversations(userId, cursorRef.current, LIST_PAGE_SIZE)
+      cursorRef.current += res.items.length
       setConvs(prev => {
         const existing = new Set(prev.map(c => c.id))
         return [...prev, ...res.items.filter(i => !existing.has(i.id))]
@@ -502,7 +501,7 @@ function ChatPanel({ role, roleLabel, userName, gymName, open, onClose }) {
       return
     }
 
-await persistAndShow(convId, 'user', text)
+      await persistAndShow(convId, 'user', text)
       bumpConvMeta(convId, text, 1)
       setIsTyping(true)
 
@@ -636,7 +635,7 @@ await persistAndShow(convId, 'user', text)
             </div>
             <div className="ai-panel-sub">
               <span className="ai-status-dot" aria-hidden="true" />
-              {isProviderConnected() ? 'Online · Gemini live answers' : 'Online · answers from your gym data'}
+              {isProviderConnected() ? 'Online · Groq live answers' : 'Online · answers from your gym data'}
             </div>
           </div>
           <div className="ai-panel-actions">

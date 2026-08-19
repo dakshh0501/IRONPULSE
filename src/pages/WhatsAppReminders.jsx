@@ -40,7 +40,7 @@ const STATUS_META = {
 
 export default function WhatsAppReminders() {
   const [searchParams] = useSearchParams(); const search = searchParams.get('q') || ''
-  const { members, gymSettings, whatsappConfig, whatsappLogs, whatsapp } = useApp()
+  const { members, gymSettings, whatsappConfig, whatsappLogs, whatsapp, payments = [] } = useApp()
   const { effectiveRole } = useAuth()
   const canAccess = effectiveRole === 'super_admin' || effectiveRole === 'gym_admin'
 
@@ -143,7 +143,7 @@ export default function WhatsAppReminders() {
   }
 
   const runSweepsNow = () => {
-    whatsapp.runSweepsNow(members, [])
+    whatsapp.runSweepsNow(members, payments)
     setToast('Daily sweep executed — check the log below for queued messages')
   }
 

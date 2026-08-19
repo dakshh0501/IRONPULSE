@@ -54,7 +54,7 @@ export const SYSTEM_PROMPT =
   'You are IRONPULSE AI. ' +
   'You are a professional gym assistant. ' +
   'Never invent user membership information. ' +
-  'Never claim access to Firebase data. ' +
+  'Never claim access to data you cannot see in this chat. ' +
   'If asked about app-specific information, respond only if context is provided. ' +
   'Prefer concise answers.'
 
@@ -121,19 +121,34 @@ function isModelError(status, body) {
 let lastHttpBody = ''
 
 /**
+ * Redact PII-shaped tokens before logging. Request bodies carry full
+ * conversation content (user prompts, history, system prompt) which may
+ * contain names, phone numbers, or email addresses — never credentials
+ * (the API key lives only in the Authorization header, which is never
+ * logged). Masks emails, 10-digit Indian phone numbers (with optional
+ * +91 prefix), and 12-digit number sequences (Aadhaar-like).
+ */
+function redactSensitive(text) {
+  return String(text || '')
+    .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '***@***')
+    .replace(/(\+91[\s-]?)?[6-9]\d{9}/g, m => (m.length >= 10 ? '******' + m.slice(-4) : m))
+    .replace(/\b\d{12}\b/g, '***')
+}
+
+/**
  * fetch wrapper handed to the OpenAI client. Contract:
  *   • forward the request untouched (SDK builds headers/body)
  *   • log the COMPLETE request body before fetch() — task 1 of the
  *     Sprint 80C-fix (request bodies never contain the API key or
- *     the Authorization header)
+ *     the Authorization header), with PII redaction applied
  *   • log the COMPLETE response body whenever response.ok === false
- *     — task 2 (response bodies never contain credentials)
+ *     — task 2 (response bodies never contain credentials), PII-redacted
  *   • never log headers or the API key
  */
 async function fetchForClient(url, init) {
   const bodyStr = typeof init?.body === 'string' ? init.body : ''
   try {
-    console.warn('[Pulse AI] Groq request', String(url), bodyStr)
+    console.warn('[Pulse AI] Groq request', String(url), redactSensitive(bodyStr).slice(0, 8000))
   } catch {
     // logging must never break the request
   }
@@ -142,7 +157,7 @@ async function fetchForClient(url, init) {
     try {
       const body = await res.clone().text()
       lastHttpBody = body
-      console.error('[Pulse AI] Groq HTTP', res.status, body)
+      console.error('[Pulse AI] Groq HTTP', res.status, redactSensitive(body).slice(0, 4000))
     } catch {
       lastHttpBody = ''
     }

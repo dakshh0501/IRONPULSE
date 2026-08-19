@@ -372,7 +372,7 @@ export default function PlatformSettings() {
   const renderPayments = () => (
     <SettingsCard icon="💳" iconBg="rgba(139,92,246,0.08)" title="Payment Gateway" subtitle="Configure the payment gateway used for gym subscription payments">
       <div style={{ background:'rgba(245,158,11,0.06)', border:'1px solid rgba(245,158,11,0.1)', borderRadius:8, padding:'12px 16px', marginBottom:16, fontSize:12, color:'#6070a0' }}>
-        <span aria-hidden="true">⚠️</span> Sensitive credentials (Merchant ID, Salt Key, Salt Index) are managed server-side via Firebase Secrets. Only the merchant ID and environment are stored here for display purposes.
+        <span aria-hidden="true">⚠️</span> Sensitive credentials (Merchant ID, Salt Key, Salt Index) are managed server-side via Supabase Edge Function secrets. Only the merchant ID and environment are stored here for display purposes.
       </div>
       <SettingRow label="PhonePe Merchant ID" desc="Reference merchant ID used by the platform">
         <InputField k="merchantId" state={form} setState={set} placeholder="Enter merchant ID" style={{ width:200 }} />
@@ -420,7 +420,7 @@ export default function PlatformSettings() {
     <>
       <SettingsCard icon="📧" iconBg="rgba(59,130,246,0.08)" title="SMTP Configuration" subtitle="Configure outbound email for platform notifications, invoices, and alerts">
         <div style={{ background:'rgba(245,158,11,0.06)', border:'1px solid rgba(245,158,11,0.1)', borderRadius:8, padding:'12px 16px', marginBottom:16, fontSize:12, color:'#6070a0' }}>
-          <span aria-hidden="true">⚠️</span> Credentials are securely stored. For production, use Firebase Secrets or a dedicated secrets manager.
+          <span aria-hidden="true">⚠️</span> Credentials are securely stored. For production, use Supabase Edge Function secrets or a dedicated secrets manager.
         </div>
         <SettingRow label="SMTP Host" desc="Your email provider's SMTP server address">
           <InputField k="smtpHost" state={form} setState={set} placeholder="smtp.gmail.com" style={{ width:200 }} />
@@ -468,7 +468,7 @@ export default function PlatformSettings() {
     <>
       <SettingsCard icon="✉️" iconBg="rgba(245,158,11,0.08)" title="SMS Configuration" subtitle="Configure SMS provider for transactional messages and alerts">
         <div style={{ background:'rgba(245,158,11,0.06)', border:'1px solid rgba(245,158,11,0.1)', borderRadius:8, padding:'12px 16px', marginBottom:16, fontSize:12, color:'#6070a0' }}>
-          <span aria-hidden="true">⚠️</span> Credentials are stored in Firestore. For production, use Firebase Secrets or a dedicated secrets manager.
+          <span aria-hidden="true">⚠️</span> Credentials are stored in the platform settings. For production, use Supabase Edge Function secrets or a dedicated secrets manager.
         </div>
         <SettingRow label="Provider" desc="Choose your SMS service provider">
           <SelectField k="smsProvider" state={form} setState={set} options={SMS_PROVIDERS} style={{ minWidth:180 }} />
@@ -510,7 +510,7 @@ export default function PlatformSettings() {
     <>
       <SettingsCard icon="💬" iconBg="rgba(16,185,129,0.08)" title="WhatsApp Business API" subtitle="Configure WhatsApp messaging for reminders, notifications, and alerts">
         <div style={{ background:'rgba(245,158,11,0.06)', border:'1px solid rgba(245,158,11,0.1)', borderRadius:8, padding:'12px 16px', marginBottom:16, fontSize:12, color:'#6070a0' }}>
-          <span aria-hidden="true">⚠️</span> Credentials are stored in Firestore. For production, use Firebase Secrets or a dedicated secrets manager.
+          <span aria-hidden="true">⚠️</span> Credentials are stored in the platform settings. For production, use Supabase Edge Function secrets or a dedicated secrets manager.
         </div>
         <SettingRow label="Provider" desc="WhatsApp Business API provider">
           <select className="ps-select" value={form.whatsAppProvider ?? ''}
@@ -624,7 +624,7 @@ export default function PlatformSettings() {
   const renderStorage = () => (
     <>
       <SettingsCard icon="💾" iconBg="rgba(0,200,180,0.08)" title="Storage Usage" subtitle="Current storage consumption across the platform">
-        <SettingRow label="Firestore" desc="Database document storage">
+        <SettingRow label="Database" desc="PostgreSQL data (Supabase)">
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <div style={{ width:160, height:6, borderRadius:3, background:'var(--skeleton)' }}>
               <div style={{ width:'23%', height:'100%', borderRadius:3, background:'linear-gradient(90deg,#e8420a,#ff6a2a)' }} />
@@ -674,12 +674,12 @@ export default function PlatformSettings() {
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:10 }}>
         {[
           { name:'PhonePe', icon:'💳', status:'connected', version:'v2', desc:'Payment gateway' },
-          { name:'Firebase', icon:'🔥', status:'connected', version:'v11', desc:'Auth & database' },
+          { name:'Supabase', icon:'🔥', status:'connected', version:'v2', desc:'Auth & database' },
           { name:'Email', icon:'📧', status: form.smtpHost ? 'connected' : 'disconnected', version:'SMTP', desc:'Transactional emails' },
           { name:'SMS', icon:'✉️', status: form.smsProvider ? 'connected' : 'disconnected', version: form.smsProvider || '—', desc:'SMS notifications' },
           { name:'WhatsApp', icon:'💬', status: form.whatsAppProvider ? 'connected' : 'disconnected', version: form.whatsAppProvider || '—', desc:'WhatsApp API' },
           { name:'Analytics', icon:'📊', status:'connected', version:'GA4', desc:'Usage analytics' },
-          { name:'Cloud Functions', icon:'⚡', status:'connected', version:'v2', desc:'Serverless backend' },
+          { name:'Edge Functions', icon:'⚡', status:'connected', version:'v2', desc:'Serverless backend (Supabase)' },
           { name:'Storage', icon:'☁️', status:'connected', version:'GCS', desc:'File & media storage' },
         ].map(s => (
           <div key={s.name} className="ps-card" style={{ padding:16, marginBottom:0, cursor:'default', display:'flex', flexDirection:'column', gap:8 }}>
@@ -706,10 +706,10 @@ export default function PlatformSettings() {
       <SettingsCard icon="📊" iconBg="rgba(16,185,129,0.08)" title="System Health" subtitle="Real-time status of all platform services">
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(160px, 1fr))', gap:10 }}>
           {[
-            { name:'Firestore', status:'operational', rt:'45ms', icon:'🔥' },
+            { name:'Database', status:'operational', rt:'45ms', icon:'🔥' },
             { name:'Authentication', status:'operational', rt:'120ms', icon:'🔐' },
             { name:'PhonePe', status:'operational', rt:'210ms', icon:'💳' },
-            { name:'Cloud Functions', status:'operational', rt:'340ms', icon:'⚡' },
+            { name:'Edge Functions', status:'operational', rt:'340ms', icon:'⚡' },
             { name:'Notifications', status:'operational', rt:'80ms', icon:'🔔' },
             { name:'License System', status:'operational', rt:'55ms', icon:'🔑' },
             { name:'Storage', status:'operational', rt:'95ms', icon:'☁️' },

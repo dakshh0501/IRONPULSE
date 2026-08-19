@@ -1,6 +1,7 @@
 ﻿// src/services/firestoreService.js
 
 import { subscribeRealtime } from './realtimeService'
+import { PLAN_AMOUNTS } from '../constants/plans'
 
 // Secondary auth instance for creating trainer/member accounts
 // so the admin stays logged in on the main auth instance
@@ -689,34 +690,14 @@ function calculateSubscriptionDates(plan, billingSettings) {
   };
 }
 
-// Calculate subscription amount based on plan
-// When billingSettings provided, returns { originalAmount, finalAmount }
-// When no billingSettings, returns raw paise value (backward compat)
+// Calculate subscription amount based on plan (paise).
+// Single authoritative pricing source: constants/plans.js PLAN_AMOUNTS
+// (test pricing ₹1 per tier; original amounts preserved there). The
+// billingSettings param is retained for signature compatibility — pricing
+// always resolves from PLAN_AMOUNTS so the UI, checkout, and database
+// calculations can never diverge.
 function calculateSubscriptionAmount(plan, billingSettings) {
-  if (billingSettings) {
-    const planAmounts = {
-      'Trial':     0,
-      'Standard':  billingSettings.monthlyPrice || 9999,
-      'Premium':   billingSettings.yearlyPrice || 19999,
-      'Quarterly': billingSettings.halfYearlyPrice || 29999,
-      'Annual':    billingSettings.yearlyPrice || 99999,
-      'Lifetime':  billingSettings.lifetimePrice || 499999,
-      'Day Pass':  99,
-    };
-    return planAmounts[plan] || planAmounts['Standard'];
-  }
-
-  const planPrices = {
-    'Trial': 0,
-    'Standard': 9999,
-    'Premium': 19999,
-    'Quarterly': 29999,
-    'Annual': 99999,
-    'Lifetime': 499999,
-    'Day Pass': 99,
-  };
-
-  return planPrices[plan] || planPrices['Standard'];
+  return PLAN_AMOUNTS[plan] || PLAN_AMOUNTS['Standard'] || 0
 }
 
 export async function addSubscription(subData, billingSettings) {
@@ -872,10 +853,12 @@ function mapTrainerRow(r) {
     email: row.email || '',
     phone: row.phone || '',
     specialty: row.specialty || '',
+    spec: row.specialty || '',
     rating: row.rating ?? 0,
     clients: row.clients || 0,
     bio: row.bio || '',
     experience: row.experience || '',
+    exp: row.experience || '',
     avatar: row.avatar || '',
     color: row.color || '',
     createdAt: row.created_at || '',
@@ -1140,6 +1123,7 @@ function minutesToDurationString(min) {
 
 // â”€â”€ Settings helpers (composite gym_id:doc_id) â”€â”€
 function settingsKey(docId, gymId) {
+  if (!gymId && docId === 'platform') return { gym_id: 'platform', doc_id: 'platform' }
   if (!gymId && docId === 'billing') return { gym_id: 'platform', doc_id: 'billing' }
   if (!gymId && docId === 'referralSettings') return { gym_id: 'platform', doc_id: 'referralSettings' }
   return { gym_id: gymId || DEFAULT_GYM_ID, doc_id: docId }
@@ -1271,11 +1255,11 @@ async function supabaseAddTrainer(trainerData) {
     name: trainerData.name || '',
     email: trainerData.email || null,
     phone: trainerData.phone || null,
-    specialty: trainerData.specialty || null,
+    specialty: trainerData.spec ?? trainerData.specialty ?? null,
     rating: trainerData.rating != null ? Number(trainerData.rating) : null,
     clients: Number(trainerData.clients) || 0,
     bio: trainerData.bio || null,
-    experience: trainerData.experience || null,
+    experience: trainerData.exp ?? trainerData.experience ?? null,
     avatar: trainerData.avatar || null,
     color: trainerData.color || null,
     created_by: trainerData.createdBy || null,
@@ -1292,6 +1276,7 @@ async function supabaseUpdateTrainer(trainerId, updatedData) {
   for (const [k, col] of Object.entries({
     name: 'name', email: 'email', phone: 'phone', specialty: 'specialty',
     bio: 'bio', experience: 'experience', avatar: 'avatar', color: 'color',
+    spec: 'specialty', exp: 'experience',
   })) {
     if (updatedData[k] !== undefined) patch[col] = updatedData[k] == null ? null : updatedData[k]
   }

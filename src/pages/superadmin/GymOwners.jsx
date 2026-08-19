@@ -113,7 +113,7 @@ const PLAN_COLORS = {
 const ITEMS_PER_PAGE = 10
 
 function Pill({ children, color }) {
-  return <span className="go-pill" style={{ background:`${color || '#6070a0'}14`, color: color || '#6070a0' }}>{children}</span>
+  return <span className="go-pill" style={{ background:`${color || 'var(--text-muted)'}14`, color: color || 'var(--text-muted)' }}>{children}</span>
 }
 
 function StatCard({ label, value, icon, color, accent, delay = 0 }) {
@@ -136,12 +136,12 @@ function StatCard({ label, value, icon, color, accent, delay = 0 }) {
           display:'flex', alignItems:'center', justifyContent:'center', fontSize:18,
         }} aria-hidden="true">{icon}</div>
         <div style={{ flex:1, minWidth:0 }}>
-          <p style={{ fontSize:10, color:'#506080', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em', margin:'0 0 2px' }}>{label}</p>
-          <p style={{ fontSize:24, fontWeight:800, lineHeight:1.2, color: color || '#a0aac0', margin:0, fontFamily:"'Barlow Condensed', sans-serif" }}>{value}</p>
+          <p style={{ fontSize:10, color:'var(--text-dim)', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em', margin:'0 0 2px' }}>{label}</p>
+          <p style={{ fontSize:24, fontWeight:800, lineHeight:1.2, color: color || 'var(--text-muted)', margin:0, fontFamily:"'Barlow Condensed', sans-serif" }}>{value}</p>
         </div>
       </div>
       {accent != null && (
-        <div style={{ marginTop:6, fontSize:11, color:'#384860' }}>
+        <div style={{ marginTop:6, fontSize:11, color:'var(--text-dim)' }}>
           <span style={{ color: accent >= 0 ? '#10b981' : '#ef4444' }}>{accent >= 0 ? '↑' : '↓'}</span> {Math.abs(accent)} from last month
         </div>
       )}
@@ -178,8 +178,8 @@ function InfoRow({ label, value, icon }) {
     <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', background:'var(--bg3)', borderRadius:8, fontSize:13 }}>
       <span style={{ fontSize:14, width:20, textAlign:'center', flexShrink:0 }} aria-hidden="true">{icon}</span>
       <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontSize:10, color:'#384860', marginBottom:1 }}>{label}</div>
-        <div style={{ fontWeight:600, color:'#a0aac0' }}>{value}</div>
+        <div style={{ fontSize:10, color:'var(--text-dim)', marginBottom:1 }}>{label}</div>
+        <div style={{ fontWeight:600, color:'var(--text-muted)' }}>{value}</div>
       </div>
     </div>
   )
@@ -189,6 +189,13 @@ function formatDate(d) {
   if (!d) return '—'
   const date = d?.seconds ? new Date(d.seconds * 1000) : new Date(d)
   return isNaN(date.getTime()) ? '—' : date.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+}
+
+function ts(d) {
+  if (!d) return 0
+  if (d?.seconds) return d.seconds * 1000
+  const t = new Date(d).getTime()
+  return isNaN(t) ? 0 : t
 }
 
 function getPlanFromSub(gymId, subs) {
@@ -258,10 +265,19 @@ export default function SuperAdminGymOwners() {
     const now = new Date()
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
     return payments.filter(p => {
-      const d = p.createdAt?.seconds ? new Date(p.createdAt.seconds * 1000) : p.paidOn ? new Date(p.paidOn) : null
-      return d && d >= monthStart
+      let d = null
+      if (p.createdAt?.seconds) d = new Date(p.createdAt.seconds * 1000)
+      else if (p.createdAt) d = new Date(p.createdAt)
+      else if (p.paidOn) d = new Date(p.paidOn)
+      else if (p.date) d = new Date(p.date)
+      return d && !isNaN(d.getTime()) && d >= monthStart
     }).reduce((sum, p) => sum + (p.paid || p.amount || 0), 0)
   }, [payments])
+
+  const pendingGym = useMemo(
+    () => gyms.find(g => String(g.approvalStatus || g.status || '').toLowerCase() === 'pending'),
+    [gyms]
+  )
 
   const stats = useMemo(() => {
     const total = gyms.length
@@ -308,8 +324,8 @@ export default function SuperAdminGymOwners() {
         return (sub?.plan || g.plan || '') === planFilter
       })
     }
-    if (sortBy === 'newest') list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
-    else if (sortBy === 'oldest') list.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0))
+    if (sortBy === 'newest') list.sort((a, b) => ts(a.createdAt) - ts(b.createdAt))
+    else if (sortBy === 'oldest') list.sort((a, b) => ts(b.createdAt) - ts(a.createdAt))
     else if (sortBy === 'name') list.sort((a, b) => (a.gymName || a.name || '').localeCompare(b.gymName || b.name || ''))
     else if (sortBy === 'revenue') list.sort((a, b) => (gymRevenue[b.id || 'default'] || 0) - (gymRevenue[a.id || 'default'] || 0))
     else if (sortBy === 'members') list.sort((a, b) => (gymMembers[b.id || 'default'] || 0) - (gymMembers[a.id || 'default'] || 0))
@@ -434,7 +450,7 @@ export default function SuperAdminGymOwners() {
       verified: { color: '#10b981', bg: 'rgba(16,185,129,0.1)', label: 'Verified' },
       pending: { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', label: 'Pending' },
       rejected: { color: '#ef4444', bg: 'rgba(239,68,68,0.1)', label: 'Rejected' },
-      missing: { color: '#384860', bg: 'rgba(56,72,96,0.1)', label: 'Missing' },
+      missing: { color: 'var(--text-dim)', bg: 'rgba(56,72,96,0.1)', label: 'Missing' },
     }
 
     return (
@@ -442,7 +458,7 @@ export default function SuperAdminGymOwners() {
         {/* Summary Cards */}
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
           {[
-            { label:'Documents', value: Object.keys(docStatuses).length, icon:'📄', color:'#6070a0' },
+            { label:'Documents', value: Object.keys(docStatuses).length, icon:'📄', color:'var(--text-muted)' },
             { label:'Verified', value: statusCounts.verified, icon:'✅', color:'#10b981' },
             { label:'Pending', value: statusCounts.pending, icon:'⏳', color:'#f59e0b' },
             { label:'Rejected', value: statusCounts.rejected, icon:'❌', color:'#ef4444' },
@@ -450,7 +466,7 @@ export default function SuperAdminGymOwners() {
             <div key={s.label} className="go-card" style={{ padding:'12px 14px', display:'flex', alignItems:'center', gap:10 }}>
               <span style={{ fontSize:16 }} aria-hidden="true">{s.icon}</span>
               <div>
-                <div style={{ fontSize:10, color:'#384860' }}>{s.label}</div>
+                <div style={{ fontSize:10, color:'var(--text-dim)' }}>{s.label}</div>
                 <div style={{ fontSize:18, fontWeight:700, color: s.color, fontFamily:"'Barlow Condensed', sans-serif" }}>{s.value}</div>
               </div>
             </div>
@@ -474,7 +490,7 @@ export default function SuperAdminGymOwners() {
 
         {/* Document Grid */}
         {filteredTypes.length === 0 ? (
-          <div style={{ textAlign:'center', padding:20, color:'#384860', fontSize:12 }}>
+          <div style={{ textAlign:'center', padding:20, color:'var(--text-dim)', fontSize:12 }}>
             No documents match your filter
           </div>
         ) : (
@@ -490,10 +506,10 @@ export default function SuperAdminGymOwners() {
                 }}>
                   <span style={{ fontSize:20, flexShrink:0 }} aria-hidden="true">{d.icon}</span>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:13, fontWeight:600, color:'#a0aac0' }}>{d.label}</div>
-                    <div style={{ fontSize:10, color:'#384860', marginTop:1 }}>{d.desc}</div>
+                    <div style={{ fontSize:13, fontWeight:600, color:'var(--text-muted)' }}>{d.label}</div>
+                    <div style={{ fontSize:10, color:'var(--text-dim)', marginTop:1 }}>{d.desc}</div>
                     {details?.uploadDate && (
-                      <div style={{ fontSize:10, color:'#384860', marginTop:2 }}>Uploaded: {formatDate(details.uploadDate)}</div>
+                      <div style={{ fontSize:10, color:'var(--text-dim)', marginTop:2 }}>Uploaded: {formatDate(details.uploadDate)}</div>
                     )}
                   </div>
                   <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
@@ -518,8 +534,8 @@ export default function SuperAdminGymOwners() {
         {filteredTypes.length > 0 && Object.values(docStatuses).every(s => s === 'missing') && (
           <div style={{ textAlign:'center', padding:'16px 12px', background:'var(--bg3)', borderRadius:10 }}>
             <div style={{ fontSize:28, marginBottom:8 }} aria-hidden="true">📄</div>
-            <div style={{ fontSize:13, fontWeight:600, color:'#6070a0', marginBottom:4 }}>No documents uploaded</div>
-            <div style={{ fontSize:11, color:'#384860', marginBottom:12 }}>Gym owners can upload documents for verification in their settings.</div>
+            <div style={{ fontSize:13, fontWeight:600, color:'var(--text-muted)', marginBottom:4 }}>No documents uploaded</div>
+            <div style={{ fontSize:11, color:'var(--text-dim)', marginBottom:12 }}>Gym owners can upload documents for verification in their settings.</div>
             <button className="go-btn-secondary" style={{ fontSize:11 }} onClick={() => { if (fireNotif) fireNotif('document_reminder', { gymId: gId, userId: g.ownerUid, title: 'Documents Required', message: 'Please upload your gym documents for verification.' }).catch(() => {}) }}>
               <span aria-hidden="true">🔔</span> Notify Owner
             </button>
@@ -528,20 +544,20 @@ export default function SuperAdminGymOwners() {
 
         {/* Timeline */}
         <div>
-          <div style={{ fontSize:11, fontWeight:600, color:'#384860', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10 }}>Activity Timeline</div>
+          <div style={{ fontSize:11, fontWeight:600, color:'var(--text-dim)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10 }}>Activity Timeline</div>
           <div style={{ position:'relative', paddingLeft:20 }}>
             <div style={{ position:'absolute', left:5, top:4, bottom:0, width:2, background:'var(--border)' }} />
             {hasGst ? (
               <div style={{ position:'relative', paddingBottom:14 }}>
                   <div style={{ position:'absolute', left:-15, top:0, width:18, height:18, borderRadius:'50%', background:'var(--card)', border:'2px solid rgba(16,185,129,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9 }} aria-hidden="true">🧾</div>
-                <div style={{ fontSize:12, fontWeight:600, color:'#a0aac0' }}>GST Added</div>
-                <div style={{ fontSize:10, color:'#384860' }}>GST number provided during registration</div>
+                <div style={{ fontSize:12, fontWeight:600, color:'var(--text-muted)' }}>GST Added</div>
+                <div style={{ fontSize:10, color:'var(--text-dim)' }}>GST number provided during registration</div>
               </div>
             ) : (
               <div style={{ position:'relative', paddingBottom:14 }}>
                 <div style={{ position:'absolute', left:-15, top:0, width:18, height:18, borderRadius:'50%', background:'var(--card)', border:'2px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9 }} aria-hidden="true">📄</div>
-                <div style={{ fontSize:12, color:'#384860' }}>No document activity yet</div>
-                <div style={{ fontSize:10, color:'#384860' }}>Documents will appear here when uploaded</div>
+                <div style={{ fontSize:12, color:'var(--text-dim)' }}>No document activity yet</div>
+                <div style={{ fontSize:10, color:'var(--text-dim)' }}>Documents will appear here when uploaded</div>
               </div>
             )}
           </div>
@@ -559,6 +575,44 @@ export default function SuperAdminGymOwners() {
     const mCount = gymMembers[gId] || 0
     const tCount = gymTrainers[gId] || 0
     const rev = gymRevenue[gId] || 0
+    const revenueBars = (() => {
+      const months = Array.from({ length: 12 }, (_, i) => {
+        const d = new Date()
+        d.setMonth(d.getMonth() - (11 - i))
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      })
+      const byMonth = {}
+      gymPayments.forEach(p => {
+        let t = 0
+        if (p.createdAt?.seconds) t = p.createdAt.seconds * 1000
+        else if (p.createdAt) t = new Date(p.createdAt).getTime()
+        else if (p.paidOn) t = new Date(p.paidOn).getTime()
+        else if (p.date) t = new Date(p.date).getTime()
+        if (!t || isNaN(t)) return
+        const d = new Date(t)
+        const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+        byMonth[k] = (byMonth[k] || 0) + (p.paid || p.amount || 0)
+      })
+      const max = Math.max(1, ...months.map(m => byMonth[m] || 0))
+      return months.map(m => ({ month: m, value: byMonth[m] || 0, height: Math.max(4, Math.round(((byMonth[m] || 0) / max) * 100)) }))
+    })()
+    const memberGrowth = (() => {
+      const now = new Date()
+      const curM = new Date(now.getFullYear(), now.getMonth(), 1).getTime()
+      const prevM = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime()
+      let cur = 0
+      let prev = 0
+      members.forEach(m => {
+        if ((m.gymId || 'default') !== gId) return
+        const t = ts(m.joinDate) || ts(m.createdAt)
+        if (!t) return
+        if (t >= curM) cur++
+        else if (t >= prevM) prev++
+      })
+      if (prev === 0) return cur > 0 ? 'New' : '0%'
+      const g = Math.round(((cur - prev) / prev) * 100)
+      return (g >= 0 ? '+' : '') + g + '%'
+    })()
 
     const tabs = [
       { id:'overview',     label:'Overview',     icon:'🏛️' },
@@ -581,8 +635,8 @@ export default function SuperAdminGymOwners() {
             <ArrowLeft />
           </button>
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontWeight:700, fontSize:14, color:'#e4e8f0' }}>{g.gymName || g.name || 'Gym'}</div>
-            <div style={{ fontSize:11, color:'#384860' }}>ID: {g.id?.slice(-8) || '—'}</div>
+            <div style={{ fontWeight:700, fontSize:14, color:'var(--text)' }}>{g.gymName || g.name || 'Gym'}</div>
+            <div style={{ fontSize:11, color:'var(--text-dim)' }}>ID: {g.id?.slice(-8) || '—'}</div>
           </div>
         </div>
 
@@ -614,7 +668,7 @@ export default function SuperAdminGymOwners() {
                   fontSize:20, fontWeight:800, color:'#fff',
                 }} aria-hidden="true">{(g.gymName || 'G')[0].toUpperCase()}</div>
                 <div>
-                  <div style={{ fontWeight:700, fontSize:15, color:'#e4e8f0' }}>{g.gymName || g.name || '—'}</div>
+                  <div style={{ fontWeight:700, fontSize:15, color:'var(--text)' }}>{g.gymName || g.name || '—'}</div>
                   <Pill color={STATUS_COLORS[sub?.status || g.approvalStatus || g.status || 'pending']}>
                     {sub?.status || g.approvalStatus || g.status || 'pending'}
                   </Pill>
@@ -636,7 +690,7 @@ export default function SuperAdminGymOwners() {
               {sub ? (
                 <>
                   <div className="go-card" style={{ padding:16 }}>
-                    <div style={{ fontSize:10, color:'#384860', textTransform:'uppercase', fontWeight:600, letterSpacing:'0.06em', marginBottom:12 }}>Current Plan</div>
+                    <div style={{ fontSize:10, color:'var(--text-dim)', textTransform:'uppercase', fontWeight:600, letterSpacing:'0.06em', marginBottom:12 }}>Current Plan</div>
                     <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px 20px', fontSize:13 }}>
                       {[
                         ['Plan', sub.plan || '—'],
@@ -651,8 +705,8 @@ export default function SuperAdminGymOwners() {
                         ['Method', sub.paymentMethod || '—'],
                       ].map(([l, v]) => (
                         <div key={l}>
-                          <div style={{ fontSize:10, color:'#384860', marginBottom:2 }}>{l}</div>
-                          <div style={{ fontWeight:600, color:'#a0aac0' }}>{v}</div>
+                          <div style={{ fontSize:10, color:'var(--text-dim)', marginBottom:2 }}>{l}</div>
+                          <div style={{ fontWeight:600, color:'var(--text-muted)' }}>{v}</div>
                         </div>
                       ))}
                     </div>
@@ -664,7 +718,7 @@ export default function SuperAdminGymOwners() {
                   </div>
                 </>
               ) : (
-                <div style={{ textAlign:'center', padding:40, color:'#384860', fontSize:13 }}>
+                <div style={{ textAlign:'center', padding:40, color:'var(--text-dim)', fontSize:13 }}>
                   No subscription data available
                 </div>
               )}
@@ -674,17 +728,17 @@ export default function SuperAdminGymOwners() {
             <div style={{ display: section('revenue') }}>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:16 }}>
                 <div className="go-card" style={{ padding:14, textAlign:'center' }}>
-                  <div style={{ fontSize:10, color:'#384860', marginBottom:4 }}>Total Revenue</div>
+                  <div style={{ fontSize:10, color:'var(--text-dim)', marginBottom:4 }}>Total Revenue</div>
                   <div style={{ fontSize:22, fontWeight:800, color:'#ff6a2a', fontFamily:"'Barlow Condensed', sans-serif" }}>₹{rev.toLocaleString('en-IN')}</div>
                 </div>
                 <div className="go-card" style={{ padding:14, textAlign:'center' }}>
-                  <div style={{ fontSize:10, color:'#384860', marginBottom:4 }}>Monthly</div>
+                  <div style={{ fontSize:10, color:'var(--text-dim)', marginBottom:4 }}>Monthly</div>
                   <div style={{ fontSize:22, fontWeight:800, color:'#00c8b4', fontFamily:"'Barlow Condensed', sans-serif" }}>₹{monthlyRevenue.toLocaleString('en-IN')}</div>
                 </div>
               </div>
-              <div style={{ fontSize:12, fontWeight:600, color:'#6070a0', marginBottom:10 }}>Payment History ({gymPayments.length})</div>
+              <div style={{ fontSize:12, fontWeight:600, color:'var(--text-muted)', marginBottom:10 }}>Payment History ({gymPayments.length})</div>
               {gymPayments.length === 0 ? (
-                <div style={{ color:'#384860', fontSize:12, textAlign:'center', padding:20 }}>No payments recorded</div>
+                <div style={{ color:'var(--text-dim)', fontSize:12, textAlign:'center', padding:20 }}>No payments recorded</div>
               ) : (
                 <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                   {gymPayments.slice(0, 20).map(p => (
@@ -693,8 +747,8 @@ export default function SuperAdminGymOwners() {
                       padding:'8px 12px', background:'rgba(255,255,255,0.02)', borderRadius:8, fontSize:12,
                     }}>
                       <div>
-                        <div style={{ fontWeight:600, color:'#a0aac0' }}>{p.plan || '—'}</div>
-                        <div style={{ color:'#384860', fontSize:11 }}>{p.paidOn ? formatDate(p.paidOn) : p.createdAt?.seconds ? formatDate(p.createdAt) : '—'}</div>
+                        <div style={{ fontWeight:600, color:'var(--text-muted)' }}>{p.plan || '—'}</div>
+                        <div style={{ color:'var(--text-dim)', fontSize:11 }}>{p.paidOn ? formatDate(p.paidOn) : p.createdAt?.seconds ? formatDate(p.createdAt) : p.createdAt ? formatDate(p.createdAt) : '—'}</div>
                       </div>
                       <div style={{ fontWeight:700, color:'#ff6a2a' }}>₹{(p.paid || p.amount || 0).toLocaleString('en-IN')}</div>
                     </div>
@@ -703,8 +757,8 @@ export default function SuperAdminGymOwners() {
               )}
               {/* Mini chart */}
               <div style={{ marginTop:12, padding:'12px 0', display:'flex', alignItems:'flex-end', gap:4, height:40 }}>
-                {[35, 50, 42, 68, 55, 72, 60, 80, 65, 75, 58, 45].map((h, i) => (
-                  <div key={i} style={{ flex:1, height:`${h}%`, borderRadius:'3px 3px 0 0', background: i % 3 === 0 ? '#ff6a2a' : 'rgba(255,255,255,0.05)' }} aria-hidden="true" />
+                {revenueBars.map(b => (
+                  <div key={b.month} style={{ flex:1, height:`${b.height}%`, borderRadius:'3px 3px 0 0', background: b.value ? '#ff6a2a' : 'var(--skeleton)' }} title={`${b.month}: ₹${b.value.toLocaleString('en-IN')}`} aria-hidden="true" />
                 ))}
               </div>
             </div>
@@ -713,20 +767,20 @@ export default function SuperAdminGymOwners() {
             <div style={{ display: section('members') }}>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, marginBottom:12 }}>
                 <div className="go-card" style={{ padding:14, textAlign:'center' }}>
-                  <div style={{ fontSize:10, color:'#384860', marginBottom:4 }}>Total</div>
-                  <div style={{ fontSize:28, fontWeight:800, color:'#e4e8f0', fontFamily:"'Barlow Condensed', sans-serif" }}>{mCount}</div>
+                  <div style={{ fontSize:10, color:'var(--text-dim)', marginBottom:4 }}>Total</div>
+                  <div style={{ fontSize:28, fontWeight:800, color:'var(--text)', fontFamily:"'Barlow Condensed', sans-serif" }}>{mCount}</div>
                 </div>
                 <div className="go-card" style={{ padding:14, textAlign:'center' }}>
-                  <div style={{ fontSize:10, color:'#384860', marginBottom:4 }}>Active</div>
+                  <div style={{ fontSize:10, color:'var(--text-dim)', marginBottom:4 }}>Active</div>
                   <div style={{ fontSize:28, fontWeight:800, color:'#10b981', fontFamily:"'Barlow Condensed', sans-serif" }}>{mCount}</div>
                 </div>
                 <div className="go-card" style={{ padding:14, textAlign:'center' }}>
-                  <div style={{ fontSize:10, color:'#384860', marginBottom:4 }}>Growth</div>
-                  <div style={{ fontSize:28, fontWeight:800, color:'#00c8b4', fontFamily:"'Barlow Condensed', sans-serif" }}>+12%</div>
+                  <div style={{ fontSize:10, color:'var(--text-dim)', marginBottom:4 }}>Growth</div>
+                  <div style={{ fontSize:28, fontWeight:800, color:'#00c8b4', fontFamily:"'Barlow Condensed', sans-serif" }}>{memberGrowth}</div>
                 </div>
               </div>
               {mCount === 0 && (
-                <div style={{ color:'#384860', fontSize:12, textAlign:'center', padding:20 }}>No members yet</div>
+                <div style={{ color:'var(--text-dim)', fontSize:12, textAlign:'center', padding:20 }}>No members yet</div>
               )}
             </div>
 
@@ -734,16 +788,16 @@ export default function SuperAdminGymOwners() {
             <div style={{ display: section('trainers') }}>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12 }}>
                 <div className="go-card" style={{ padding:14, textAlign:'center' }}>
-                  <div style={{ fontSize:10, color:'#384860', marginBottom:4 }}>Total</div>
-                  <div style={{ fontSize:28, fontWeight:800, color:'#e4e8f0', fontFamily:"'Barlow Condensed', sans-serif" }}>{tCount}</div>
+                  <div style={{ fontSize:10, color:'var(--text-dim)', marginBottom:4 }}>Total</div>
+                  <div style={{ fontSize:28, fontWeight:800, color:'var(--text)', fontFamily:"'Barlow Condensed', sans-serif" }}>{tCount}</div>
                 </div>
                 <div className="go-card" style={{ padding:14, textAlign:'center' }}>
-                  <div style={{ fontSize:10, color:'#384860', marginBottom:4 }}>Assigned</div>
+                  <div style={{ fontSize:10, color:'var(--text-dim)', marginBottom:4 }}>Assigned</div>
                   <div style={{ fontSize:18, fontWeight:700, color:'#8b5cf6', fontFamily:"'Barlow Condensed', sans-serif" }}>{tCount > 0 ? `${tCount} trainers` : '—'}</div>
                 </div>
               </div>
               {tCount === 0 && (
-                <div style={{ color:'#384860', fontSize:12, textAlign:'center', padding:20 }}>No trainers yet</div>
+                <div style={{ color:'var(--text-dim)', fontSize:12, textAlign:'center', padding:20 }}>No trainers yet</div>
               )}
             </div>
 
@@ -768,8 +822,8 @@ export default function SuperAdminGymOwners() {
                       background:'var(--card)', border:'2px solid var(--border)',
                       display:'flex', alignItems:'center', justifyContent:'center', fontSize:10,
                     }} aria-hidden="true">{item.icon}</div>
-                    <div style={{ fontSize:13, fontWeight:600, color:'#a0aac0' }}>{item.title}</div>
-                    <div style={{ fontSize:11, color:'#384860' }}>{item.desc}</div>
+                    <div style={{ fontSize:13, fontWeight:600, color:'var(--text-muted)' }}>{item.title}</div>
+                    <div style={{ fontSize:11, color:'var(--text-dim)' }}>{item.desc}</div>
                   </div>
                 ))}
               </div>
@@ -812,18 +866,18 @@ export default function SuperAdminGymOwners() {
         </div>
       </div>
     )
-  }, [drawerGym, drawerTab, getGymSub, getGymPayments, gymMembers, gymTrainers, gymRevenue, monthlyRevenue, setConfirmAction, handleEdit])
+  }, [drawerGym, drawerTab, getGymSub, getGymPayments, gymMembers, gymTrainers, gymRevenue, monthlyRevenue, setConfirmAction, handleEdit, members])
 
   return (
     <div style={{ padding:'24px 28px', maxWidth:1400, margin:'0 auto' }}>
       {/* ── HEADER ── */}
       <div className="go-header" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:16, marginBottom:24 }}>
         <div>
-          <h1 style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:28, fontWeight:800, color:'#e4e8f0', margin:'0 0 4px' }}>Gym Owners</h1>
-          <p style={{ fontSize:13, color:'#506080', margin:0 }}>Manage every registered gym from one unified platform.</p>
+          <h1 style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:28, fontWeight:800, color:'var(--text)', margin:'0 0 4px' }}>Gym Owners</h1>
+          <p style={{ fontSize:13, color:'var(--text-dim)', margin:0 }}>Manage every registered gym from one unified platform.</p>
         </div>
         <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-                <button className="go-btn-primary" onClick={() => setConfirmAction({ type:'approve', gym: null })}><span aria-hidden="true">✅</span> Approve Gym</button>
+                <button className="go-btn-primary" onClick={() => pendingGym ? setConfirmAction({ type:'approve', gym: pendingGym }) : setConfirmAction(null)} disabled={!pendingGym} title={pendingGym ? `Approve ${pendingGym.gymName || pendingGym.name || 'pending gym'}` : 'No gyms awaiting approval'}><span aria-hidden="true">✅</span> Approve Gym</button>
           <button className="go-btn-secondary" onClick={() => {
             const csv = [['Gym','Owner','Email','Phone','Plan','Status','Members','Trainers','Revenue'].join(',')]
             filtered.forEach(g => {
@@ -870,7 +924,7 @@ export default function SuperAdminGymOwners() {
               style={{ paddingLeft:34 }}
             />
             {localSearch && (
-              <button aria-label="Clear search" onClick={() => { setLocalSearch(''); setPage(1) }} style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'#384860', padding:0, lineHeight:0 }}>
+              <button aria-label="Clear search" onClick={() => { setLocalSearch(''); setPage(1) }} style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'var(--text-dim)', padding:0, lineHeight:0 }}>
                 <CloseIcon />
               </button>
             )}
@@ -922,7 +976,7 @@ export default function SuperAdminGymOwners() {
                 Array.from({ length: 5 }, (_, i) => <SkeletonRow key={i} />)
               ) : paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={10} style={{ textAlign:'center', padding:'48px 24px', color:'#384860', fontSize:13 }}>
+                  <td colSpan={10} style={{ textAlign:'center', padding:'48px 24px', color:'var(--text-dim)', fontSize:13 }}>
                     <div style={{ fontSize:40, marginBottom:12 }} aria-hidden="true">🏢</div>
                     {search || statusFilter !== 'all' || planFilter !== 'all'
                       ? 'No gyms match your filters'
@@ -933,9 +987,9 @@ export default function SuperAdminGymOwners() {
                 const gId = g.id || 'default'
                 const sub = getGymSub(gId)
                 const st = sub?.status || g.approvalStatus || g.status || 'pending'
-                const statusColor = STATUS_COLORS[st] || '#6070a0'
+                const statusColor = STATUS_COLORS[st] || 'var(--text-muted)'
                 const planName = sub?.plan || g.plan || '—'
-                const planColor = PLAN_COLORS[planName] || '#6070a0'
+                const planColor = PLAN_COLORS[planName] || 'var(--text-muted)'
                 const isPending = st === 'pending'
 
                 return (
@@ -951,18 +1005,18 @@ export default function SuperAdminGymOwners() {
                           fontSize:12, fontWeight:700, color:'#fff',
                         }} aria-hidden="true">{(g.gymName || g.name || 'G')[0].toUpperCase()}</div>
                         <div style={{ minWidth:0 }}>
-                          <div style={{ fontWeight:600, fontSize:13, color:'#e4e8f0' }}>{g.gymName || g.name || '—'}</div>
-                          <div style={{ fontSize:10, color:'#384860' }}>ID: {(g.id || '').slice(-6)}</div>
+                          <div style={{ fontWeight:600, fontSize:13, color:'var(--text)' }}>{g.gymName || g.name || '—'}</div>
+                          <div style={{ fontSize:10, color:'var(--text-dim)' }}>ID: {(g.id || '').slice(-6)}</div>
                         </div>
                       </div>
                     </td>
-                    <td style={{ fontWeight:500, color:'#a0aac0' }}>{g.ownerName || '—'}</td>
-                    <td style={{ fontSize:12, color:'#6070a0' }}>{g.phone || '—'}</td>
-                    <td style={{ fontSize:12, color:'#6070a0' }}>{g.email || '—'}</td>
+                    <td style={{ fontWeight:500, color:'var(--text-muted)' }}>{g.ownerName || '—'}</td>
+                    <td style={{ fontSize:12, color:'var(--text-muted)' }}>{g.phone || '—'}</td>
+                    <td style={{ fontSize:12, color:'var(--text-muted)' }}>{g.email || '—'}</td>
                     <td><Pill color={planColor}>{planName}</Pill></td>
-                    <td style={{ fontWeight:600, color:'#a0aac0' }}>{gymMembers[gId] || 0}</td>
+                    <td style={{ fontWeight:600, color:'var(--text-muted)' }}>{gymMembers[gId] || 0}</td>
                     <td style={{ fontWeight:600, color:'#ff6a2a' }}>₹{(gymRevenue[gId] || 0).toLocaleString('en-IN')}</td>
-                    <td style={{ fontSize:12, color:'#6070a0' }}>{formatDate(sub?.expiryDate)}</td>
+                    <td style={{ fontSize:12, color:'var(--text-muted)' }}>{formatDate(sub?.expiryDate)}</td>
                     <td>
                       <div style={{
                         display:'inline-flex', alignItems:'center', gap:5,
@@ -998,7 +1052,7 @@ export default function SuperAdminGymOwners() {
               <button disabled={safePage <= 1} onClick={() => setPage(safePage - 1)} style={{
                 padding:'5px 12px', borderRadius:6, border:'1px solid var(--border)',
                 background:'transparent', cursor: safePage > 1 ? 'pointer' : 'default',
-                color: safePage > 1 ? '#a0aac0' : '#384860', fontSize:12, fontWeight:500,
+                color: safePage > 1 ? 'var(--text-muted)' : 'var(--text-dim)', fontSize:12, fontWeight:500,
               }}><span aria-hidden="true">←</span> Prev</button>
               {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
                 let p
@@ -1010,7 +1064,7 @@ export default function SuperAdminGymOwners() {
                   <button key={p} onClick={() => setPage(p)} style={{
                     width:30, height:30, borderRadius:6, border:'none',
                     background: p === safePage ? 'linear-gradient(135deg,#e8420a,#ff6a2a)' : 'transparent',
-                    color: p === safePage ? '#fff' : '#6070a0',
+                    color: p === safePage ? '#fff' : 'var(--text-muted)',
                     cursor:'pointer', fontSize:12, fontWeight: p === safePage ? 700 : 500,
                   }}>{p}</button>
                 )
@@ -1018,7 +1072,7 @@ export default function SuperAdminGymOwners() {
               <button disabled={safePage >= totalPages} onClick={() => setPage(safePage + 1)} style={{
                 padding:'5px 12px', borderRadius:6, border:'1px solid var(--border)',
                 background:'transparent', cursor: safePage < totalPages ? 'pointer' : 'default',
-                color: safePage < totalPages ? '#a0aac0' : '#384860', fontSize:12, fontWeight:500,
+                color: safePage < totalPages ? 'var(--text-muted)' : 'var(--text-dim)', fontSize:12, fontWeight:500,
               }}>Next <span aria-hidden="true">→</span></button>
             </div>
           </div>
@@ -1047,20 +1101,20 @@ export default function SuperAdminGymOwners() {
       {confirmAction && (
         <div className="modal-overlay" onClick={() => setConfirmAction(null)}>
           <div className="modal" role="dialog" aria-modal="true" aria-label={confirmAction.type === 'approve' ? 'Approve Gym' : confirmAction.type === 'suspend' ? 'Suspend Gym' : confirmAction.type === 'activate' ? 'Activate Gym' : confirmAction.type === 'delete' ? 'Delete Gym' : 'Reset License Key'} onClick={e => e.stopPropagation()} style={{ maxWidth:380, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:16 }}>
-            <h3 style={{ marginBottom:8, fontSize:16, color:'#e4e8f0' }}>
+            <h3 style={{ marginBottom:8, fontSize:16, color:'var(--text)' }}>
               {confirmAction.type === 'approve' && 'Approve Gym'}
               {confirmAction.type === 'suspend' && 'Suspend Gym'}
               {confirmAction.type === 'activate' && 'Activate Gym'}
               {confirmAction.type === 'delete' && 'Delete Gym'}
               {confirmAction.type === 'resetLicense' && 'Reset License Key'}
             </h3>
-            <p style={{ fontSize:13, color:'#6070a0', marginBottom:20, lineHeight:1.5 }}>
+            <p style={{ fontSize:13, color:'var(--text-muted)', marginBottom:20, lineHeight:1.5 }}>
               {confirmAction.type === 'approve' && 'This will approve the gym owner and activate their subscription.'}
               {confirmAction.type === 'suspend' && `Are you sure you want to suspend ${confirmAction.gym?.gymName || confirmAction.gym?.name || 'this gym'}? Members will lose access.`}
               {confirmAction.type === 'activate' && `Reactivate ${confirmAction.gym?.gymName || confirmAction.gym?.name || 'this gym'} and restore full access.`}
               {confirmAction.type === 'delete' && (
                 <>
-                  Permanently delete <strong>{confirmAction.gym?.gymName || confirmAction.gym?.name || 'this gym'}</strong>? This removes the gym, owner &amp; staff accounts, members, payments, attendance, plans, devices, licenses, WhatsApp logs, reports and notifications. This cannot be undone.
+                  Permanently delete <strong>{confirmAction.gym?.gymName || confirmAction.gym?.name || 'this gym'}</strong>? This removes the gym record and all its data (members, payments, attendance, plans, devices, licenses, WhatsApp logs, reports and notifications) via database cascade. Owner/staff login accounts are not removed automatically. This cannot be undone.
                 </>
               )}
               {confirmAction.type === 'resetLicense' && `Reset the license key for ${confirmAction.gym?.gymName || confirmAction.gym?.name || 'this gym'}? All registered devices will be invalidated.`}
@@ -1072,7 +1126,7 @@ export default function SuperAdminGymOwners() {
               }} onClick={() => {
                 const { type, gym } = confirmAction
                 if (type === 'approve' && gym) handleApprove(gym)
-                else if (type === 'approve' && !gym) setConfirmAction({ type:'approveGym' })
+                else if (type === 'approve' && !gym) setConfirmAction(null)
                 else if (type === 'suspend') handleSuspend(gym)
                 else if (type === 'activate') handleActivate(gym)
                 else if (type === 'delete') handleDelete(gym)

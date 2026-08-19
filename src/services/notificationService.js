@@ -81,6 +81,68 @@ export async function addNotification(data) {
   return supabaseAddNotification(data)
 }
 
+// ── Platform broadcast (Superadmin Notifications) ──────────────
+// One notification row per target user (user_id + the target's OWN gym_id,
+// never null user_id), deduped by firebase_uid. RLS enforces the sender
+// scope: a super admin may address any gym; gym staff only their own gym.
+// Never throws for per-target failures — returns { sent, failed }.
+export async function broadcastNotification({ title, message, type = 'announcement', icon = '📢', priority = 'normal', actionUrl = '', page = '', tab = '' }) {
+  const client = await getSupabaseClient()
+  const TARGET_ROLES = ['super_admin', 'gym_admin', 'gym_owner', 'trainer', 'admin', 'member']
+  const { data: targets, error } = await client
+    .from('profiles')
+    .select('firebase_uid, role, gym_id')
+    .in('role', TARGET_ROLES)
+  if (error) throw mapSupabaseError(error, 'Failed to load broadcast targets')
+
+  const seen = new Set()
+  const rows = []
+  for (const p of targets || []) {
+    const uid = p?.firebase_uid
+    if (!uid || seen.has(uid)) continue
+    seen.add(uid)
+    rows.push({
+      user_id: uid,
+      gym_id: p.gym_id || null,
+      role: p.role || '',
+      title,
+      message,
+      type,
+      subtype: 'broadcast',
+      priority,
+      icon,
+      action_url: actionUrl || '',
+      page: page || '',
+      tab: tab || '',
+      target_role: p.role || '',
+      read: false,
+    })
+  }
+  if (!rows.length) return { sent: 0, failed: 0 }
+
+  const CHUNK = 100
+  let sent = 0
+  let failed = 0
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const chunk = rows.slice(i, i + CHUNK)
+    const { error: batchErr } = await client.from('notifications').insert(chunk)
+    if (!batchErr) {
+      sent += chunk.length
+      continue
+    }
+    for (const row of chunk) {
+      const { error: singleErr } = await client.from('notifications').insert(row)
+      if (singleErr) {
+        failed++
+        console.error('[Broadcast] per-target insert failed:', singleErr.message)
+      } else {
+        sent++
+      }
+    }
+  }
+  return { sent, failed }
+}
+
 export async function markNotifAsRead(notifId) {
   return supabaseSetNotifRead(notifId, true)
 }

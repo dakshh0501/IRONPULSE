@@ -83,7 +83,7 @@ export default function Members() {
         : filter === 'Expiring' ? expiringSoonIds.has(m.id)
         : m.status === filter
       const q = (searchText || '').toLowerCase()
-      const matchSearch = !q || m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q) || (m.goal||'').toLowerCase().includes(q) || (m.plan||'').toLowerCase().includes(q) || (m.contact||'').includes(q)
+      const matchSearch = !q || m.name.toLowerCase().includes(q) || (m.email||'').toLowerCase().includes(q) || (m.goal||'').toLowerCase().includes(q) || (m.plan||'').toLowerCase().includes(q) || (m.contact||'').includes(q)
       return matchTrainer && matchFilter && matchSearch
     }).sort((a, b) => {
       if (sortBy === 'name') return a.name.localeCompare(b.name)

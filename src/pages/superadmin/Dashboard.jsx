@@ -255,9 +255,9 @@ function RecentActivity({ gyms, payments }) {
 // ─── System Health ───────────────────────────────────────────
 function SystemHealth() {
   const services = [
-    { name: 'Firestore', icon: '🔥', status: 'Operational', color: 'var(--green)' },
+    { name: 'Database', icon: '🔥', status: 'Operational', color: 'var(--green)' },
     { name: 'Authentication', icon: '🔐', status: 'Operational', color: 'var(--green)' },
-    { name: 'Cloud Functions', icon: '⚡', status: 'Operational', color: 'var(--green)' },
+    { name: 'Edge Functions', icon: '⚡', status: 'Operational', color: 'var(--green)' },
     { name: 'PhonePe', icon: '💳', status: 'Operational', color: 'var(--green)' },
     { name: 'Notifications', icon: '🔔', status: 'Operational', color: 'var(--green)' },
     { name: 'License System', icon: '🔑', status: 'Operational', color: 'var(--green)' },

@@ -14,7 +14,7 @@ const TYPE_CONFIG = {
   whatsapp:   { icon:'💬', label:'WhatsApp',      color:'#25D366', bg:'rgba(37,211,102,0.1)'  },
   support:    { icon:'🎫', label:'Support',       color:'#ef4444', bg:'rgba(239,68,68,0.1)'   },
   subscription: { icon:'🔄', label:'Subscription', color:'#8b5cf6', bg:'rgba(139,92,246,0.1)' },
-  system:     { icon:'⚙️', label:'System',       color:'#6070a0', bg:'rgba(96,112,160,0.1)'  },
+  system:     { icon:'⚙️', label:'System',       color:'var(--text-muted)', bg:'rgba(96,112,160,0.1)'  },
 }
 
 if (!document.getElementById('ntf-styles')) {
@@ -243,7 +243,7 @@ export default function Notifications() {
       <div className="stats-grid" style={{ marginBottom: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 12 }}>
         <StatCard label="Unread" value={unreadCount} icon="🔴" color="#ef4444" delay={0} />
         <StatCard label="Today" value={todayCount} icon="📅" color="#3b82f6" delay={1} />
-        <StatCard label="System" value={typeCounts.system || 0} icon="⚙️" color="#6070a0" delay={2} />
+        <StatCard label="System" value={typeCounts.system || 0} icon="⚙️" color="var(--text-muted)" delay={2} />
         <StatCard label="Payments" value={typeCounts.payment || 0} icon="💳" color="#e8420a" delay={3} />
         <StatCard label="Support" value={typeCounts.support || 0} icon="🎫" color="#a855f7" delay={4} />
       </div>

@@ -117,11 +117,11 @@ export default function Security() {
           <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Platform security monitoring, session management, and audit trail.</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="sec-btn-danger" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Requires Firebase Auth Admin SDK">
+          <button className="sec-btn-danger" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Not available in the current platform build">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4, verticalAlign: 'middle' }} aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             Force Logout All
           </button>
-          <button className="sec-btn-secondary" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Requires Firebase Auth Admin SDK">Revoke All Sessions</button>
+          <button className="sec-btn-secondary" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Not available in the current platform build">Revoke All Sessions</button>
         </div>
       </div>
 
@@ -191,7 +191,7 @@ export default function Security() {
             <span style={{ fontSize: 11, color: 'var(--text-dim)' }}><NA /></span>
           </div>
           <div style={{ padding: '16px 18px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
-            Firebase Auth does not expose active session count via the Admin SDK.
+            The platform does not expose active session counts.
             Implement custom session tracking to populate this view.
           </div>
         </div>
@@ -204,7 +204,7 @@ export default function Security() {
             <span style={{ fontSize: 11, color: 'var(--text-dim)' }}><NA /></span>
           </div>
           <div style={{ padding: '16px 18px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
-            Firebase Auth and Firestore do not provide a built-in audit trail.
+            The platform does not provide a built-in audit trail.
             Implement custom audit logging for security events.
           </div>
         </div>
@@ -218,7 +218,7 @@ export default function Security() {
           <span style={{ fontSize: 11, color: 'var(--text-dim)' }}><NA /></span>
         </div>
         <div className="sec-section-body" style={{ padding: '16px 18px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
-          Firebase Auth does not expose a login history API. Enable Firebase Authentication advanced security features or implement custom login event logging to populate this view.
+          The platform does not expose a login history API. Enable platform-level authentication logging or implement custom login event logging to populate this view.
         </div>
       </div>
 
@@ -244,7 +244,7 @@ export default function Security() {
             <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
               <span style={{ marginRight: 8 }} aria-hidden="true">🔐</span> Password Policy
             </h3>
-            <button className="sec-btn-secondary" style={{ padding: '5px 12px', fontSize: 11, opacity: 0.5, cursor: 'not-allowed' }} disabled title="Configure in Firebase Auth Console">Configure</button>
+            <button className="sec-btn-secondary" style={{ padding: '5px 12px', fontSize: 11, opacity: 0.5, cursor: 'not-allowed' }} disabled title="Not available in the current platform build">Configure</button>
           </div>
           <div className="sec-section-body">
             <div className="sec-policy-grid">
@@ -324,11 +324,11 @@ export default function Security() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button className="sec-btn-danger" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Requires Firebase Auth Admin SDK">
+            <button className="sec-btn-danger" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Not available in the current platform build">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }} aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
               Force Logout All Users
             </button>
-            <button className="sec-btn-danger" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Requires Firebase Auth Admin SDK">
+            <button className="sec-btn-danger" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Not available in the current platform build">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }} aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
               Revoke All Sessions
             </button>

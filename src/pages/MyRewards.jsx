@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
-import { redeemDiscountCoupon } from '../services/referralService'
+import { redeemWalletReward, redeemDiscountCoupon } from '../services/referralService'
 import { Gift, Wallet, Clock, CheckCircle, XCircle, TrendingUp, Award, Sparkles } from 'lucide-react'
 
 const REWARD_STATUS_COLORS = {
@@ -53,7 +53,7 @@ function RewardCard({ reward, type, onRedeem, redeeming }) {
         </div>
       )}
 
-      {!isCoupon && status === 'available' && onRedeem && (
+      {status === 'available' && onRedeem && (
         <button
           className="btn btn-primary btn-sm"
           onClick={() => onRedeem(reward)}
@@ -90,9 +90,16 @@ export default function MyRewards() {
   const rewardHistory = useMemo(() => {
     const ledger = (rewardLedger || []).map(r => ({ ...r, _type: 'wallet' }))
     const coupons = (discountCoupons || []).map(c => ({ ...c, _type: 'coupon' }))
+    const ts = (t) => {
+      if (!t) return 0
+      if (typeof t === 'number') return t
+      if (t?.seconds) return t.seconds * 1000
+      const d = new Date(t)
+      return isNaN(d.getTime()) ? 0 : d.getTime()
+    }
     const all = [...ledger, ...coupons].sort((a, b) => {
-      const aDate = a.issuedAt?.seconds || a.createdAt?.seconds || 0
-      const bDate = b.issuedAt?.seconds || b.createdAt?.seconds || 0
+      const aDate = ts(a.issuedAt) || ts(a.createdAt) || ts(a.usedAt)
+      const bDate = ts(b.issuedAt) || ts(b.createdAt) || ts(b.usedAt)
       return bDate - aDate
     })
     if (filter === 'all') return all
@@ -109,7 +116,11 @@ export default function MyRewards() {
     setError('')
     setSuccessMsg('')
     try {
-      await redeemDiscountCoupon(reward.id)
+      if (reward._type === 'coupon') {
+        await redeemDiscountCoupon(reward.id)
+      } else {
+        await redeemWalletReward(reward.id)
+      }
       setSuccessMsg('Reward redeemed successfully!')
       setTimeout(() => setSuccessMsg(''), 3000)
     } catch (err) {
@@ -209,7 +220,7 @@ export default function MyRewards() {
                 key={reward.id}
                 reward={reward}
                 type={reward._type}
-                onRedeem={reward._type === 'coupon' ? undefined : handleRedeem}
+                onRedeem={handleRedeem}
                 redeeming={redeeming}
               />
             ))}

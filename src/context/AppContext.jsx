@@ -99,6 +99,7 @@ import {
   assignTrial as assignTrialService,
   extendExpiry as extendExpiryService,
   changePlan as changePlanService,
+  reactivateSubscription as reactivateSubscriptionService,
   checkAutoExpiry,
 } from '../services/subscriptionService'
 import {
@@ -1593,20 +1594,7 @@ export function AppProvider({ children }) {
   const reactivateSubscription = async () => {
     if (!isAdmin) throw new Error('Unauthorized: only admins can manage subscriptions')
     try {
-      const sub = currentSubscription
-      const now = new Date()
-      const daysMap = { trial: 14, monthly: 30, quarterly: 90, yearly: 365, annual: 365, lifetime: 9999 }
-      const billingInterval = daysMap[sub?.planType] || 30
-      const currentExpiry = sub?.expiryDate ? new Date(sub.expiryDate) : now
-      const newExpiry = new Date(currentExpiry)
-      newExpiry.setDate(newExpiry.getDate() + billingInterval)
-      await setGymSubscriptionFields(gymId, {
-        'subscription.status': 'active',
-        'subscription.licenseStatus': 'active',
-        'subscription.expiryDate': newExpiry.toISOString(),
-        'subscription.cancelledAt': null,
-        'subscription.updatedAt': new Date().toISOString(),
-      })
+      await reactivateSubscriptionService(gymId, currentUser?.uid)
       fireNotif('sub_reactivated', {
         userId: currentUser?.uid,
         title: 'Subscription Reactivated',
@@ -1716,6 +1704,7 @@ export function AppProvider({ children }) {
         setMockScenario: (s) => whatsappService.setMockScenario(s),
         getStats: () => whatsappService.getStats(),
         getLastExecutions: () => whatsappService.getLastExecutions(),
+        getRuleDefs: () => whatsappService.getRuleDefs(),
         runSweepsNow: (m, p) => whatsappService.runSweepsNow(m, p),
         campaigns: {
           async create(c) { const r = await whatsappService.createCampaign(c); await refreshCampaignList(); return r },
