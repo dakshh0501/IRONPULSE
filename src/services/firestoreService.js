@@ -696,8 +696,12 @@ function calculateSubscriptionDates(plan, billingSettings) {
 // billingSettings param is retained for signature compatibility — pricing
 // always resolves from PLAN_AMOUNTS so the UI, checkout, and database
 // calculations can never diverge.
-function calculateSubscriptionAmount(plan, billingSettings) {
-  return PLAN_AMOUNTS[plan] || PLAN_AMOUNTS['Standard'] || 0
+// NOTE: nullish coalescing is REQUIRED — PLAN_AMOUNTS['Trial'] is a
+// legitimate 0 (₹0), and `||` would treat it as missing and fall through
+// to the Standard price (historical bug: Trial rows stored the Standard
+// amount). Only an UNKNOWN plan key falls back to Standard.
+function calculateSubscriptionAmount(plan, _billingSettings) {
+  return PLAN_AMOUNTS[plan] ?? PLAN_AMOUNTS['Standard'] ?? 0
 }
 
 export async function addSubscription(subData, billingSettings) {
