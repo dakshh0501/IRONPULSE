@@ -13,6 +13,7 @@ import { subscribeRealtime } from './realtimeService'
 function mapDeviceRow(r) {
   return {
     id: r.id,
+    gymId: r.gym_id || '',
     deviceId: r.device_id || '',
     deviceName: r.device_name || '',
     platform: r.platform || '',
