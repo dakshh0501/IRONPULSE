@@ -24,6 +24,13 @@ export default function Checkout() {
 
   const subId = searchParams.get('subId')
   const paymentType = searchParams.get('type') || 'new'
+  const targetPlan = searchParams.get('plan') || ''
+
+  // Upgrade/renewal price is decided by the TARGET plan from the
+  // authoritative PLAN_AMOUNTS pricing (never the billing row's stale
+  // amount). Unknown plan values fall back to the billing row.
+  const isPlanChange = paymentType === 'upgrade' || paymentType === 'renewal'
+  const hasTargetPlan = isPlanChange && Object.prototype.hasOwnProperty.call(PLAN_AMOUNTS, targetPlan)
 
   // The platform-level `subscriptions` state is loaded only for super_admin.
   // For other roles (gym_admin etc.) fall back to a one-shot row read — RLS
@@ -41,7 +48,11 @@ export default function Checkout() {
   const sub = useMemo(() => subscriptions.find(s => s.id === subId) || fallbackSub, [subscriptions, subId, fallbackSub])
   const gym = useMemo(() => gyms.find(g => g.id === sub?.gymId), [gyms, sub])
 
-  const amount = sub?.finalAmount || sub?.amount || PLAN_AMOUNTS[sub?.plan] || 0
+  const amount = useMemo(() => {
+    if (hasTargetPlan) return PLAN_AMOUNTS[targetPlan] ?? PLAN_AMOUNTS['Standard'] ?? 0
+    return sub?.finalAmount || sub?.amount || PLAN_AMOUNTS[sub?.plan] || 0
+  }, [hasTargetPlan, targetPlan, sub])
+  const effectivePlan = hasTargetPlan ? targetPlan : (sub?.plan || 'Standard')
   const amountDisplay = `₹${(amount / 100).toFixed(2)}`
   const cashfreeEnabled = isCashfreeConfigured()
 
@@ -83,7 +94,7 @@ export default function Checkout() {
           type: paymentType,
           gymId: sub.gymId,
           subscriptionId: sub.id,
-          plan: sub.plan,
+          plan: effectivePlan,
           originalAmount: sub.originalAmount || amount,
           discountAmount: (sub.originalAmount || amount) - amount,
           finalAmount: amount,
@@ -116,7 +127,7 @@ export default function Checkout() {
         type: paymentType,
         gymId: sub.gymId,
         subscriptionId: sub.id,
-        plan: sub.plan,
+        plan: effectivePlan,
         originalAmount: sub.originalAmount || amount,
         discountAmount: (sub.originalAmount || amount) - amount,
         finalAmount: amount,
@@ -145,7 +156,7 @@ export default function Checkout() {
       setError(err.message || 'Payment initiation failed')
       setLoading(false)
     }
-  }, [sub, paymentType, amount, name, email, phone, initiatePayment, cashfreeEnabled, currentUser])
+  }, [sub, paymentType, effectivePlan, amount, name, email, phone, initiatePayment, cashfreeEnabled, currentUser])
 
   if (!sub) {
     return (
@@ -183,7 +194,7 @@ export default function Checkout() {
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: 'var(--text-muted)' }}>Plan</span>
-            <span><span className="badge badge-purple">{sub.plan}</span></span>
+            <span><span className="badge badge-purple">{effectivePlan}</span></span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: 'var(--text-muted)' }}>Type</span>

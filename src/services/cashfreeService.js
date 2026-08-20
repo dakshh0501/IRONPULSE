@@ -26,20 +26,25 @@ export function getCashfreeMode() {
 }
 
 export function getCashfreeConfig() {
+  // Cashfree's App ID IS the public client identifier (the same value used
+  // as x-client-id) — the two env names are aliases for ONE public credential.
+  // Prefer VITE_CASHFREE_APP_ID; accept VITE_CASHFREE_CLIENT_ID for backward
+  // compatibility. The secret (CASHFREE_CLIENT_SECRET) is NEVER in the browser.
+  const canonicalId = import.meta.env.VITE_CASHFREE_APP_ID || import.meta.env.VITE_CASHFREE_CLIENT_ID || ''
   return {
     mode: getCashfreeMode(),
-    appId: import.meta.env.VITE_CASHFREE_APP_ID || '',
-    clientId: import.meta.env.VITE_CASHFREE_CLIENT_ID || '',
+    appId: canonicalId,
+    clientId: canonicalId,
     apiVersion: API_VERSION,
   }
 }
 
-// Configured = the SDK needs the PUBLIC app id + client id (both are
-// non-secret Cashfree client credentials). The secret
-// (CASHFREE_CLIENT_SECRET) lives ONLY in Cloud Functions via Secret Manager.
+// Configured = the canonical PUBLIC Cashfree client id is present. The SDK
+// and order API need this single public credential (non-secret); the secret
+// lives ONLY server-side (Edge Function secrets).
 export function isCashfreeConfigured() {
   const cfg = getCashfreeConfig()
-  return !!(cfg.appId && cfg.clientId)
+  return !!cfg.clientId
 }
 
 /**

@@ -90,10 +90,21 @@ export default function GymSubscription() {
   const [saving, setSaving] = useState('')
   const [actionError, setActionError] = useState('')
 
+  // Paid renewals/upgrades MUST NOT change the subscription directly — they
+  // enter the payment flow (Checkout → provider → fulfill_payment RPC), which
+  // is the only mechanism that activates/changes a paid plan. Only genuinely
+  // ₹0 plans (Trial) may activate through the controlled lifecycle path, where
+  // update_gym_subscription validates the amount against plan_pricing.
   const handleRenew = async () => {
     setActionError(''); setSaving('renew')
     try {
-      await renewSubscription(selectedPlan, selectedPlan.toLowerCase(), getAmount(selectedPlan))
+      const amount = getAmount(selectedPlan)
+      if (amount > 0) {
+        if (!subRowId) { setActionError('No billing record found for this gym. Please contact support.'); return }
+        navigate(`/checkout?subId=${encodeURIComponent(subRowId)}&type=renewal&plan=${encodeURIComponent(selectedPlan)}`)
+        return
+      }
+      await renewSubscription(selectedPlan, selectedPlan.toLowerCase(), amount)
       setShowRenew(false)
     } catch (err) {
       setActionError('Renewal failed. Please try again.')
@@ -102,7 +113,13 @@ export default function GymSubscription() {
   const handleUpgrade = async () => {
     setActionError(''); setSaving('upgrade')
     try {
-      await upgradeSubscription(selectedPlan, selectedPlan.toLowerCase(), getAmount(selectedPlan))
+      const amount = getAmount(selectedPlan)
+      if (amount > 0) {
+        if (!subRowId) { setActionError('No billing record found for this gym. Please contact support.'); return }
+        navigate(`/checkout?subId=${encodeURIComponent(subRowId)}&type=upgrade&plan=${encodeURIComponent(selectedPlan)}`)
+        return
+      }
+      await upgradeSubscription(selectedPlan, selectedPlan.toLowerCase(), amount)
       setShowUpgrade(false)
     } catch (err) {
       setActionError('Upgrade failed. Please try again.')
@@ -334,7 +351,7 @@ export default function GymSubscription() {
             </select>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="btn btn-ghost" onClick={() => setShowRenew(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleRenew} disabled={saving}>{saving === 'renew' ? 'Processing...' : 'Confirm Renew'}</button>
+              <button className="btn btn-primary" onClick={handleRenew} disabled={saving}>{saving === 'renew' ? 'Processing...' : getAmount(selectedPlan) > 0 ? `Proceed to Checkout (${formatAmount(selectedPlan)})` : 'Confirm Renew'}</button>
             </div>
           </div>
         </div>
@@ -349,7 +366,7 @@ export default function GymSubscription() {
             </select>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="btn btn-ghost" onClick={() => setShowUpgrade(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleUpgrade} disabled={saving}>{saving === 'upgrade' ? 'Processing...' : 'Confirm Upgrade'}</button>
+              <button className="btn btn-primary" onClick={handleUpgrade} disabled={saving}>{saving === 'upgrade' ? 'Processing...' : getAmount(selectedPlan) > 0 ? `Proceed to Checkout (${formatAmount(selectedPlan)})` : 'Confirm Upgrade'}</button>
             </div>
           </div>
         </div>
