@@ -8,6 +8,7 @@ import {
   useRef,
 } from 'react'
 import { useAuth } from './AuthContext'
+import { PLAN_AMOUNTS } from '../constants/plans'
 import {
   subscribeToMembers,
   subscribeToMyMembers,
@@ -303,7 +304,7 @@ export function AppProvider({ children }) {
           'subscription.paymentMethod': 'Not Set',
           'subscription.startDate': initNow.toISOString(),
           'subscription.expiryDate': initExpiry.toISOString(),
-          'subscription.amount': newSubscription === 'Trial' ? 0 : 0,
+          'subscription.amount': PLAN_AMOUNTS[newSubscription] || 0,
           'subscription.currency': 'INR',
           'subscription.deviceLimit': planLower === 'trial' ? 1 : 2,
           'subscription.licenseKey': await generateUniqueLicenseKey(),
