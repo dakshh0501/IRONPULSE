@@ -5,6 +5,7 @@
 // This file only contains Firestore persistence and Cloud Function calls.
 
 import { subscribeRealtime } from './realtimeService'
+import { PLAN_AMOUNTS, isValidPaidPlan } from '../constants/plans'
 
 
 /** Lazy supabase client (supabase mode only — never imported in firebase builds) */
@@ -66,31 +67,37 @@ function generatePaymentId() {
 
 /**
  * Build a payment request object for PhonePe integration.
- * Returns a structured object ready for Firestore persistence.
+ * Returns a structured object ready for persistence.
  * Does NOT make any API calls.
+ *
+ * STRICT plan validation — there are deliberately NO silent fallbacks:
+ * a missing, Trial, or unrecognized plan THROWS instead of defaulting to
+ * 'Standard', and the amounts are taken from the canonical PLAN_AMOUNTS
+ * source (caller-supplied amounts are ignored so a request can never
+ * carry a manipulated price).
  *
  * @param {Object} params
  * @param {string} params.type - 'new' | 'renewal' | 'upgrade'
  * @param {string} params.gymId
- * @param {string} params.subscriptionId
- * @param {string} params.plan - plan name (e.g. 'Standard', 'Premium')
- * @param {number} params.originalAmount - amount before discount (paise)
- * @param {number} params.discountAmount - discount applied (paise)
- * @param {number} params.finalAmount - amount after discount (paise)
- * @param {string} params.currency - e.g. 'INR'
- * @param {string} params.paymentMethod - e.g. 'UPI', 'Card'
+ * @param {string} [params.subscriptionId]
+ * @param {string} params.plan - canonical payable plan (e.g. 'Standard', 'Premium')
+ * @param {string} [params.currency] - e.g. 'INR'
+ * @param {string} [params.paymentMethod] - e.g. 'UPI', 'Card'
+ * @throws {Error} when plan is missing, 'Trial', or not a payable PLAN_AMOUNTS key
  */
 export function buildPaymentRequest({
   type,
   gymId,
   subscriptionId,
   plan,
-  originalAmount,
-  discountAmount,
-  finalAmount,
   currency,
   paymentMethod,
 }) {
+  if (!isValidPaidPlan(plan)) {
+    throw new Error(`Cannot initiate checkout: invalid or non-payable plan "${plan}"`)
+  }
+  // Canonical pricing from the single authoritative source (paise).
+  const canonicalAmount = PLAN_AMOUNTS[plan]
   const paymentId = generatePaymentId()
   const now = new Date()
 
@@ -99,10 +106,10 @@ export function buildPaymentRequest({
     gymId: gymId || 'default',
     subscriptionId: subscriptionId || null,
     type,
-    plan: plan || 'Standard',
-    originalAmount: Number(originalAmount) || 0,
-    discountAmount: Number(discountAmount) || 0,
-    finalAmount: Number(finalAmount) || 0,
+    plan,
+    originalAmount: canonicalAmount,
+    discountAmount: 0,
+    finalAmount: canonicalAmount,
     currency: currency || 'INR',
     paymentMethod: paymentMethod || 'UPI',
     paymentGateway: 'PhonePe',

@@ -5,6 +5,7 @@
 import { json, loadCashfreeConfig, cashfreeHeaders, mapCashfreeOrderStatus } from '../_shared/helpers.ts'
 import { adminClient } from '../_shared/db.ts'
 import { authenticateCaller, isPaymentViewer } from '../_shared/auth.ts'
+import { withCors } from '../_shared/cors.ts'
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
@@ -100,4 +101,4 @@ const handler = async (req: Request): Promise<Response> => {
   }
 }
 
-Deno.serve(handler)
+Deno.serve(withCors(handler))

@@ -2,6 +2,13 @@
 // Callable Edge Function (verify_jwt on). Mirrors phonepe-pay: same validation,
 // role checks, gym ownership, pending idempotency; returns
 // { attemptId, redirectUrl: null, paymentSessionId, orderId, error }.
+//
+// SERVER-SIDE PRICE AUTHORITY: client-supplied finalAmount/originalAmount/
+// discountAmount are NEVER trusted. The payable amount is derived exclusively
+// from the validated plan via the authoritative plan_pricing table
+// (migration 0016), with an embedded snapshot of the current test pricing as
+// fallback when the table cannot be read. Missing, Trial, or unrecognized
+// plans are rejected with 400 BEFORE any order or attempt row is created.
 
 import {
   json,
@@ -12,7 +19,43 @@ import {
   type JsonRecord,
 } from '../_shared/helpers.ts'
 import { adminClient } from '../_shared/db.ts'
+import type { SupabaseClient } from '../_shared/supabase.ts'
 import { authenticateCaller, isPaymentInitiator } from '../_shared/auth.ts'
+import { withCors } from '../_shared/cors.ts'
+
+// Canonical payable plans (display casing matches src/constants/plans.js).
+// Trial is deliberately excluded — ₹0 plans can never enter paid checkout.
+const PAYABLE_PLAN_NAMES = ['Standard', 'Premium', 'Quarterly', 'Annual', 'Lifetime', 'Day Pass']
+
+// Embedded pricing snapshot mirroring the plan_pricing seeds (migration 0016 /
+// current TEST pricing: every paid tier = ₹1 = 100 paise). Used ONLY when the
+// plan_pricing table cannot be read; the DB table always wins when populated.
+const PLAN_PRICING_FALLBACK_PAISE: Record<string, number> = {
+  'standard': 100,
+  'premium': 100,
+  'quarterly': 100,
+  'annual': 100,
+  'lifetime': 100,
+  'day pass': 100,
+}
+
+/** Authoritative lowercase plan → paise map. DB (plan_pricing) wins; embedded snapshot falls back. */
+async function loadPlanPricing(db: SupabaseClient): Promise<Record<string, number>> {
+  try {
+    const { data: rows, error } = await db.from('plan_pricing').select('plan, amount_paise')
+    if (!error && Array.isArray(rows) && rows.length > 0) {
+      const map: Record<string, number> = {}
+      for (const row of rows as JsonRecord[]) {
+        const key = String(row.plan ?? '').toLowerCase().trim()
+        if (key) map[key] = Number(row.amount_paise) || 0
+      }
+      if (Object.keys(map).length > 0) return map
+    }
+  } catch {
+    // table unavailable — fall through to the embedded snapshot
+  }
+  return { ...PLAN_PRICING_FALLBACK_PAISE }
+}
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
@@ -32,10 +75,6 @@ const handler = async (req: Request): Promise<Response> => {
   const type = String(data.type || 'new')
   const gymId = String(data.gymId || '')
   const subscriptionId = String(data.subscriptionId || '') || null
-  const plan = String(data.plan || 'Standard')
-  const originalAmount = Number(data.originalAmount) || 0
-  const discountAmount = Number(data.discountAmount) || 0
-  const finalAmount = Number(data.finalAmount) || 0
   const currency = String(data.currency || 'INR')
   const name = String(data.name || '')
   const email = String(data.email || '')
@@ -44,9 +83,8 @@ const handler = async (req: Request): Promise<Response> => {
   const authUid = String(data.authUid || '') || null
 
   // ── validation (createCashfreeOrder parity) ──
-  if (!finalAmount || finalAmount <= 0) {
-    return json({ attemptId: null, redirectUrl: null, paymentSessionId: null, orderId: null, error: 'Invalid amount: finalAmount must be positive' })
-  }
+  // NOTE: no amount/plan checks here — plan + price are resolved and enforced
+  // server-side in the dedicated block below (client amounts are never read).
   if (phone && !/^\d{10}$/.test(phone.replace(/\D/g, ''))) {
     return json({ attemptId: null, redirectUrl: null, paymentSessionId: null, orderId: null, error: 'Invalid phone number: must be 10 digits' })
   }
@@ -55,6 +93,29 @@ const handler = async (req: Request): Promise<Response> => {
     return json({ attemptId: null, redirectUrl: null, paymentSessionId: null, orderId: null, error: 'subscriptionId is required for renewal/upgrade' })
   }
   if (!gymId) return json({ attemptId: null, redirectUrl: null, paymentSessionId: null, orderId: null, error: 'gymId is required' })
+
+  // ── SERVER-SIDE PRICE & PLAN VALIDATION ──
+  // The payable amount is derived ONLY from the validated plan via the
+  // authoritative plan_pricing table (migration 0016). Missing, Trial, or
+  // unrecognized plans are rejected BEFORE any order or attempt is created;
+  // client-supplied finalAmount/originalAmount/discountAmount are ignored.
+  const db = adminClient()
+
+  const planInput = String(data.plan ?? '').trim()
+  const planCanonical = PAYABLE_PLAN_NAMES.find((p) => p.toLowerCase() === planInput.toLowerCase())
+  const pricing = await loadPlanPricing(db)
+  const serverAmountPaise = planCanonical ? pricing[planCanonical.toLowerCase()] : undefined
+
+  if (!planCanonical || serverAmountPaise === undefined || serverAmountPaise <= 0) {
+    return json({ attemptId: null, redirectUrl: null, paymentSessionId: null, orderId: null, error: 'Invalid or non-payable plan selected.' }, 400)
+  }
+
+  // Server-authoritative values — these flow into BOTH the payment attempt
+  // row and the Cashfree order payload; the client cannot influence them.
+  const plan = planCanonical
+  const finalAmount = serverAmountPaise
+  const originalAmount = serverAmountPaise
+  const discountAmount = 0
 
   // ── role + gym ownership (parity) ──
   if (!isPaymentInitiator(caller.role)) {
@@ -68,8 +129,6 @@ const handler = async (req: Request): Promise<Response> => {
   if (!config) {
     return json({ attemptId: null, redirectUrl: null, paymentSessionId: null, orderId: null, error: 'Cashfree is not configured. Set the CASHFREE_CLIENT_ID and CASHFREE_CLIENT_SECRET secrets.' })
   }
-
-  const db = adminClient()
 
   // ── pending idempotency (returns existing order when it has one) ──
   if (subscriptionId) {
@@ -193,4 +252,4 @@ const handler = async (req: Request): Promise<Response> => {
   }
 }
 
-Deno.serve(handler)
+Deno.serve(withCors(handler))

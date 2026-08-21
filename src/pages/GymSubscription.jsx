@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 import { openSupportWhatsApp } from '../utils/whatsappSupport'
 import { getSubscriptionByGymId } from '../services/firestoreService'
-import { PLAN_AMOUNTS } from '../constants/plans'
+import { PLAN_AMOUNTS, resolveCurrentPlan } from '../constants/plans'
 
 const subStyles = document.createElement('style')
 subStyles.textContent = `
@@ -73,10 +73,27 @@ export default function GymSubscription() {
     return () => { alive = false }
   }, [gymId])
 
+  // Current plan identity always comes from the AUTHORITATIVE gyms-row
+  // subscription jsonb (`currentSubscription`) — never the legacy billing
+  // row. The billing row contributes only its id (payment-attempt target).
+  // Only a valid PAYABLE plan resolves; Trial and invalid/missing values
+  // resolve to null — there is intentionally NO fallback plan.
+  const currentPlan = useMemo(
+    () => resolveCurrentPlan(sub?.planName, sub?.plan),
+    [sub?.planName, sub?.plan],
+  )
+
+  // Pay Now is only meaningful when a valid payable current plan exists AND
+  // payment is actually outstanding: an unpaid jsonb payment state or a
+  // lapsed (expired) subscription. An ACTIVE + PAID subscription has no
+  // outstanding payment (Renew / Upgrade are the correct flows), and a ₹0
+  // trial plan (currentPlan null) can never show Pay Now.
+  const showPayNow = !!subRowId && !!currentPlan && (sub?.paymentStatus !== 'paid' || sub?.status === 'expired')
+
   const goPayNow = useCallback(() => {
-    if (!subRowId) return
-    navigate(`/checkout?subId=${encodeURIComponent(subRowId)}&type=new`)
-  }, [subRowId, navigate])
+    if (!subRowId || !currentPlan) return
+    navigate(`/checkout?subId=${encodeURIComponent(subRowId)}&type=new&plan=${encodeURIComponent(currentPlan)}`)
+  }, [subRowId, navigate, currentPlan])
 
   const daysRemaining = sub?.expiryDate
     ? Math.ceil((new Date(sub.expiryDate) - new Date()) / (1000 * 60 * 60 * 24))
@@ -263,7 +280,7 @@ export default function GymSubscription() {
             {/* Action buttons */}
             {(sub.status === 'active' || sub.status === 'trial' || sub.status === 'expired') && (
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 28 }}>
-                {subRowId && (
+                {showPayNow && (
                   <button className="sub-btn-primary" onClick={goPayNow}>💳 Pay Now</button>
                 )}
                 {sub.status !== 'expired' && (

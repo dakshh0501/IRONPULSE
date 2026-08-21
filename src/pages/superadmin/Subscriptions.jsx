@@ -12,7 +12,7 @@ import {
   extendExpiry as extendExpiryForGym,
   changePlan as changePlanForGym,
 } from '../../services/subscriptionService'
-import { PLAN_AMOUNTS } from '../../constants/plans'
+import { PLAN_AMOUNTS, isValidPaidPlan } from '../../constants/plans'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 let _supabaseClient = null
@@ -1112,7 +1112,17 @@ export default function SuperAdminSubscriptions() {
                     <button key={key} disabled={disabled}
                       onClick={() => {
                         if (key === 'paynow') {
-                          navigate(`/checkout?subId=${encodeURIComponent(selectedSub.id)}&type=new`)
+                          const gym = gyms.find(g => g.id === selectedSub.gymId || g.gymId === selectedSub.gymId)
+                          // Canonical paid-plan resolution — authoritative gym
+                          // jsonb first, billing row second. No implicit
+                          // Standard fallback: if nothing valid resolves, the
+                          // checkout page itself blocks with a clear error.
+                          const jsonbPlan = gym?.subscription?.planName || gym?.subscription?.plan
+                          const rowPlan = selectedSub.plan
+                          const plan = isValidPaidPlan(jsonbPlan) ? jsonbPlan : isValidPaidPlan(rowPlan) ? rowPlan : ''
+                          const paidAndActive = selectedSub.status === 'active' && selectedSub.paymentStatus === 'paid'
+                          const query = `subId=${encodeURIComponent(selectedSub.id)}&type=${paidAndActive ? 'renewal' : 'new'}${plan ? `&plan=${encodeURIComponent(plan)}` : ''}`
+                          navigate(`/checkout?${query}`)
                         } else if (key === 'activate' || key === 'trial' || key === 'suspend' || key === 'expire' || key === 'delete') {
                           setConfirmAction({ type: key })
                         } else if (key === 'extend') {

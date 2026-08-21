@@ -14,7 +14,7 @@ import {
   handleCollectPayment,
   isCashfreeConfigured,
 } from '../services/cashfreeService'
-import { PLAN_AMOUNTS } from '../constants/plans'
+import { resolveCheckoutPlan } from '../constants/plans'
 
 export default function Checkout() {
   const [searchParams] = useSearchParams()
@@ -26,15 +26,21 @@ export default function Checkout() {
   const paymentType = searchParams.get('type') || 'new'
   const targetPlan = searchParams.get('plan') || ''
 
-  // Upgrade/renewal price is decided by the TARGET plan from the
-  // authoritative PLAN_AMOUNTS pricing (never the billing row's stale
-  // amount). Unknown plan values fall back to the billing row.
-  const isPlanChange = paymentType === 'upgrade' || paymentType === 'renewal'
-  const hasTargetPlan = isPlanChange && Object.prototype.hasOwnProperty.call(PLAN_AMOUNTS, targetPlan)
+  // CANONICAL target-plan validation (constants/plans.js) — one source of
+  // truth. A paid checkout REQUIRES an explicit, valid, payable target plan
+  // (PLAN_AMOUNTS key with amount > 0). Trial, missing, or invalid plans —
+  // and unsupported types — are BLOCKED with a clear error and can never
+  // silently become Standard. The billing row is only a payment-attempt
+  // target (id), never a plan/amount authority.
+  const { valid: checkoutValid, plan: effectivePlan, amount } = resolveCheckoutPlan(paymentType, targetPlan)
+  const checkoutInvalid = !checkoutValid
+  const amountDisplay = `₹${((amount || 0) / 100).toFixed(2)}`
+  const cashfreeEnabled = isCashfreeConfigured()
 
   // The platform-level `subscriptions` state is loaded only for super_admin.
   // For other roles (gym_admin etc.) fall back to a one-shot row read — RLS
-  // permits super_admin (all) and gym_admin (own gym).
+  // permits super_admin (all) and gym_admin (own gym). The row is ONLY the
+  // payment-attempt target (id) — never a plan/amount authority.
   const [fallbackSub, setFallbackSub] = useState(null)
   useEffect(() => {
     if (!subId || subscriptions.some(s => s.id === subId)) return
@@ -48,14 +54,6 @@ export default function Checkout() {
   const sub = useMemo(() => subscriptions.find(s => s.id === subId) || fallbackSub, [subscriptions, subId, fallbackSub])
   const gym = useMemo(() => gyms.find(g => g.id === sub?.gymId), [gyms, sub])
 
-  const amount = useMemo(() => {
-    if (hasTargetPlan) return PLAN_AMOUNTS[targetPlan] ?? PLAN_AMOUNTS['Standard'] ?? 0
-    return sub?.finalAmount || sub?.amount || PLAN_AMOUNTS[sub?.plan] || 0
-  }, [hasTargetPlan, targetPlan, sub])
-  const effectivePlan = hasTargetPlan ? targetPlan : (sub?.plan || 'Standard')
-  const amountDisplay = `₹${(amount / 100).toFixed(2)}`
-  const cashfreeEnabled = isCashfreeConfigured()
-
   const [name, setName] = useState(gym?.ownerName || sub?.gymName || '')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -63,6 +61,14 @@ export default function Checkout() {
   const [error, setError] = useState(null)
 
   const handlePay = useCallback(async () => {
+    // Canonical guard: invalid/missing/Trial target plan → no payment request
+    // of any kind (no Cashfree order, no PhonePe order, no attempt, no
+    // subscription mutation). The blocking error page also prevents the
+    // checkout form from rendering in this state.
+    if (checkoutInvalid) {
+      setError('Invalid payment plan. Please return to Subscription and try again.')
+      return
+    }
     if (!sub) return
 
     const phoneDigits = phone.replace(/\D/g, '')
@@ -95,8 +101,8 @@ export default function Checkout() {
           gymId: sub.gymId,
           subscriptionId: sub.id,
           plan: effectivePlan,
-          originalAmount: sub.originalAmount || amount,
-          discountAmount: (sub.originalAmount || amount) - amount,
+          originalAmount: amount,
+          discountAmount: 0,
           finalAmount: amount,
           currency: sub.currency || 'INR',
           name: name.trim(),
@@ -128,8 +134,8 @@ export default function Checkout() {
         gymId: sub.gymId,
         subscriptionId: sub.id,
         plan: effectivePlan,
-        originalAmount: sub.originalAmount || amount,
-        discountAmount: (sub.originalAmount || amount) - amount,
+        originalAmount: amount,
+        discountAmount: 0,
         finalAmount: amount,
         currency: sub.currency || 'INR',
         paymentMethod: 'PhonePe',
@@ -156,7 +162,24 @@ export default function Checkout() {
       setError(err.message || 'Payment initiation failed')
       setLoading(false)
     }
-  }, [sub, paymentType, effectivePlan, amount, name, email, phone, initiatePayment, cashfreeEnabled, currentUser])
+  }, [sub, paymentType, effectivePlan, amount, name, email, phone, initiatePayment, cashfreeEnabled, currentUser, checkoutInvalid])
+
+  // BLOCKING state: invalid/missing/Trial target plan (or unsupported type).
+  // No checkout form, no payment buttons — nothing can initiate an order.
+  if (checkoutInvalid) {
+    return (
+      <div className="page-container" style={{ padding: 32 }}>
+        <div className="empty-state" style={{ textAlign: 'center', padding: 64, color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }} aria-hidden="true">⛔</div>
+          <h3 style={{ marginBottom: 8 }}>Invalid Payment</h3>
+          <p>Invalid payment plan. Please return to Subscription and try again.</p>
+          <button className="btn btn-primary" onClick={() => navigate('/subscription')} style={{ marginTop: 16 }}>
+            Back to Subscription
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   if (!sub) {
     return (
