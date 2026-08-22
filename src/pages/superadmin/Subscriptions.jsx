@@ -628,6 +628,19 @@ export default function SuperAdminSubscriptions() {
       const realAmount = selectedSub.amount || PLAN_AMOUNTS[formPlan] || 0
 
       if (gymId) {
+        // ── PAID PLAN GATE ─────────────────────────────────────
+        // Renew, upgrade, and change-to-paid MUST NOT activate without
+        // payment — redirect to checkout (mirrors GymSubscription.jsx).
+        // Trial/₹0 plans and downgrade (business rule: immediate) stay
+        // on the direct-service path.
+        const checkoutTypes = { renew: 'renewal', upgrade: 'upgrade', change: 'upgrade' }
+        const candidateAmount = PLAN_AMOUNTS[formPlan] || 0
+        if (checkoutTypes[action] && candidateAmount > 0) {
+          navigate(`/checkout?subId=${encodeURIComponent(selectedSub.id)}&type=${checkoutTypes[action]}&plan=${encodeURIComponent(formPlan)}`)
+          setLoading(false)
+          return
+        }
+
         // Extend adds `formDays` from the later of the current expiry (if still
         // in the future) and today — matches the gym-facing Extend behavior.
         const curEnd = selectedSub.endDate?.seconds
