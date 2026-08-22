@@ -363,6 +363,9 @@ export async function extendExpiry(gymId, newExpiryDate, actorUid) {
   await updateGymSubscription(gymId, {
     expiryDate: newExpiryDate,
     status: 'active',
+    planId: current.planType || '',
+    planName: current.planName || current.planId || '',
+    amount: current.amount != null ? current.amount : 0,
   })
 
   await addHistoryRecord({
