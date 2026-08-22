@@ -359,13 +359,18 @@ export async function assignTrial(gymId, trialDays, actorUid) {
 }
 
 export async function extendExpiry(gymId, newExpiryDate, actorUid) {
+  const current = await supabaseGetGymSubscription(gymId)
   await updateGymSubscription(gymId, {
     expiryDate: newExpiryDate,
     status: 'active',
   })
 
   await addHistoryRecord({
-    gymId, planId: '', planName: '', amount: 0, currency: 'INR',
+    gymId,
+    planId: current.planType || '',
+    planName: current.planName || current.planId || '',
+    amount: current.amount != null ? current.amount : 0,
+    currency: 'INR',
     status: 'active', paymentId: '', transactionId: '',
     startDate: '', expiryDate: newExpiryDate, createdBy: actorUid || '',
     action: 'extended',
