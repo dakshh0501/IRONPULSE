@@ -1,4 +1,5 @@
 import { generateLicenseKey } from '../utils/license'
+import { PLAN_AMOUNTS } from '../constants/plans'
 import { subscribeRealtime } from './realtimeService'
 
 function getDeviceLimit(planType) {
@@ -360,19 +361,20 @@ export async function assignTrial(gymId, trialDays, actorUid) {
 
 export async function extendExpiry(gymId, newExpiryDate, actorUid) {
   const current = await supabaseGetGymSubscription(gymId)
+  const canonicalAmount = PLAN_AMOUNTS[current.planType] ?? PLAN_AMOUNTS['Standard'] ?? 0
   await updateGymSubscription(gymId, {
     expiryDate: newExpiryDate,
     status: 'active',
     planId: current.planType || '',
     planName: current.planName || current.planId || '',
-    amount: current.amount != null ? current.amount : 0,
+    amount: canonicalAmount,
   })
 
   await addHistoryRecord({
     gymId,
     planId: current.planType || '',
     planName: current.planName || current.planId || '',
-    amount: current.amount != null ? current.amount : 0,
+    amount: canonicalAmount,
     currency: 'INR',
     status: 'active', paymentId: '', transactionId: '',
     startDate: '', expiryDate: newExpiryDate, createdBy: actorUid || '',
